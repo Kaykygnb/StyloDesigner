@@ -1,4 +1,13 @@
-// Ícones SVG inline (traço de 1.8px, herdam currentColor).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/icons.js — ÍCONES SVG (inline, sem dependências)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto).
+ * Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
+ */
 const P = {
   move: '<path d="M5 3l14 7.5-6.2 1.9L10.5 19z"/>',
   frame: '<path d="M7 3v18M17 3v18M3 7h18M3 17h18"/>',
@@ -72,8 +81,14 @@ const P = {
   back: '<rect x="4" y="4" width="12" height="12" rx="2"/><path d="M20 10v8a2 2 0 01-2 2h-8"/>',
 };
 
+/**
+ * Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+ * @param {string} name
+ * @param {number} [size=16]  px
+ */
 export const icon = (name, size = 16) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] || ''}</svg>`;
 
+/** Ícone usado na lista de camadas para cada tipo de camada. */
 export const nodeIcon = (type) =>
   ({ frame: 'frame', rect: 'rect', ellipse: 'ellipse', text: 'text', group: 'group', line: 'line', path: 'pen' })[type] || 'rect';

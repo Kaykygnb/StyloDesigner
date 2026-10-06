@@ -1,4 +1,12 @@
-// Painel direito (aba Design): propriedades da seleção, nomeadas como no CSS.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/props.js — PAINEL "DESIGN" (PROPRIEDADES DA SELEÇÃO)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Os campos usam os nomes do CSS (gap, padding, justify-content, align-items, opacity, mix-blend-mode...) de propósito:
+ *  quem usa o painel aprende CSS sem perceber, e o código gerado bate com o que está escrito aqui.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { h, ico, iconButton, numField, selectField, segmented, colorRow } from './dom.js';
 import {
   BLEND_MODES, FONT_FAMILIES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
@@ -7,30 +15,54 @@ import {
 import { fillCss } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
 
+/**
+ * Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
+ *
+ * COMO FUNCIONA (importante para entender o arquivo):
+ *  - Cada seção (alinhar, camada, auto layout, texto, preenchimento, contorno, efeitos, exportar) é uma função que
+ *    CONSTRÓI os campos uma vez e registra, em `updaters`, como RELER o valor de cada campo do documento.
+ *  - `render()` só reconstrói os campos quando a ESTRUTURA muda (outra seleção, outro tipo de preenchimento, +1 sombra...),
+ *    detectado pela `signature()`. Em qualquer outra mudança só roda os `updaters` — assim digitar num campo nunca
+ *    perde o foco por o painel ter sido refeito.
+ *  - Campos usam `each(fn)` para aplicar a mudança a TODAS as camadas selecionadas (valores mostrados vêm da 1ª).
+ *
+ * @param {{store, canvas, commands, tools, toast}} deps
+ */
 export function createDesignPanel({ store, canvas, commands, tools, toast }) {
+  // atalho para o estado de interface
   const ui = store.ui;
+  // el: raiz do painel (main.js a coloca na aba)
   const el = h('div.design-panel');
+  // updaters: funções que releem os valores dos campos atuais · lastSig: assinatura da última estrutura montada
   let updaters = [];
   let lastSig = null;
+  // estados de interface locais: mostrar os 4 cantos / os 4 paddings separados · escala escolhida na exportação
   let radiusExpanded = false;
   let paddingExpanded = false;
   let exportScale = 2;
 
   // ------------------------------------------------------------------ helpers
+  // ---- ajudantes: ids/camadas selecionadas, a 1ª (P) e `each` que aplica uma mudança a todas (sem invalidar o índice do store) ----
   const ids = () => ui.selection.filter((id) => store.get(id));
   const nodes = () => ids().map((id) => store.get(id));
   const P = () => store.get(ids()[0]);
   const each = (fn) => store.update(() => nodes().forEach(fn), { structural: false });
+  /** Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar. */
   const commit = () => store.commit();
+  /** Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho). */
   const reg = (ctl) => { updaters.push(ctl.update); return ctl.el; };
+  /** Linha horizontal de campos. */
   const row = (...c) => h('div.row', ...c);
+  /** Seção do painel: título + (ações opcionais à direita, ex.: botão +) + corpo. */
   const section = (title, body, actions) =>
     h('section.panel-section', h('header.section-head', h('span', title), actions || null), h('div.section-body', body));
 
+  // atalhos que ligam os componentes de dom.js ao painel (já registram o update e passam o commit)
   const num = (label, get, set, opts = {}) =>
     reg(numField({ label, get, set, commit, ...opts }));
   const select = (options, get, set, title) => reg(selectField({ options, get, set, commit, title }));
 
+  /** Caixa de seleção (checkbox) estilizada: `get` lê, `set` aplica; grava no histórico ao alternar. */
   const check = (label, get, set) => {
     const input = h('input', { type: 'checkbox' });
     input.addEventListener('change', () => { set(input.checked); commit(); });
@@ -38,6 +70,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return h('label.check', input, h('span.box', ico('check', 10)), h('span', label));
   };
 
+  /** Abre o seletor de arquivos, importa a imagem escolhida (reduzida) e entrega { assetId, w, h } ao callback. */
   const pickImage = (cb) => {
     const input = h('input', { type: 'file', accept: 'image/*' });
     input.addEventListener('change', async () => {
@@ -48,6 +81,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   };
 
   // ------------------------------------------------------------------ seções
+  /** Barra fixa no topo: alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). */
   function alignSection() {
     const many = ids().length >= 3;
     const btn = (name, title, fn, disabled) =>
@@ -66,16 +100,24 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         btn('distV', 'Distribuir na vertical', () => commands.distribute('v'), !many)));
   }
 
+  /** Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA". */
   const PRESETS = [
     ['', 'Tamanhos predefinidos…'], ['393x852', 'iPhone 15 — 393×852'], ['360x800', 'Android — 360×800'],
     ['820x1180', 'iPad — 820×1180'], ['1440x1024', 'Desktop — 1440×1024'], ['1280x800', 'Notebook — 1280×800'],
     ['1920x1080', 'Full HD / Slide — 1920×1080'], ['595x842', 'A4 — 595×842'],
     ['1080x1080', 'Post quadrado — 1080×1080'], ['1080x1920', 'Story — 1080×1920'],
   ];
+  /** Opções de constraint horizontal e vertical (ver model.js → applyConstraints). */
   const H_CONS = [['left', 'Esquerda'], ['right', 'Direita'], ['leftright', 'Esquerda e direita'], ['center', 'Centro'], ['scale', 'Escala']];
   const V_CONS = [['top', 'Topo'], ['bottom', 'Base'], ['topbottom', 'Topo e base'], ['center', 'Centro'], ['scale', 'Escala']];
+  /** Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos). */
   const NO_RADIUS = ['text', 'ellipse', 'group', 'line', 'path'];
 
+  /**
+   * Seção "Camada": posição (X/Y), tamanho (W/H + travar proporção + fixo/hug/fill), predefinições de tamanho,
+   * constraints, rotação, cantos, espelhar, opacidade, mesclagem, cortar conteúdo e máscara.
+   * Com VÁRIAS camadas selecionadas mostra X/Y/W/H da caixa do conjunto no lugar dos campos individuais.
+   */
   function layerSection() {
     const single = ids().length === 1;
     const n0 = P();
@@ -83,6 +125,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const inFlow = isFlow(n0, parent);
     const body = [];
 
+    // várias camadas: X/Y/W/H da caixa que envolve todas
     if (!single) {
       // várias camadas: X/Y/W/H da caixa que envolve todas
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
@@ -110,6 +153,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           onclick: () => { each((n) => { n.lockRatio = !n.lockRatio; }); commit(); },
         }, ico('link', 14))));
 
+      // modos de tamanho possíveis: 'hug' só para texto/frames com layout; 'fill' só dentro de um auto layout
       const sizeOpts = () => {
         const o = [['fixed', 'Fixo']];
         if (n0.type === 'text' || hasLayout(n0)) o.push(['hug', 'Ajustar ao conteúdo (hug)']);
@@ -167,6 +211,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Camada', body);
   }
 
+  /** Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar. */
   function componentSection() {
     const n = P();
     const body = [];
@@ -186,6 +231,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Componente', body);
   }
 
+  /**
+   * Seção "Auto layout (CSS)" de um frame: modo (nenhum / flex linha / flex coluna / grid) e, conforme o modo, gap, padding,
+   * matriz 3×3 de alinhamento e as listas justify-content / align-items. Em grid: colunas, linhas e gaps.
+   */
   function autoLayoutSection() {
     const n0 = P();
     const L = () => P().layout;
@@ -202,12 +251,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     });
     updaters.push(modeSeg.update);
     const body = [row(modeSeg.el)];
+    /** Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS). */
     const pad = (labels) => labels.map(([i, l, t]) =>
       num(l, () => L().padding[i], (v) => each((n) => { n.layout.padding[i] = Math.max(0, v); }), { title: t, min: 0, decimals: 0 }));
     const aligns = [['flex-start', 'Início'], ['center', 'Centro'], ['flex-end', 'Fim']];
+    // padding assimétrico (topo≠base ou esquerda≠direita) obriga a mostrar os 4 lados; senão mostra só horizontal/vertical
     const asym = n0.layout.padding[0] !== n0.layout.padding[2] || n0.layout.padding[1] !== n0.layout.padding[3];
     const showAll = paddingExpanded || asym;
-    /** padding: ou 2 campos (horizontal/vertical) ou os 4 lados */
+    /** padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão. */
     const paddingBlock = () => [
       h('div.sub-label', 'padding'),
       ...(showAll
@@ -221,7 +272,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             onclick: () => { paddingExpanded = !paddingExpanded; lastSig = null; render(); },
           }, ico('corners', 14)))]),
     ];
-    /** Matriz 3×3: escolhe justify + align de uma vez (colunas/linhas trocam conforme a direção). */
+    /**
+     * Matriz 3×3 do alinhamento: um clique define justify + align de uma vez. Em coluna, o eixo principal é o vertical, então
+     * linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores atuais coincidem.
+     */
     const matrix = () => {
       const col = L().mode === 'column';
       const cells = [];
@@ -270,6 +324,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Auto layout (CSS)', body);
   }
 
+  /** Seção "Item do layout": só para camadas dentro de auto layout — posição absoluta, align-self e (no grid) span de colunas/linhas. */
   function flowItemSection() {
     const parent = store.parentOf(P().id);
     const grid = parent.layout.mode === 'grid';
@@ -295,6 +350,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Item do layout', body);
   }
 
+  /** Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar. */
   const commandsOrigin = (n) => {
     const parent = store.parentOf(n.id);
     const o = canvas.originOf(n.id);
@@ -302,7 +358,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return { x: Math.round(o.x - po.x), y: Math.round(o.y - po.y) };
   };
 
+  /** Tipos de grade de layout (só guia visual). */
   const GRID_KINDS = [['columns', 'Colunas'], ['rows', 'Linhas'], ['grid', 'Quadrícula']];
+  /** Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor. */
   function layoutGridsSection() {
     const n0 = P();
     const add = iconButton('plus', 'Adicionar grade de layout', () => {
@@ -327,6 +385,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Grades de layout', body, add);
   }
 
+  /** Seção "Vetor": caminho fechado e botão para editar pontos. */
   function vectorSection() {
     return section('Vetor', [
       check('Caminho fechado', () => P().closed, (v) => each((n) => { n.closed = v; if (v && n.fill.type === 'none') n.fill = defaultFill('#D9D9D9'); })),
@@ -335,6 +394,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     ]);
   }
 
+  /** Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical. */
   function textSection() {
     const fonts = FONT_FAMILIES.map((f) => [f, f]);
     const cur = P().fontFamily;
@@ -382,6 +442,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     ]);
   }
 
+  /** Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições). */
   function gradientBar() {
     const bar = h('div.grad-bar');
     updaters.push(() => {
@@ -391,7 +452,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return bar;
   }
 
-  /** Cores já usadas no documento (mais usadas primeiro): clique para aplicar. */
+  /** Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores. */
   function docColorChips(apply) {
     const count = new Map();
     const bump = (c) => c && count.set(c.toUpperCase(), (count.get(c.toUpperCase()) || 0) + 1);
@@ -407,6 +468,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       top.map((c) => h('button.chip', { type: 'button', title: c, style: { background: c }, onclick: () => apply(c) })));
   }
 
+  /**
+   * Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo —
+   * cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+   */
   function fillSection() {
     const n0 = P();
     const isText = n0.type === 'text';
@@ -469,6 +534,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section(isText ? 'Cor do texto' : 'Preenchimento', body);
   }
 
+  /** Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga. */
   function strokeSection() {
     const n0 = P();
     const has = !!n0.stroke;
@@ -493,6 +559,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Contorno', body, has ? rem : add);
   }
 
+  /** Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro). */
   function effectsSection() {
     const n0 = P();
     const isText = n0.type === 'text';
@@ -516,6 +583,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Efeitos', body, add);
   }
 
+  /** Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção. */
   function exportSection() {
     return section('Exportar', [
       row(
@@ -541,6 +609,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     ]);
   }
 
+  /** Painel quando nada está selecionado: resumo da página e dicas de atalhos. */
   function emptySection() {
     const page = store.page();
     const count = (list) => list.reduce((s, n) => s + 1 + count(n.children || []), 0);
@@ -556,6 +625,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   }
 
   // ------------------------------------------------------------------ render
+  /**
+   * "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de
+   * preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só
+   * pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+   */
   function signature() {
     const ns = nodes();
     if (!ns.length) return 'empty';
@@ -571,6 +645,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     ].join('|');
   }
 
+  /** Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos. */
   function render() {
     const sig = signature();
     if (sig !== lastSig) {
@@ -597,6 +672,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     updaters.forEach((u) => u());
   }
 
+  // atualiza quando o documento, a seleção ou o histórico (desfazer) mudam
   store.subscribe((reasons) => {
     if (['doc', 'selection', 'history'].some((r) => reasons.has(r))) render();
   });

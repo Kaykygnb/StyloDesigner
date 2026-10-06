@@ -1,4 +1,7 @@
 /* ============================================================ tokens */
+/* Design tokens (variáveis CSS). Mudar uma cor aqui muda o app inteiro.
+    --accent / --accent-2: roxo e rosa da marca · --grad: o degradê usado em botões e destaques
+    --left / --right: largura dos painéis (o JS ajusta ao arrastar a borda) · --topbar: altura da barra superior */
 :root {
   --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -12,6 +15,8 @@
   --right: 292px;
   color-scheme: dark;
 }
+/* Tema ESCURO (padrão). Cada cor tem um papel: --bg fundo da página · --panel painéis · --panel-2/-3 campos e
+    realces · --border bordas · --text/--muted texto · --canvas fundo da área de desenho · --dot pontinhos da grade */
 :root, :root[data-theme="dark"] {
   --bg: #0c0c10;
   --panel: #15151b;
@@ -26,6 +31,7 @@
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
   --danger: #ff6b7a;
 }
+/* Tema CLARO: só redefine as mesmas variáveis; nenhuma regra do app precisa saber qual tema está ativo. */
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #eeeef3;
@@ -45,6 +51,7 @@
 /* ============================================================ base */
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+/* Fonte do sistema (sem baixar nada) e rolagem desligada: o app ocupa a janela inteira e cada painel rola sozinho. */
 body {
   font: 12px/1.4 var(--font);
   background: var(--bg);
@@ -73,6 +80,8 @@ kbd {
 body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: none; }
 
 /* ============================================================ layout */
+/* Layout principal em GRID: barra superior em cima; embaixo, painel esquerdo | palco | painel direito.
+    As larguras vêm de --left e --right (redimensionáveis). */
 #app {
   height: 100vh;
   display: grid;
@@ -80,6 +89,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
   grid-template-rows: var(--topbar) 1fr;
   grid-template-areas: "top top top" "left stage right";
 }
+/* Barra superior: marca, menu Arquivo, desfazer/refazer, nome do projeto, salvo, Apresentar, tema, ajuda. */
 .topbar { grid-area: top; }
 .panel.left { grid-area: left; }
 .stage { grid-area: stage; }
@@ -140,6 +150,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .link-btn:hover { text-decoration: underline; }
 
 /* ============================================================ painéis laterais */
+/* Painéis laterais: cada um rola sozinho (overflow-y) e o canvas não se mexe. */
 .panel { background: var(--panel); overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .panel.left { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
 .panel.right { border-left: 1px solid var(--border); display: flex; flex-direction: column; }
@@ -178,6 +189,8 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 /* ---- camadas */
 .layers-section { flex: 1; min-height: 0; display: flex; flex-direction: column; border-bottom: 0; }
 .layer-tree { flex: 1; overflow: auto; margin: 0 -12px; padding: 0 6px; }
+/* Linha da lista de camadas. Estados: .selected (azul), .dim (oculta), .locked, .hover, .dragging e os
+    indicadores de soltura .drop-above / .drop-below / .drop-inside. */
 .layer-row {
   display: flex; align-items: center; gap: 4px; height: 30px; padding-right: 6px;
   border-radius: 7px; color: var(--text); cursor: default; position: relative; user-select: none;
@@ -207,6 +220,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .row > * { flex: 1; min-width: 0; }
 .row > .icon-btn, .row > .segmented, .row > .check { flex: none; }
 .row.disabled { opacity: 0.45; pointer-events: none; }
+/* Campo padrão do painel (fundo cinza, borda azul ao focar). O rótulo à esquerda é a alça de "arrastar para ajustar". */
 .field {
   display: flex; align-items: center; height: 28px;
   background: var(--panel-2); border: 1px solid transparent; border-radius: 8px;
@@ -252,6 +266,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 
 .color-row { display: flex; align-items: center; gap: 6px; }
 .color-row > .field { flex: none; }
+/* Amostra de cor: fundo xadrez (para mostrar transparência) + a cor por cima + o seletor nativo invisível. */
 .swatch {
   position: relative; width: 28px; height: 28px; border-radius: 8px; flex: none; overflow: hidden;
   border: 1px solid var(--border);
@@ -290,6 +305,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .code-sub { display: flex; align-items: center; justify-content: space-between; padding: 0 12px 8px; gap: 8px; }
 .code-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .check.inline { font-size: 11px; color: var(--muted); }
+/* Área de código do painel Código. Cores de sintaxe: .tk-sel (seletor), .tk-prop (propriedade), .tk-num (número), .tk-str (texto). */
 .code-view {
   flex: 1; margin: 0; padding: 12px; overflow: auto; background: color-mix(in srgb, var(--bg) 70%, var(--panel));
   border-top: 1px solid var(--border); font: 11px/1.65 var(--mono); tab-size: 2; white-space: pre; color: var(--text);
@@ -305,6 +321,8 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 
 /* ============================================================ palco / canvas */
 .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+/* A janela do canvas: recorta o conteúdo e desenha o fundo pontilhado. O JS atualiza o tamanho/posição do fundo
+    conforme o zoom (ver canvas.js → applyView). O cursor muda por ferramenta via [data-tool]. */
 .viewport {
   position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none;
   background-color: var(--canvas);
@@ -315,7 +333,10 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .viewport[data-tool="text"] { cursor: text; }
 .viewport[data-tool="hand"], .viewport.space { cursor: grab; }
 .viewport.panning, .viewport.panning * { cursor: grabbing !important; }
+/* O "mundo": 0×0 com origem no canto; todas as camadas ficam dentro e o pan/zoom é um único `transform` aqui. */
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+/* Cada camada do documento. user-select:none evita selecionar texto ao arrastar; .dragging liga pointer-events:none
+    para o app enxergar o que há EMBAIXO de uma camada sendo arrastada; vetores só reagem ao clique no desenho em si. */
 .node { user-select: none; -webkit-user-select: none; }
 .node[contenteditable="true"], .node[contenteditable="plaintext-only"] { outline: none !important; user-select: text; -webkit-user-select: text; cursor: text; }
 .node.dragging, .node.dragging * { pointer-events: none !important; }
@@ -323,11 +344,14 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .node-path path[data-vis], .node-path path[data-hit] { pointer-events: visiblePainted; }
 .node-path[data-locked] path { pointer-events: none !important; }
 
+/* Camada de interface por cima do canvas (seleção, alças...). pointer-events:none: só alças, rótulos e guias
+    reativam o mouse (pointer-events:auto). */
 .overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .sel-box { position: absolute; border: 1.5px solid var(--accent); box-sizing: border-box; pointer-events: none; }
 .sel-box.thin { border-width: 1px; opacity: 0.8; }
 .sel-box.hover { border-width: 1.5px; opacity: 0.65; }
 .sel-box.drop { border: 2px solid var(--accent-2); background: color-mix(in srgb, var(--accent-2) 10%, transparent); }
+/* Alça de redimensionar: quadradinho branco de 9px com borda roxa; posicionada por porcentagem dentro da caixa de seleção. */
 .handle {
   position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; z-index: 3;
   background: #fff; border: 1.5px solid var(--accent); border-radius: 2.5px; pointer-events: auto;
@@ -357,6 +381,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .marquee { position: absolute; border: 1px solid var(--accent); background: var(--accent-soft); pointer-events: none; }
 
 /* ============================================================ barra de ferramentas e zoom */
+/* Barras flutuantes (ferramentas e zoom): efeito de vidro fosco (backdrop-filter) sobre o canvas. */
 .toolbar, .zoom-widget {
   position: absolute; bottom: 18px; display: flex; align-items: center; gap: 2px; padding: 5px;
   background: var(--glass); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
@@ -376,6 +401,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .zoom-pct:hover { background: var(--panel-2); }
 
 /* ============================================================ menus / modal / toast */
+/* Menus flutuantes (contexto, arquivo, zoom): também em vidro fosco, com animação curta de entrada. */
 .menu {
   position: fixed; z-index: 1000; min-width: 240px; padding: 6px; border-radius: 13px;
   background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
@@ -417,6 +443,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 }
 
 /* ============================================================ réguas, guias, grades, caneta */
+/* Réguas (<canvas> 2D desenhados em rulers.js), guias manuais (faixa de 7px clicável com linha de 1px) e camada SVG da caneta. */
 .ruler { position: absolute; z-index: 3; cursor: crosshair; }
 .ruler-top { top: 0; left: 20px; }
 .ruler-left { top: 20px; left: 0; }
@@ -436,7 +463,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .viewport[data-tool="pen"] { cursor: crosshair; }
 .viewport[data-tool="line"], .viewport[data-tool="polygon"], .viewport[data-tool="star"] { cursor: crosshair; }
 
-/* ---- componentes e vários */
+/* ============================================================ componentes (selo roxo), botões e utilidades */
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font-weight: 700; font-size: 11px; align-self: flex-start; }
 .badge.purple { background: color-mix(in srgb, #a855f7 22%, transparent); color: #c084fc; }
 :root[data-theme="light"] .badge.purple { color: #7e22ce; }
@@ -445,7 +472,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .panel-section .btn { width: 100%; }
 .row > .btn { flex: 1; }
 
-/* ---- painel esquerdo com abas / recursos */
+/* ============================================================ painel esquerdo com abas, aba Recursos e busca de camadas */
 .left-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .left-body > .assets { overflow: auto; flex: 1; }
 .list { gap: 2px; }
@@ -460,9 +487,10 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .layer-search { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; margin-bottom: 6px; background: var(--panel-2); border-radius: 8px; color: var(--muted); }
 .layer-search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); }
 
-/* ---- protótipo / apresentar */
+/* ============================================================ protótipo e modo Apresentar */
 .btn.primary { background: var(--grad); color: #fff; border-color: transparent; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); }
 .btn.primary:hover { filter: brightness(1.08); background: var(--grad); }
+/* Modo Apresentar: tela cheia por cima de tudo (z-index alto). A barra do topo só aparece ao passar o mouse. */
 .present { position: fixed; inset: 0; z-index: 3000; background: #0a0a0f; display: grid; place-items: center; overflow: hidden; }
 .present-stage { position: relative; width: 100%; height: 100%; display: grid; place-items: center; overflow: hidden; }
 .present-board { position: absolute; transform-origin: center center; }
@@ -472,12 +500,13 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .proto-path { fill: none; stroke: var(--accent-2); stroke-width: 2; }
 .proto-arrow { fill: var(--accent-2); }
 
-/* ---- lote 1: salvar, painéis redimensionáveis, canvas vazio */
+/* ============================================================ indicador de salvo, painéis redimensionáveis, modo foco, canvas vazio */
 .save-state { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; min-width: 76px; }
 .save-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; }
 .save-state[data-state="saving"]::before { background: #ffb020; }
 .save-state[data-state="error"] { color: var(--danger); }
 .save-state[data-state="error"]::before { background: var(--danger); }
+/* Alça para arrastar a borda dos painéis. #app.focus (Ctrl+\) esconde os painéis. */
 .resizer { position: absolute; top: var(--topbar); bottom: 0; width: 9px; margin-left: -4px; cursor: col-resize; z-index: 20; }
 .resizer::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: transparent; transition: background .15s, width .15s; }
 .resizer:hover::after, .resizer.active::after { background: var(--accent); width: 2px; left: 3.5px; }
@@ -487,14 +516,15 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .empty-canvas h3 { margin: 0 0 6px; color: var(--text); font-size: 16px; }
 .empty-canvas p { margin: 4px 0; }
 
-/* ---- lote 2: medidas e grade de pixels */
+/* ============================================================ medidas (Alt) e grade de pixels */
 .measure-line { stroke: #ff3d6e; stroke-width: 1; }
 .measure-box { fill: none; stroke: #ff3d6e; stroke-width: 1; }
 .measure-pill { fill: #ff3d6e; }
 .measure-text { fill: #fff; font: 600 10px ui-monospace, Menlo, monospace; }
 .overlay.pixels { background-image: linear-gradient(rgba(128, 128, 128, .28) 1px, transparent 1px), linear-gradient(90deg, rgba(128, 128, 128, .28) 1px, transparent 1px); }
 
-/* ---- lote 3: matriz de alinhamento, cores do documento */
+/* ============================================================ matriz 3×3 de alinhamento e cores do documento */
+/* Matriz 3×3 de alinhamento do auto layout: cada célula é um botão; a ativa mostra um ponto maior. */
 .align-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 84px; padding: 5px; background: var(--panel-2); border-radius: 9px; }
 .am-cell { aspect-ratio: 1.3; display: grid; place-items: center; border: 0; background: transparent; border-radius: 5px; padding: 0; }
 .am-cell i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); opacity: .5; transition: all .12s; }

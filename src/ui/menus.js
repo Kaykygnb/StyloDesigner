@@ -1,14 +1,27 @@
-// Menus flutuantes: contexto (botão direito), arquivo, zoom e ajuda de atalhos.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/menus.js — MENUS FLUTUANTES E AJUDA DE ATALHOS
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { h, ico } from './dom.js';
 import { hasLayout } from '../model.js';
 
+// menu aberto no momento (só um por vez)
 let openMenu = null;
+/** Fecha o menu aberto, se houver. */
 export function closeMenus() {
   openMenu?.remove();
   openMenu = null;
 }
 
-/** items: [{ label, hint, icon, onClick, disabled, danger }] ou 'sep' */
+/**
+ * Mostra um menu flutuante em (x, y), mantendo-o dentro da janela. Fecha ao clicar fora ou apertar Esc.
+ * @param {number} x
+ * @param {number} y
+ * @param {(object|'sep')[]} items  { label, hint (atalho), icon, onClick, disabled, danger, checked } ou 'sep' (separador)
+ * @param {{anchorRight?: boolean}} [opts]  true = o menu cresce para a ESQUERDA de x (menus ancorados na borda direita)
+ */
 export function showMenu(x, y, items, { anchorRight = false } = {}) {
   closeMenus();
   const menu = h('div.menu', { role: 'menu' },
@@ -40,6 +53,10 @@ export function showMenu(x, y, items, { anchorRight = false } = {}) {
   return menu;
 }
 
+/**
+ * Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados).
+ * Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
+ */
 export function contextMenuItems({ store, commands, tools }) {
   const sel = store.selected();
   const n = sel[0];
@@ -79,6 +96,7 @@ export function contextMenuItems({ store, commands, tools }) {
   ];
 }
 
+/** Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README. */
 const SHORTCUTS = [
   ['Ferramentas', [['V', 'Mover'], ['F / B', 'Frame'], ['R', 'Retângulo'], ['E', 'Elipse'], ['L', 'Linha'], ['P', 'Caneta (vetor)'], ['T', 'Texto'], ['H', 'Mão (ou segure Espaço)']]],
   ['Edição', [['Ctrl Z / Ctrl ⇧ Z', 'Desfazer / Refazer'], ['Ctrl D', 'Duplicar'], ['Alt + arrastar', 'Duplicar arrastando'], ['Ctrl C / X / V', 'Copiar / Recortar / Colar'],
@@ -90,6 +108,7 @@ const SHORTCUTS = [
   ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar projeto'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 
+/** Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora. */
 export function showHelp() {
   closeMenus();
   const close = () => dlg.remove();

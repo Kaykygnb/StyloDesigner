@@ -1,22 +1,37 @@
-// Aba "Recursos": componentes e estilos compartilhados do documento (cores e tipografia).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/assets.js — ABA "RECURSOS" (COMPONENTES E ESTILOS)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { h, ico, iconButton } from './dom.js';
 import { rgba } from '../css.js';
 import { walk, defaultFill } from '../model.js';
 
+/**
+ * Cria a aba RECURSOS (painel esquerdo): três listas do documento —
+ *  - Componentes: clicar insere uma instância no centro da tela
+ *  - Cores: estilos de cor; clicar aplica à seleção; +, renomear e excluir
+ *  - Tipografia: estilos de texto; idem
+ * Mudar um estilo muda todas as camadas ligadas a ele (ver components.js → syncStyles).
+ */
 export function createAssetsPanel({ store, commands, canvas, container }) {
   const ui = store.ui;
   const el = h('div.assets');
   container.append(el);
 
+  /** Seção da lista: título, botão "+" opcional e linhas. */
   const section = (title, add, body) =>
     h('section.panel-section', h('header.section-head', h('span', title), add || null), h('div.section-body.list', body));
 
+  /** Todos os componentes principais do documento (de qualquer página), com a página de cada um. */
   function components() {
     const list = [];
     for (const page of store.state.doc.pages) walk(page.children, (n) => { if (n.component) list.push({ n, page }); });
     return list;
   }
 
+  /** Reconstrói as três listas a partir do documento (só roda com a aba aberta). */
   function render() {
     const doc = store.state.doc;
     const comps = components();

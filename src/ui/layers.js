@@ -1,11 +1,26 @@
-// Painel esquerdo: páginas + árvore de camadas (arrastar para reordenar/aninhar, renomear, ocultar, travar).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/layers.js — PAINEL DE PÁGINAS E CAMADAS
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { h, ico, iconButton } from './dom.js';
 import { nodeIcon } from './icons.js';
 import { isContainer } from '../model.js';
 import { showMenu } from './menus.js';
 
+/**
+ * Cria o painel de CAMADAS (aba esquerda): lista de páginas + árvore de camadas.
+ *
+ * Na árvore, a camada MAIS À FRENTE aparece no TOPO (a lista é o array de trás para a frente). Cada linha tem: setinha
+ * (abrir/fechar), ícone, nome (duplo clique renomeia), cadeado e olho. Dá para ARRASTAR linhas para reordenar ou
+ * aninhar (soltar no meio de um frame coloca dentro dele; na borda de cima/baixo põe antes/depois).
+ *
+ * @param {{store, commands, container: HTMLElement}} deps
+ */
 export function createLayersPanel({ store, commands, container }) {
   const ui = store.ui;
+  // pagesBox: lista de páginas · tree: árvore de camadas · search: caixa de busca por nome
   const pagesBox = h('div.pages');
   const tree = h('div.layer-tree');
   const search = h('input', { placeholder: 'Buscar camadas…', spellcheck: false });
@@ -22,6 +37,10 @@ export function createLayersPanel({ store, commands, container }) {
   );
 
   // --------------------------------------------------------------- páginas
+  /**
+   * Desenha a lista de páginas. Clique abre; duplo clique renomeia; botão direito abre o menu (renomear, duplicar,
+   * excluir). A última página não pode ser excluída (todo projeto tem ao menos uma).
+   */
   function renderPages() {
     pagesBox.replaceChildren(
       ...store.state.doc.pages.map((p) => {
@@ -61,6 +80,10 @@ export function createLayersPanel({ store, commands, container }) {
   }
 
   // --------------------------------------------------------------- árvore
+  /**
+   * Abre as pastas que contêm as camadas selecionadas, para que a seleção fique visível na lista. Devolve true se algo mudou.
+   * (Guardamos `false` explicitamente: o padrão de "fechado" só vale para pastas nunca abertas.)
+   */
   function expandAncestors(ids) {
     let changed = false;
     for (const id of ids) {
@@ -71,14 +94,20 @@ export function createLayersPanel({ store, commands, container }) {
     return changed;
   }
 
-  /** Camadas dentro de frames começam fechadas (só os níveis de cima aparecem); a seleção abre o caminho. */
+  /** Camadas dentro de frames começam FECHADAS (só os níveis de cima aparecem); selecionar abre o caminho. `ui.collapsed[id]` tem prioridade. */
   const isCollapsed = (node, depth) => ui.collapsed[node.id] ?? depth >= 1;
 
+  /**
+   * Cria a linha de UMA camada (com todos os ouvintes: seleção, renomear, menu, arrastar e soltar).
+   * @param {object} node  a camada
+   * @param {number} depth  nível de aninhamento (recuo de 14px por nível)
+   */
   function rowFor(node, depth) {
     const selected = ui.selection.includes(node.id);
     const hasKids = isContainer(node) && node.children.length > 0;
     const collapsed = isCollapsed(node, depth);
 
+    // nome: texto normal ou, durante a renomeação (F2 / duplo clique), um campo de edição. Enter/blur confirma; Esc cancela.
     const nameEl = ui.renamingId === node.id
       ? (() => {
         const input = h('input.rename', { value: node.name, spellcheck: false });
@@ -101,6 +130,7 @@ export function createLayersPanel({ store, commands, container }) {
       })()
       : h('span.layer-name', node.name);
 
+    // a linha em si: arrastável (menos durante a renomeação), com recuo proporcional à profundidade
     const row = h('div.layer-row' +
       (selected ? '.selected' : '') + (!node.visible ? '.dim' : '') + (node.locked ? '.locked' : ''), {
       draggable: ui.renamingId !== node.id,
@@ -130,6 +160,7 @@ export function createLayersPanel({ store, commands, container }) {
       }, ico(node.visible ? 'eye' : 'eyeOff', 13))),
     );
 
+    // CLIQUE: Shift = intervalo (da âncora até aqui, na ordem visual) · Ctrl/⌘ = alterna na seleção · normal = seleciona só esta
     row.addEventListener('click', (e) => {
       if (e.shiftKey && ui.layerAnchor && ui.layerAnchor !== node.id) {
         // seleção em intervalo, na ordem em que as linhas aparecem
@@ -145,21 +176,26 @@ export function createLayersPanel({ store, commands, container }) {
         store.setSelection(selected ? ui.selection.filter((s) => s !== node.id) : [...ui.selection, node.id]);
       } else store.setSelection([node.id]);
     });
+    // duplo clique no nome renomeia (cliques nos botões de cadeado/olho não contam)
     row.addEventListener('dblclick', (e) => {
       if (e.target.closest('button')) return;
       ui.renamingId = node.id;
       store.emit('doc');
     });
+    // botão direito: seleciona a camada (se ainda não estava) e abre o mesmo menu de contexto do canvas
     row.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (!selected) store.setSelection([node.id]);
       ui.contextMenu = { x: e.clientX, y: e.clientY };
       store.emit('contextmenu');
     });
+    // passar o mouse na linha destaca a camada no canvas (hover), e vice-versa
     row.addEventListener('pointerenter', () => { ui.hoverId = node.id; store.emit('hover'); });
     row.addEventListener('pointerleave', () => { ui.hoverId = null; store.emit('hover'); });
 
-    // ---- arrastar e soltar
+    // ---- ARRASTAR E SOLTAR (HTML5 drag & drop) ----
+    // dragstart: arrastar uma linha não selecionada seleciona ela primeiro. dragover: mostra um indicador conforme a zona
+    // (acima / dentro / abaixo). drop: executa com commands.reparent, que mantém a posição visual das camadas.
     row.addEventListener('dragstart', (e) => {
       if (!selected) store.setSelection([node.id]);
       e.dataTransfer.setData('text/plain', node.id);
@@ -195,20 +231,30 @@ export function createLayersPanel({ store, commands, container }) {
     return row;
   }
 
-  /** Alt+clique na setinha: abre/fecha tudo dentro. */
+  /** Alt+clique na setinha: abre ou fecha tudo dentro (recursivo). */
   function setAll(node, value) {
     ui.collapsed[node.id] = value;
     (node.children || []).forEach((c) => isContainer(c) && setAll(c, value));
   }
 
+  /**
+   * Em qual "zona" da linha o mouse está: nos 25% de cima 'above', nos 25% de baixo 'below' e no meio 'inside'
+   * (só para frames/grupos, que aceitam filhos).
+   */
   function dropZone(e, row, node) {
     const r = row.getBoundingClientRect();
     const y = (e.clientY - r.top) / r.height;
     if (isContainer(node) && y > 0.25 && y < 0.75) return 'inside';
     return y < 0.5 ? 'above' : 'below';
   }
+  /** Remove os indicadores visuais de soltura de todas as linhas. */
   const clearDrop = () => tree.querySelectorAll('.drop-above,.drop-below,.drop-inside').forEach((r) => r.classList.remove('drop-above', 'drop-below', 'drop-inside'));
 
+  /**
+   * Reconstrói a árvore. Percorre cada lista de trás para a frente (para a camada da frente ficar no topo) e só
+   * desce em pastas abertas. Com texto na busca, mostra uma lista plana das camadas cujo nome contém o texto.
+   * Preserva a posição de rolagem.
+   */
   function renderTree() {
     const rows = [];
     const add = (list, depth) => {
@@ -238,7 +284,11 @@ export function createLayersPanel({ store, commands, container }) {
     tree.scrollTop = scroll;
   }
 
-  /** Assinatura barata do que a lista mostra: se não mudou (ex.: só uma posição mudou), não reconstrói. */
+  /**
+   * "Impressão digital" do que a lista MOSTRA (ids, nomes, visibilidade, trava, pastas abertas, seleção...). Se não mudou
+   * desde o último desenho (ex.: só a posição de uma camada mudou durante um arrasto), pulamos a reconstrução da lista —
+   * foi isso que tornou o arrastar fluido com centenas de camadas.
+   */
   function signature() {
     const parts = [ui.selection.join(','), ui.renamingId, ui.layerQuery, store.state.doc.pages.map((p) => p.id + p.name).join(','), ui.pageId];
     const walkSig = (list) => {
@@ -251,8 +301,13 @@ export function createLayersPanel({ store, commands, container }) {
     return parts.join('|');
   }
 
+  // últimas versões desenhadas (seleção e assinatura), para detectar o que mudou
   let lastSelKey = '';
   let lastSig = '';
+  /**
+   * Atualiza o painel só se algo visível mudou. Se a seleção mudou, abre as pastas dela; ao selecionar pelo canvas,
+   * rola a lista até a camada.
+   */
   function render(reasons) {
     const sig = signature();
     if (sig === lastSig && !reasons?.has('force')) return;
@@ -268,6 +323,7 @@ export function createLayersPanel({ store, commands, container }) {
     if (sel && reasons?.has('selection')) sel.scrollIntoView({ block: 'nearest' });
   }
 
+  // Reage a documento/seleção/ui (não redesenha no meio de um arrastar-e-soltar da própria lista) e atualiza o destaque de hover sem reconstruir.
   store.subscribe((reasons) => {
     if (['doc', 'selection', 'ui'].some((r) => reasons.has(r)) && !tree.querySelector('.dragging')) render(reasons);
     else if (reasons.has('hover')) {

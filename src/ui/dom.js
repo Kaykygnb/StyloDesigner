@@ -1,8 +1,28 @@
-// Helpers mínimos de DOM e componentes de formulário (campo numérico com "scrub", cor, select, segmentado).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/dom.js — CRIAR ELEMENTOS + COMPONENTES DE FORMULÁRIO
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  O app não usa framework: a interface é feita com `h()` (criar elementos) e alguns componentes
+ *  reutilizáveis (campo numérico com arrastar-para-ajustar, cor, lista suspensa, botões segmentados).
+ *  Todo componente de formulário devolve { el, update }: `el` é o elemento e `update()` relê o valor do
+ *  documento — é assim que o painel de propriedades se mantém em dia sem recriar tudo a cada mudança.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { icon } from './icons.js';
 import { rgba, hexToRgb } from '../css.js';
 
-/** h('div.classe#id', { onclick, dataset }, ...filhos) */
+/**
+ * `h` = "hyperscript": cria elementos DOM com uma sintaxe curta (substitui um framework como React para este app).
+ *
+ *   h('button.btn.primary', { type: 'button', onclick: fazer }, ico('play'), ' Texto')
+ *
+ *  - 1º argumento: "tag.classe1.classe2" (sem tag = div)
+ *  - 2º argumento (opcional): atributos. Chaves "onXxx" viram ouvintes de evento; `html` define innerHTML; `style` aceita
+ *    objeto; `dataset` define data-*; o resto vira propriedade do elemento (ou atributo).
+ *  - demais argumentos: filhos (elementos, textos ou listas aninhadas; null/false são ignorados)
+ * Se o 2º argumento já for um filho (elemento/texto/lista), é tratado como filho.
+ */
 export function h(tag, attrs, ...children) {
   const [name, ...classes] = tag.split('.');
   const el = document.createElement(name || 'div');
@@ -28,21 +48,43 @@ export function h(tag, attrs, ...children) {
   return el;
 }
 
+/** Ícone SVG pronto para usar como filho: ico('trash', 14). Os desenhos estão em icons.js. */
 export const ico = (name, size = 16) => h('span.ico', { html: icon(name, size) });
 
+/** Limita `v` ao intervalo [min, max]. */
 export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 /**
- * Campo numérico. Arraste o rótulo para ajustar (como no Figma), ↑/↓ mudam o valor (Shift = ×10).
- * onInput: durante a edição (sem histórico); onCommit: ao terminar (cria entrada no histórico).
+ * CAMPO NUMÉRICO no estilo Figma:
+ *  - digite um valor ou uma CONTA simples ("100/2", "24+8" — só dígitos e + - * / ( ) são aceitos)
+ *  - ↑/↓ mudam 1 (Shift = 10) · Enter confirma · Esc cancela
+ *  - ARRASTAR o rótulo (a letra à esquerda) ajusta o valor: Shift = ×10, Alt = ×0.1
+ *
+ * Quando o valor muda (`set`) ele NÃO entra no histórico (é "ao vivo"); só ao terminar (Enter, sair do campo ou soltar
+ * o arrasto) chama `commit` — assim um Ctrl+Z desfaz a edição inteira.
+ *
+ * @param {object} o
+ * @param {string} o.label  letra/símbolo à esquerda (também serve de "alça" de arrasto)
+ * @param {string} [o.title]  dica ao passar o mouse (costuma ser a propriedade CSS)
+ * @param {() => number} o.get  lê o valor atual
+ * @param {(v:number) => void} o.set  aplica um valor (sem histórico)
+ * @param {() => void} [o.commit]  fecha a edição (histórico)
+ * @param {number} [o.min] [o.max] [o.step] [o.decimals] [o.unit] [o.width] [o.disabled]
+ * @returns {{el: HTMLElement, update: () => void, input: HTMLInputElement}} `update` relê o valor sem atrapalhar quem está digitando
  */
 export function numField({ label, title, get, set, commit, min = -Infinity, max = Infinity, step = 1, decimals = 2, unit = '', width, disabled = false }) {
+  // campo de texto (não type=number: queremos aceitar contas e vírgula)
   const input = h('input.num', { type: 'text', inputMode: 'decimal', spellcheck: false });
   const lab = h('span.num-label', { title: title || '' }, label);
   if (disabled) input.disabled = true;
   const wrap = h('label.field.num-field' + (disabled ? '.off' : ''), { style: width ? { width } : null }, lab, input);
 
+  /** Número → texto no campo (arredondado às casas decimais, com unidade). */
   const fmt = (v) => (v == null || Number.isNaN(v) ? '' : `${+Number(v).toFixed(decimals)}${unit}`);
+  /**
+   * Texto → número. Aceita vírgula decimal e contas. Segurança: só passa para Function() se o texto tiver APENAS
+   * dígitos e operadores (regex abaixo), então nenhum código arbitrário consegue ser executado.
+   */
   const parse = (txt) => {
     const clean = String(txt).replace(',', '.').replace(unit, '').trim();
     if (!/^[-+*/().\d\s]+$/.test(clean)) return NaN;
@@ -54,10 +96,12 @@ export function numField({ label, title, get, set, commit, min = -Infinity, max 
     }
   };
 
+  // não sobrescreve o campo enquanto o usuário está digitando nele
   const refresh = () => {
     if (document.activeElement !== input) input.value = fmt(get());
   };
 
+  // aplica o valor (respeitando min/max); `final` = terminou a edição → grava no histórico
   const apply = (v, final) => {
     if (!Number.isFinite(v)) return refresh();
     set(clamp(v, min, max));
@@ -65,6 +109,7 @@ export function numField({ label, title, get, set, commit, min = -Infinity, max 
     input.value = fmt(get());
   };
 
+  // ao focar, seleciona tudo (digitar já substitui)
   input.addEventListener('focus', () => input.select());
   input.addEventListener('change', () => apply(parse(input.value), true));
   input.addEventListener('keydown', (e) => {
@@ -78,7 +123,7 @@ export function numField({ label, title, get, set, commit, min = -Infinity, max 
     }
   });
 
-  // arrastar o rótulo ajusta o valor
+  // ARRASTAR O RÓTULO: o deslocamento horizontal do mouse vira variação do valor. Um clique sem arrastar só foca o campo.
   lab.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     lab.setPointerCapture(e.pointerId);
@@ -105,7 +150,7 @@ export function numField({ label, title, get, set, commit, min = -Infinity, max 
   return { el: wrap, update: refresh, input };
 }
 
-/** Campo de texto simples. */
+/** Campo de texto simples (usado para nomes e links). Mesma ideia: `set` ao digitar, `commit` ao terminar. */
 export function textField({ get, set, commit, placeholder = '', mono = false }) {
   const input = h('input.text' + (mono ? '.mono' : ''), { type: 'text', spellcheck: false, placeholder });
   input.addEventListener('input', () => set(input.value));
@@ -114,7 +159,7 @@ export function textField({ get, set, commit, placeholder = '', mono = false }) 
   return { el: input, update: () => document.activeElement !== input && (input.value = get() ?? ''), input };
 }
 
-/** <select> estilizado. options: [[valor, rótulo], ...] */
+/** Lista suspensa estilizada. `options`: [[valor, rótulo], ...]. Ao escolher, aplica e já grava no histórico. */
 export function selectField({ options, get, set, commit, title }) {
   const sel = h('select.select', { title: title || '' },
     options.map(([v, l]) => h('option', { value: v }, l)));
@@ -122,7 +167,7 @@ export function selectField({ options, get, set, commit, title }) {
   return { el: h('label.field.select-wrap', sel, ico('chevron', 12)), update: () => { sel.value = String(get()); }, input: sel };
 }
 
-/** Grupo de botões segmentados com ícones. options: [[valor, ícone, título], ...] */
+/** Grupo de botões de ícone onde um fica "ligado" (ex.: alinhamento de texto). `options`: [[valor, ícone, dica], ...]. */
 export function segmented({ options, get, set, commit }) {
   const btns = options.map(([v, i, title]) =>
     h('button.seg-btn', { type: 'button', title, dataset: { v }, onclick: () => { set(v); commit?.(); } }, ico(i, 16)));
@@ -130,12 +175,17 @@ export function segmented({ options, get, set, commit }) {
   return { el, update: () => btns.forEach((b) => b.classList.toggle('on', String(get()) === b.dataset.v)) };
 }
 
+/** Botão só com ícone. `cls` opcional ('small', 'on'...). */
 export function iconButton(name, title, onclick, cls = '') {
   return h('button.icon-btn' + (cls ? '.' + cls : ''), { type: 'button', title, onclick }, ico(name));
 }
 
-/** Seletor de cor: amostra (input color nativo) + hex + opacidade. */
+/**
+ * Linha de COR: amostra clicável (abre o seletor de cor do sistema) + campo HEX + (opcional) opacidade em % +
+ * conta-gotas (onde o navegador oferece `EyeDropper`, ex.: Chrome/Edge). Aceita hex de 3 ou 6 dígitos, com ou sem "#".
+ */
 export function colorRow({ get, set, commit, opacity, setOpacity }) {
+  // o input type=color do navegador fica invisível por cima da amostra: clicar na amostra abre o seletor nativo
   const picker = h('input.color-native', { type: 'color' });
   const swatch = h('div.swatch', h('div.swatch-fill'), picker);
   const hex = h('input.text.mono.hex', { type: 'text', spellcheck: false, maxLength: 7 });
@@ -158,12 +208,14 @@ export function colorRow({ get, set, commit, opacity, setOpacity }) {
   hex.addEventListener('keydown', (e) => e.key === 'Enter' && hex.blur());
   hex.addEventListener('focus', () => hex.select());
 
+  /** Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam). */
   function sync() {
     const c = get();
     picker.value = c.toLowerCase();
     swatch.firstChild.style.background = rgba(c, opacity ? opacity() : 1);
     if (document.activeElement !== hex) hex.value = c.replace('#', '').toUpperCase();
   }
+  // conta-gotas: só existe em navegadores que suportam a API EyeDropper
   const eye = globalThis.EyeDropper
     ? h('button.icon-btn.small', {
       type: 'button', title: 'Conta-gotas',

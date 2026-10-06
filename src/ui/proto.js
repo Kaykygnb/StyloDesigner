@@ -1,14 +1,27 @@
-// Aba "Protótipo": interações entre frames (clique, hover, voltar, abrir link) + ponto de partida.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  ui/proto.js — ABA "PROTÓTIPO" (INTERAÇÕES ENTRE TELAS)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { h, ico, selectField } from './dom.js';
 import { TRANSITION_OPTIONS } from '../present.js';
 import { walk } from '../model.js';
 
+/**
+ * Cria a aba PROTÓTIPO: para a camada selecionada, lista suas INTERAÇÕES. Cada interação tem gatilho (clicar / passar o
+ * mouse), ação (navegar para um frame / voltar / abrir link) e, ao navegar, o frame de destino e a transição.
+ * Um frame da raiz pode ser marcado como ponto de partida do fluxo. O botão Apresentar abre o modo de apresentação.
+ * Dados das interações: camada.interactions = [{ trigger, action, target, transition, url }] (ver present.js).
+ */
 export function createProtoPanel({ store, present, toast }) {
   const ui = store.ui;
   const el = h('div.proto-panel');
 
+  /** Frames da raiz de todas as páginas: são os destinos possíveis de "Navegar para". */
   const rootFrames = () => store.state.doc.pages.flatMap((p) => p.children.filter((n) => n.type === 'frame').map((f) => ({ f, page: p })));
 
+  /** Reconstrói a aba para a camada selecionada (só roda com a aba aberta). */
   function render() {
     const n = store.selected()[0];
     const parts = [];
