@@ -275,15 +275,15 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .swatch-fill { position: absolute; inset: 0; }
 .color-native { position: absolute; inset: -6px; width: 150%; height: 150%; opacity: 0; cursor: pointer; }
 .hash { color: var(--muted); font: 11px var(--mono); margin-right: -4px; }
-.hex { flex: 1; min-width: 0; height: 28px; background: var(--panel-2); border: 1px solid transparent; border-radius: 8px; padding: 0 8px; text-transform: uppercase; outline: none; }
+.hex { flex: 1; min-width: 52px; height: 28px; background: var(--panel-2); border: 1px solid transparent; border-radius: 8px; padding: 0 8px; text-transform: uppercase; outline: none; }
 .hex:focus { border-color: var(--accent); }
 .stop-row { display: flex; align-items: center; gap: 6px; }
 .stop-row > .num-field { flex: none; }
 .stop-row > .color-row { flex: 1; min-width: 0; }
 .grad-bar { height: 14px; border-radius: 7px; border: 1px solid var(--border); }
 .effect-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: color-mix(in srgb, var(--panel-2) 55%, transparent); border: 1px solid var(--border); border-radius: 10px; }
-.effect-foot { display: flex; align-items: center; gap: 8px; }
-.effect-foot .color-row { flex: 1; min-width: 0; }
+.effect-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.effect-foot .color-row { flex: 1 1 100%; min-width: 0; }
 .align-row { display: flex; align-items: center; justify-content: space-between; }
 .align-section { padding: 6px 8px; position: sticky; top: 43px; z-index: 2; background: var(--panel); }
 .align-row .icon-btn { width: 28px; }
@@ -308,7 +308,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 /* Área de código do painel Código. Cores de sintaxe: .tk-sel (seletor), .tk-prop (propriedade), .tk-num (número), .tk-str (texto). */
 .code-view {
   flex: 1; margin: 0; padding: 12px; overflow: auto; background: color-mix(in srgb, var(--bg) 70%, var(--panel));
-  border-top: 1px solid var(--border); font: 11px/1.65 var(--mono); tab-size: 2; white-space: pre; color: var(--text);
+  border-top: 1px solid var(--border); font: 11px/1.65 var(--mono); tab-size: 2; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text);
 }
 .tk-sel { color: #ff7ac6; }
 .tk-prop { color: #7cc4ff; }
