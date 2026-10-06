@@ -196,6 +196,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       if (box) drawBox('drop', box, 'sel-box drop');
     }
 
+    // enquanto as medidas do Alt estão visíveis, a etiqueta de tamanho some (as duas se sobreporiam)
+    const measuring = ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds;
     // ---- seleção: 1 camada = caixa (girada se preciso) com alças e etiqueta "L × A"; várias = contorno fino de cada
     // uma + caixa geral (sem rotação) com alças que escalam o conjunto
     if (sel.length === 1) {
@@ -203,7 +205,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       if (box) {
         const type = store.get(sel[0]).type;
         drawBox('sel', box, 'sel-box', editing || ui.editPathId ? null : type === 'line' ? 'line' : 'full');
-        pill(canvas.aabb(sel[0]), `${round(canvas.worldBox(sel[0]).w, 1)} × ${round(canvas.worldBox(sel[0]).h, 1)}`);
+        if (!measuring) pill(canvas.aabb(sel[0]), `${round(canvas.worldBox(sel[0]).w, 1)} × ${round(canvas.worldBox(sel[0]).h, 1)}`);
       }
     } else if (sel.length > 1) {
       for (const id of sel) {
@@ -214,7 +216,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       if (u) {
         const c = canvas.toScreen(u.x + u.w / 2, u.y + u.h / 2);
         drawBox('sel-group', { cx: c.x, cy: c.y, w: u.w * z, h: u.h * z, rot: 0 }, 'sel-box', 'plain');
-        pill(u, `${round(u.w, 1)} × ${round(u.h, 1)}`);
+        if (!measuring) pill(u, `${round(u.w, 1)} × ${round(u.h, 1)}`);
       }
     }
 
@@ -358,10 +360,27 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
           if (!t) continue;
           const a = canvas.aabb(n.id), b = canvas.aabb(t.id);
           if (!a || !b) continue;
-          const p1 = canvas.toScreen(a.x + a.w, a.y + a.h / 2);
-          const p2 = canvas.toScreen(b.x, b.y + b.h / 2);
-          const dx = Math.max(60, Math.abs(p2.x - p1.x) / 2);
-          arrows.push(`<circle cx="${p1.x}" cy="${p1.y}" r="4" class="proto-arrow"/><path d="M ${p1.x} ${p1.y} C ${p1.x + dx} ${p1.y} ${p2.x - dx} ${p2.y} ${p2.x} ${p2.y}" class="proto-path"/><path d="M ${p2.x} ${p2.y} l -10 -5 l 0 10 z" class="proto-arrow"/>`);
+          // Escolhe o lado de SAÍDA e de ENTRADA conforme onde o destino está: à direita (direita→esquerda), à esquerda
+          // (esquerda→direita) ou, se estiverem alinhados na horizontal, embaixo/em cima (vertical). Sem isso, uma seta
+          // que volta para uma tela à esquerda daria um laço atravessando o desenho.
+          const sepX = b.x >= a.x + a.w || b.x + b.w <= a.x;
+          let p1, p2, c1, c2, head;
+          if (sepX) {
+            const dir = b.x >= a.x + a.w ? 1 : -1;
+            p1 = canvas.toScreen(dir === 1 ? a.x + a.w : a.x, a.y + a.h / 2);
+            p2 = canvas.toScreen(dir === 1 ? b.x : b.x + b.w, b.y + b.h / 2);
+            const k = Math.max(60, Math.abs(p2.x - p1.x) / 2) * dir;
+            c1 = { x: p1.x + k, y: p1.y }; c2 = { x: p2.x - k, y: p2.y };
+            head = `M ${p2.x} ${p2.y} l ${-10 * dir} -5 l 0 10 z`;
+          } else {
+            const dir = b.y >= a.y + a.h ? 1 : -1;
+            p1 = canvas.toScreen(a.x + a.w / 2, dir === 1 ? a.y + a.h : a.y);
+            p2 = canvas.toScreen(b.x + b.w / 2, dir === 1 ? b.y : b.y + b.h);
+            const k = Math.max(60, Math.abs(p2.y - p1.y) / 2) * dir;
+            c1 = { x: p1.x, y: p1.y + k }; c2 = { x: p2.x, y: p2.y - k };
+            head = `M ${p2.x} ${p2.y} l -5 ${-10 * dir} l 10 0 z`;
+          }
+          arrows.push(`<circle cx="${p1.x}" cy="${p1.y}" r="4" class="proto-arrow"/><path d="M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}" class="proto-path"/><path d="${head}" class="proto-arrow"/>`);
         }
       };
       const visit = (list) => list.forEach((n) => { if (all || sel.includes(n.id)) consider(n); if (n.children) visit(n.children); });
