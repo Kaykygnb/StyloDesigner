@@ -230,3 +230,38 @@ test('medidas Alt: camada dentro de outra mostra as 4 margens', () => {
   assert.deepEqual(m.map((x) => x.len).sort((a, b) => a - b), [10, 20, 40, 60]);
   assert.deepEqual(measures({ x: 0, y: 0, w: 10, h: 10 }, { x: 5, y: 5, w: 10, h: 10 }), []); // sobrepostas: sem medida
 });
+
+import { buildSampleApp } from '../src/sample.js';
+import { walk } from '../src/model.js';
+
+test('exemplo "app mobile": instâncias sincronizadas, estilos ligados e protótipo navegável', () => {
+  const doc = buildSampleApp();
+  const all = [];
+  walk(doc.pages[0].children, (n) => { all.push(n); });
+  const byId = new Map(all.map((n) => [n.id, n]));
+
+  // 4 instâncias do componente "Ação", cada uma com o ícone/rótulo próprios (sobrescritas) e o resto vindo do principal
+  const insts = all.filter((n) => n.instanceOf);
+  assert.equal(insts.length, 4);
+  assert.deepEqual(insts.map((i) => i.children[1].text), ['Enviar', 'Receber', 'Pagar', 'Cartões']);
+  const main = byId.get(insts[0].instanceOf);
+  assert.equal(main.component, true);
+  assert.equal(main.children[1].text, 'Enviar'); // o principal não foi alterado pelas sobrescritas
+
+  // mudar o principal propaga; as sobrescritas permanecem
+  main.children[1].fontSize = 20;
+  syncInstances(doc.pages);
+  assert.equal(insts[2].children[1].fontSize, 20);
+  assert.equal(insts[2].children[1].text, 'Pagar');
+
+  // estilos ligados a camadas existem
+  const styleIds = new Set([...doc.styles.colors, ...doc.styles.texts].map((s) => s.id));
+  const linked = all.filter((n) => n.textStyleId || n.fill?.styleId);
+  assert.ok(linked.length >= 3);
+  assert.ok(linked.every((n) => styleIds.has(n.textStyleId ?? n.fill.styleId)));
+
+  // toda interação de navegação aponta para um frame que existe
+  const navs = all.flatMap((n) => (n.interactions || []).filter((i) => i.action === 'navigate'));
+  assert.equal(navs.length, 2);
+  assert.ok(navs.every((i) => byId.get(i.target)?.type === 'frame'));
+});

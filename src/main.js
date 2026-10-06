@@ -24,6 +24,7 @@ import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu } from './ui/menus.js';
 import { h, ico, iconButton } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
+import { buildSampleApp } from './sample.js';
 
 /** Atalho: primeiro elemento que casa com o seletor CSS. */
 const $ = (sel) => document.querySelector(sel);
@@ -166,7 +167,8 @@ const fileBtn = h('button.btn.ghost', {
         },
       },
       'sep',
-      { label: 'Carregar projeto de exemplo', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadSample(), canvas.fit(null)) },
+      { label: 'Exemplo: landing page', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadSample(), canvas.fit(null)) },
+      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadDoc(buildSampleApp()), canvas.fit(null)) },
     ]);
   },
 }, ico('folder', 15), ' Arquivo');
@@ -372,7 +374,7 @@ const emptyHint = h('div.empty-canvas',
   h('h3', 'Canvas vazio'),
   h('p', 'Aperte ', h('kbd', 'F'), ' e arraste para desenhar um frame'),
   h('p', 'ou arraste uma imagem para cá'),
-  h('p.muted', 'Arquivo → Carregar projeto de exemplo mostra o que dá para fazer'));
+  h('p.muted', 'Arquivo → Exemplo mostra o que dá para fazer'));
 $('.stage').append(emptyHint);
 /** Mostra/esconde a dica conforme a página tem ou não camadas. */
 const syncEmpty = () => { emptyHint.style.display = store.page().children.length ? 'none' : ''; };
