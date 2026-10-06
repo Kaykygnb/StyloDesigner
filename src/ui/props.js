@@ -13,13 +13,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   let updaters = [];
   let lastSig = null;
   let radiusExpanded = false;
+  let paddingExpanded = false;
   let exportScale = 2;
 
   // ------------------------------------------------------------------ helpers
   const ids = () => ui.selection.filter((id) => store.get(id));
   const nodes = () => ids().map((id) => store.get(id));
   const P = () => store.get(ids()[0]);
-  const each = (fn) => store.update(() => nodes().forEach(fn));
+  const each = (fn) => store.update(() => nodes().forEach(fn), { structural: false });
   const commit = () => store.commit();
   const reg = (ctl) => { updaters.push(ctl.update); return ctl.el; };
   const row = (...c) => h('div.row', ...c);
@@ -82,6 +83,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const inFlow = isFlow(n0, parent);
     const body = [];
 
+    if (!single) {
+      // várias camadas: X/Y/W/H da caixa que envolve todas
+      const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
+      body.push(h('div.sub-label', `${ids().length} camadas selecionadas`),
+        row(num('X', () => box().x, (v) => commands.setSelectionBox({ x: v }), { decimals: 1 }),
+          num('Y', () => box().y, (v) => commands.setSelectionBox({ y: v }), { decimals: 1 })),
+        row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
+          num('H', () => box().h, (v) => commands.setSelectionBox({ h: v }), { min: 1, decimals: 1 })));
+    }
     if (single) {
       const posRow = row(
         num('X', () => P().x, (v) => each((n) => { n.x = v; }), { decimals: 1 }),
@@ -195,19 +205,51 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const pad = (labels) => labels.map(([i, l, t]) =>
       num(l, () => L().padding[i], (v) => each((n) => { n.layout.padding[i] = Math.max(0, v); }), { title: t, min: 0, decimals: 0 }));
     const aligns = [['flex-start', 'Início'], ['center', 'Centro'], ['flex-end', 'Fim']];
+    const asym = n0.layout.padding[0] !== n0.layout.padding[2] || n0.layout.padding[1] !== n0.layout.padding[3];
+    const showAll = paddingExpanded || asym;
+    /** padding: ou 2 campos (horizontal/vertical) ou os 4 lados */
+    const paddingBlock = () => [
+      h('div.sub-label', 'padding'),
+      ...(showAll
+        ? [row(...pad([[0, 'T', 'padding-top'], [1, 'R', 'padding-right']])), row(...pad([[3, 'L', 'padding-left'], [2, 'B', 'padding-bottom']])),
+          asym ? null : h('button.link-btn', { type: 'button', onclick: () => { paddingExpanded = false; lastSig = null; render(); } }, 'Simplificar (horizontal/vertical)')]
+        : [row(
+          num('↔', () => L().padding[3], (v) => each((n) => { n.layout.padding[1] = n.layout.padding[3] = Math.max(0, v); }), { title: 'padding horizontal (esquerda e direita)', min: 0, decimals: 0 }),
+          num('↕', () => L().padding[0], (v) => each((n) => { n.layout.padding[0] = n.layout.padding[2] = Math.max(0, v); }), { title: 'padding vertical (topo e base)', min: 0, decimals: 0 }),
+          h('button.icon-btn.small', {
+            type: 'button', title: 'Padding por lado',
+            onclick: () => { paddingExpanded = !paddingExpanded; lastSig = null; render(); },
+          }, ico('corners', 14)))]),
+    ];
+    /** Matriz 3×3: escolhe justify + align de uma vez (colunas/linhas trocam conforme a direção). */
+    const matrix = () => {
+      const col = L().mode === 'column';
+      const cells = [];
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const [mainI, crossI] = col ? [r, c] : [c, r];
+          const j = aligns[mainI][0], a = aligns[crossI][0];
+          const btn = h('button.am-cell', {
+            type: 'button', title: `justify-content: ${j}; align-items: ${a}`,
+            onclick: () => { each((n) => { n.layout.justify = j; n.layout.align = a; }); commit(); },
+          }, h('i'));
+          updaters.push(() => btn.classList.toggle('on', L().justify === j && L().align === a));
+          cells.push(btn);
+        }
+      }
+      return h('div.align-matrix', cells);
+    };
     if (n0.layout.mode === 'grid') {
       body.push(
         row(num('C', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); }), { title: 'colunas (grid-template-columns)', min: 1, decimals: 0 }),
           num('L', () => L().rows ?? 0, (v) => each((n) => { n.layout.rows = Math.max(0, Math.round(v)); }), { title: 'linhas (0 = automático)', min: 0, decimals: 0 })),
         row(num('↔', () => L().colGap ?? 8, (v) => each((n) => { n.layout.colGap = Math.max(0, v); }), { title: 'column-gap', min: 0, decimals: 0 }),
           num('↕', () => L().rowGap ?? 8, (v) => each((n) => { n.layout.rowGap = Math.max(0, v); }), { title: 'row-gap', min: 0, decimals: 0 })),
-        h('div.sub-label', 'padding'),
-        row(...pad([[0, 'T', 'padding-top'], [1, 'R', 'padding-right']])),
-        row(...pad([[3, 'L', 'padding-left'], [2, 'B', 'padding-bottom']])),
-        h('div.sub-label', 'justify-items'),
-        select(aligns, () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-items'),
-        h('div.sub-label', 'align-items'),
-        select(aligns, () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items'));
+        ...paddingBlock(),
+        row(matrix(), h('div.col', h('div.sub-label', 'justify-items'),
+          select(aligns, () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-items'),
+          h('div.sub-label', 'align-items'),
+          select(aligns, () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items'))));
     } else if (hasLayout(n0)) {
       body.push(
         row(num('↔', () => L().gap, (v) => each((n) => { n.layout.gap = Math.max(0, v); }), { title: 'gap', min: 0, decimals: 0 }),
@@ -215,9 +257,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             type: 'button', title: 'Quebrar linha (flex-wrap: wrap)',
             onclick: () => { each((n) => { n.layout.wrap = !n.layout.wrap; }); commit(); },
           }, ico('wrap'))),
-        h('div.sub-label', 'padding'),
-        row(...pad([[0, 'T', 'padding-top'], [1, 'R', 'padding-right']])),
-        row(...pad([[3, 'L', 'padding-left'], [2, 'B', 'padding-bottom']])),
+        ...paddingBlock(),
+        h('div.sub-label', 'alinhamento'),
+        matrix(),
         h('div.sub-label', 'justify-content'),
         select([...aligns.map(([v, l]) => [v, `${l} (${v})`]),
           ['space-between', 'Espaço entre (space-between)'], ['space-around', 'Espaço ao redor (space-around)'], ['space-evenly', 'Espaço igual (space-evenly)']],
@@ -328,6 +370,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           get: () => P().textDecoration,
           set: (v) => each((n) => { n.textDecoration = n.textDecoration === v ? 'none' : v; }), commit,
         }))),
+      row(
+        select([['none', 'Normal'], ['uppercase', 'MAIÚSCULAS'], ['lowercase', 'minúsculas'], ['capitalize', 'Cada Palavra']],
+          () => P().textTransform || 'none', (v) => each((n) => { n.textTransform = v; }), 'text-transform'),
+        P().sizeY === 'fixed'
+          ? reg(segmented({
+            options: [['top', 'alignT', 'Alinhar ao topo da caixa'], ['center', 'alignCV', 'Centralizar na vertical'], ['bottom', 'alignB', 'Alinhar embaixo']],
+            get: () => P().textVAlign || 'top', set: (v) => each((n) => { n.textVAlign = v; }), commit,
+          }))
+          : null),
     ]);
   }
 
@@ -338,6 +389,22 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       bar.style.backgroundImage = fillCss({ ...f, type: 'linear', angle: 90 })['background-image'] || '';
     });
     return bar;
+  }
+
+  /** Cores já usadas no documento (mais usadas primeiro): clique para aplicar. */
+  function docColorChips(apply) {
+    const count = new Map();
+    const bump = (c) => c && count.set(c.toUpperCase(), (count.get(c.toUpperCase()) || 0) + 1);
+    const walk = (list) => list.forEach((n) => {
+      if (n.fill?.type === 'solid') bump(n.fill.color);
+      if (n.stroke) bump(n.stroke.color);
+      if (n.children) walk(n.children);
+    });
+    store.state.doc.pages.forEach((pg) => walk(pg.children));
+    const top = [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([c]) => c);
+    if (top.length < 2) return null;
+    return h('div.color-chips', { title: 'Cores usadas neste projeto' },
+      top.map((c) => h('button.chip', { type: 'button', title: c, style: { background: c }, onclick: () => apply(c) })));
   }
 
   function fillSection() {
@@ -360,6 +427,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         get: () => fill().color, set: (v) => each((n) => { n.fill.color = v; delete n.fill.styleId; }), commit,
         opacity: () => fill().opacity, setOpacity: (v) => each((n) => { n.fill.opacity = v; delete n.fill.styleId; }),
       })));
+      body.push(docColorChips((hex) => { each((n) => { n.fill.color = hex; n.fill.opacity = 1; delete n.fill.styleId; }); commit(); }));
       body.push(row(
         select([['', 'Sem estilo de cor'], ...styles.map((c) => [c.id, c.name])], () => fill().styleId || '',
           (v) => each((n) => { if (v) n.fill.styleId = v; else delete n.fill.styleId; }), 'Estilo de cor'),
@@ -499,7 +567,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       store.state.doc.styles.colors.length, store.state.doc.styles.texts.length, n.fill.styleId, n.textStyleId, n.type,
-      n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)),
+      n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)), paddingExpanded, n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
     ].join('|');
   }
 

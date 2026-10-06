@@ -1,5 +1,5 @@
 // Estado central: documento, seleção, histórico (undo/redo) e persistência local.
-import { makeDoc, makePage, fitGroups, walk } from './model.js';
+import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
 import { buildSample } from './sample.js';
 import { syncInstances, syncStyles } from './components.js';
 
@@ -83,9 +83,10 @@ export function createStore() {
 
   // ---------------------------------------------------------------- mutação
   /** Aplica uma mudança no documento. Use { commit: true } ao final de um gesto/edição. */
-  api.update = (fn, { commit = false } = {}) => {
+  api.update = (fn, { commit = false, structural = true } = {}) => {
     fn(api.page(), api);
-    version++;
+    // structural:false = só valores mudaram (mover, girar, editar número): o índice id→nó continua válido
+    if (structural) version++;
     if (commit) api.commit();
     else emit('doc');
   };
@@ -150,6 +151,18 @@ export function createStore() {
     api.switchPage(page.id);
     api.commit();
   };
+  api.duplicatePage = (id) => {
+    const src = state.doc.pages.find((p) => p.id === id);
+    if (!src) return;
+    const copy = JSON.parse(JSON.stringify(src));
+    const reid = (n) => { n.id = uid(); n.children?.forEach(reid); };
+    copy.id = uid();
+    copy.name = `${src.name} cópia`;
+    copy.children.forEach(reid);
+    state.doc.pages.splice(state.doc.pages.indexOf(src) + 1, 0, copy);
+    api.switchPage(copy.id);
+    api.commit();
+  };
   api.switchPage = (id) => {
     state.ui.pageId = id;
     state.ui.selection = [];
@@ -187,17 +200,25 @@ export function createStore() {
   // ---------------------------------------------------------------- persistência
   function scheduleSave() {
     clearTimeout(saveTimer);
+    if (state.ui.saveState !== 'saving') {
+      state.ui.saveState = 'saving';
+      emit('ui');
+    }
     saveTimer = setTimeout(save, 400);
   }
   function save() {
+    clearTimeout(saveTimer);
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ doc: state.doc, views: state.ui.views, theme: state.ui.theme }),
       );
+      state.ui.saveState = 'saved';
     } catch (err) {
+      state.ui.saveState = 'error';
       api.onSaveError?.(err);
     }
+    emit('ui');
   }
   api.saveNow = save;
   api.setTheme = (theme) => {

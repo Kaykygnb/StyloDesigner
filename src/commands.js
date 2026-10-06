@@ -1,5 +1,5 @@
 // Comandos de edição: tudo que muda a árvore de camadas (agrupar, duplicar, auto layout, alinhar...).
-import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, round, uid } from './model.js';
+import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, resizeNode, round, uid } from './model.js';
 import { generateCode } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 
@@ -82,20 +82,89 @@ export function createCommands(store, canvas) {
     const clip = ui.clipboard;
     if (!clip) return;
     clip.count++;
-    const parent = clip.parentId ? store.get(clip.parentId) : null;
+    // com UM frame selecionado (que não é o próprio copiado), cola dentro dele
+    const sel = store.selected();
+    const into = sel.length === 1 && sel[0].type === 'frame' && !clip.nodes.some((c) => c.id === sel[0].id) ? sel[0] : null;
+    const parent = into || (clip.parentId ? store.get(clip.parentId) : null);
     const list = parent?.children ?? store.page().children;
     const created = [];
     store.update(() => {
       for (const src of clip.nodes) {
         const n = cloneNode(src);
-        n.x += 16 * clip.count;
-        n.y += 16 * clip.count;
+        if (into && !hasLayout(into)) {
+          // mantém a posição se couber; senão centraliza
+          const fits = n.x >= 0 && n.y >= 0 && n.x + n.w <= into.w && n.y + n.h <= into.h;
+          if (!fits || clip.parentId === into.id) {
+            n.x = Math.round((into.w - n.w) / 2);
+            n.y = Math.round((into.h - n.h) / 2);
+          }
+          n.x += 16 * (clip.count - 1);
+          n.y += 16 * (clip.count - 1);
+        } else if (!into) {
+          n.x += 16 * clip.count;
+          n.y += 16 * clip.count;
+        }
+        n.absolute = false;
         list.push(n);
         created.push(n);
       }
     });
     store.setSelection(created.map((n) => n.id));
     store.commit();
+  }
+
+  // ------------------------------------------------------------------ caixa da seleção (várias camadas)
+  /** Move/redimensiona o conjunto selecionado pela caixa envolvente (coordenadas de mundo). */
+  function setSelectionBox({ x, y, w, h }) {
+    const nodes = topSelection();
+    const box = canvas.unionAabb(nodes.map((n) => n.id));
+    if (!box || !nodes.length) return;
+    const sx = w != null && box.w ? Math.max(0.01, w) / box.w : 1;
+    const sy = h != null && box.h ? Math.max(0.01, h) / box.h : 1;
+    const dx = x != null ? x - box.x : 0, dy = y != null ? y - box.y : 0;
+    const aabbs = nodes.map((n) => canvas.aabb(n.id));
+    store.update(() => {
+      nodes.forEach((n, i) => {
+        const free = !(hasLayout(store.parentOf(n.id)) && !n.absolute);
+        if (sx !== 1 || sy !== 1) {
+          resizeNode(n, n.w * sx, n.h * sy, sx !== 1 ? 'w' : 'h');
+          if (sx !== 1 && sy !== 1) { n.h = Math.max(1, round(n.h)); }
+        }
+        if (free) {
+          n.x = round(n.x + dx + (aabbs[i].x - box.x) * (sx - 1));
+          n.y = round(n.y + dy + (aabbs[i].y - box.y) * (sy - 1));
+        }
+      });
+    }, { structural: false });
+  }
+
+  // ------------------------------------------------------------------ copiar / colar propriedades (visual)
+  const STYLE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'opacity', 'blend'];
+  const TEXT_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration', 'textTransform', 'textStyleId'];
+
+  function copyStyle() {
+    const n = store.selected()[0];
+    if (!n) return false;
+    const keys = n.type === 'text' ? [...STYLE_KEYS, ...TEXT_KEYS] : STYLE_KEYS;
+    ui.styleClipboard = { type: n.type, props: JSON.parse(JSON.stringify(Object.fromEntries(keys.filter((k) => n[k] !== undefined).map((k) => [k, n[k]])))) };
+    return true;
+  }
+
+  function pasteStyle() {
+    const c = ui.styleClipboard;
+    const nodes = topSelection();
+    if (!c || !nodes.length) return false;
+    store.update(() => {
+      for (const n of nodes) {
+        for (const [k, v] of Object.entries(c.props)) {
+          if (TEXT_KEYS.includes(k) && n.type !== 'text') continue;
+          if (k === 'radius' && ['text', 'ellipse', 'group', 'line', 'path'].includes(n.type)) continue;
+          if (k === 'fill' && n.type === 'group') continue;
+          n[k] = JSON.parse(JSON.stringify(v));
+        }
+      }
+    }, { commit: true });
+    return true;
   }
 
   // ------------------------------------------------------------------ agrupar
@@ -118,15 +187,18 @@ export function createCommands(store, canvas) {
     store.commit();
   }
 
+  /** Desagrupa grupos e também frames (os filhos sobem um nível mantendo a posição visual). */
   function ungroup() {
-    const groups = store.selected().filter((n) => n.type === 'group');
+    const groups = store.selected().filter((n) => n.type === 'group' || (n.type === 'frame' && !n.component && !n.instanceOf));
     if (!groups.length) return;
     const out = [];
     store.update(() => {
       for (const g of groups) {
         const list = store.listOf(g.id);
         const i = list.indexOf(g);
+        if (g.type === 'frame') freezePositions(g.children, g);
         for (const c of g.children) {
+          c.absolute = false;
           c.x += g.x;
           c.y += g.y;
           out.push(c);
@@ -572,7 +644,7 @@ export function createCommands(store, canvas) {
 
   return {
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
-    toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
+    setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addTextStyle, removeStyle,
     addGuide, removeGuide, addPathFromWorld, normalizePath, addShapePath, syncInstances,
   };

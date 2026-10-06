@@ -119,6 +119,8 @@ export function createNode(type, props = {}) {
       letterSpacing: 0,
       textAlign: 'left',
       textDecoration: 'none',
+      textTransform: 'none',
+      textVAlign: 'top',
       sizeX: 'hug',
       sizeY: 'hug',
       w: 60, h: 22,

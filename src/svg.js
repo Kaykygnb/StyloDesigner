@@ -62,16 +62,19 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return ` filter="url(#${fid})"`;
   }
 
-  function textSvg(node, w) {
+  function textSvg(node, w, h) {
     const fs = node.fontSize, lh = (node.lineHeight || 1.2) * fs;
     const anchor = node.textAlign === 'center' ? 'middle' : node.textAlign === 'right' ? 'end' : 'start';
     const x = node.textAlign === 'center' ? w / 2 : node.textAlign === 'right' ? w : 0;
+    const blockH = String(node.text).split('\n').length * lh;
+    const dy = node.sizeY === 'fixed' ? { center: (h - blockH) / 2, bottom: h - blockH }[node.textVAlign] || 0 : 0;
     const f = node.fill;
     let fillAttr = 'fill="none"';
     if (f?.type === 'solid') fillAttr = `fill="${rgba(f.color, 1)}"${f.opacity < 1 ? ` fill-opacity="${f.opacity}"` : ''}`;
     else if (f && f.type !== 'none') fillAttr = paint(f, w, 0).attr || fillAttr;
-    const lines = String(node.text).split('\n');
-    const tspans = lines.map((l, i) => `<tspan x="${n2(x)}" y="${n2(i * lh + lh / 2)}">${esc(l) || ' '}</tspan>`).join('');
+    const tt = { uppercase: (x) => x.toUpperCase(), lowercase: (x) => x.toLowerCase(), capitalize: (x) => x.replace(/\b\p{L}/gu, (c) => c.toUpperCase()) }[node.textTransform];
+    const lines = (tt ? tt(String(node.text)) : String(node.text)).split('\n');
+    const tspans = lines.map((l, i) => `<tspan x="${n2(x)}" y="${n2(dy + i * lh + lh / 2)}">${esc(l) || ' '}</tspan>`).join('');
     const extra = `${node.fontStyle === 'italic' ? ' font-style="italic"' : ''}${node.textDecoration !== 'none' ? ` text-decoration="${node.textDecoration}"` : ''}${node.letterSpacing ? ` letter-spacing="${node.letterSpacing}"` : ''}`;
     return `<text ${fillAttr} font-family="${esc(node.fontFamily)}, sans-serif" font-size="${fs}" font-weight="${node.fontWeight}" text-anchor="${anchor}" dominant-baseline="central" style="white-space:pre"${extra}>${tspans}</text>`;
   }
@@ -127,7 +130,7 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     ].filter(Boolean).join(' ');
 
     let inner = '';
-    if (node.type === 'text') inner = textSvg(node, w);
+    if (node.type === 'text') inner = textSvg(node, w, h);
     else if (node.type === 'line') {
       const st = node.stroke || {};
       inner = `<line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}"${strokeAttr({ ...st, position: 'center' })} stroke-linecap="${st.style === 'dotted' ? 'round' : 'butt'}"/>`;

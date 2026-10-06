@@ -209,3 +209,24 @@ test('SVG: elipse, linha, rotação e espelhar', () => {
   assert.match(svg, /scale\(-1 1\)/);
   assert.match(svg, /<line x1="0" y1="6" x2="80" y2="6"/);
 });
+
+import { measures } from '../src/overlay.js';
+
+test('medidas Alt: distância horizontal e vertical entre camadas', () => {
+  const A = { x: 0, y: 0, w: 50, h: 50 };
+  const right = measures(A, { x: 80, y: 10, w: 20, h: 20 });
+  assert.equal(right.length, 1);
+  assert.equal(right[0].len, 30);
+  assert.equal(right[0].y1, 20); // no meio da sobreposição vertical (10..50 ∩ → 10..50 -> 30?) deve ficar dentro da sobreposição
+  const below = measures(A, { x: 10, y: 90, w: 20, h: 20 });
+  assert.equal(below[0].len, 40);
+  assert.deepEqual([below[0].x1, below[0].y1, below[0].y2], [20, 50, 90]);
+});
+
+test('medidas Alt: camada dentro de outra mostra as 4 margens', () => {
+  const inner = { x: 10, y: 20, w: 30, h: 40 };
+  const outer = { x: 0, y: 0, w: 100, h: 100 };
+  const m = measures(inner, outer);
+  assert.deepEqual(m.map((x) => x.len).sort((a, b) => a - b), [10, 20, 40, 60]);
+  assert.deepEqual(measures({ x: 0, y: 0, w: 10, h: 10 }, { x: 5, y: 5, w: 10, h: 10 }), []); // sobrepostas: sem medida
+});

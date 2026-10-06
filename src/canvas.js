@@ -11,6 +11,7 @@ export function createCanvas(store, viewport) {
   world.className = 'world';
   viewport.prepend(world);
   const els = new Map();
+  let alive = new Set();
 
   // ------------------------------------------------------------------ vista (pan/zoom)
   const getView = () => (ui.views[ui.pageId] ||= { x: 120, y: 120, zoom: 1, fresh: true });
@@ -106,6 +107,21 @@ export function createCanvas(store, viewport) {
     return x0 === Infinity ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
 
+  /** Rola a vista só o necessário para a camada ficar visível (sem mudar o zoom). */
+  function ensureVisible(id) {
+    const b = aabb(id);
+    if (!b) return;
+    const r = vpRect();
+    const v = getView();
+    const m = 60;
+    const x0 = b.x * v.zoom + v.x, x1 = (b.x + b.w) * v.zoom + v.x;
+    const y0 = b.y * v.zoom + v.y, y1 = (b.y + b.h) * v.zoom + v.y;
+    let dx = 0, dy = 0;
+    if (x0 < m) dx = m - x0; else if (x1 > r.width - m) dx = r.width - m - x1;
+    if (y0 < m) dy = m - y0; else if (y1 > r.height - m) dy = r.height - m - y1;
+    if (dx || dy) setView({ x: v.x + dx, y: v.y + dy });
+  }
+
   function fit(ids, { maxZoom = 2, padding = 80 } = {}) {
     const all = ids?.length ? ids : store.page().children.map((n) => n.id);
     const box = unionAabb(all);
@@ -124,6 +140,7 @@ export function createCanvas(store, viewport) {
 
   // ------------------------------------------------------------------ renderização
   function syncNode(node, parent, parentEl, index) {
+    alive.add(node.id);
     let el = els.get(node.id);
     if (!el) {
       el = document.createElement('div');
@@ -136,7 +153,10 @@ export function createCanvas(store, viewport) {
     if (!node.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;
     if (editing) css += ';user-select:text;cursor:text';
-    if (el.style.cssText !== css) el.style.cssText = css;
+    if (el._css !== css) {
+      el.style.cssText = css;
+      el._css = css;
+    }
 
     if (node.type === 'path') {
       const svg = pathSvg(node, store.state.doc.assets);
@@ -158,34 +178,36 @@ export function createCanvas(store, viewport) {
     if (node.children) node.children.forEach((c, i) => syncNode(c, node, el, i));
   }
 
-  function measureBack(list) {
+  function measureBack(list, parent) {
+    const flow = (parent?.layout?.mode ?? 'none') !== 'none';
     for (const n of list) {
       const el = els.get(n.id);
       if (el && n.visible) {
-        if (n.sizeX !== 'fixed' || (store.parentOf(n.id)?.layout?.mode ?? 'none') !== 'none') {
+        if (n.sizeX !== 'fixed' || flow) {
           const w = el.offsetWidth;
           if (Math.abs(w - n.w) > 0.01) n.w = round(w);
         }
-        if (n.sizeY !== 'fixed' || (store.parentOf(n.id)?.layout?.mode ?? 'none') !== 'none') {
+        if (n.sizeY !== 'fixed' || flow) {
           const h = el.offsetHeight;
           if (Math.abs(h - n.h) > 0.01) n.h = round(h);
         }
       }
-      if (n.children) measureBack(n.children);
+      if (n.children) measureBack(n.children, n);
     }
   }
 
   function render() {
     const page = store.page();
+    alive = new Set();
     page.children.forEach((n, i) => syncNode(n, null, world, i));
-    // remove elementos de nós que não existem mais
+    // remove elementos de nós que não existem mais (ou que são de outra página)
     for (const [id, el] of els) {
-      if (!store.get(id) || store.entry(id).page !== page) {
+      if (!alive.has(id)) {
         el.remove();
         els.delete(id);
       }
     }
-    measureBack(page.children);
+    measureBack(page.children, null);
 
     // entrar em modo de edição de texto: foca e seleciona tudo
     const editEl = ui.editingId && els.get(ui.editingId);
@@ -207,7 +229,7 @@ export function createCanvas(store, viewport) {
   render();
 
   return {
-    world, els, getView, setView, zoomAt, toWorld, toScreen, originOf, worldBox, aabb, unionAabb, fit,
+    world, els, getView, setView, zoomAt, toWorld, toScreen, originOf, worldBox, aabb, unionAabb, fit, ensureVisible,
     render, applyView,
     vpRect,
   };

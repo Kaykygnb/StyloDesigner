@@ -13,7 +13,7 @@ import { createProtoPanel } from './ui/proto.js';
 import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu } from './ui/menus.js';
 import { h, ico, iconButton } from './ui/dom.js';
-import { openProjectFile, saveProject, exportHtmlFile } from './export.js';
+import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 
 const $ = (sel) => document.querySelector(sel);
 const store = createStore();
@@ -95,6 +95,7 @@ nameInput.addEventListener('change', () => {
 });
 nameInput.addEventListener('keydown', (e) => e.key === 'Enter' && nameInput.blur());
 
+const saveEl = h('span.save-state', { title: 'O projeto é salvo sozinho neste navegador' }, 'Salvo');
 const undoBtn = iconButton('undo', 'Desfazer (Ctrl+Z)', () => store.undo());
 const redoBtn = iconButton('redo', 'Refazer (Ctrl+Shift+Z)', () => store.redo());
 const themeBtn = iconButton('sun', 'Alternar tema claro/escuro', () => store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'));
@@ -125,6 +126,17 @@ const fileBtn = h('button.btn.ghost', {
         label: 'Exportar seleção como HTML', icon: 'code', disabled: !ui.selection.length,
         onClick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets)),
       },
+      {
+        label: 'Exportar todos os frames da página (PNG 2x)', icon: 'image',
+        disabled: !store.page().children.some((n) => n.type === 'frame'),
+        onClick: async () => {
+          const frames = store.page().children.filter((n) => n.type === 'frame' && n.visible);
+          try {
+            for (const f of frames) { await exportPng(f, store.state.doc.assets, 2); await new Promise((r) => setTimeout(r, 250)); }
+            toast(`${frames.length} imagens exportadas.`);
+          } catch (err) { toast(err.message); }
+        },
+      },
       'sep',
       { label: 'Carregar projeto de exemplo', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadSample(), canvas.fit(null)) },
     ]);
@@ -140,6 +152,7 @@ $('#topbar').append(
   undoBtn, redoBtn,
   h('div.spacer'),
   nameInput,
+  saveEl,
   h('div.spacer'),
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
@@ -152,6 +165,8 @@ function syncTopbar() {
   redoBtn.disabled = !store.canRedo();
   themeBtn.replaceChildren(ico(ui.theme === 'dark' ? 'sun' : 'moon'));
   if (document.activeElement !== nameInput) nameInput.value = store.state.doc.name;
+  saveEl.dataset.state = ui.saveState || 'saved';
+  saveEl.textContent = { saving: 'Salvando…', error: 'Não salvou!', saved: 'Salvo' }[ui.saveState || 'saved'];
 }
 
 // ---------------------------------------------------------------- barra de ferramentas
@@ -252,3 +267,72 @@ requestAnimationFrame(() => {
 
 // útil para depuração e testes no navegador
 window.designer = { store, canvas, commands, tools };
+
+// ---------------------------------------------------------------- painéis redimensionáveis e modo foco
+const PREF_KEY = 'projeto-designer:prefs';
+const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ignore */ } };
+const root = document.documentElement;
+const setWidth = (side, w) => {
+  const v = Math.max(200, Math.min(520, Math.round(w)));
+  root.style.setProperty(`--${side}`, `${v}px`);
+  prefs[side] = v;
+  window.dispatchEvent(new Event('resize'));
+  return v;
+};
+if (prefs.left) root.style.setProperty('--left', `${prefs.left}px`);
+if (prefs.right) root.style.setProperty('--right', `${prefs.right}px`);
+for (const side of ['left', 'right']) {
+  const el = h('div.resizer', { title: 'Arraste para redimensionar' });
+  const place = () => {
+    el.style.left = side === 'left' ? 'var(--left)' : 'calc(100% - var(--right))';
+  };
+  place();
+  $('#app').append(el);
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('active');
+    const move = (ev) => setWidth(side, side === 'left' ? ev.clientX : innerWidth - ev.clientX);
+    const up = () => {
+      el.classList.remove('active');
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      savePrefs();
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  });
+  el.addEventListener('dblclick', () => { root.style.removeProperty(`--${side}`); delete prefs[side]; savePrefs(); window.dispatchEvent(new Event('resize')); });
+}
+window.addEventListener('keydown', (e) => {
+  const typing = e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key === '\\' && !typing) {
+    e.preventDefault();
+    $('#app').classList.toggle('focus');
+    window.dispatchEvent(new Event('resize'));
+    store.emit('overlay');
+  }
+});
+
+// ---------------------------------------------------------------- canvas vazio: dica
+const emptyHint = h('div.empty-canvas',
+  h('h3', 'Canvas vazio'),
+  h('p', 'Aperte ', h('kbd', 'F'), ' e arraste para desenhar um frame'),
+  h('p', 'ou arraste uma imagem para cá'),
+  h('p.muted', 'Arquivo → Carregar projeto de exemplo mostra o que dá para fazer'));
+$('.stage').append(emptyHint);
+const syncEmpty = () => { emptyHint.style.display = store.page().children.length ? 'none' : ''; };
+store.subscribe(syncEmpty);
+syncEmpty();
+
+// ---------------------------------------------------------------- erros inesperados não podem passar em branco
+let lastErr = 0;
+const onFail = (msg) => {
+  console.error(msg);
+  if (Date.now() - lastErr < 4000) return;
+  lastErr = Date.now();
+  toast('Ops, algo deu errado. Seu trabalho continua salvo; se travar, recarregue a página.');
+};
+window.addEventListener('error', (e) => onFail(e.message));
+window.addEventListener('unhandledrejection', (e) => onFail(String(e.reason)));

@@ -164,7 +164,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (!e.shiftKey) store.setSelection([]);
       return startMarquee(e, null, null);
     }
-    const id = labelId || pickSelectable(hitId);
+    // Ctrl/Cmd+clique = seleção "profunda" (atravessa grupos)
+    const id = labelId || (e.ctrlKey || e.metaKey ? hitId : pickSelectable(hitId));
     const node = store.get(id);
     const inSel = ui.selection.includes(id);
 
@@ -321,19 +322,20 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       dx = s.dx; dy = s.dy; ui.guides = s.guides;
     }
     ui.dropTarget = null;
+    let reordered = false;
     store.update(() => {
       for (const it of d.items) {
         const n = store.get(it.id);
         if (!n) continue;
         const parent = store.parentOf(n.id);
-        if (isFlow(n, parent)) flowReorder(n, p);
+        if (isFlow(n, parent)) { flowReorder(n, p); reordered = true; }
         else {
           const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
           n.x = round(it.w0.x + dx - po.x);
           n.y = round(it.w0.y + dy - po.y);
         }
       }
-    });
+    }, { structural: reordered });
     // "fantasma" dos itens em auto layout seguindo o ponteiro
     for (const it of d.items) {
       const n = store.get(it.id);
@@ -458,7 +460,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     let rot = d.rot0 + ((a - d.a0) * 180) / Math.PI;
     if (e.shiftKey) rot = Math.round(rot / 15) * 15;
     rot = round(((((rot + 180) % 360) + 360) % 360) - 180, 1);
-    store.update(() => { store.get(d.id).rotation = rot; });
+    store.update(() => { store.get(d.id).rotation = rot; }, { structural: false });
   }
 
   // ------------------------------------------------------------------ desenhar
@@ -738,7 +740,35 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       else store.setSelection([]);
       return;
     }
+    if (e.key === 'Alt' && !isTyping(e.target)) {
+      if (!ui.altDown) { ui.altDown = true; store.emit('overlay'); }
+      return;
+    }
+    // atalhos de formatação enquanto edita o texto: Ctrl+B / I / U (aplicam à caixa toda)
+    if (ui.editingId && mod && ['b', 'i', 'u'].includes(key)) {
+      e.preventDefault();
+      store.update(() => {
+        const n = store.get(ui.editingId);
+        if (key === 'b') n.fontWeight = n.fontWeight >= 600 ? 400 : 700;
+        if (key === 'i') n.fontStyle = n.fontStyle === 'italic' ? 'normal' : 'italic';
+        if (key === 'u') n.textDecoration = n.textDecoration === 'underline' ? 'none' : 'underline';
+      });
+      return;
+    }
     if (isTyping(e.target)) return;
+
+    if (e.key === 'Tab') {
+      // Tab / Shift+Tab: próxima / anterior camada no mesmo nível (na ordem da lista de camadas)
+      e.preventDefault();
+      const cur = store.get(ui.selection[0]);
+      const list = (cur ? store.listOf(cur.id) : store.page().children).filter((n) => n.visible && !n.locked);
+      if (!list.length) return;
+      const i = cur ? list.indexOf(cur) : list.length;
+      const next = e.shiftKey ? list[(i + 1) % list.length] : list[(i - 1 + list.length) % list.length];
+      store.setSelection([next.id]);
+      canvas.ensureVisible?.(next.id);
+      return;
+    }
 
     if (e.code === 'Space') {
       e.preventDefault();
@@ -756,6 +786,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (key === 'b') { e.preventDefault(); commands.detach(); return; }
       if (key === 'm') { e.preventDefault(); commands.toggleMask(); return; }
       if (key === 'g') { e.preventDefault(); commands.frameSelection(); return; }
+      if (key === 'c') { e.preventDefault(); if (commands.copyStyle()) toast('Propriedades copiadas'); return; }
+      if (key === 'v') { e.preventDefault(); if (commands.pasteStyle()) toast('Propriedades coladas'); return; }
     }
     if (mod) {
       if (key === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
@@ -831,8 +863,13 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
 
   window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') { spaceDown = false; viewport.classList.remove('space'); }
+    if (e.key === 'Alt' && ui.altDown) { ui.altDown = false; store.emit('overlay'); }
   });
-  window.addEventListener('blur', () => { spaceDown = false; viewport.classList.remove('space'); });
+  window.addEventListener('blur', () => {
+    spaceDown = false;
+    viewport.classList.remove('space');
+    if (ui.altDown) { ui.altDown = false; store.emit('overlay'); }
+  });
 
   // ------------------------------------------------------------------ copiar / colar do sistema
   const MARKER = 'projeto-designer:clip';

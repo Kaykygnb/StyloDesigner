@@ -137,6 +137,11 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if (node.letterSpacing) s['letter-spacing'] = px(node.letterSpacing);
     s['text-align'] = node.textAlign;
     if (node.textDecoration !== 'none') s['text-decoration'] = node.textDecoration;
+    if (node.textTransform && node.textTransform !== 'none') s['text-transform'] = node.textTransform;
+    if (node.sizeY === 'fixed' && node.textVAlign && node.textVAlign !== 'top') {
+      s.display = 'grid';
+      s['align-content'] = node.textVAlign === 'center' ? 'center' : 'end';
+    }
     s['white-space'] = node.sizeX === 'hug' ? 'pre' : 'pre-wrap';
     s['overflow-wrap'] = 'break-word';
     const f = node.fill;

@@ -46,6 +46,18 @@ PORT=8080 npm start
 - Sombras múltiplas, `filter: blur`, `backdrop-filter` (vidro), `mix-blend-mode`, `opacity`; texto com fonte, peso, `line-height`, `letter-spacing`, gradiente
 - **Grades de layout** (colunas, linhas, quadrícula) por frame e predefinições de tamanho (iPhone, Android, iPad, Desktop, A4, Story…)
 
+**Usabilidade**
+- Desempenho: arrastar continua fluido com centenas de camadas (medido: ~20 ms por movimento com 400 camadas)
+- Lista de camadas compacta (abre o caminho da seleção sozinha), busca, Shift+clique para intervalo, Alt+clique na setinha abre/fecha tudo
+- Seleção: Ctrl+clique atravessa grupos, Tab / Shift+Tab percorrem as camadas, várias camadas têm X/Y/W/H do conjunto
+- Segure **Alt** e passe o mouse sobre outra camada para ver as **distâncias** (como no Figma)
+- Ctrl+Alt+C / Ctrl+Alt+V copia e cola só as propriedades visuais; Ctrl+V com um frame selecionado cola dentro dele
+- Texto: Ctrl+B/I/U, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa
+- Auto layout: matriz 3×3 de alinhamento, padding simples (horizontal/vertical) ou por lado
+- Cores já usadas no projeto aparecem como atalhos; grade de pixels a partir de 800% de zoom
+- Painéis redimensionáveis (arraste a borda, duplo clique restaura) e modo foco (Ctrl+\\)
+- Indicador "Salvo", aviso amigável em erros inesperados, duplicar página (botão direito), exportar todos os frames
+
 **Biblioteca**
 - **Componentes**: Ctrl+Alt+K cria; instâncias seguem o principal, mas mantêm o que você sobrescreveu (texto, cor, tamanho…); desanexar (Ctrl+Alt+B)
 - **Estilos de cor e de texto**: mudou o estilo, mudam todas as camadas ligadas (aba Recursos)

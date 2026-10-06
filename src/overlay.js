@@ -13,6 +13,28 @@ export const handleCursor = (handle, rot) => {
   return CURSORS[Math.round(a / 45) % 4];
 };
 
+/** Distâncias entre a seleção A e a camada B (retângulos no mundo), como no "Alt" do Figma. */
+export function measures(A, B) {
+  const out = [];
+  const ov = (a0, a1, b0, b1) => [Math.max(a0, b0), Math.min(a1, b1)];
+  const inside = A.x >= B.x && A.y >= B.y && A.x + A.w <= B.x + B.w && A.y + A.h <= B.y + B.h;
+  if (inside) {
+    const cy = A.y + A.h / 2, cx = A.x + A.w / 2;
+    out.push({ x1: B.x, y1: cy, x2: A.x, y2: cy, len: A.x - B.x }, { x1: A.x + A.w, y1: cy, x2: B.x + B.w, y2: cy, len: B.x + B.w - A.x - A.w },
+      { x1: cx, y1: B.y, x2: cx, y2: A.y, len: A.y - B.y }, { x1: cx, y1: A.y + A.h, x2: cx, y2: B.y + B.h, len: B.y + B.h - A.y - A.h });
+    return out.filter((m) => m.len > 0.01);
+  }
+  const [oy0, oy1] = ov(A.y, A.y + A.h, B.y, B.y + B.h);
+  const [ox0, ox1] = ov(A.x, A.x + A.w, B.x, B.x + B.w);
+  const yMid = oy1 > oy0 ? (oy0 + oy1) / 2 : A.y + A.h / 2;
+  const xMid = ox1 > ox0 ? (ox0 + ox1) / 2 : A.x + A.w / 2;
+  if (A.x + A.w <= B.x) out.push({ x1: A.x + A.w, y1: yMid, x2: B.x, y2: yMid, len: B.x - A.x - A.w });
+  else if (B.x + B.w <= A.x) out.push({ x1: B.x + B.w, y1: yMid, x2: A.x, y2: yMid, len: A.x - B.x - B.w });
+  if (A.y + A.h <= B.y) out.push({ x1: xMid, y1: A.y + A.h, x2: xMid, y2: B.y, len: B.y - A.y - A.h });
+  else if (B.y + B.h <= A.y) out.push({ x1: xMid, y1: B.y + B.h, x2: xMid, y2: A.y, len: A.y - B.y - B.h });
+  return out;
+}
+
 export function createOverlay(store, canvas, viewport, hooks = {}) {
   const ui = store.ui;
   const root = document.createElement('div');
@@ -203,6 +225,45 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
         tag.textContent = String(g.pos);
         tag.style.left = `${vert ? pos : 40}px`;
         tag.style.top = `${vert ? 40 : pos + 8}px`;
+      }
+    }
+
+    // ---- grade de pixels (zoom >= 800%)
+    const v0 = canvas.getView();
+    const pix = v0.zoom >= 8;
+    root.classList.toggle('pixels', pix);
+    if (pix) {
+      root.style.backgroundSize = `${v0.zoom}px ${v0.zoom}px`;
+      root.style.backgroundPosition = `${v0.x}px ${v0.y}px`;
+    } else root.style.backgroundSize = '';
+
+    // ---- medidas (segure Alt e passe o mouse sobre outra camada)
+    if (ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds) {
+      const A = canvas.unionAabb(sel), B = canvas.aabb(ui.hoverId);
+      if (A && B) {
+        const ms = measures(A, B);
+        if (ms.length) {
+          let layer = pool.get('measure');
+          if (!layer) {
+            layer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            layer.setAttribute('class', 'pen-layer');
+            root.append(layer);
+            pool.set('measure', layer);
+          }
+          used.add('measure');
+          const S = (x, y) => canvas.toScreen(x, y);
+          layer.innerHTML = [
+            `<rect x="${S(B.x, B.y).x}" y="${S(B.x, B.y).y}" width="${B.w * z}" height="${B.h * z}" class="measure-box"/>`,
+            ...ms.map((m) => {
+              const a = S(m.x1, m.y1), b = S(m.x2, m.y2);
+              const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+              const t = String(round(m.len, 1));
+              return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="measure-line"/>` +
+                `<rect x="${mx - t.length * 3.6 - 4}" y="${my - 8}" width="${t.length * 7.2 + 8}" height="16" rx="4" class="measure-pill"/>` +
+                `<text x="${mx}" y="${my + 4}" text-anchor="middle" class="measure-text">${t}</text>`;
+            }),
+          ].join('');
+        }
       }
     }
 

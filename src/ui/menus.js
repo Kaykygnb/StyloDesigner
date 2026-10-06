@@ -49,6 +49,8 @@ export function contextMenuItems({ store, commands, tools }) {
     { label: 'Copiar', hint: `${mod}+C`, icon: 'copy', disabled: !has, onClick: () => commands.copy() },
     { label: 'Colar', hint: `${mod}+V`, disabled: !store.ui.clipboard, onClick: () => commands.paste() },
     { label: 'Duplicar', hint: `${mod}+D`, disabled: !has, onClick: () => commands.duplicate() },
+    { label: 'Copiar propriedades', hint: `${mod}+Alt+C`, disabled: !has, onClick: () => commands.copyStyle() },
+    { label: 'Colar propriedades', hint: `${mod}+Alt+V`, disabled: !store.ui.styleClipboard || !has, onClick: () => commands.pasteStyle() },
     { label: 'Copiar CSS', hint: `${mod}+⇧+C`, icon: 'code', disabled: !has, onClick: () => tools.copyCss() },
     'sep',
     { label: 'Agrupar', hint: `${mod}+G`, icon: 'group', disabled: !has, onClick: () => commands.group() },
@@ -84,6 +86,7 @@ const SHORTCUTS = [
   ['Camadas', [['Ctrl ] / [', 'Avançar / Recuar'], ['Ctrl ⇧ ] / [', 'Frente / Fundo'], ['Ctrl ⇧ L', 'Travar'], ['Ctrl ⇧ H', 'Ocultar'], ['F2', 'Renomear'], ['Enter / ⇧ Enter', 'Entrar / sair do grupo']]],
   ['Vista', [['⇧ R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
   ['Ao redimensionar / mover', [['⇧', 'Mantém proporção / trava eixo'], ['Alt', 'A partir do centro'], ['Ctrl', 'Sem snap']]],
+  ['Seleção', [['Ctrl + clique', 'Seleciona através de grupos'], ['Tab / ⇧ Tab', 'Próxima / anterior camada'], ['Alt + mouse', 'Mostra distâncias até outra camada'], ['Ctrl Alt C / V', 'Copiar / colar propriedades'], ['Ctrl B / I / U', 'Negrito / itálico / sublinhado (editando texto)'], ['Ctrl \\', 'Esconder/mostrar painéis']]],
   ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar projeto'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 

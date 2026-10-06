@@ -2,6 +2,7 @@
 import { h, ico, iconButton } from './dom.js';
 import { nodeIcon } from './icons.js';
 import { isContainer } from '../model.js';
+import { showMenu } from './menus.js';
 
 export function createLayersPanel({ store, commands, container }) {
   const ui = store.ui;
@@ -24,24 +25,34 @@ export function createLayersPanel({ store, commands, container }) {
   function renderPages() {
     pagesBox.replaceChildren(
       ...store.state.doc.pages.map((p) => {
+        const rename = () => {
+          const name = prompt('Nome da página:', p.name);
+          if (name?.trim()) { p.name = name.trim(); store.commit(); }
+        };
+        const remove = () => {
+          if (!confirm(`Excluir a página "${p.name}"?`)) return;
+          const doc = store.state.doc;
+          doc.pages.splice(doc.pages.indexOf(p), 1);
+          store.switchPage(doc.pages[0].id);
+          store.commit();
+        };
         const row = h('div.page-row' + (p.id === ui.pageId ? '.active' : ''), {
           onclick: () => store.switchPage(p.id),
-          ondblclick: () => {
-            const name = prompt('Nome da página:', p.name);
-            if (name?.trim()) { p.name = name.trim(); store.commit(); }
+          ondblclick: rename,
+          oncontextmenu: (e) => {
+            e.preventDefault();
+            showMenu(e.clientX, e.clientY, [
+              { label: 'Renomear', onClick: rename },
+              { label: 'Duplicar página', icon: 'copy', onClick: () => store.duplicatePage(p.id) },
+              'sep',
+              { label: 'Excluir', icon: 'trash', danger: true, disabled: store.state.doc.pages.length < 2, onClick: remove },
+            ]);
           },
         }, ico('page', 14), h('span.page-name', p.name),
         store.state.doc.pages.length > 1
           ? h('button.icon-btn.small.row-action', {
             title: 'Excluir página',
-            onclick: (e) => {
-              e.stopPropagation();
-              if (!confirm(`Excluir a página "${p.name}"?`)) return;
-              const doc = store.state.doc;
-              doc.pages.splice(doc.pages.indexOf(p), 1);
-              store.switchPage(doc.pages[0].id);
-              store.commit();
-            },
+            onclick: (e) => { e.stopPropagation(); remove(); },
           }, ico('x', 12))
           : null);
         return row;
@@ -54,16 +65,19 @@ export function createLayersPanel({ store, commands, container }) {
     let changed = false;
     for (const id of ids) {
       for (let p = store.parentOf(id); p; p = store.parentOf(p.id)) {
-        if (ui.collapsed[p.id]) { ui.collapsed[p.id] = false; changed = true; }
+        if (ui.collapsed[p.id] !== false) { ui.collapsed[p.id] = false; changed = true; }
       }
     }
     return changed;
   }
 
+  /** Camadas dentro de frames começam fechadas (só os níveis de cima aparecem); a seleção abre o caminho. */
+  const isCollapsed = (node, depth) => ui.collapsed[node.id] ?? depth >= 1;
+
   function rowFor(node, depth) {
     const selected = ui.selection.includes(node.id);
     const hasKids = isContainer(node) && node.children.length > 0;
-    const collapsed = !!ui.collapsed[node.id];
+    const collapsed = isCollapsed(node, depth);
 
     const nameEl = ui.renamingId === node.id
       ? (() => {
@@ -95,7 +109,12 @@ export function createLayersPanel({ store, commands, container }) {
     },
     h('button.twist' + (hasKids ? '' : '.empty') + (collapsed ? '' : '.open'), {
       type: 'button',
-      onclick: (e) => { e.stopPropagation(); ui.collapsed[node.id] = !collapsed; store.emit('ui'); },
+      onclick: (e) => {
+        e.stopPropagation();
+        if (e.altKey) setAll(node, collapsed ? false : true);
+        else ui.collapsed[node.id] = !collapsed;
+        store.emit('ui');
+      },
     }, ico('chevron', 10)),
     h('span.layer-icon' + (node.component || node.instanceOf ? '.comp' : node.type === 'frame' && !store.parentOf(node.id) ? '.board' : ''),
       ico(node.component || node.instanceOf ? 'component' : nodeIcon(node.type), 14)),
@@ -112,7 +131,17 @@ export function createLayersPanel({ store, commands, container }) {
     );
 
     row.addEventListener('click', (e) => {
-      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      if (e.shiftKey && ui.layerAnchor && ui.layerAnchor !== node.id) {
+        // seleção em intervalo, na ordem em que as linhas aparecem
+        const order = [...tree.querySelectorAll('.layer-row')].map((r) => r.dataset.id);
+        const a = order.indexOf(ui.layerAnchor), b = order.indexOf(node.id);
+        if (a >= 0 && b >= 0) {
+          store.setSelection(order.slice(Math.min(a, b), Math.max(a, b) + 1));
+          return;
+        }
+      }
+      ui.layerAnchor = node.id;
+      if (e.ctrlKey || e.metaKey) {
         store.setSelection(selected ? ui.selection.filter((s) => s !== node.id) : [...ui.selection, node.id]);
       } else store.setSelection([node.id]);
     });
@@ -166,6 +195,12 @@ export function createLayersPanel({ store, commands, container }) {
     return row;
   }
 
+  /** Alt+clique na setinha: abre/fecha tudo dentro. */
+  function setAll(node, value) {
+    ui.collapsed[node.id] = value;
+    (node.children || []).forEach((c) => isContainer(c) && setAll(c, value));
+  }
+
   function dropZone(e, row, node) {
     const r = row.getBoundingClientRect();
     const y = (e.clientY - r.top) / r.height;
@@ -180,7 +215,7 @@ export function createLayersPanel({ store, commands, container }) {
       for (let i = list.length - 1; i >= 0; i--) {
         const n = list[i];
         rows.push(rowFor(n, depth));
-        if (isContainer(n) && !ui.collapsed[n.id]) add(n.children, depth + 1);
+        if (isContainer(n) && !isCollapsed(n, depth)) add(n.children, depth + 1);
       }
     };
     if (ui.layerQuery) {
@@ -203,8 +238,25 @@ export function createLayersPanel({ store, commands, container }) {
     tree.scrollTop = scroll;
   }
 
+  /** Assinatura barata do que a lista mostra: se não mudou (ex.: só uma posição mudou), não reconstrói. */
+  function signature() {
+    const parts = [ui.selection.join(','), ui.renamingId, ui.layerQuery, store.state.doc.pages.map((p) => p.id + p.name).join(','), ui.pageId];
+    const walkSig = (list) => {
+      for (const n of list) {
+        parts.push(n.id, n.name, n.visible ? 1 : 0, n.locked ? 1 : 0, n.component ? 'c' : n.instanceOf ? 'i' : '', String(ui.collapsed[n.id]), n.children ? n.children.length : '-');
+        if (n.children) walkSig(n.children);
+      }
+    };
+    walkSig(store.page().children);
+    return parts.join('|');
+  }
+
   let lastSelKey = '';
+  let lastSig = '';
   function render(reasons) {
+    const sig = signature();
+    if (sig === lastSig && !reasons?.has('force')) return;
+    lastSig = sig;
     const selKey = ui.selection.join(',');
     if (selKey !== lastSelKey) {
       lastSelKey = selKey;
