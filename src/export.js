@@ -1,8 +1,23 @@
-// Exportação: PNG (via SVG foreignObject), HTML standalone e arquivo de projeto (.json).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  export.js — SAÍDAS: PNG, SVG, HTML E ARQUIVO DE PROJETO (.json)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Formatos: PNG (imagem), SVG (vetor), HTML (página completa com CSS) e .designer.json (projeto inteiro, para
+ *  salvar/abrir). Cada função "baixa" o arquivo pelo navegador, sem servidor.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { exportHtml, generateCode } from './css.js';
 import { toSvg } from './svg.js';
 import { slugify } from './model.js';
 
+/**
+ * Faz o navegador BAIXAR um arquivo gerado na memória: cria um Blob, uma URL temporária e clica num <a download>
+ * invisível. A URL é liberada depois de 2s para não vazar memória.
+ * @param {string} filename  nome do arquivo
+ * @param {string|Blob} data  conteúdo
+ * @param {string} [type]  tipo MIME (ignorado se `data` já for Blob)
+ */
 export function download(filename, data, type) {
   const blob = data instanceof Blob ? data : new Blob([data], { type });
   const url = URL.createObjectURL(blob);
@@ -15,14 +30,24 @@ export function download(filename, data, type) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+/** Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html". */
 export function exportHtmlFile(node, assets) {
   download(`${slugify(node.name)}.html`, exportHtml(node, assets, node.name), 'text/html');
 }
 
+/**
+ * Baixa o PROJETO inteiro como `.designer.json` (todas as páginas, imagens e estilos). É o backup de verdade:
+ * o salvamento automático fica só no navegador. Para abrir de novo: Arquivo → Abrir.
+ */
 export function saveProject(doc) {
   download(`${slugify(doc.name)}.designer.json`, JSON.stringify(doc), 'application/json');
 }
 
+/**
+ * Lê um arquivo de projeto (.json) escolhido pelo usuário. Valida o mínimo (tem páginas) e completa campos que
+ * projetos antigos não tinham. Lança um erro com mensagem amigável se o arquivo não for um projeto.
+ * @param {File} file
+ */
 export async function openProjectFile(file) {
   const doc = JSON.parse(await file.text());
   if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Projeto Designer.');
@@ -30,7 +55,17 @@ export async function openProjectFile(file) {
   return doc;
 }
 
-/** Renderiza o nó como PNG. Limitação: só usa fontes instaladas no sistema (o navegador não carrega fontes web dentro de SVG-imagem). */
+/**
+ * Exporta a camada como PNG. Técnica: monta o HTML+CSS da camada (o MESMO do painel Código), embrulha num SVG com
+ * <foreignObject>, carrega como imagem e desenha num <canvas> na escala pedida (2x = dobro de pixels, nítido em telas HiDPI).
+ * Se a camada está girada, a imagem tem o tamanho da caixa rotacionada e a camada fica centralizada nela.
+ *
+ * LIMITAÇÕES: o navegador não carrega fontes da web dentro de uma imagem SVG, então só valem as fontes INSTALADAS no
+ * computador; e efeitos como backdrop-filter podem não aparecer. (O HTML/SVG exportados não têm essas limitações.)
+ * @param {object} node  camada
+ * @param {object} assets  imagens do documento
+ * @param {number} [scale=2]  1 a 4
+ */
 export async function exportPng(node, assets, scale = 2) {
   const rad = ((node.rotation || 0) * Math.PI) / 180;
   const W = Math.ceil(Math.abs(node.w * Math.cos(rad)) + Math.abs(node.h * Math.sin(rad)));
@@ -57,7 +92,7 @@ export async function exportPng(node, assets, scale = 2) {
   download(`${slugify(node.name)}@${scale}x.png`, blob);
 }
 
-/** Exporta o nó como SVG vetorial. `boxOf` mede cada filho no DOM (necessário para flexbox/grid). */
+/** Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid. */
 export function exportSvgFile(node, assets, boxOf) {
   download(`${slugify(node.name)}.svg`, toSvg(node, { assets, boxOf }), 'image/svg+xml');
 }

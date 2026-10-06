@@ -1,12 +1,37 @@
-// Comandos de edição: tudo que muda a árvore de camadas (agrupar, duplicar, auto layout, alinhar...).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  commands.js — COMANDOS DE EDIÇÃO
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Tudo o que o usuário "faz" com camadas e que vai além de arrastar: excluir, duplicar, copiar/colar,
+ *  agrupar, auto layout, alinhar, distribuir, ordem z, componentes, máscara, guias, vetores, imagens.
+ *  Atalhos (tools.js), menus (ui/menus.js) e painéis (ui/*.js) chamam estas funções — a lógica não se repete.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, resizeNode, round, uid } from './model.js';
 import { generateCode } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 
+/**
+ * Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez
+ * (excluir, duplicar, copiar/colar, agrupar, ordem z, auto layout, alinhar, distribuir, componentes, máscara,
+ * guias, vetores, imagens). É chamado por atalhos de teclado (tools.js), menus (menus.js) e painéis (ui/*.js),
+ * então a lógica fica em UM lugar só.
+ *
+ * Padrão de todo comando: (1) descobre as camadas-alvo, (2) `store.update(...)` aplica a mudança, (3) ajusta a
+ * seleção, (4) `store.commit()` grava no histórico (um desfazer desfaz o comando inteiro).
+ *
+ * @param {object} store
+ * @param {object} canvas  precisa da geometria do DOM (posições reais em auto layout)
+ */
 export function createCommands(store, canvas) {
+  // atalho para o estado de interface (seleção, clipboard...)
   const ui = store.ui;
 
-  /** Selecionados que não têm um ancestral também selecionado. */
+  /**
+   * Seleção "de topo": camadas selecionadas que NÃO têm um ancestral também selecionado.
+   * Se você seleciona um frame e um filho dele, mover/duplicar/excluir deve agir só no frame (o filho vai junto).
+   */
   const topSelection = () => {
     const ids = new Set(ui.selection);
     return store.selected().filter((n) => {
@@ -15,9 +40,14 @@ export function createCommands(store, canvas) {
     });
   };
 
+  /** Origem (canto superior esquerdo, no mundo) do pai; (0,0) quando a camada está na raiz da página. */
   const parentOrigin = (parent) => (parent ? canvas.originOf(parent.id) : { x: 0, y: 0 });
 
-  /** Congela a posição visual de nós em fluxo flex como x/y absolutos (antes de sair do auto layout). */
+  /**
+   * "Congela" a posição VISUAL atual como x/y. Em auto layout x/y do modelo são ignorados (o navegador posiciona),
+   * então, antes de uma camada sair do fluxo (agrupar, desligar auto layout...), lemos onde ela está no DOM e
+   * gravamos em x/y — assim nada "pula" de lugar.
+   */
   function freezePositions(nodes, parent) {
     const po = parentOrigin(parent);
     for (const n of nodes) {
@@ -28,6 +58,7 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ básicos
+  /** Exclui as camadas selecionadas (e tudo dentro delas). */
   function deleteSelection() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -42,6 +73,7 @@ export function createCommands(store, canvas) {
     store.commit();
   }
 
+  /** Duplica a seleção logo acima do original, deslocada 20px (em auto layout entra no fluxo, sem deslocar). */
   function duplicate() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -63,6 +95,10 @@ export function createCommands(store, canvas) {
     store.commit();
   }
 
+  /**
+   * Copia a seleção para a área de transferência INTERNA do app (ui.clipboard). Guardamos uma cópia JSON, assim ela
+   * sobrevive mesmo que o original seja editado/apagado depois. Devolve false se não havia nada selecionado.
+   */
   function copy() {
     const nodes = topSelection();
     if (!nodes.length) return false;
@@ -74,15 +110,22 @@ export function createCommands(store, canvas) {
     return true;
   }
 
+  /** Recortar = copiar + excluir. */
   function cut() {
     if (copy()) deleteSelection();
   }
 
+  /**
+   * Cola o que está na área de transferência interna.
+   *  - Com UM frame selecionado (que não seja o próprio copiado): cola DENTRO dele, mantendo a posição se couber
+   *    ou centralizando se não couber.
+   *  - Caso contrário: cola no mesmo pai de onde foi copiado, deslocando 16px a cada colagem seguida.
+   */
   function paste() {
     const clip = ui.clipboard;
     if (!clip) return;
     clip.count++;
-    // com UM frame selecionado (que não é o próprio copiado), cola dentro dele
+    // "into" = frame de destino quando há exatamente um frame selecionado
     const sel = store.selected();
     const into = sel.length === 1 && sel[0].type === 'frame' && !clip.nodes.some((c) => c.id === sel[0].id) ? sel[0] : null;
     const parent = into || (clip.parentId ? store.get(clip.parentId) : null);
@@ -114,7 +157,13 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ caixa da seleção (várias camadas)
-  /** Move/redimensiona o conjunto selecionado pela caixa envolvente (coordenadas de mundo). */
+  /**
+   * Move e/ou redimensiona várias camadas como UM conjunto, pelos campos X/Y/W/H do painel.
+   * Cada campo é opcional. Mudar W/H escala cada camada e a distância dela até a borda do conjunto (como esticar
+   * a caixa de seleção). Camadas dentro de auto layout só mudam de tamanho (a posição é do navegador).
+   * `structural:false`: só números mudam, o índice do store continua válido (mais rápido).
+   * @param {{x?:number,y?:number,w?:number,h?:number}} box  valores novos da caixa (coordenadas de mundo)
+   */
   function setSelectionBox({ x, y, w, h }) {
     const nodes = topSelection();
     const box = canvas.unionAabb(nodes.map((n) => n.id));
@@ -139,9 +188,14 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ copiar / colar propriedades (visual)
+  /**
+   * "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA
+   * (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
+   */
   const STYLE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'opacity', 'blend'];
   const TEXT_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration', 'textTransform', 'textStyleId'];
 
+  /** Guarda a aparência da 1ª camada selecionada em ui.styleClipboard. */
   function copyStyle() {
     const n = store.selected()[0];
     if (!n) return false;
@@ -150,6 +204,10 @@ export function createCommands(store, canvas) {
     return true;
   }
 
+  /**
+   * Aplica a aparência guardada a todas as camadas selecionadas, ignorando o que não faz sentido para o tipo do
+   * destino (ex.: tipografia em retângulo, cantos em elipse/texto, fill em grupo).
+   */
   function pasteStyle() {
     const c = ui.styleClipboard;
     const nodes = topSelection();
@@ -168,6 +226,11 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ agrupar
+  /**
+   * Agrupa as camadas selecionadas (Ctrl+G). Só agrupa irmãs do MESMO pai (a 1ª selecionada manda). O grupo entra na
+   * posição da camada mais alta e os filhos mantêm a ordem z. Antes, congela as posições (ver freezePositions).
+   * A caixa do grupo é calculada depois, no commit, por fitGroups.
+   */
   function group() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -187,7 +250,10 @@ export function createCommands(store, canvas) {
     store.commit();
   }
 
-  /** Desagrupa grupos e também frames (os filhos sobem um nível mantendo a posição visual). */
+  /**
+   * Desagrupa (Ctrl+Shift+G): os filhos sobem um nível, no lugar do grupo, mantendo a posição visual
+   * (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
+   */
   function ungroup() {
     const groups = store.selected().filter((n) => n.type === 'group' || (n.type === 'frame' && !n.component && !n.instanceOf));
     if (!groups.length) return;
@@ -211,6 +277,10 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ ordem (z-index)
+  /**
+   * Muda a ordem z (quem fica na frente). A ordem do array É a ordem de desenho: o último é o que fica por cima.
+   * @param {'front'|'back'|'forward'|'backward'} mode  frente / fundo / um passo à frente / um passo atrás
+   */
   function reorder(mode) {
     const nodes = topSelection();
     store.update(() => {
@@ -232,7 +302,13 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ auto layout
-  /** Deduz direção, gap e padding a partir das posições atuais dos filhos. */
+  /**
+   * Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão:
+   *  - direção: se os filhos se espalham mais na horizontal → 'row'; senão 'column'
+   *  - gap: média dos vãos entre filhos consecutivos
+   *  - padding: distância entre os filhos e as bordas do frame
+   * Também reordena os filhos na ordem em que aparecem na tela, e tira o "absoluto" de todos.
+   */
   function enableAutoLayout(frame) {
     const kids = frame.children.filter((c) => c.visible);
     const layout = { ...defaultLayout(), mode: 'row', gap: 8 };
@@ -261,12 +337,17 @@ export function createCommands(store, canvas) {
     frame.children.forEach((c) => { c.absolute = false; });
   }
 
+  /** Desliga o auto layout congelando as posições atuais (nada muda visualmente). */
   function disableAutoLayout(frame) {
     freezePositions(frame.children, frame);
     frame.layout.mode = 'none';
   }
 
-  /** Define o modo (none | row | column) preservando a posição visual dos filhos ao ligar/desligar. */
+  /**
+   * Troca o modo do layout (none | row | column | grid). Ao LIGAR numa frame livre, deduz a configuração
+   * (enableAutoLayout); ao DESLIGAR, congela as posições. Em grid, sugere um nº de colunas pela raiz da qtd de filhos.
+   * Chamado de dentro de `store.update`, por isso não faz commit.
+   */
   function setLayoutMode(frames, mode) {
     for (const f of frames) {
       if (f.type !== 'frame' || f.layout.mode === mode) continue;
@@ -280,7 +361,10 @@ export function createCommands(store, canvas) {
     }
   }
 
-  /** Shift+A: liga/desliga auto layout num frame, ou envolve a seleção em um frame com auto layout. */
+  /**
+   * Shift+A: liga/desliga o auto layout de um frame; com outras camadas selecionadas, ENVOLVE todas num frame novo
+   * já com auto layout (o clássico "Add auto layout" do Figma).
+   */
   function toggleAutoLayout() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -313,11 +397,17 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ alinhar / distribuir
+  /** Soma dx/dy à posição x/y da camada (arredondando). */
   function shift(node, dx, dy) {
     node.x = round(node.x + dx);
     node.y = round(node.y + dy);
   }
 
+  /**
+   * Alinha a seleção. Com UMA camada, alinha dentro do pai; com várias, alinha entre si (pela caixa do conjunto).
+   * Camadas em auto layout são ignoradas (o navegador decide a posição delas).
+   * @param {'left'|'hcenter'|'right'|'top'|'vcenter'|'bottom'} kind
+   */
   function align(kind) {
     const nodes = topSelection().filter((n) => !(hasLayout(store.parentOf(n.id)) && !n.absolute));
     if (!nodes.length) return;
@@ -345,6 +435,10 @@ export function createCommands(store, canvas) {
     store.commit();
   }
 
+  /**
+   * Distribui 3+ camadas com vãos IGUAIS entre elas, mantendo a primeira e a última no lugar.
+   * @param {'h'|'v'} axis  horizontal ou vertical
+   */
   function distribute(axis) {
     const nodes = topSelection().filter((n) => !(hasLayout(store.parentOf(n.id)) && !n.absolute));
     if (nodes.length < 3) return;
@@ -370,7 +464,14 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ mover entre pais
-  /** Move nós para outro pai (ou raiz) mantendo a posição visual. index = posição na lista do novo pai. */
+  /**
+   * Move camadas para outro pai (ou para a raiz da página) MANTENDO a posição visual: lê a origem de cada uma no DOM
+   * antes e recalcula x/y relativo ao novo pai. Usado ao arrastar para dentro de frames e no arrastar da lista de camadas.
+   * Não deixa mover uma camada para dentro de si mesma/de um descendente.
+   * @param {object[]} nodes  camadas a mover
+   * @param {object|null} newParent  novo pai (null = raiz)
+   * @param {number|null} [index]  posição na lista do novo pai (null = no topo)
+   */
   function reparent(nodes, newParent, index = null) {
     const moves = nodes.filter((n) => n !== newParent && !(newParent && store.isAncestor(n.id, newParent.id)));
     if (!moves.length) return;
@@ -396,7 +497,7 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ imagens
-  /** Lê o arquivo, reduz se for grande e guarda em doc.assets. */
+  /** Lê o arquivo de imagem (reduzindo se for grande), guarda em doc.assets e devolve { assetId, w, h }. */
   async function importAsset(file) {
     const { dataUrl, w, h } = await readImage(file);
     const assetId = uid();
@@ -404,6 +505,11 @@ export function createCommands(store, canvas) {
     return { assetId, w, h };
   }
 
+  /**
+   * Cria uma camada-retângulo com preenchimento de imagem para cada arquivo (botão, arrastar, colar).
+   * A imagem é reduzida para caber em 520px de maior lado e fica centralizada na posição `at` (ou no centro da vista).
+   * @returns {Promise<boolean>} true se criou alguma camada
+   */
   async function addImageFiles(files, at) {
     const created = [];
     for (const file of files) {
@@ -428,6 +534,7 @@ export function createCommands(store, canvas) {
     return true;
   }
 
+  /** Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas). */
   function addText(textValue, at) {
     const r = canvas.vpRect();
     const p = at || canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2);
@@ -439,7 +546,11 @@ export function createCommands(store, canvas) {
 
 
   // ------------------------------------------------------------------ componentes
-  /** Envolve nós irmãos num frame (sem layout) do tamanho do conjunto. */
+  /**
+   * Envolve camadas irmãs num frame novo (sem layout, sem preenchimento) do tamanho do conjunto.
+   * Base de "Envolver em frame", "Criar componente" de vários itens e "Auto layout" de vários itens.
+   * Deve ser chamada dentro de `store.update`.
+   */
   function wrapInFrame(same, name) {
     const parent = store.parentOf(same[0].id);
     const list = store.listOf(same[0].id);
@@ -455,11 +566,16 @@ export function createCommands(store, canvas) {
     return frame;
   }
 
+  /** Filtra a seleção para as camadas que estão na mesma lista que a primeira (irmãs), ordenadas pela ordem z. */
   function sameLevel(nodes) {
     const list = store.listOf(nodes[0].id);
     return nodes.filter((n) => store.listOf(n.id) === list).sort((a, b) => list.indexOf(a) - list.indexOf(b));
   }
 
+  /**
+   * Ctrl+Alt+K: transforma a seleção em COMPONENTE PRINCIPAL. Várias camadas (ou texto/linha soltos) são
+   * primeiro envolvidas num frame, porque componente precisa de uma raiz.
+   */
   function createComponent() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -475,7 +591,12 @@ export function createCommands(store, canvas) {
     return target;
   }
 
-  /** Cria uma instância do componente `mainId` ao lado do principal (ou no centro da vista). */
+  /**
+   * Cria uma INSTÂNCIA de um componente. Sem posição dada, entra ao lado do principal; com `at`, centralizada ali
+   * (usado ao clicar no componente na aba Recursos).
+   * @param {string} mainId  id do componente principal
+   * @param {{x:number,y:number}} [at]  centro desejado, em coordenadas do mundo
+   */
   function insertInstance(mainId, at) {
     const main = store.get(mainId);
     if (!main) return;
@@ -496,12 +617,14 @@ export function createCommands(store, canvas) {
     return inst;
   }
 
+  /** Ctrl+Alt+B: desanexa as instâncias selecionadas (viram camadas comuns). */
   function detach() {
     const insts = store.selected().filter((n) => n.instanceOf);
     if (!insts.length) return;
     store.update(() => insts.forEach(detachInstance), { commit: true });
   }
 
+  /** "Ir ao principal": abre a página do componente principal, seleciona e enquadra. */
   function goToMain(id) {
     const main = store.get(store.get(id)?.instanceOf);
     if (!main) return false;
@@ -513,7 +636,10 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ máscara e espelhar
-  /** Usa a camada de baixo como máscara do grupo (clip-path). Com uma camada dentro de grupo: liga/desliga. */
+  /**
+   * Ctrl+Alt+M: máscara. Com várias camadas: agrupa e usa a de baixo como máscara (recorta as outras, via clip-path).
+   * Com uma camada que já está num grupo: liga/desliga o papel de máscara dela.
+   */
   function toggleMask() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -528,6 +654,7 @@ export function createCommands(store, canvas) {
     store.update(() => { g.children[0].isMask = true; g.name = 'Máscara'; }, { commit: true });
   }
 
+  /** Espelha as camadas selecionadas na horizontal ('x') ou vertical ('y'). */
   function flip(axis) {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -536,6 +663,7 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ estilos compartilhados
+  /** Cria um estilo de cor compartilhado a partir do preenchimento de uma camada e já liga a camada a ele. */
   function addColorStyle(node, name) {
     const st = { id: uid(), name: name || `Cor ${store.state.doc.styles.colors.length + 1}`, color: node.fill.color, opacity: node.fill.opacity };
     store.state.doc.styles.colors.push(st);
@@ -543,6 +671,7 @@ export function createCommands(store, canvas) {
     store.commit();
     return st;
   }
+  /** Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele. */
   function addTextStyle(node, name) {
     const st = { id: uid(), name: name || `Texto ${store.state.doc.styles.texts.length + 1}`, ...textStyleFrom(node) };
     store.state.doc.styles.texts.push(st);
@@ -550,6 +679,7 @@ export function createCommands(store, canvas) {
     store.commit();
     return st;
   }
+  /** Apaga um estilo ('colors' ou 'texts'); as camadas ligadas mantêm os valores que tinham. */
   function removeStyle(kind, id) {
     const list = store.state.doc.styles[kind];
     const i = list.findIndex((s) => s.id === id);
@@ -558,16 +688,25 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ guias (por página)
+  /** Lista de guias da página atual (cria se não existir, para páginas de projetos antigos). */
   const guides = () => (store.page().guides ||= []);
+  /** Cria uma guia de régua. axis 'x' = linha vertical na posição x; 'y' = linha horizontal na posição y. */
   function addGuide(axis, pos) {
     store.update((page) => { (page.guides ||= []).push({ axis, pos: Math.round(pos) }); }, { commit: true });
   }
+  /** Remove a guia de índice `i`. */
   function removeGuide(i) {
     store.update(() => { guides().splice(i, 1); }, { commit: true });
   }
 
   // ------------------------------------------------------------------ vetores
-  /** Cria um nó `path` a partir de pontos em coordenadas de mundo. Retorna o nó (já inserido). */
+  /**
+   * Cria uma camada-vetor a partir de pontos em coordenadas do MUNDO (o que a caneta coleta).
+   * Calcula a caixa que envolve o desenho (incluindo as curvas) e converte os pontos para o espaço local do vetor.
+   * @param {{x,y,hin?,hout?}[]} pts  pontos com alças opcionais
+   * @param {boolean} closed  caminho fechado (ganha preenchimento cinza)
+   * @param {object|null} parent  frame onde inserir (null = raiz)
+   */
   function addPathFromWorld(pts, closed, parent) {
     const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
     const box = pathBounds(pts);
@@ -585,7 +724,10 @@ export function createCommands(store, canvas) {
     return node;
   }
 
-  /** Recalcula a caixa do caminho depois de editar pontos (só sem rotação). */
+  /**
+   * Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os
+   * pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
+   */
   function normalizePath(node) {
     if (node.rotation || !node.points.length) return;
     const sx = node.w / (node.vw || 1), sy = node.h / (node.vh || 1);
@@ -602,7 +744,11 @@ export function createCommands(store, canvas) {
     node.h = round(nh);
   }
 
-  /** Polígono regular ou estrela como caminho editável. */
+  /**
+   * Cria um polígono regular (`sides` lados) ou estrela (pontas alternando raio 100% e 45%) já como vetor editável.
+   * @param {'polygon'|'star'} kind
+   * @param {{x,y,w,h}} box  caixa em coordenadas do mundo
+   */
   function addShapePath(kind, box, parent, sides = 5) {
     const { x, y, w, h } = box;
     const cx = x + w / 2, cy = y + h / 2;
@@ -618,7 +764,7 @@ export function createCommands(store, canvas) {
     return node;
   }
 
-  /** Caixa do nó relativa ao pai, medida no DOM (respeita flexbox/grid). */
+  /** Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG. */
   function localBox(node) {
     const parent = store.parentOf(node.id);
     const o = canvas.originOf(node.id);
@@ -627,7 +773,7 @@ export function createCommands(store, canvas) {
     return { x: o.x - po.x, y: o.y - po.y, w: el ? el.offsetWidth : node.w, h: el ? el.offsetHeight : node.h };
   }
 
-  /** Ctrl+Alt+G: envolve a seleção num frame (sem layout). */
+  /** Ctrl+Alt+G: envolve a seleção num frame novo, sem layout. */
   function frameSelection() {
     const nodes = topSelection();
     if (!nodes.length) return;
@@ -638,10 +784,12 @@ export function createCommands(store, canvas) {
   }
 
   // ------------------------------------------------------------------ código
+  /** CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS". */
   function cssOf(nodes) {
     return nodes.map((n) => generateCode([n], store.parentOf(n.id), store.state.doc.assets).css).join('\n\n');
   }
 
+  // API pública dos comandos
   return {
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
@@ -650,7 +798,11 @@ export function createCommands(store, canvas) {
   };
 }
 
-/** Lê uma imagem, reduzindo para no máximo 1600px (economiza espaço no localStorage). */
+/**
+ * Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num
+ * <canvas> menor: o projeto fica no localStorage (limite ~5MB), então imagem enorme estouraria o salvamento.
+ * PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
+ */
 function readImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -678,7 +830,12 @@ function readImage(file) {
   });
 }
 
-/** Caixa que envolve os pontos e as curvas (amostrando as Béziers). */
+/**
+ * Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%),
+ * já que uma curva pode "sair" para fora dos pontos de ancoragem.
+ * @param {{x,y,hin?,hout?}[]} pts
+ * @param {boolean} [closed]  considera o segmento de volta ao primeiro ponto
+ */
 export function pathBounds(pts, closed = false) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   const add = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };

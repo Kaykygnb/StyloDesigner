@@ -1,17 +1,34 @@
-// Exportação SVG (vetorial). Funções puras: a posição de cada filho vem de `boxOf(node)` (no editor, medida
-// do DOM, para respeitar flexbox/grid); sem ele usa node.x/node.y.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  svg.js — EXPORTAÇÃO SVG VETORIAL   (módulo puro: sem DOM)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Reescreve uma camada e seus filhos como SVG (não é "HTML dentro de SVG": são formas de verdade, editáveis em
+ *  Illustrator/Inkscape/Figma). A posição dos filhos vem de um callback para respeitar flexbox/grid.
+ *  Testado em tests/features.test.js.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { pathData, rgba } from './css.js';
 import { round } from './model.js';
 
+/** Arredonda para 2 casas decimais (mantém o SVG enxuto). */
 const n2 = (v) => round(v, 2);
+/** Escapa & < > " para colocar texto do usuário com segurança dentro do SVG. */
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/**
+ * Caminho SVG de um retângulo com 4 raios independentes [tl, tr, br, bl] (arcos A nos cantos).
+ * Cada raio é limitado à metade da menor dimensão, como o CSS faz com border-radius.
+ */
 function roundedRect(w, h, r) {
   const [tl, tr, br, bl] = r.map((v) => Math.max(0, Math.min(v, w / 2, h / 2)));
   return `M ${tl} 0 H ${w - tr} A ${tr} ${tr} 0 0 1 ${w} ${tr} V ${h - br} A ${br} ${br} 0 0 1 ${w - br} ${h} H ${bl} A ${bl} ${bl} 0 0 1 0 ${h - bl} V ${tl} A ${tl} ${tl} 0 0 1 ${tl} 0 Z`;
 }
 
-/** Forma (como path SVG) de um nó, em coordenadas locais (0,0)-(w,h). */
+/**
+ * Contorno (atributo `d`) de uma camada em coordenadas locais (0,0)–(w,h): elipse como 2 arcos, vetor com seus
+ * pontos escalados para a caixa, e o resto como retângulo arredondado.
+ */
 function shapeD(node, w, h) {
   if (node.type === 'ellipse') return `M 0 ${h / 2} A ${w / 2} ${h / 2} 0 1 0 ${w} ${h / 2} A ${w / 2} ${h / 2} 0 1 0 0 ${h / 2} Z`;
   if (node.type === 'path') {
@@ -21,11 +38,31 @@ function shapeD(node, w, h) {
   return roundedRect(w, h, node.radius || [0, 0, 0, 0]);
 }
 
+/**
+ * ★ Exporta uma camada (e filhos) como SVG VETORIAL de verdade (formas, textos, gradientes, sombras, máscaras).
+ *
+ * Diferença para o PNG/HTML: aqui TUDO é reescrito em SVG. Como o SVG não tem flexbox/grid, a posição e o tamanho
+ * de cada filho vêm de `boxOf(node, parent)` — no editor, essa função MEDE o DOM, então o resultado respeita o
+ * auto layout exatamente como está na tela. Sem `boxOf` usa node.x/y/w/h.
+ *
+ * Limitações conhecidas: sombras internas e `backdrop-filter` (vidro) não existem em SVG e são omitidos;
+ * contorno "dentro/fora" é aproximado encolhendo/expandindo a forma.
+ *
+ * @param {object} root  camada raiz (vira o tamanho do SVG)
+ * @param {{assets?: object, boxOf?: (node, parent) => {x,y,w,h}}} [opts]
+ * @returns {string} documento SVG
+ */
 export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }) } = {}) {
+  // `defs` acumula definições reutilizáveis (gradientes, filtros, clip-paths) que vão no <defs> no topo do SVG
   const defs = [];
+  // contador para gerar ids únicos (g1, f2, c3...) para as definições
   let uid = 0;
   const id = (p) => `${p}${++uid}`;
 
+  /**
+   * Atributo `fill` SVG de um preenchimento. Gradientes viram <linearGradient>/<radialGradient> em <defs> e o fill
+   * referencia por url(#id). O ângulo CSS (0° = para cima) vira o vetor x1,y1→x2,y2. Imagens são tratadas à parte.
+   */
   function paint(fill, w, h) {
     if (!fill || fill.type === 'none') return { attr: 'fill="none"' };
     if (fill.type === 'solid') return { attr: `fill="${rgba(fill.color, 1)}"${fill.opacity < 1 ? ` fill-opacity="${fill.opacity}"` : ''}` };
@@ -43,12 +80,17 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return { attr: `fill="url(#${gid})"` };
   }
 
+  /** Atributos de contorno SVG (cor, espessura, opacidade e tracejado/pontilhado via stroke-dasharray). */
   function strokeAttr(st) {
     if (!st || !(st.width > 0)) return '';
     const dash = st.style === 'dashed' ? ` stroke-dasharray="${st.width * 3} ${st.width * 2}"` : st.style === 'dotted' ? ` stroke-dasharray="0 ${st.width * 2}" stroke-linecap="round"` : '';
     return ` stroke="${rgba(st.color, 1)}" stroke-width="${st.width}"${st.opacity < 1 ? ` stroke-opacity="${st.opacity}"` : ''}${dash}`;
   }
 
+  /**
+   * Sombra externa e blur da camada como <filter> (feDropShadow + feGaussianBlur). stdDeviation = blur/2 porque o
+   * "blur" do CSS corresponde a ~2× o desvio-padrão do SVG. A área do filtro é ampliada (−50%…200%) para a sombra não ser cortada.
+   */
   function filterAttr(node) {
     const parts = [];
     for (const s of node.shadows || []) {
@@ -62,6 +104,10 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return ` filter="url(#${fid})"`;
   }
 
+  /**
+   * Texto em SVG: uma <tspan> por linha (SVG não quebra linha sozinho). Calcula o deslocamento vertical para
+   * 'centro'/'embaixo' quando a caixa tem altura fixa e aplica text-transform na própria string (SVG não tem isso).
+   */
   function textSvg(node, w, h) {
     const fs = node.fontSize, lh = (node.lineHeight || 1.2) * fs;
     const anchor = node.textAlign === 'center' ? 'middle' : node.textAlign === 'right' ? 'end' : 'start';
@@ -79,6 +125,10 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return `<text ${fillAttr} font-family="${esc(node.fontFamily)}, sans-serif" font-size="${fs}" font-weight="${node.fontWeight}" text-anchor="${anchor}" dominant-baseline="central" style="white-space:pre"${extra}>${tspans}</text>`;
   }
 
+  /**
+   * Forma + contorno de retângulo/elipse/frame/vetor. Retângulos sem cantos viram <rect> simples (mais limpo);
+   * com cantos/elipse/vetor viram <path>. Imagem: <image> recortada pela forma, com o mesmo `fit` do editor.
+   */
   function shapeSvg(node, w, h) {
     const p = paint(node.fill, w, h);
     const st = node.stroke;
@@ -113,6 +163,11 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return out.join('');
   }
 
+  /**
+   * Converte UMA camada (recursivo) em <g>. Ordem das transformações: posição (translate) → rotação em torno do centro
+   * → espelhamento. Frames com "cortar conteúdo" recortam os filhos por <clipPath>; grupos com máscara usam a forma
+   * da camada-máscara como clipPath.
+   */
   function render(node, parent, isRoot) {
     if (!node.visible) return '';
     const b = isRoot ? { x: 0, y: 0, w: node.w, h: node.h } : boxOf(node, parent);
@@ -154,6 +209,7 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     return `<g ${attrs}>${inner}${kids}</g>`;
   }
 
+  // monta o SVG final: tamanho = tamanho do frame raiz, com as definições acumuladas no topo
   const body = render(root, null, true);
   const w = Math.ceil(root.w), h = Math.ceil(root.h);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${defs.length ? `<defs>${defs.join('')}</defs>` : ''}${body}</svg>\n`;
