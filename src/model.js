@@ -1,34 +1,89 @@
-// Modelo de dados do documento. Funções puras, sem DOM (testáveis no Node).
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  model.js — MODELO DE DADOS DO DOCUMENTO
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  O QUE É
+ *    Define como um documento de design é guardado na memória (e, depois, no localStorage e no
+ *    arquivo .json): páginas → árvore de camadas ("nós"). Também tem as funções puras que mexem
+ *    nessa árvore (clonar, percorrer, ajustar grupos, aplicar constraints...).
+ *
+ *  POR QUE É ASSIM
+ *    - Tudo é dado simples (objetos/arrays/strings/números): dá para salvar com JSON.stringify,
+ *      comparar com === no histórico e testar no Node, sem navegador.
+ *    - Os nomes dos campos imitam CSS (gap, padding, justify, align, opacity, blend...). Assim o
+ *      editor, o painel e o gerador de código falam a mesma língua e não precisam "traduzir".
+ *    - Este arquivo NÃO usa DOM nem `window`. Quem desenha na tela é o canvas.js.
+ *
+ *  QUEM USA ESTE ARQUIVO
+ *    css.js (gera CSS) · store.js (estado) · commands.js/tools.js (edição) · components.js · svg.js
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
 
+/**
+ * Gera um id curto (8 caracteres) para camadas, páginas, estilos etc.
+ * Usa `crypto.randomUUID` quando existe (todo navegador moderno e Node 19+) e, se não, um
+ * fallback com Math.random + data. Colisão é praticamente impossível para o tamanho de um documento.
+ */
 export const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 8);
 
+/**
+ * Arredonda `n` para `d` casas decimais (padrão 2).
+ * Usado em quase todo lugar onde um número vai para o documento ou para o CSS, para evitar
+ * valores como 10.000000000002 que aparecem depois de contas com ponto flutuante.
+ * @param {number} n  número a arredondar
+ * @param {number} [d=2]  casas decimais
+ */
 export const round = (n, d = 2) => {
   const f = 10 ** d;
   return Math.round(n * f) / f;
 };
 
+/**
+ * Fontes oferecidas no painel de texto. As 4 últimas (Poppins, DM Sans, Playfair, JetBrains Mono) são
+ * carregadas do Google Fonts pelo index.html; sem internet o navegador usa uma fonte do sistema no lugar.
+ * O usuário também pode usar qualquer família que esteja instalada no computador dele.
+ */
 export const FONT_FAMILIES = [
   'Inter', 'system-ui', 'Arial', 'Helvetica', 'Verdana', 'Trebuchet MS', 'Georgia',
   'Times New Roman', 'Courier New', 'Poppins', 'DM Sans', 'Playfair Display', 'JetBrains Mono',
 ];
 
+/** Pesos de fonte do CSS (`font-weight`) com o nome que o Figma/Penpot usam. Formato: [valor, rótulo]. */
 export const FONT_WEIGHTS = [
   [100, 'Thin'], [200, 'Extra Light'], [300, 'Light'], [400, 'Regular'],
   [500, 'Medium'], [600, 'Semi Bold'], [700, 'Bold'], [800, 'Extra Bold'], [900, 'Black'],
 ];
 
+/** Modos de mesclagem aceitos em `mix-blend-mode` (mesma lista do CSS). 'normal' = sem mesclagem. */
 export const BLEND_MODES = [
   'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge',
   'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue',
   'saturation', 'color', 'luminosity',
 ];
 
+/**
+ * Nome padrão (em português) de cada tipo de camada. Usado para nomear camadas novas
+ * ("Retângulo 3") e como fallback na lista de camadas.
+ */
 export const TYPE_LABEL = {
   frame: 'Frame', rect: 'Retângulo', ellipse: 'Elipse', text: 'Texto', group: 'Grupo',
   line: 'Linha', path: 'Vetor',
 };
 
+/**
+ * Cria um objeto de PREENCHIMENTO (fill) completo. Um fill guarda os dados de TODOS os tipos ao mesmo
+ * tempo, de propósito: assim, ao trocar de "cor sólida" para "gradiente" e voltar, o usuário não perde
+ * a cor que tinha escolhido. Só o campo `type` decide qual parte vale.
+ *
+ *  - type:    'none' | 'solid' | 'linear' | 'radial' | 'image'
+ *  - color/opacity: cor sólida (hex #RRGGBB) e opacidade 0..1
+ *  - stops:   paradas do gradiente [{ color, opacity, pos(0..100) }]
+ *  - angle:   ângulo do gradiente linear em graus (CSS: 0 = para cima, 90 = para a direita)
+ *  - assetId/fit: imagem (id em doc.assets) e como encaixa ('cover' | 'contain' | 'fill')
+ *  - styleId (opcional): liga a um estilo de cor compartilhado (ver components.js → syncStyles)
+ * @param {string} [color='#D9D9D9']  cor sólida inicial
+ */
 export const defaultFill = (color = '#D9D9D9') => ({
   type: 'solid',
   color,
@@ -42,10 +97,26 @@ export const defaultFill = (color = '#D9D9D9') => ({
   fit: 'cover',
 });
 
+/**
+ * Contorno (stroke). No CSS vira `outline` (não `border`) porque o outline NÃO altera o layout nem o
+ * tamanho da caixa — por isso trocar a espessura não "empurra" os vizinhos num auto layout.
+ * `position`: 'inside' | 'center' | 'outside' controla o `outline-offset`.
+ */
 export const defaultStroke = () => ({ color: '#000000', opacity: 1, width: 1, style: 'solid', position: 'inside' });
 
+/** Sombra (vira `box-shadow`; em textos vira `text-shadow`). `inset` = sombra interna. */
 export const defaultShadow = () => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false });
 
+/**
+ * Configuração de auto layout de um FRAME. É literalmente CSS:
+ *  - mode: 'none' (filhos livres, position:absolute) | 'row' | 'column' (display:flex) | 'grid' (display:grid)
+ *  - gap / colGap / rowGap: espaço entre itens (flex usa `gap`; grid usa colGap e rowGap)
+ *  - cols / rows: colunas e linhas do grid (rows 0 = linhas automáticas)
+ *  - padding: [topo, direita, baixo, esquerda] — mesma ordem do atalho `padding` do CSS
+ *  - justify: justify-content (flex) ou justify-items (grid)
+ *  - align:   align-items
+ *  - wrap:    flex-wrap: wrap
+ */
 export const defaultLayout = () => ({
   mode: 'none', // none | row | column (display:flex) | grid (display:grid)
   gap: 8,
@@ -59,62 +130,101 @@ export const defaultLayout = () => ({
   wrap: false,
 });
 
+/**
+ * Cria uma camada ("nó") nova, com todos os campos que qualquer camada tem + os do seu tipo.
+ *
+ * SISTEMA DE COORDENADAS: `x` e `y` são relativos ao canto superior esquerdo do PAI (ou ao mundo, se for
+ * uma camada na raiz da página) e SEM rotação. A rotação gira a caixa em torno do próprio centro.
+ *
+ * @param {'frame'|'rect'|'ellipse'|'text'|'group'|'line'|'path'} type  tipo da camada
+ * @param {object} [props]  campos que sobrescrevem os padrões (ex.: { x: 10, name: 'Botão' })
+ * @returns {object} o nó, já pronto para entrar em `page.children` ou `node.children`
+ */
 export function createNode(type, props = {}) {
   const node = {
+    // --- identidade ---
+    // id único (nunca muda; é a chave do índice, da seleção e do histórico)
     id: uid(),
     type,
     name: TYPE_LABEL[type] || type,
+    // --- geometria (px). Em auto layout os valores de x/y são ignorados; w/h valem quando o tamanho é 'fixed'
+    // e são atualizados com a medida real do DOM quando é 'hug' ou 'fill' (ver canvas.js → measureBack)
     x: 0, y: 0, w: 100, h: 100,
+    // rotação em graus, horária, em torno do centro
     rotation: 0,
+    // visible=false → display:none (some do canvas e do código exportado); locked=true → não é clicável no canvas
     visible: true,
     locked: false,
+    // opacidade 0..1 (CSS opacity) e modo de mesclagem (CSS mix-blend-mode)
     opacity: 1,
     blend: 'normal',
+    // aparência: preenchimento, contorno (null = sem contorno), cantos [tl, tr, br, bl] e efeitos
     fill: defaultFill(),
     stroke: null,
     radius: [0, 0, 0, 0],
     shadows: [],
     blur: 0,
     bgBlur: 0,
+    // Como a camada calcula o tamanho (como no Figma): 'fixed' = usa w/h; 'hug' = ajusta ao conteúdo (width:auto);
+    // 'fill' = preenche o espaço do pai (flex:1 no eixo principal, align-self:stretch no cruzado). 'fill' só faz
+    // sentido dentro de um pai com auto layout.
     sizeX: 'fixed', // fixed | hug | fill
     sizeY: 'fixed',
+    // true = a camada IGNORA o auto layout do pai e usa x/y (position:absolute) — útil para enfeites e badges
     absolute: false, // true = ignora o auto layout do pai (position:absolute)
+    // CSS align-self do item dentro de um auto layout
     alignSelf: 'auto',
+    // espelhamento (vira scale(-1, 1) no transform) e trava de proporção ao redimensionar
     flipX: false,
     flipY: false,
     lockRatio: false,
+    // Constraints (só valem em frames SEM auto layout): como a camada reage quando o frame pai é redimensionado.
+    // h: 'left'|'right'|'leftright'|'center'|'scale'   v: 'top'|'bottom'|'topbottom'|'center'|'scale'
     constraints: { h: 'left', v: 'top' }, // left|right|leftright|center|scale / top|bottom|topbottom|center|scale
+    // itens de CSS Grid: quantas colunas/linhas ocupam (grid-column: span N)
     colSpan: 1, // item de grid
     rowSpan: 1,
+    // protótipo: lista de interações da camada (ver present.js)
     interactions: [], // protótipo: [{ trigger:'click', action:'navigate'|'back'|'url', target, transition }]
   };
+  // --- campos específicos de cada tipo ---
   if (type === 'frame') {
     node.fill = defaultFill('#FFFFFF');
     node.w = 320; node.h = 240;
+    // clip=true → overflow:hidden (o que sai do frame fica cortado)
     node.clip = true;
+    // auto layout (flexbox/grid)
     node.layout = defaultLayout();
+    // grades de layout: guias visuais de colunas/linhas/quadrícula (não afetam o CSS gerado)
     node.grids = []; // grades de layout (colunas/linhas/quadrículas) só de guia
     node.children = [];
   } else if (type === 'line') {
+    // Linha: uma caixa de 160×12 (a espessura real vem do stroke.width; os 12px extras só facilitam o clique)
     node.w = 160; node.h = 12;
     node.fill = { ...defaultFill(), type: 'none' };
     node.stroke = { ...defaultStroke(), width: 2, color: '#111111' };
   } else if (type === 'path') {
+    // Vetor: `points` guarda os pontos do caminho; hin/hout = alças de Bézier (null = ponto de canto).
+    // As coordenadas ficam num espaço próprio de tamanho vw×vh (o "viewBox" do SVG); w/h só esticam esse espaço.
     node.points = []; // [{ x, y, hin:{x,y}|null, hout:{x,y}|null }] em coordenadas do viewBox
     node.closed = false;
     node.vw = 100; node.vh = 100;
     node.fill = { ...defaultFill(), type: 'none' };
     node.stroke = { ...defaultStroke(), width: 2, color: '#111111' };
   } else if (type === 'group') {
+    // Grupo: só uma caixa que contém filhos. Não tem estilo próprio; o tamanho é sempre recalculado a partir
+    // dos filhos (ver fitGroups).
     node.children = [];
     node.fill = { ...defaultFill(), type: 'none' };
   } else if (type === 'text') {
+    // Texto: começa com tamanho 'hug' nos dois eixos (a caixa acompanha o texto).
     Object.assign(node, {
       text: 'Texto',
       fontFamily: 'Inter',
       fontSize: 16,
       fontWeight: 400,
       fontStyle: 'normal',
+      // lineHeight é um multiplicador sem unidade (CSS `line-height: 1.4`); letterSpacing em px
       lineHeight: 1.4,
       letterSpacing: 0,
       textAlign: 'left',
@@ -129,23 +239,30 @@ export function createNode(type, props = {}) {
   } else if (type === 'ellipse') {
     node.fill = defaultFill('#D9D9D9');
   }
+  // os `props` do chamador vencem os padrões acima
   Object.assign(node, props);
   return node;
 }
 
+/** true para camadas que guardam filhos (frame e grupo). */
 export const isContainer = (n) => !!n && (n.type === 'frame' || n.type === 'group');
 
-/** Constraints de um nó (com padrão para documentos antigos). */
+/** Constraints de uma camada, com padrão (esquerda/topo) para documentos salvos antes desse recurso existir. */
 export const constraintsOf = (n) => n.constraints || { h: 'left', v: 'top' };
 
+/** true se o nó é um frame com auto layout ligado (flex ou grid). */
 export const hasLayout = (n) => !!n && n.type === 'frame' && n.layout.mode !== 'none';
 
-/** O nó participa do fluxo flex do pai? (position:relative em vez de absolute) */
+/**
+ * A camada participa do fluxo do auto layout do pai? Se sim, ela é `position: relative` e quem decide a posição
+ * é o navegador (flex/grid); se não, é `position: absolute` e usa x/y.
+ */
 export const isFlow = (node, parent) => hasLayout(parent) && !node.absolute;
 
+/** Cópia profunda via JSON (suficiente: o documento só tem dados simples, sem funções nem datas). */
 export const cloneDeep = (v) => JSON.parse(JSON.stringify(v));
 
-/** Clona um nó (e filhos) gerando ids novos. */
+/** Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar). */
 export function cloneNode(node) {
   const copy = cloneDeep(node);
   const reid = (n) => {
@@ -156,7 +273,12 @@ export function cloneNode(node) {
   return copy;
 }
 
-/** Percorre a árvore. fn(node, parent, list, index). Retornar false pula os filhos. */
+/**
+ * Percorre a árvore de camadas em profundidade.
+ * @param {object[]} list  lista de nós (ex.: page.children)
+ * @param {(node, parent, list, index) => (void|false)} fn  chamada para cada nó; retornar `false` NÃO desce nos filhos dele
+ * @param {object|null} [parent]  pai da lista (null na raiz)
+ */
 export function walk(list, fn, parent = null) {
   for (let i = 0; i < list.length; i++) {
     const n = list[i];
@@ -165,14 +287,23 @@ export function walk(list, fn, parent = null) {
   }
 }
 
+/** Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo). */
 export function makePage(name = 'Página 1') {
   return { id: uid(), name, children: [], guides: [] };
 }
 
+/**
+ * Documento vazio. Estrutura completa:
+ *  { version, name,
+ *    pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
+ *    assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
+ *    styles: { colors: [...], texts: [...] } } // estilos compartilhados de cor e texto
+ */
 export function makeDoc() {
   return { version: 1, name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] } };
 }
 
+/** Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página. */
 export function nextName(page, type) {
   let count = 0;
   walk(page.children, (n) => {
@@ -182,8 +313,12 @@ export function nextName(page, type) {
 }
 
 /**
- * Ajusta grupos ao tamanho dos filhos (grupos não têm estilo próprio, são só caixas).
- * Remove grupos vazios. Roda ao final de cada gesto (commit).
+ * Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios.
+ * Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser
+ * recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão"
+ * debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo
+ * subtraímos o mesmo valor dos filhos (a posição visual não muda).
+ * @param {object[]} list  lista de nós a processar (recursivo)
  */
 export function fitGroups(list) {
   for (let i = list.length - 1; i >= 0; i--) {
@@ -210,8 +345,14 @@ export function fitGroups(list) {
 }
 
 /**
- * Quando um frame (sem auto layout) muda de tamanho, os filhos reagem conforme suas constraints,
- * como no Figma/Penpot. `ow`/`oh` = tamanho antes. Recursivo para frames e grupos filhos.
+ * Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h).
+ * Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas
+ * bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente.
+ * Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho,
+ * os filhos dele reagem também.
+ * @param {object} frame  frame JÁ com o tamanho novo
+ * @param {number} ow  largura antiga
+ * @param {number} oh  altura antiga
  */
 export function applyConstraints(frame, ow, oh) {
   if (!frame.children || hasLayout(frame) || (frame.w === ow && frame.h === oh)) return;
@@ -237,8 +378,12 @@ export function applyConstraints(frame, ow, oh) {
 }
 
 /**
- * Redimensiona respeitando "travar proporção" e as constraints dos filhos.
- * axis: 'w' | 'h' (qual campo o usuário editou).
+ * Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e
+ * propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
+ * @param {object} n  camada
+ * @param {number} nw  nova largura
+ * @param {number} nh  nova altura
+ * @param {'w'|'h'} [axis='w']  qual campo o usuário editou (importa para a trava de proporção)
  */
 export function resizeNode(n, nw, nh, axis = 'w') {
   const ow = n.w, oh = n.h;
@@ -254,7 +399,11 @@ export function resizeNode(n, nw, nh, axis = 'w') {
   else applyConstraints(n, ow, oh);
 }
 
-/** Escala recursivamente um nó (usado ao redimensionar grupos/multiseleção). */
+/**
+ * Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho.
+ * Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao
+ * tamanho natural no render).
+ */
 export function scaleNode(node, sx, sy) {
   node.x = round(node.x * sx);
   node.y = round(node.y * sy);
@@ -268,6 +417,10 @@ export function scaleNode(node, sx, sy) {
   }
 }
 
+/**
+ * Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca
+ * qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
+ */
 export const slugify = (s) =>
   String(s)
     .normalize('NFD')

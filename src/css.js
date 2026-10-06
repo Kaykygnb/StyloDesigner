@@ -1,10 +1,41 @@
-// Converte nós do documento em CSS real. É usado pelo canvas, pelo painel "Código" e pela exportação HTML,
-// então o que você vê no editor é exatamente o que o navegador renderiza.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  css.js — CAMADA → CSS / HTML / SVG   (módulo puro: sem DOM)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  O QUE É
+ *    Converte as camadas do documento em CSS real. É a peça que faz o projeto cumprir a promessa
+ *    "o canvas é CSS de verdade": o canvas, o painel Código e a exportação HTML/PNG usam EXATAMENTE
+ *    as mesmas funções daqui, então não existe diferença entre o que você vê e o que é exportado.
+ *
+ *  PRINCIPAIS FUNÇÕES
+ *    nodeStyle(node, parent)      → objeto { propriedade-css: valor } de uma camada
+ *    generateCode(nodes, parent)  → { html, css } com classes legíveis (aba "Código")
+ *    exportHtml(node)             → documento HTML completo e standalone
+ *    pathSvg / pathData           → markup SVG dos vetores (caneta)
+ *    maskClip                     → clip-path das máscaras
+ *
+ *  DECISÕES IMPORTANTES
+ *    - Contorno usa `outline` (não border) para não alterar o layout.
+ *    - Auto layout é flexbox/grid de verdade: o navegador calcula as posições; o editor só LÊ o
+ *      resultado do DOM (ver canvas.js → measureBack).
+ *    - Funções puras: dão para testar no Node (tests/css.test.js).
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { isFlow, hasLayout, round, slugify } from './model.js';
 
+/** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
 const px = (v) => `${round(v)}px`;
+/**
+ * Tradução dos valores de alinhamento do flexbox (usados no modelo, ex. 'flex-start') para os do CSS Grid
+ * ('start'). O grid não aceita 'flex-start' em justify-items/align-items.
+ */
 const GRID_ALIGN = { 'flex-start': 'start', center: 'center', 'flex-end': 'end', auto: 'start' };
 
+/**
+ * Converte uma cor hexadecimal ("#RGB" ou "#RRGGBB") em { r, g, b } (0..255).
+ * Entrada inválida vira preto em vez de lançar erro, para o app nunca travar por causa de uma cor ruim.
+ */
 export function hexToRgb(hex) {
   let h = String(hex || '#000000').replace('#', '');
   if (h.length === 3) h = [...h].map((c) => c + c).join('');
@@ -12,19 +43,35 @@ export function hexToRgb(hex) {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
+/**
+ * Monta a cor CSS final. Opacidade total (>= 1) devolve o hex curto "#rrggbb"; menor que 1 devolve
+ * "rgba(r, g, b, a)". Assim o código gerado fica o mais limpo possível.
+ * @param {string} hex  cor base
+ * @param {number} [a=1]  opacidade 0..1
+ */
 export function rgba(hex, a = 1) {
   const { r, g, b } = hexToRgb(hex);
   if (a >= 1) return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
   return `rgba(${r}, ${g}, ${b}, ${round(a, 3)})`;
 }
 
+/** Lista de paradas de gradiente em CSS, ordenada por posição: "#7c5cff 0%, #2dd4ff 100%". */
 const stopsCss = (stops) =>
   [...stops]
     .sort((a, b) => a.pos - b.pos)
     .map((s) => `${rgba(s.color, s.opacity)} ${round(s.pos)}%`)
     .join(', ');
 
-/** Propriedades CSS de um preenchimento (fill). */
+/**
+ * Propriedades CSS de um PREENCHIMENTO (fill). Devolve um objeto { propriedade: valor }.
+ *  - solid  → background-color
+ *  - linear → background-image: linear-gradient(...)
+ *  - radial → background-image: radial-gradient(...)
+ *  - image  → background-image: url(data:...) + size/position/repeat (se a imagem não existir mais, cinza neutro)
+ *  - none   → nada
+ * @param {object} fill  preenchimento (ver model.js → defaultFill)
+ * @param {Object<string,string>} [assets]  doc.assets: id → data URL das imagens
+ */
 export function fillCss(fill, assets = {}) {
   if (!fill) return {};
   switch (fill.type) {
@@ -49,25 +96,38 @@ export function fillCss(fill, assets = {}) {
   }
 }
 
+/** Monta a lista de fontes com alternativas: 'Inter', system-ui, sans-serif. Se o usuário já digitou uma lista (com vírgula), respeita. */
 const fontStack = (family) => (family.includes(',') ? family : `'${family}', system-ui, sans-serif`);
 
 /**
- * Estilo CSS de um nó. `parent` é o nó pai (ou null na raiz da página).
- * opts.root: usado na exportação, o elemento raiz vira position:relative.
+ * ★ O CORAÇÃO DO PROJETO ★ — converte UMA camada em CSS.
+ * O mesmo resultado é usado em 3 lugares: (1) o canvas (cada camada é um elemento com este estilo),
+ * (2) o painel "Código" e (3) a exportação HTML/PNG. Por isso o que você vê no editor é o que o navegador
+ * renderiza de verdade.
+ *
+ * @param {object} node  a camada
+ * @param {object|null} parent  o pai (decide se a camada está em fluxo de flex/grid ou é absoluta)
+ * @param {Object<string,string>} [assets]  imagens do documento
+ * @param {{root?: boolean}} [opts]  `root: true` na exportação: o elemento raiz vira position:relative (sem left/top)
+ * @returns {Object<string,string>} propriedades CSS em ordem de inserção (kebab-case)
  */
 export function nodeStyle(node, parent, assets = {}, opts = {}) {
+  // `s` acumula as propriedades CSS. Ordem importa só para leitura do código gerado.
   const s = {};
+  // flow = true quando o PAI tem auto layout e esta camada não é "absoluta": o navegador posiciona.
   const flow = !opts.root && isFlow(node, parent);
   const isText = node.type === 'text';
+  // border-box: width/height já incluem padding; é a convenção de todo design tool.
   s['box-sizing'] = 'border-box';
 
-  // ---- posição e tamanho ----------------------------------------------------------
+  // ---- posição e tamanho ------------------------------------------------------------
+  // 4 casos: (a) raiz da exportação, (b) item de CSS Grid, (c) item de flexbox, (d) camada livre (absolute).
   if (opts.root) {
     s.position = 'relative';
     s.width = px(node.w);
     s.height = px(node.h);
   } else if (flow && parent.layout.mode === 'grid') {
-    // item de CSS Grid
+    // (b) Item de GRID: o tamanho 'fill' vira justify-self/align-self: stretch; colSpan/rowSpan viram `span N`.
     s.position = 'relative';
     s.width = node.sizeX === 'fixed' ? px(node.w) : 'auto';
     s.height = node.sizeY === 'fixed' ? px(node.h) : 'auto';
@@ -76,6 +136,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if ((node.colSpan || 1) > 1) s['grid-column'] = `span ${node.colSpan}`;
     if ((node.rowSpan || 1) > 1) s['grid-row'] = `span ${node.rowSpan}`;
   } else if (flow) {
+    // (c) Item de FLEXBOX. "Eixo principal" = o da direção do pai (row → horizontal, column → vertical).
+    //   fill no eixo principal  → flex: 1 1 0% (divide o espaço sobrando; min-width:0 evita estourar por conteúdo)
+    //   fill no eixo cruzado    → align-self: stretch
+    //   fixed                   → flex: 0 0 auto + tamanho em px     |  hug → width/height: auto (tamanho do conteúdo)
     const row = parent.layout.mode === 'row';
     const mainFill = row ? node.sizeX === 'fill' : node.sizeY === 'fill';
     const crossFill = row ? node.sizeY === 'fill' : node.sizeX === 'fill';
@@ -87,6 +151,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s.width = node.sizeX === 'fixed' ? px(node.w) : 'auto';
     s.height = node.sizeY === 'fixed' ? px(node.h) : 'auto';
   } else {
+    // (d) Camada LIVRE: position:absolute com left/top (x/y do modelo). 'hug' na largura vira max-content.
     s.position = 'absolute';
     s.left = px(node.x);
     s.top = px(node.y);
@@ -94,10 +159,12 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s.height = node.sizeY === 'hug' ? 'auto' : px(node.h);
   }
 
-  // ---- auto layout = flexbox ou grid -----------------------------------------------
+  // ---- auto layout = flexbox ou grid --------------------------------------------------
+  // Aplica no PRÓPRIO frame as regras que organizam os filhos. Os nomes do modelo são os do CSS.
   if (hasLayout(node)) {
     const L = node.layout;
     const [t, r, b, l] = L.padding;
+    // GRID: colunas iguais (1fr). Em 'hug' as colunas usam max-content para o frame encolher junto com o conteúdo.
     if (L.mode === 'grid') {
       const hug = node.sizeX === 'hug';
       const track = hug ? 'max-content' : 'minmax(0, 1fr)';
@@ -108,6 +175,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       s['justify-items'] = GRID_ALIGN[L.justify] || 'start';
       s['align-items'] = GRID_ALIGN[L.align] || 'start';
     } else {
+      // FLEX: direção, gap, justify-content (eixo principal), align-items (eixo cruzado) e quebra de linha opcional.
       s.display = 'flex';
       s['flex-direction'] = L.mode;
       s.gap = px(L.gap);
@@ -118,16 +186,21 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
         s['align-content'] = 'flex-start';
       }
     }
+    // padding só entra no CSS se algum lado for diferente de zero (código gerado mais enxuto).
     if (t || r || b || l) s.padding = `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
   }
+  // "Cortar conteúdo" = overflow:hidden. Também faz os filhos respeitarem o border-radius do frame.
   if (node.type === 'frame' && node.clip) s.overflow = 'hidden';
 
+  // Linhas têm um desenho próprio (barra com gradiente) e não usam fill/radius/outline: retorna cedo.
   if (node.type === 'line') {
     lineStyle(node, s, flow);
     return s;
   }
 
-  // ---- texto ----------------------------------------------------------------------
+  // ---- texto ------------------------------------------------------------------------
+  // Texto usa `color` (não background). white-space: 'pre' = não quebra linha (largura 'hug'); 'pre-wrap' = quebra
+  // na largura da caixa e preserva as quebras de linha digitadas.
   if (isText) {
     s['font-family'] = fontStack(node.fontFamily);
     s['font-size'] = px(node.fontSize);
@@ -138,12 +211,14 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s['text-align'] = node.textAlign;
     if (node.textDecoration !== 'none') s['text-decoration'] = node.textDecoration;
     if (node.textTransform && node.textTransform !== 'none') s['text-transform'] = node.textTransform;
+    // Alinhamento vertical só faz sentido com altura fixa: usa grid + align-content (centro/fim).
     if (node.sizeY === 'fixed' && node.textVAlign && node.textVAlign !== 'top') {
       s.display = 'grid';
       s['align-content'] = node.textVAlign === 'center' ? 'center' : 'end';
     }
     s['white-space'] = node.sizeX === 'hug' ? 'pre' : 'pre-wrap';
     s['overflow-wrap'] = 'break-word';
+    // Cor do texto vem do fill. Com GRADIENTE usa o truque `background-clip: text` + `color: transparent`.
     const f = node.fill;
     if (!f || f.type === 'none') s.color = 'transparent';
     else if (f.type === 'solid') s.color = rgba(f.color, f.opacity);
@@ -154,17 +229,22 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       s.color = 'transparent';
     }
   } else if (node.type !== 'path') {
+    // Demais camadas: o fill vira background. (Vetores desenham o próprio fill dentro do <svg>.)
     Object.assign(s, fillCss(node.fill, assets));
   }
 
-  // ---- forma ----------------------------------------------------------------------
+  // ---- forma ------------------------------------------------------------------------
+  // Elipse = border-radius 50%. Retângulos/frames: 1 valor se os 4 cantos forem iguais, senão os 4 valores.
   if (node.type === 'ellipse') s['border-radius'] = '50%';
   else if (node.radius && node.radius.some(Boolean) && !isText) {
     const [a, b, c, d] = node.radius;
     s['border-radius'] = a === b && b === c && c === d ? px(a) : `${px(a)} ${px(b)} ${px(c)} ${px(d)}`;
   }
 
-  // ---- contorno (outline segue border-radius e não afeta o layout) -----------------
+  // ---- contorno ---------------------------------------------------------------------
+  // Usamos `outline` (não border): ele segue o border-radius nos navegadores atuais e NÃO muda o tamanho da caixa
+  // nem empurra vizinhos no auto layout. 'inside' = offset negativo (desenha para dentro).
+  // Em texto o contorno vira -webkit-text-stroke.
   const st = node.stroke;
   if (st && st.width > 0 && node.type !== 'path') {
     if (isText) {
@@ -176,7 +256,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     }
   }
 
-  // ---- efeitos --------------------------------------------------------------------
+  // ---- efeitos ----------------------------------------------------------------------
+  // Sombras: box-shadow (camadas), text-shadow (texto) ou filter: drop-shadow (vetores, que não têm "caixa").
+  // blur → filter: blur(); bgBlur → backdrop-filter: blur() (efeito vidro); opacity e mix-blend-mode completam.
   const isPath = node.type === 'path';
   const filters = [];
   if (node.shadows?.length) {
@@ -201,7 +283,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = node.blend;
   const tf = transformOf(node);
   if (tf) s.transform = tf;
+  // A camada marcada como máscara some (display:none): ela só serve para recortar o grupo via clip-path.
   if (node.isMask) s.display = 'none';
+  // Grupo com máscara: recorta os irmãos usando a forma da camada-máscara (ver maskClip).
   if (node.type === 'group') {
     const clip = maskClip(node);
     if (clip) s['clip-path'] = clip;
@@ -211,7 +295,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
 }
 
 
-/** rotate + espelhamento (flipX/flipY) numa única propriedade `transform`. */
+/**
+ * Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale.
+ * Devolve '' quando não há nada a aplicar (assim o CSS gerado não ganha `transform` à toa).
+ */
 export function transformOf(node) {
   const parts = [];
   if (node.rotation) parts.push(`rotate(${round(node.rotation, 2)}deg)`);
@@ -219,7 +306,12 @@ export function transformOf(node) {
   return parts.join(' ');
 }
 
-/** Linha: uma barra de `stroke.width` px desenhada com gradiente, dentro de uma caixa de 12px (fácil de clicar). */
+/**
+ * Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que
+ * desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido)
+ * ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela.
+ * Altera `s` diretamente.
+ */
 function lineStyle(node, s, flow) {
   const st = node.stroke || { color: '#000000', opacity: 1, width: 2, style: 'solid' };
   const w = Math.max(0.5, st.width);
@@ -249,9 +341,17 @@ function lineStyle(node, s, flow) {
 }
 
 // ---------------------------------------------------------------- vetores (caminhos SVG)
+/** Arredonda para 2 casas (coordenadas de SVG). */
 const num = (n) => round(n, 2);
 
-/** Dados `d` de um <path> a partir dos pontos com alças de Bézier. */
+/**
+ * Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor.
+ * Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
+ * @param {{x:number,y:number,hin?:object,hout?:object}[]} points  pontos; hin/hout = alças de entrada/saída
+ * @param {boolean} closed  fecha o caminho com Z (liga o último ao primeiro)
+ * @param {(x:number)=>number} [tx]  transformação opcional de x (usada pelo clip-path e pelo SVG exportado)
+ * @param {(y:number)=>number} [ty]  idem para y
+ */
 export function pathData(points, closed, tx = (x) => x, ty = (y) => y) {
   if (!points.length) return '';
   const P = (pt) => `${num(tx(pt.x))} ${num(ty(pt.y))}`;
@@ -266,6 +366,11 @@ export function pathData(points, closed, tx = (x) => x, ty = (y) => y) {
   return d;
 }
 
+/**
+ * Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por
+ * url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }.
+ * O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
+ */
 function svgPaint(fill, id, assets) {
   if (!fill || fill.type === 'none') return { paint: 'none', defs: '' };
   if (fill.type === 'solid') return { paint: rgba(fill.color, 1), opacity: fill.opacity, defs: '' };
@@ -283,7 +388,12 @@ function svgPaint(fill, id, assets) {
   };
 }
 
-/** SVG interno de um nó `path`. A área clicável usa um traço transparente mais grosso. */
+/**
+ * Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
+ *  - preserveAspectRatio="none": o desenho estica junto com a caixa da camada.
+ *  - vector-effect="non-scaling-stroke": a espessura do traço NÃO muda ao esticar.
+ *  - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
+ */
 export function pathSvg(node, assets = {}) {
   const d = pathData(node.points, node.closed);
   const { paint, opacity, defs } = svgPaint(node.fill, node.id, assets);
@@ -301,7 +411,11 @@ export function pathSvg(node, assets = {}) {
     `</svg>`;
 }
 
-/** clip-path de um grupo-máscara, a partir do filho marcado como `isMask`. */
+/**
+ * Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS:
+ * elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver).
+ * Devolve '' se o grupo não tem máscara.
+ */
 export function maskClip(group) {
   const m = group.children?.find((c) => c.isMask);
   if (!m) return '';
@@ -317,11 +431,13 @@ export function maskClip(group) {
   return `inset(${px(m.y)} ${px(group.w - m.x - m.w)} ${px(group.h - m.y - m.h)} ${px(m.x)}${round_})`;
 }
 
+/** Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2"). */
 export const toCssText = (style) =>
   Object.entries(style)
     .map(([k, v]) => `${k}:${v}`)
     .join(';');
 
+/** Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado). */
 export function cssRule(selector, style, indent = '') {
   const body = Object.entries(style)
     .map(([k, v]) => `${indent}  ${k}: ${v};`)
@@ -329,7 +445,10 @@ export function cssRule(selector, style, indent = '') {
   return `${indent}${selector} {\n${body}\n${indent}}`;
 }
 
-/** Nome de classe único por nó, derivado do nome da camada. */
+/**
+ * Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada
+ * com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+ */
 function makeClassNamer() {
   const used = new Map();
   return (node) => {
@@ -340,10 +459,18 @@ function makeClassNamer() {
   };
 }
 
+/** Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado. */
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-/** Gera { html, css } de uma árvore de nós, com classes legíveis. */
+/**
+ * Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com
+ * uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+ * @param {object[]} nodes  camadas irmãs a exportar
+ * @param {object|null} parent  pai delas (define se são itens de flex/grid)
+ * @param {object} [assets]  imagens do documento
+ * @param {{root?: boolean}} [opts]  root: a 1ª camada vira o elemento raiz (position:relative)
+ */
 export function generateCode(nodes, parent, assets = {}, { root = false } = {}) {
   const className = makeClassNamer();
   const rules = [];
@@ -366,7 +493,10 @@ export function generateCode(nodes, parent, assets = {}, { root = false } = {}) 
   return { html, css: rules.join('\n\n') };
 }
 
-/** Documento HTML completo e standalone de um nó. */
+/**
+ * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
+ * Abre direto no navegador; o CSS fica num <style> no <head>.
+ */
 export function exportHtml(node, assets, title = 'Design') {
   const { html, css } = generateCode([node], null, assets, { root: true });
   return `<!doctype html>
