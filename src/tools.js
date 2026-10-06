@@ -1,24 +1,64 @@
-// Interação com o canvas: seleção, mover (com snap e reordenação de auto layout), redimensionar,
-// rotacionar, desenhar, marquee, pan/zoom, edição de texto e atalhos de teclado.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  tools.js — INTERAÇÃO: MOUSE E TECLADO NO CANVAS
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Seleção, mover (com snap e reordenação de auto layout), redimensionar, rotacionar, desenhar, marquee,
+ *  pan/zoom, edição de texto, guias e TODOS os atalhos de teclado.
+ *
+ *  PADRÃO DE UM GESTO
+ *    pointerdown → escolhe o gesto e guarda o estado inicial em `drag`
+ *    pointermove → recalcula a partir do estado inicial (nunca acumula) e atualiza o documento ao vivo
+ *    pointerup   → `store.commit()` UMA vez: um Ctrl+Z desfaz o gesto inteiro
+ *
+ *  Este arquivo NÃO desenha nada (isso é overlay.js/canvas.js) e delega operações que mexem na árvore
+ *  (agrupar, duplicar, alinhar...) para commands.js.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { applyConstraints, createNode, hasLayout, isFlow, nextName, round, scaleNode, uid } from './model.js';
 import { createPen } from './pen.js';
 import { RULER } from './rulers.js';
 
+/** Ferramentas em que clicar/arrastar no canvas CRIA uma camada nova. */
 const DRAW_TOOLS = ['frame', 'rect', 'ellipse', 'text', 'line', 'polygon', 'star'];
+/** Atalho de teclado → ferramenta (V mover, F/B frame, R retângulo, E elipse, T texto, H mão, P caneta, L linha). */
 const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line' };
+/** Quantos px de tela o mouse precisa andar para um clique virar ARRASTO (evita mover sem querer ao clicar). */
 const THRESHOLD = 3; // px de tela antes de considerar que é um arrasto
+/** Cópia profunda via JSON (usada para guardar o estado inicial de um gesto). */
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
+/**
+ * Cria as FERRAMENTAS: toda a interação do usuário com o canvas via mouse e teclado.
+ *
+ * Funciona como uma máquina de estados simples: `drag` guarda o gesto em andamento
+ * (null | 'pan' | 'move' | 'resize' | 'rotate' | 'draw' | 'marquee' | 'pen' | 'guide'):
+ *   pointerdown → decide o que o clique significa e preenche `drag`
+ *   pointermove → atualiza o documento ao vivo conforme o tipo de `drag` (sem histórico)
+ *   pointerup   → encerra o gesto e dá UM `store.commit()` (um Ctrl+Z desfaz o gesto inteiro)
+ *
+ * @param {{store, canvas, commands, viewport: HTMLElement, toast: (msg:string)=>void}} deps
+ * @returns {{startEdit, finishEdit, copyCss, toggleProp, zoomTo, pen}} funções que a interface (menus/botões) também usa
+ */
 export function createTools({ store, canvas, commands, viewport, toast }) {
+  // atalho para o estado de interface
   const ui = store.ui;
+  // gesto em andamento (ver descrição acima); null = nenhum
   let drag = null;
+  // Espaço pressionado = a Mão temporária (arrastar move a vista)
   let spaceDown = false;
+  // alvo do último pointerdown. Com "pointer capture" o evento dblclick chega com alvo = viewport, então guardamos o alvo real aqui
   let downTarget = null; // com pointer capture, o dblclick chega com alvo = viewport; guardamos o alvo real
 
   // ------------------------------------------------------------------ utilidades
+  /** id da camada sob um elemento do DOM (sobe até o .node mais próximo), ou null se for fundo/overlay. */
   const nodeAt = (target) => target.closest?.('.node')?.dataset.id || null;
 
-  /** Qual camada um clique seleciona: grupos são tratados como uma peça só (duplo clique entra). */
+  /**
+   * Qual camada um CLIQUE seleciona. Regra do Figma: grupos são uma peça só — clicar num filho seleciona o GRUPO;
+   * duplo clique (ou Ctrl+clique) "entra" e seleciona o filho. Se algo dentro do grupo já está selecionado,
+   * clicar noutro filho do mesmo grupo seleciona esse filho direto.
+   */
   function pickSelectable(id) {
     let result = id;
     for (let p = store.parentOf(id); p; p = store.parentOf(p.id)) {
@@ -28,7 +68,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     return result;
   }
 
-  /** Frame mais fundo sob o ponteiro. Ignora o overlay (alças, rótulos) e o que está sendo arrastado. */
+  /**
+   * Frame mais fundo sob o ponteiro (ou null = fundo do canvas). Usa `elementsFromPoint` e IGNORA o overlay
+   * (alças, rótulos: eles ficam embaixo do cursor durante o arrasto e atrapalhariam) e o que está sendo arrastado.
+   * Serve para saber em qual frame uma camada foi solta/desenhada.
+   */
   const frameUnder = (clientX, clientY) => {
     for (const el of document.elementsFromPoint(clientX, clientY)) {
       const node = el.closest?.('.node');
@@ -39,15 +83,22 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     return null;
   };
 
+  // a ferramenta caneta (vetores) vive em pen.js; aqui só a conectamos
   const pen = createPen({ store, canvas, commands, frameUnder });
 
+  /**
+   * Marca as camadas arrastadas (e descendentes): recebem a classe CSS 'dragging' (pointer-events:none), assim
+   * `elementsFromPoint` enxerga o que está EMBAIXO delas. Aplica direto no DOM (o próximo render só vem depois).
+   */
   const setDragIds = (nodes) => {
     ui.dragIds = nodes ? new Set(nodes.flatMap((n) => collectIds(n))) : null;
     // aplica já (o próximo render só roda depois que o item se mexer)
     for (const [id, el] of canvas.els) el.classList.toggle('dragging', !!ui.dragIds?.has(id));
   };
+  /** ids de uma camada e de todos os descendentes. */
   const collectIds = (n) => [n.id, ...(n.children || []).flatMap(collectIds)];
 
+  /** "Pointer capture": faz o viewport continuar recebendo o mouse mesmo que ele saia da janela durante o arrasto. */
   function capture(e) {
     try {
       viewport.setPointerCapture(e.pointerId);
@@ -55,12 +106,16 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ texto
+  /** Entra no modo de edição de texto da camada (o canvas dá foco e seleciona tudo; ver canvas.js → render). */
   function startEdit(id) {
     store.setSelection([id]);
     ui.editingId = id;
     store.emit('doc');
   }
 
+  /**
+   * Sai da edição de texto. Texto vazio apaga a camada (sem sobrar caixa invisível); senão grava no histórico.
+   */
   function finishEdit() {
     const id = ui.editingId;
     if (!id) return;
@@ -76,16 +131,19 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     store.emit('selection');
   }
 
+  // Enquanto digita, copia o texto do elemento para o modelo (sem commit; o commit vem ao sair da edição).
   canvas.world.addEventListener('input', (e) => {
     if (!ui.editingId || nodeAt(e.target) !== ui.editingId) return;
     const text = e.target.textContent;
     store.update(() => { store.get(ui.editingId).text = text; });
   });
+  // Perder o foco (clicar fora) encerra a edição.
   canvas.world.addEventListener('focusout', (e) => {
     if (ui.editingId && nodeAt(e.target) === ui.editingId) finishEdit();
   });
 
   // ------------------------------------------------------------------ pan e zoom
+  /** Começa a arrastar a vista (botão do meio, Espaço+arrastar ou ferramenta Mão). */
   function startPan(e) {
     const v = canvas.getView();
     drag = { type: 'pan', x: e.clientX, y: e.clientY, vx: v.x, vy: v.y };
@@ -93,6 +151,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     capture(e);
   }
 
+  // RODA DO MOUSE: Ctrl/⌘+roda (ou o modo "roda = zoom") dá zoom ancorado no cursor; sem Ctrl rola a vista
+  // (Shift+roda rola na horizontal). O delta é limitado a ±25 para o zoom não "explodir" com mouses de roda dentada.
   viewport.addEventListener(
     'wheel',
     (e) => {
@@ -113,9 +173,20 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   );
 
   // ------------------------------------------------------------------ pointer down
+  /**
+   * POINTER DOWN — o começo de todo gesto. Decide o que o clique significa, nesta ordem de prioridade:
+   *  1. pan (botão do meio / Espaço / ferramenta Mão)
+   *  2. clicar fora do texto em edição → encerra a edição
+   *  3. caneta: adiciona ponto · editando vetor: arrasta ponto/alça · guia de régua: arrasta a guia
+   *  4. ferramenta de desenho: cria a camada
+   *  5. alça de redimensionar / zona de rotação
+   *  6. ferramenta Mover: seleciona e começa a mover; fundo vazio começa o marquee
+   */
   viewport.addEventListener('pointerdown', (e) => {
+    // guarda o alvo real (ver downTarget acima)
     downTarget = e.target;
     const tool = ui.tool;
+    // 1) pan: botão do meio, ou botão esquerdo com Espaço pressionado / ferramenta Mão
     if (e.button === 1 || (e.button === 0 && (spaceDown || tool === 'hand'))) {
       e.preventDefault();
       startPan(e);
@@ -123,6 +194,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
     if (e.button !== 0) return;
     const hitId = nodeAt(e.target);
+    // 2) se há texto em edição: clicar DENTRO dele só posiciona o cursor; clicar fora encerra a edição
     if (ui.editingId) {
       if (hitId === ui.editingId) return; // clique dentro do texto: só posiciona o cursor
       document.activeElement?.blur?.();
@@ -130,14 +202,17 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     } else {
       document.activeElement?.blur?.();
     }
+    // evita seleção de texto do navegador e foco indesejado durante o arrasto
     e.preventDefault();
     capture(e);
 
     const t = e.target;
+    // 3) caneta: cada clique adiciona um ponto (clicar no primeiro ponto fecha o caminho)
     if (tool === 'pen') {
       drag = { type: 'pen' };
       return pen.down(e) ? undefined : (drag = null);
     }
+    // editando os pontos de um vetor: arrastar um ponto/alça, Alt+clique no traço adiciona ponto, clicar fora sai da edição
     if (pen.isEditing()) {
       if (t.dataset?.edit) {
         drag = { type: 'pen' };
@@ -149,30 +224,37 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       }
       pen.exitEdit();
     }
+    // arrastar uma guia de régua já criada (soltar em cima da régua apaga)
     if (t.dataset?.guide !== undefined && t.dataset.guide !== '') {
       const i = Number(t.dataset.guide);
       drag = { type: 'guide', i, axis: store.page().guides[i].axis };
       return;
     }
+    // 4) ferramenta de desenho ativa: tem prioridade sobre alças (senão não dá para desenhar em cima da seleção)
     if (DRAW_TOOLS.includes(tool)) return startDraw(e, tool);
+    // 5) alça de redimensionar / zona de rotação (elementos do overlay marcados com data-handle / data-rotate)
     if (t.dataset.handle) return startResize(e, t.dataset.handle);
     if (t.dataset.rotate) return startRotate(e);
 
-    // ---- ferramenta mover
+    // 6) ferramenta MOVER. `labelId` = clicou no NOME de um frame (acima dele), que seleciona/arrasta o frame todo.
+    // Clicar no vazio: limpa a seleção (Shift mantém) e começa o marquee.
     const labelId = t.dataset.label || null;
     if (!labelId && !hitId) {
       if (!e.shiftKey) store.setSelection([]);
       return startMarquee(e, null, null);
     }
-    // Ctrl/Cmd+clique = seleção "profunda" (atravessa grupos)
+    // Ctrl/⌘+clique = seleção "profunda" (atravessa grupos); clique normal respeita grupos (pickSelectable)
     const id = labelId || (e.ctrlKey || e.metaKey ? hitId : pickSelectable(hitId));
     const node = store.get(id);
     const inSel = ui.selection.includes(id);
 
+    // Frame da RAIZ não clicado antes: um clique simples o seleciona, mas ARRASTAR faz marquee dentro dele
+    // (estilo Figma: não dá para arrastar um frame "puxando" pelo fundo, só pelo nome ou depois de selecionado).
     if (!labelId && node.type === 'frame' && !store.parentOf(id) && !inSel) {
       // frame raiz: clique seleciona, arrasto faz marquee dentro dele
       return startMarquee(e, id, id);
     }
+    // Shift+clique alterna a camada na seleção; clique numa não selecionada passa a selecionar só ela
     if (e.shiftKey) {
       store.setSelection(inSel ? ui.selection.filter((s) => s !== id) : [...ui.selection, id]);
       if (inSel) return;
@@ -183,6 +265,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   });
 
   // ------------------------------------------------------------------ mover
+  /** Prepara o arrasto de mover as camadas selecionadas. `collapseTo`: se for só um clique (sem arrastar) numa seleção múltipla, reduz a seleção a essa camada. */
   function startMove(e, { collapseTo }) {
     const nodes = commands.topSelection();
     if (!nodes.length) return;
@@ -194,8 +277,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   /**
-   * Guarda o ponto de partida dos itens em coordenadas de MUNDO. Assim a posição final é sempre
-   * "origem inicial + deslocamento do ponteiro - origem do pai atual", mesmo que o pai mude no meio do arrasto.
+   * Guarda o ponto de partida dos itens em coordenadas de MUNDO (origem + caixa). A posição final é sempre
+   * "origem inicial + deslocamento do ponteiro − origem do pai atual", então continua certa mesmo que o pai
+   * mude no meio do arrasto (quando a camada passa por cima de outro frame).
    */
   function rebase(nodes) {
     drag.items = nodes.map((n) => ({ id: n.id, w0: canvas.originOf(n.id), a0: canvas.aabb(n.id) }));
@@ -203,6 +287,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     drag.snapRects = null;
   }
 
+  /**
+   * Retângulos com os quais o item que se move pode "grudar" (snap): os irmãos e o pai. Calculado uma vez por arrasto
+   * (cache em drag.snapRects) porque os vizinhos não mudam enquanto você arrasta.
+   */
   function snapCandidates() {
     if (drag.snapRects) return drag.snapRects;
     const first = store.get(drag.items[0].id);
@@ -215,6 +303,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     return rects;
   }
 
+  /**
+   * SNAP: ajusta o deslocamento (dx, dy) para que bordas e centros do item alinhem com os dos vizinhos e com as
+   * guias de régua, quando estiverem a menos de 6px de TELA (6/zoom no mundo). Devolve também as linhas-guia rosa
+   * a desenhar onde houve alinhamento exato. Ctrl desliga o snap (no chamador).
+   * @returns {{dx:number, dy:number, guides:object[]}}
+   */
   function snapMove(dx, dy) {
     const b = drag.box0;
     const z = canvas.getView().zoom;
@@ -228,6 +322,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       xs.push(r.x, r.x + r.w / 2, r.x + r.w);
       ys.push(r.y, r.y + r.h / 2, r.y + r.h);
     }
+    // best: dentre os candidatos, o mais próximo (dentro do limite) de alguma das 3 bordas do item (início/centro/fim)
     const best = (cands, edges) => {
       let delta = 0, min = thr;
       for (const c of cands) for (const m of edges) if (Math.abs(c - m) < min) { min = Math.abs(c - m); delta = c - m; }
@@ -236,7 +331,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     dx += best(xs, [b.x + dx, b.x + b.w / 2 + dx, b.x + b.w + dx]);
     dy += best(ys, [b.y + dy, b.y + b.h / 2 + dy, b.y + b.h + dy]);
 
-    // guias: onde as bordas coincidem
+    // linhas-guia: onde, depois do ajuste, uma borda do item coincide (±0.5px) com a de um vizinho
     const guides = [];
     const mx = [b.x + dx, b.x + b.w / 2 + dx, b.x + b.w + dx];
     const my = [b.y + dy, b.y + b.h / 2 + dy, b.y + b.h + dy];
@@ -250,7 +345,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     return { dx, dy, guides };
   }
 
-  /** Reordena um item dentro do flexbox do pai conforme a posição do ponteiro. */
+  /**
+   * Dentro de um auto layout o item NÃO tem posição livre; arrastar significa REORDENAR. Acha o irmão cujo centro
+   * está mais perto do ponteiro e põe o item antes ou depois dele (conforme o ponteiro esteja antes/depois do centro
+   * dele no eixo principal). Funciona também com flex-wrap, porque usa distância 2D.
+   */
   function flowReorder(node, p) {
     const parent = store.parentOf(node.id);
     const row = parent.layout.mode === 'row';
@@ -273,11 +372,20 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     list.splice(at, 0, node);
   }
 
+  /**
+   * Cada movimento do mouse durante o gesto "mover". Passos:
+   *  1. passou do limiar? Se Alt estava pressionado, duplica e passa a arrastar as cópias
+   *  2. se o ponteiro entrou noutro frame, troca o pai da camada (mantendo a posição visual)
+   *  3. calcula o deslocamento (Shift trava o eixo), aplica snap (Ctrl desliga)
+   *  4. aplica: camadas livres recebem x/y; camadas em auto layout são reordenadas
+   *  5. camadas em auto layout ganham um "fantasma" (CSS `translate`) que segue o ponteiro
+   */
   function moveDrag(e) {
     const d = drag;
     if (!d.moved) {
       if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < THRESHOLD) return;
       d.moved = true;
+      // Alt+arrastar: deixa o original no lugar e arrasta uma CÓPIA (ids novos)
       if (d.alt) {
         // Alt+arrastar: duplica no lugar e arrasta as cópias
         const nodes = commands.topSelection();
@@ -301,7 +409,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     const nodes = d.items.map((i) => store.get(i.id)).filter(Boolean);
     if (!nodes.length) return;
 
-    // troca de pai ao passar por cima de outro frame
+    // Troca de pai ao passar sobre outro frame. Frames da raiz não "entram" em outros ao serem arrastados (evita aninhar sem querer).
     const canReparent = nodes.every((n) => !(n.type === 'frame' && !store.parentOf(n.id)));
     if (canReparent) {
       const target = frameUnder(e.clientX, e.clientY);
@@ -313,17 +421,21 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       }
     }
 
+    // deslocamento do ponteiro desde o início; Shift trava no eixo que mais andou
     let dx = p.x - d.p0.x, dy = p.y - d.p0.y;
     if (e.shiftKey) (Math.abs(dx) > Math.abs(dy) ? (dy = 0) : (dx = 0));
     ui.guides = [];
+    // snap só vale para camadas livres (em auto layout a posição é do navegador)
     const anyFree = nodes.some((n) => !isFlow(n, store.parentOf(n.id)));
     if (anyFree && !(e.ctrlKey || e.metaKey)) {
       const s = snapMove(dx, dy);
       dx = s.dx; dy = s.dy; ui.guides = s.guides;
     }
     ui.dropTarget = null;
+    // `reordered` diz ao store se a estrutura mudou (reordenação) ou se foram só números (rápido)
     let reordered = false;
     store.update(() => {
+      // livre → x/y = origem inicial + deslocamento − origem do pai; em fluxo → reordena conforme o ponteiro
       for (const it of d.items) {
         const n = store.get(it.id);
         if (!n) continue;
@@ -336,7 +448,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         }
       }
     }, { structural: reordered });
-    // "fantasma" dos itens em auto layout seguindo o ponteiro
+    // "fantasma": o item em auto layout fica na vaga que o navegador deu, mas visualmente segue o ponteiro (CSS translate)
     for (const it of d.items) {
       const n = store.get(it.id);
       if (n && isFlow(n, store.parentOf(n.id))) {
@@ -348,6 +460,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ redimensionar
+  /**
+   * Prepara o redimensionar. `hx`/`hy` dizem qual lado a alça move: hx=+1 direita, −1 esquerda; hy=+1 baixo, −1 cima
+   * (0 = não mexe nesse eixo; alça 'e' é hx=1,hy=0; canto 'nw' é hx=−1,hy=−1). Guarda o estado inicial para
+   * recalcular tudo a partir dele a cada movimento (evita acumular erro de arredondamento).
+   */
   function startResize(e, handle) {
     const nodes = commands.topSelection();
     if (!nodes.length) return;
@@ -366,17 +483,28 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     setDragIds(null);
   }
 
+  /**
+   * Cada movimento do mouse ao redimensionar.
+   *  - UMA camada: converte o deslocamento do mouse para os eixos LOCAIS da camada (desfazendo a rotação), muda w/h e
+   *    recalcula x/y para que o lado OPOSTO (a âncora) fique parado no mundo — funciona com a camada girada.
+   *    Shift mantém a proporção; Alt redimensiona a partir do centro.
+   *  - VÁRIAS camadas: escala o conjunto pela caixa envolvente.
+   *  - Grupos escalam os filhos; frames reaplicam as constraints dos filhos a partir do tamanho original.
+   */
   function resizeDrag(e) {
     const d = drag;
     const p = canvas.toWorld(e.clientX, e.clientY);
     const dxw = p.x - d.p0.x, dyw = p.y - d.p0.y;
     const { hx, hy } = d;
     store.update(() => {
+      // ---- uma camada ----
       if (d.single) {
         const it = d.items[0];
         const n = store.get(it.id);
+        // (ldx, ldy) = deslocamento do mouse nos eixos da própria camada (rotação inversa)
         const rad = (it.rot * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad);
         const ldx = dxw * cos + dyw * sin, ldy = -dxw * sin + dyw * cos;
+        // com Alt, cada lado anda o dobro (o oposto anda junto, mantendo o centro)
         const k = e.altKey ? 2 : 1;
         let nw = it.w + hx * ldx * k, nh = it.h + hy * ldy * k;
         if (e.shiftKey || n.lockRatio) {
@@ -387,6 +515,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         }
         nw = Math.max(1, Math.round(nw));
         nh = Math.max(1, Math.round(nh));
+        // âncora = ponto fixo (lado oposto à alça, ou o centro com Alt): posição antes e depois, em coordenadas locais.
+        // Depois do novo tamanho, achamos o novo centro que mantém essa âncora no mesmo lugar do mundo.
         const a0x = e.altKey ? 0 : (-hx * it.w) / 2, a0y = e.altKey ? 0 : (-hy * it.h) / 2;
         const a1x = e.altKey ? 0 : (-hx * nw) / 2, a1y = e.altKey ? 0 : (-hy * nh) / 2;
         const c0x = it.x + it.w / 2, c0y = it.y + it.h / 2;
@@ -408,7 +538,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         if (n.type === 'text' && hx && !hy) n.sizeY = it.sizeY === 'fixed' ? 'fixed' : 'hug';
         return;
       }
-      // multiseleção: escala o conjunto pela caixa envolvente
+      // ---- várias camadas: escala tudo pela caixa envolvente (posição relativa e tamanho multiplicados por sx/sy)
       const b = d.box0;
       let nw = b.w + hx * dxw, nh = b.h + hy * dyw;
       if (e.shiftKey && hx && hy) { const s = Math.max(nw / b.w, nh / b.h); nw = b.w * s; nh = b.h * s; }
@@ -439,6 +569,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ rotacionar
+  /** Prepara a rotação: guarda o centro da camada (em px de tela), a rotação inicial e o ângulo do mouse em relação ao centro. */
   function startRotate(e) {
     const id = ui.selection[0];
     const node = store.get(id);
@@ -454,6 +585,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     viewport.style.cursor = 'grabbing';
   }
 
+  /** Rotação = rotação inicial + (ângulo atual do mouse − ângulo inicial). Shift prende em múltiplos de 15°. Resultado em −180..180. */
   function rotateDrag(e) {
     const d = drag;
     const a = Math.atan2(e.clientY - d.cy, e.clientX - d.cx);
@@ -464,6 +596,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ desenhar
+  /**
+   * Começa a desenhar com a ferramenta ativa. O frame sob o cursor vira o PAI da camada nova (posição relativa a ele).
+   * Retângulo/elipse/frame/linha já nascem no documento (tamanho 1) e crescem durante o arrasto, para você ver ao vivo.
+   * Texto, polígono e estrela só são criados ao soltar.
+   */
   function startDraw(e, tool) {
     const p = canvas.toWorld(e.clientX, e.clientY);
     const parent = frameUnder(e.clientX, e.clientY);
@@ -486,6 +623,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
   }
 
+  /**
+   * Durante o desenho: ajusta a camada ao retângulo arrastado (Shift = quadrado/ângulos de 15°; Alt = a partir do centro).
+   * A linha é um segmento girado; polígono/estrela mostram só o retângulo-guia (marquee) até soltar.
+   */
   function drawDrag(e) {
     const d = drag;
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < THRESHOLD) return;
@@ -525,6 +666,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     });
   }
 
+  /**
+   * Ao soltar o mouse com uma ferramenta de desenho. Um clique SEM arrastar cria o tamanho padrão
+   * (frame 320×240, retângulo/elipse 100×100, linha 100px, polígono/estrela 100×100). Texto entra direto em edição.
+   * A ferramenta volta para Mover (como no Figma).
+   */
   function finishDraw(d, e) {
     store.setTool('move');
     if (d.tool === 'text') {
@@ -560,6 +706,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ guias
+  /** Arrasta uma guia de régua já existente (atualiza a posição ao vivo; soltar sobre a régua apaga — ver endDrag). */
   function guideDrag(e) {
     const d = drag;
     const w = canvas.toWorld(e.clientX, e.clientY);
@@ -570,6 +717,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ marquee
+  /**
+   * Começa o retângulo de seleção por arrasto. `scope` = id do frame raiz onde o arrasto começou (seleciona só
+   * filhos dele) ou null (seleciona camadas da raiz). `clickId` = camada a selecionar se foi só um clique.
+   */
   function startMarquee(e, scope, clickId) {
     drag = {
       type: 'marquee', scope, clickId, sx: e.clientX, sy: e.clientY, moved: false,
@@ -577,6 +728,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     };
   }
 
+  /**
+   * Atualiza o marquee e a seleção. Regra do Figma: frames da raiz só entram se estiverem TOTALMENTE dentro do
+   * retângulo; as demais camadas entram ao serem tocadas. Shift soma à seleção anterior.
+   */
   function marqueeDrag(e) {
     const d = drag;
     if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < THRESHOLD) return;
@@ -593,6 +748,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (!n.visible || n.locked) continue;
       const b = canvas.aabb(n.id);
       if (!b) continue;
+      // intersects: toca no retângulo · inside: está totalmente dentro dele
       const intersects = b.x < m.x + m.w && b.x + b.w > m.x && b.y < m.y + m.h && b.y + b.h > m.y;
       const inside = b.x >= m.x && b.y >= m.y && b.x + b.w <= m.x + m.w && b.y + b.h <= m.y + m.h;
       if (n.type === 'frame' && !scopeNode ? inside : intersects) hit.push(n.id);
@@ -602,6 +758,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   }
 
   // ------------------------------------------------------------------ ponteiro (mover/soltar)
+  /**
+   * POINTER MOVE: com gesto em andamento, despacha para a função do tipo (moveDrag, resizeDrag...). Sem gesto,
+   * só atualiza o "hover" (contorno da camada sob o mouse) e o preview da caneta.
+   */
   viewport.addEventListener('pointermove', (e) => {
     if (!drag) {
       if (pen.isDrawing()) pen.move(e);
@@ -631,6 +791,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
   });
 
+  // Mouse saiu do canvas: tira o contorno de hover.
   viewport.addEventListener('pointerleave', () => {
     if (ui.hoverId && !drag) {
       ui.hoverId = null;
@@ -638,6 +799,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
   });
 
+  /**
+   * POINTER UP / CANCEL: encerra o gesto. Cada tipo faz sua limpeza e quase todos terminam com UM `store.commit()` —
+   * por isso um Ctrl+Z desfaz o arrasto/redimensionamento INTEIRO, não pixel a pixel. Também limpa guias, marquee e
+   * destaque temporários do overlay.
+   */
   function endDrag(e) {
     const d = drag;
     if (!d) return;
@@ -681,6 +847,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   viewport.addEventListener('pointercancel', endDrag);
 
   // ------------------------------------------------------------------ duplo clique
+  /**
+   * DUPLO CLIQUE: no nome de um frame → renomear; em texto → editar; em vetor → editar pontos;
+   * num ponto do vetor → alterna canto/suave; em camada dentro de grupo → entra e seleciona a camada.
+   * Durante a caneta, termina o caminho.
+   */
   viewport.addEventListener('dblclick', (e) => {
     const t = downTarget && viewport.contains(downTarget) ? downTarget : e.target;
     if (pen.isDrawing()) { ui.pen.pts.pop(); pen.finish(false); return; }
@@ -700,6 +871,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     else if (ui.selection[0] !== id) store.setSelection([id]);
   });
 
+  /** BOTÃO DIREITO: seleciona o que está sob o cursor (se ainda não estava) e pede ao app para abrir o menu de contexto. */
   viewport.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const id = nodeAt(e.target);
@@ -714,9 +886,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   });
 
   // ------------------------------------------------------------------ arrastar imagens para o canvas
+  // Arrastar ARQUIVOS de imagem do computador para o canvas: aceita o "soltar" e cria uma camada de imagem na posição.
   viewport.addEventListener('dragover', (e) => {
     if ([...(e.dataTransfer?.types || [])].includes('Files')) e.preventDefault();
   });
+  // (o soltar propriamente dito)
   viewport.addEventListener('drop', (e) => {
     const files = [...(e.dataTransfer?.files || [])];
     if (!files.length) return;
@@ -725,12 +899,21 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   });
 
   // ------------------------------------------------------------------ teclado
+  /** O foco está num campo onde o usuário DIGITA (input, select, texto editável)? Então os atalhos do canvas não devem agir. */
   const isTyping = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
+  /**
+   * TECLADO — todos os atalhos do editor. Ordem importa (do mais específico ao mais geral):
+   * Esc → Alt (medidas) → formatação de texto (Ctrl+B/I/U) → [sai se estiver digitando num campo] → Tab → Espaço (mão)
+   * → caneta → Ctrl+Alt+… → Ctrl+… → Shift+… → ferramentas (V, F, R…) → Delete → F2/Enter → setas.
+   * A lista completa para o usuário está em ui/menus.js (tecla ?) e no README.
+   */
   window.addEventListener('keydown', (e) => {
+    // mod = Ctrl (Windows/Linux) ou ⌘ (Mac); key = tecla em minúsculas
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
 
+    // Esc: termina caneta/edição de pontos/edição de texto; depois volta para Mover; depois limpa a seleção
     if (e.key === 'Escape') {
       if (pen.isDrawing()) { pen.finish(false); return; }
       if (pen.isEditing()) { pen.exitEdit(); return; }
@@ -740,6 +923,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       else store.setSelection([]);
       return;
     }
+    // Alt pressionado: liga as medidas de distância (overlay.js → measures). Desliga no keyup.
     if (e.key === 'Alt' && !isTyping(e.target)) {
       if (!ui.altDown) { ui.altDown = true; store.emit('overlay'); }
       return;
@@ -755,8 +939,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       });
       return;
     }
+    // a partir daqui, se o usuário está digitando num campo, ignora (os atalhos do canvas não devem roubar as teclas)
     if (isTyping(e.target)) return;
 
+    // Tab / Shift+Tab: próxima / anterior camada no mesmo nível, na ordem da lista de camadas (de cima para baixo)
     if (e.key === 'Tab') {
       // Tab / Shift+Tab: próxima / anterior camada no mesmo nível (na ordem da lista de camadas)
       e.preventDefault();
@@ -770,17 +956,19 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return;
     }
 
+    // Espaço: mão temporária (enquanto pressionado, arrastar move a vista)
     if (e.code === 'Space') {
       e.preventDefault();
       if (!spaceDown) { spaceDown = true; viewport.classList.add('space'); }
       return;
     }
 
+    // com a caneta: Enter termina o caminho aberto; editando pontos: Enter sai; Delete remove o ponto selecionado
     if (e.key === 'Enter' && pen.isDrawing()) { e.preventDefault(); pen.finish(false); return; }
     if (e.key === 'Enter' && pen.isEditing()) { pen.exitEdit(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && pen.isEditing()) { e.preventDefault(); pen.deletePoint(); return; }
 
-    // --- com Ctrl/Cmd
+    // Ctrl+Alt+…: K criar componente · B desanexar · M máscara · G envolver em frame · C/V copiar/colar propriedades
     if (mod && e.altKey) {
       if (key === 'k') { e.preventDefault(); commands.createComponent(); return; }
       if (key === 'b') { e.preventDefault(); commands.detach(); return; }
@@ -789,6 +977,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (key === 'c') { e.preventDefault(); if (commands.copyStyle()) toast('Propriedades copiadas'); return; }
       if (key === 'v') { e.preventDefault(); if (commands.pasteStyle()) toast('Propriedades coladas'); return; }
     }
+    // Ctrl/⌘+…: Z/Y desfazer/refazer · D duplicar · G agrupar (Shift desagrupa) · A selecionar tudo no nível ·
+    // Shift+C copiar CSS · Shift+L travar · Shift+H ocultar · ] [ ordem z · +/−/0 zoom
     if (mod) {
       if (key === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
       if (key === 'y') { e.preventDefault(); store.redo(); return; }
@@ -816,7 +1006,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return; // deixa copy/cut/paste/save com os handlers próprios
     }
 
-    // --- Shift + número (zoom)
+    // Shift+1 ajusta tudo na tela · Shift+2 ajusta à seleção · Shift+0 zoom 100% · Shift+A auto layout ·
+    // Shift+H/V espelhar · Shift+R réguas · teclas 0–9 definem a opacidade (1 = 10% … 0 = 100%)
     if (e.shiftKey && e.code === 'Digit1') { canvas.fit(null); return; }
     if (e.shiftKey && e.code === 'Digit2') { canvas.fit(ui.selection); return; }
     if (e.shiftKey && e.code === 'Digit0') { zoomTo(1); return; }
@@ -830,11 +1021,14 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return;
     }
 
+    // letras de ferramenta (V, F, R, E, T, H, P, L)
     if (TOOL_KEYS[key] && !e.shiftKey && !e.altKey) { store.setTool(TOOL_KEYS[key]); return; }
 
+    // Delete/Backspace exclui · F2 renomeia a camada
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); commands.deleteSelection(); return; }
     if (e.key === 'F2' && ui.selection.length === 1) { e.preventDefault(); ui.renamingId = ui.selection[0]; store.emit('doc'); return; }
 
+    // Enter: texto → editar; vetor → editar pontos; frame/grupo → seleciona os filhos. Shift+Enter → seleciona o pai.
     if (e.key === 'Enter') {
       const n = store.get(ui.selection[0]);
       if (ui.selection.length === 1 && n) {
@@ -847,6 +1041,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return;
     }
 
+    // Setas movem 1px (Shift = 10px); camadas em auto layout são ignoradas (a posição é do navegador)
     if (e.key.startsWith('Arrow') && ui.selection.length) {
       e.preventDefault();
       const step = e.shiftKey ? 10 : 1;
@@ -861,10 +1056,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
   });
 
+  // soltar Espaço desliga a mão; soltar Alt desliga as medidas
   window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') { spaceDown = false; viewport.classList.remove('space'); }
     if (e.key === 'Alt' && ui.altDown) { ui.altDown = false; store.emit('overlay'); }
   });
+  // se a janela perde o foco com Espaço/Alt pressionados, o keyup nunca chega — então reseta o estado aqui
   window.addEventListener('blur', () => {
     spaceDown = false;
     viewport.classList.remove('space');
@@ -872,15 +1069,22 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   });
 
   // ------------------------------------------------------------------ copiar / colar do sistema
+  /**
+   * COPIAR/COLAR com a área de transferência do sistema. Camadas copiadas ficam na memória do app (ui.clipboard);
+   * no sistema colocamos só este texto-marcador, para o "colar" saber que é para colar CAMADAS e não texto.
+   */
   const MARKER = 'projeto-designer:clip';
+  // Ctrl+C: copia as camadas (se o foco não está num campo de texto)
   document.addEventListener('copy', (e) => {
     if (isTyping(e.target)) return;
     if (commands.copy()) { e.clipboardData.setData('text/plain', MARKER); e.preventDefault(); }
   });
+  // Ctrl+X: copia e apaga
   document.addEventListener('cut', (e) => {
     if (isTyping(e.target)) return;
     if (commands.copy()) { e.clipboardData.setData('text/plain', MARKER); e.preventDefault(); commands.deleteSelection(); }
   });
+  // Ctrl+V: imagem da área de transferência → cria camada de imagem; texto do sistema → cria camada de texto; marcador → cola camadas
   document.addEventListener('paste', (e) => {
     if (isTyping(e.target)) return;
     const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
@@ -892,6 +1096,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   });
 
   // ------------------------------------------------------------------ helpers de comando
+  /** Alterna 'locked' ou 'visible' nas camadas selecionadas: se alguma não está no estado alvo, aplica a todas; senão desfaz em todas. */
   function toggleProp(prop) {
     const nodes = store.selected();
     if (!nodes.length) return;
@@ -899,6 +1104,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     store.update(() => nodes.forEach((n) => { n[prop] = prop === 'visible' ? !next : next; }), { commit: true });
   }
 
+  /** Ctrl+Shift+C: copia o CSS das camadas selecionadas para a área de transferência do sistema. */
   async function copyCss() {
     const nodes = commands.topSelection();
     if (!nodes.length) return;
@@ -910,15 +1116,17 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
   }
 
+  /** Define o zoom (1 = 100%) ancorado no centro da vista. */
   function zoomTo(z) {
     const r = canvas.vpRect();
     canvas.zoomAt(z, r.width / 2, r.height / 2);
   }
 
-  // cursor por ferramenta
+  /** Reflete a ferramenta ativa no DOM (muda o cursor por CSS: [data-tool=…]). */
   const applyTool = () => {
     viewport.dataset.tool = ui.tool;
   };
+  // Ao trocar de ferramenta: atualiza o cursor e encerra a caneta/edição de pontos se saímos dela.
   store.subscribeSync((reason) => {
     if (reason !== 'tool') return;
     applyTool();

@@ -1,22 +1,53 @@
-// Camada de interface sobre o canvas (em px de tela): seleção, alças, guias, marquee e nomes dos frames.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  overlay.js — INTERFACE POR CIMA DO CANVAS (seleção, alças, guias, medidas...)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Desenha, em pixels de tela, tudo o que acompanha o canvas mas não faz parte do design: caixa de seleção
+ *  com alças de redimensionar/rotacionar, nomes dos frames, guias de snap e de régua, grades de layout,
+ *  medidas com Alt, a caneta e as setas do protótipo.
+ *
+ *  Importante: o overlay NÃO trata o mouse (quem trata é tools.js). Aqui só se desenha e se marca cada
+ *  alça com data-handle / data-rotate / data-label / data-guide para o tools.js saber o que foi clicado.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { round } from './model.js';
 import { rgba } from './css.js';
 
+/**
+ * As 8 alças de redimensionar. Valor = posição relativa dentro da caixa (0..1): [0,0] canto superior esquerdo,
+ * [1,0.5] meio da borda direita... Como as alças são FILHAS da caixa de seleção (que pode estar girada), elas
+ * giram junto sem nenhuma conta extra — só posicionamos por porcentagem.
+ */
 const HANDLES = {
   nw: [0, 0], n: [0.5, 0], ne: [1, 0], e: [1, 0.5], se: [1, 1], s: [0.5, 1], sw: [0, 1], w: [0, 0.5],
 };
+/** Ângulo (graus) para o qual cada alça "aponta" com a caixa sem rotação. Base para escolher o cursor certo. */
 const BASE_ANGLE = { e: 0, se: 45, s: 90, sw: 135, w: 180, nw: 225, n: 270, ne: 315 };
+/** Cursores de redimensionar, indexados por múltiplos de 45° (módulo 180). */
 const CURSORS = ['ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize'];
 
+/**
+ * Escolhe o cursor da alça levando a ROTAÇÃO da camada em conta: uma alça "leste" numa caixa girada 90° deve mostrar
+ * o cursor vertical. Soma o ângulo base da alça + rotação e arredonda para o múltiplo de 45° mais próximo.
+ */
 export const handleCursor = (handle, rot) => {
   const a = (((BASE_ANGLE[handle] + rot) % 180) + 180) % 180;
   return CURSORS[Math.round(a / 45) % 4];
 };
 
-/** Distâncias entre a seleção A e a camada B (retângulos no mundo), como no "Alt" do Figma. */
+/**
+ * Distâncias entre a seleção A e a camada B (retângulos {x,y,w,h} no mundo) — o "Alt" do Figma.
+ * Casos: (1) A dentro de B → as 4 margens internas; (2) separadas → o vão horizontal e/ou vertical, desenhado
+ * no meio da faixa onde os dois se sobrepõem; (3) sobrepostas parcialmente → nada.
+ * Função PURA (testada em tests/features.test.js).
+ * @returns {{x1:number,y1:number,x2:number,y2:number,len:number}[]} segmentos a desenhar
+ */
 export function measures(A, B) {
   const out = [];
+  // ov: faixa de sobreposição entre dois intervalos [a0,a1] e [b0,b1]
   const ov = (a0, a1, b0, b1) => [Math.max(a0, b0), Math.min(a1, b1)];
+  // (1) A inteiramente dentro de B
   const inside = A.x >= B.x && A.y >= B.y && A.x + A.w <= B.x + B.w && A.y + A.h <= B.y + B.h;
   if (inside) {
     const cy = A.y + A.h / 2, cx = A.x + A.w / 2;
@@ -24,6 +55,7 @@ export function measures(A, B) {
       { x1: cx, y1: B.y, x2: cx, y2: A.y, len: A.y - B.y }, { x1: cx, y1: A.y + A.h, x2: cx, y2: B.y + B.h, len: B.y + B.h - A.y - A.h });
     return out.filter((m) => m.len > 0.01);
   }
+  // (2) vão horizontal/vertical: a linha de medida fica no meio da sobreposição no outro eixo (ou no centro de A)
   const [oy0, oy1] = ov(A.y, A.y + A.h, B.y, B.y + B.h);
   const [ox0, ox1] = ov(A.x, A.x + A.w, B.x, B.x + B.w);
   const yMid = oy1 > oy0 ? (oy0 + oy1) / 2 : A.y + A.h / 2;
@@ -35,15 +67,34 @@ export function measures(A, B) {
   return out;
 }
 
+/**
+ * Cria o OVERLAY: tudo o que é desenhado POR CIMA do canvas e que não pode escalar com o zoom
+ * (alças sempre com 9px, bordas sempre finas): caixa de seleção, alças, zona de rotação, etiqueta de tamanho,
+ * nomes dos frames, guias de snap, réguas de guia, grades de layout, medidas, caneta e setas do protótipo.
+ *
+ * Tudo vive em PIXELS DE TELA (converte do mundo com canvas.toScreen) dentro de `.overlay`, que tem
+ * pointer-events:none — só alças, rótulos e guias reativam o mouse.
+ *
+ * @param {object} store
+ * @param {object} canvas  geometria (aabb, worldBox, toScreen...)
+ * @param {HTMLElement} viewport
+ * @param {{penSvg?: () => string}} [hooks]  `penSvg` devolve o SVG da caneta/edição de pontos (vem de pen.js)
+ */
 export function createOverlay(store, canvas, viewport, hooks = {}) {
   const ui = store.ui;
   const root = document.createElement('div');
   root.className = 'overlay';
   viewport.append(root);
 
+  // "pool" de elementos reutilizáveis por chave: em vez de recriar o overlay inteiro a cada movimento do mouse
+  // (e perder o :hover/cursor), reaproveitamos os elementos e removemos só os que sobraram no fim do render.
   const pool = new Map();
   let used = new Set();
 
+  /**
+   * Pega (ou cria) o elemento do overlay identificado por `key`, com a classe `cls`, dentro de `parent`.
+   * Marca a chave como usada neste render; as não usadas são removidas no final.
+   */
   function get(key, cls, parent = root) {
     let el = pool.get(key);
     if (!el) {
@@ -57,6 +108,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     return el;
   }
 
+  /** Posiciona/dimensiona um elemento em px de tela, com rotação opcional. */
   function place(el, x, y, w, h, rot = 0) {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
@@ -65,7 +117,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     el.style.transform = rot ? `rotate(${rot}deg)` : '';
   }
 
-  /** Caixa (centro/tamanho/rotação) do nó, em px de tela. */
+  /** Caixa da camada em px de TELA: { cx, cy, w, h, rot } (centro + tamanho + rotação própria). */
   function screenBox(id) {
     const b = canvas.worldBox(id);
     if (!b) return null;
@@ -74,6 +126,11 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     return { cx: c.x, cy: c.y, w: b.w * z, h: b.h * z, rot: b.rot };
   }
 
+  /**
+   * Desenha uma caixa de seleção e, conforme `handles`, as alças:
+   *   falsy → só a borda · 'plain' → 8 alças · 'full' → 8 alças + 4 zonas de rotação · 'line' → só as 2 pontas (linhas)
+   * Alças de borda somem quando a caixa é minúscula (<24px), para não cobrirem o objeto.
+   */
   function drawBox(key, box, cls, handles) {
     const el = get(key, cls);
     place(el, box.cx - box.w / 2, box.cy - box.h / 2, box.w, box.h, box.rot);
@@ -101,6 +158,11 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     return el;
   }
 
+  /**
+   * Redesenha o overlay inteiro (barato graças ao pool). Camadas, de baixo para cima:
+   * nomes dos frames → hover → alvo de soltura → seleção → guias de snap → grades de layout → guias manuais →
+   * grade de pixels → medidas (Alt) → caneta → setas do protótipo → marquee.
+   */
   function render() {
     used = new Set();
     const page = store.page();
@@ -108,7 +170,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     const sel = ui.selection.filter((id) => store.get(id));
     const editing = !!ui.editingId;
 
-    // ---- nomes dos frames raiz
+    // ---- nome de cada frame da raiz, acima do canto superior esquerdo (clicar nele seleciona/arrasta o frame)
     for (const n of page.children) {
       if (n.type !== 'frame' || !n.visible) continue;
       const b = canvas.aabb(n.id);
@@ -122,19 +184,20 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       el.style.maxWidth = `${Math.max(40, b.w * z)}px`;
     }
 
-    // ---- hover
+    // ---- contorno fino da camada sob o mouse (só com a ferramenta Mover, e não durante arrastos)
     if (ui.hoverId && ui.tool === 'move' && !sel.includes(ui.hoverId) && !ui.dragIds) {
       const box = screenBox(ui.hoverId);
       if (box) drawBox('hover', box, 'sel-box hover');
     }
 
-    // ---- alvo de soltura
+    // ---- frame de destino destacado enquanto você arrasta algo para dentro dele
     if (ui.dropTarget) {
       const box = screenBox(ui.dropTarget);
       if (box) drawBox('drop', box, 'sel-box drop');
     }
 
-    // ---- seleção
+    // ---- seleção: 1 camada = caixa (girada se preciso) com alças e etiqueta "L × A"; várias = contorno fino de cada
+    // uma + caixa geral (sem rotação) com alças que escalam o conjunto
     if (sel.length === 1) {
       const box = screenBox(sel[0]);
       if (box) {
@@ -155,7 +218,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       }
     }
 
-    // ---- guias de snap
+    // ---- linhas rosa de SNAP que aparecem durante o arrasto quando bordas/centros se alinham
     (ui.guides || []).forEach((g, i) => {
       const a = canvas.toScreen(g.axis === 'x' ? g.pos : g.from, g.axis === 'x' ? g.from : g.pos);
       const b = canvas.toScreen(g.axis === 'x' ? g.pos : g.to, g.axis === 'x' ? g.to : g.pos);
@@ -163,7 +226,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       place(el, a.x, a.y, g.axis === 'x' ? 1 : b.x - a.x, g.axis === 'x' ? b.y - a.y : 1);
     });
 
-    // ---- grades de layout (colunas / linhas / quadrículas)
+    // ---- grades de layout do frame (colunas/linhas/quadrícula): só guia visual, não geram CSS.
+    // colunas: largura = (total - gutters) / quantidade; começa depois da margem.
     if (ui.showGrids !== false) {
       let n = 0;
       const addRect = (x, y, w, h, color) => {
@@ -206,7 +270,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       walkGrids(page.children);
     }
 
-    // ---- guias manuais
+    // ---- guias manuais (criadas arrastando das réguas). Faixa de 7px de largura para ser fácil de pegar;
+    // a linha visível (1px) é desenhada pelo CSS. Também mostra a guia sendo criada + etiqueta com a posição.
     if (ui.showGuides !== false && ui.showRulers !== false) {
       const v = canvas.getView();
       (page.guides || []).forEach((g, i) => {
@@ -228,7 +293,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       }
     }
 
-    // ---- grade de pixels (zoom >= 800%)
+    // ---- grade de pixels: a partir de 800% de zoom, mostra a malha de 1px (ajuda em ícones/pixel-perfect)
     const v0 = canvas.getView();
     const pix = v0.zoom >= 8;
     root.classList.toggle('pixels', pix);
@@ -237,7 +302,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       root.style.backgroundPosition = `${v0.x}px ${v0.y}px`;
     } else root.style.backgroundSize = '';
 
-    // ---- medidas (segure Alt e passe o mouse sobre outra camada)
+    // ---- medidas: com Alt pressionado e o mouse sobre OUTRA camada, mostra as distâncias até ela (função measures)
     if (ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds) {
       const A = canvas.unionAabb(sel), B = canvas.aabb(ui.hoverId);
       if (A && B) {
@@ -267,7 +332,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       }
     }
 
-    // ---- caneta / edição de pontos (SVG)
+    // ---- caneta e edição de pontos: o SVG vem de pen.js (por um gancho) para este arquivo não depender dele
     const penSvg = hooks.penSvg?.() || '';
     if (penSvg) {
       let layer = pool.get('pen');
@@ -281,7 +346,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       layer.innerHTML = penSvg;
     }
 
-    // ---- setas do protótipo
+    // ---- setas do protótipo: curva de Bézier da camada com interação até o frame de destino (todas na aba
+    // Protótipo; só as da seleção nas outras abas)
     {
       const arrows = [];
       const all = ui.rightTab === 'proto';
@@ -313,13 +379,14 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       }
     }
 
-    // ---- marquee
+    // ---- retângulo de seleção por arrasto (marquee)
     if (ui.marquee) {
       const m = ui.marquee;
       const p = canvas.toScreen(m.x, m.y);
       place(get('marquee', 'marquee'), p.x, p.y, m.w * z, m.h * z);
     }
 
+    // limpeza: remove do DOM o que não foi usado neste render
     for (const [key, el] of pool) {
       if (!used.has(key)) {
         el.remove();
@@ -328,6 +395,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     }
   }
 
+  /** Etiqueta azul "L × A" logo abaixo da seleção. */
   function pill(aabb, text) {
     if (!aabb) return;
     const p = canvas.toScreen(aabb.x + aabb.w / 2, aabb.y + aabb.h);
@@ -337,6 +405,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     el.style.top = `${p.y + 12}px`;
   }
 
+  // o overlay precisa estar sempre em dia com o canvas: redesenha de forma síncrona nesses eventos
   store.subscribeSync((reason) => {
     if (['doc', 'selection', 'view', 'overlay', 'hover'].includes(reason)) render();
   });

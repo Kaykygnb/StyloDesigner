@@ -1,7 +1,20 @@
-// Modo Apresentar: roda o protótipo em tela cheia usando o mesmo CSS do editor.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  present.js — MODO APRESENTAR (PROTÓTIPO EM TELA CHEIA)
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Executa as interações definidas na aba Protótipo (clicar/passar o mouse → navegar, voltar, abrir link)
+ *  com transições. Reaproveita css.js, então a apresentação tem exatamente a aparência do design.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { nodeStyle, pathSvg, toCssText } from './css.js';
 import { walk } from './model.js';
 
+/**
+ * Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave`
+ * (da que SAI), no formato de keyframes da Web Animations API. 'instant' = null (troca seca).
+ * Os transforms são combinados com o `scale` de encaixe na tela em show().
+ */
 const TRANSITIONS = {
   instant: null,
   dissolve: { enter: [{ opacity: 0 }, { opacity: 1 }], leave: null },
@@ -10,12 +23,17 @@ const TRANSITIONS = {
   'slide-up': { enter: [{ transform: 'translateY(100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateY(-30%)' }] },
   'slide-down': { enter: [{ transform: 'translateY(-100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateY(30%)' }] },
 };
+/** Lista [valor, rótulo] das transições, para o menu da aba Protótipo. */
 export const TRANSITION_OPTIONS = [
   ['instant', 'Instantâneo'], ['dissolve', 'Dissolver'], ['slide-left', 'Deslizar ← (entra pela direita)'],
   ['slide-right', 'Deslizar → (entra pela esquerda)'], ['slide-up', 'Deslizar ↑'], ['slide-down', 'Deslizar ↓'],
 ];
 
-/** Constrói o DOM de um frame raiz a partir do modelo (com data-id para achar as interações). */
+/**
+ * Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO
+ * `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão;
+ * `data-id` permite achar a camada (e suas interações) no clique.
+ */
 function buildDom(node, parent, assets, isRoot) {
   const el = document.createElement('div');
   el.dataset.id = node.id;
@@ -27,24 +45,37 @@ function buildDom(node, parent, assets, isRoot) {
   return el;
 }
 
+/**
+ * Cria o modo APRESENTAR (protótipo em tela cheia).
+ *  - open(id): abre no frame da camada selecionada (ou no marcado como ponto de partida, ou no primeiro)
+ *  - cliques/hover disparam as interações da camada (ou do ancestral mais próximo que tenha uma)
+ *  - `stack` guarda o histórico de telas visitadas, para a ação "Voltar"
+ *  - Esc fecha · R reinicia
+ */
 export function createPresent({ store, canvas }) {
+  // root: container da apresentação (null = fechada) · stack: telas já visitadas (para Voltar) · current: id da tela atual
   let root = null;
   let stack = [];
   let current = null;
+  // busy: uma transição está rolando (ignora cliques até acabar, para não empilhar animações)
   let busy = false;
 
+  /** Todos os frames do documento (de todas as páginas) — destinos possíveis das interações. */
   const frames = () => {
     const out = [];
     for (const p of store.state.doc.pages) walk(p.children, (n) => { if (n.type === 'frame') out.push(n); return n.type === 'frame'; });
     return out;
   };
+  /** Frame pelo id. */
   const findFrame = (id) => frames().find((f) => f.id === id);
+  /** Frame da raiz que contém a camada (sobe os pais). */
   const rootOf = (id) => {
     let n = store.get(id);
     while (n && store.parentOf(n.id)) n = store.parentOf(n.id);
     return n;
   };
 
+  /** Escala a tela para caber na janela (até 200%), centralizada. Devolve o fator usado. */
   function fit(board) {
     const f = findFrame(board.dataset.board);
     const k = Math.min(innerWidth / f.w, innerHeight / f.h, 2);
@@ -52,6 +83,7 @@ export function createPresent({ store, canvas }) {
     return k;
   }
 
+  /** Cria o "quadro" de uma tela: caixa do tamanho do frame + DOM + ouvintes de clique e hover. */
   function makeBoard(frame) {
     const wrap = document.createElement('div');
     wrap.className = 'present-board';
@@ -69,7 +101,11 @@ export function createPresent({ store, canvas }) {
     return wrap;
   }
 
-  /** Procura (subindo na árvore) a primeira camada com uma interação do tipo pedido. */
+  /**
+   * Dispara a interação do tipo pedido ('click' | 'hover'). Sobe da camada clicada até um ancestral que tenha uma
+   * interação desse tipo (assim clicar no texto dentro de um botão aciona o botão). No hover, ignora movimentos
+   * dentro do mesmo elemento (só vale ao ENTRAR).
+   */
   function trigger(target, kind, related) {
     for (let el = target.closest?.('[data-id]'); el; el = el.parentElement?.closest('[data-id]')) {
       if (kind === 'hover' && related && el.contains(related)) return; // ainda dentro do mesmo elemento
@@ -79,6 +115,7 @@ export function createPresent({ store, canvas }) {
     }
   }
 
+  /** Executa uma interação: abrir link, voltar para a tela anterior ou navegar para outro frame (com a transição escolhida). */
   function run(it) {
     if (busy) return;
     if (it.action === 'url') { if (it.url) window.open(it.url, '_blank', 'noopener'); return; }
@@ -91,6 +128,13 @@ export function createPresent({ store, canvas }) {
     if (target) show(target.id, it.transition || 'instant');
   }
 
+  /**
+   * Mostra uma tela, animando a troca. A tela antiga fica por baixo durante a transição e é removida ao final;
+   * `busy` bloqueia novos cliques nesse intervalo (330ms ≈ duração 320ms).
+   * @param {string} frameId  frame a mostrar
+   * @param {string} transition  chave de TRANSITIONS
+   * @param {boolean} [isBack]  true quando vem de "Voltar" (não empilha no histórico)
+   */
   function show(frameId, transition, isBack = false) {
     const frame = findFrame(frameId);
     if (!frame) return;
@@ -114,6 +158,7 @@ export function createPresent({ store, canvas }) {
     setTimeout(() => { old.remove(); busy = false; }, 330);
   }
 
+  /** Abre a apresentação. Devolve false se não há nenhum frame para apresentar. */
   function open(startId) {
     close();
     const list = frames().filter((f) => !store.parentOf(f.id));
@@ -139,6 +184,7 @@ export function createPresent({ store, canvas }) {
     return true;
   }
 
+  /** Teclas na apresentação (captura antes do editor): Esc fecha, R reinicia; as outras são engolidas para não mexer no editor por trás. */
   function onKey(e) {
     if (e.key === 'Escape') { e.stopPropagation(); close(); }
     else if (e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) {
@@ -150,10 +196,12 @@ export function createPresent({ store, canvas }) {
       show(start.id, 'instant');
     } else e.stopPropagation();
   }
+  /** Reencaixa as telas quando a janela muda de tamanho. */
   function onResize() {
     root?.querySelectorAll('.present-board').forEach(fit);
   }
 
+  /** Fecha a apresentação e remove os ouvintes globais. */
   function close() {
     if (!root) return;
     root.remove();
@@ -163,5 +211,6 @@ export function createPresent({ store, canvas }) {
   }
 
   void canvas;
+  // API pública
   return { open, close, isOpen: () => !!root };
 }

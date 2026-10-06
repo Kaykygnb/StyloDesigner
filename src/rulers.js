@@ -1,11 +1,25 @@
-// Réguas (topo e esquerda) e criação de guias arrastando a partir delas.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  rulers.js — RÉGUAS E CRIAÇÃO DE GUIAS
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
+/** Espessura das réguas em px (a de cima tem 20px de altura; a da esquerda, 20px de largura). */
 export const RULER = 20;
 
+/**
+ * Cria as RÉGUAS (topo e esquerda) e a criação de GUIAS: arrastar a partir da régua cria uma linha-guia que o snap
+ * enxerga; arrastar a guia de volta para a régua a apaga.
+ * As réguas são <canvas> 2D desenhados com a vista atual (pan/zoom) e destacam a faixa da seleção em azul.
+ * Guias são dados da página (page.guides: [{axis, pos}]); quem as DESENHA é o overlay.js.
+ */
 export function createRulers({ store, canvas, stage, commands }) {
   const ui = store.ui;
+  // réguas e guias começam visíveis (Shift+R alterna; o menu de zoom alterna as guias)
   ui.showRulers = true;
   ui.showGuides = true;
 
+  // três peças: régua de cima, régua da esquerda e o quadradinho do canto
   const top = document.createElement('canvas');
   const left = document.createElement('canvas');
   const corner = document.createElement('div');
@@ -14,9 +28,13 @@ export function createRulers({ store, canvas, stage, commands }) {
   corner.className = 'ruler-corner';
   stage.append(top, left, corner);
 
+  /** Lê uma variável CSS do tema atual (as réguas usam as mesmas cores dos painéis, claro ou escuro). */
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-  /** passo "bonito" (1, 2, 5, 10, ...) com pelo menos ~60px de tela entre rótulos */
+  /**
+   * Escolhe o intervalo entre marcações (1, 2, 5, 10, 20, 50, 100…) para que fiquem a ≥60px uma da outra na tela,
+   * qualquer que seja o zoom — a régua nunca fica poluída nem vazia.
+   */
   function step(zoom) {
     const raw = 60 / zoom;
     const pow = 10 ** Math.floor(Math.log10(raw));
@@ -24,6 +42,10 @@ export function createRulers({ store, canvas, stage, commands }) {
     return 10 * pow;
   }
 
+  /**
+   * Redesenha as duas réguas: fundo, faixa translúcida da seleção, marcas e números. Rótulos da régua da esquerda
+   * ficam girados em −90°. Considera o devicePixelRatio para ficar nítida em telas HiDPI.
+   */
   function draw() {
     const show = ui.showRulers;
     top.style.display = left.style.display = corner.style.display = show ? '' : 'none';
@@ -78,7 +100,12 @@ export function createRulers({ store, canvas, stage, commands }) {
     }
   }
 
-  // ---- arrastar da régua cria uma guia (soltar de volta na régua cancela)
+  /**
+   * Liga o arrasto numa régua: durante o arrasto mostra a guia + a posição; ao soltar, cria a guia — mas só se o mouse
+   * estiver DENTRO da área do canvas (soltar em cima da régua cancela).
+   * @param {HTMLElement} el  régua
+   * @param {'x'|'y'} axis  eixo da guia criada: a régua de cima cria guias horizontais ('y'); a da esquerda, verticais ('x')
+   */
   function bind(el, axis) {
     el.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
@@ -106,9 +133,11 @@ export function createRulers({ store, canvas, stage, commands }) {
       el.addEventListener('pointerup', up);
     });
   }
+  // régua de cima → guia horizontal (posição y); régua da esquerda → guia vertical (posição x)
   bind(top, 'y'); // régua de cima cria guia horizontal (posição y)
   bind(left, 'x');
 
+  // redesenha quando a vista, a seleção ou o documento mudam (e quando a janela é redimensionada)
   store.subscribe((reasons) => {
     if (['view', 'selection', 'doc', 'ui'].some((x) => reasons.has(x))) draw();
   });

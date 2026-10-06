@@ -1,21 +1,56 @@
-// Canvas: cada camada é um elemento HTML estilizado com CSS real, dentro de um "mundo" com pan/zoom.
+/**
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  canvas.js — DESENHA O DOCUMENTO EM HTML/CSS + PAN, ZOOM E GEOMETRIA
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ *  Cada camada vira um <div> real, estilizado pelo CSS que css.js gera. Por isso flexbox, grid, sombras,
+ *  gradientes e blur funcionam "de graça": quem renderiza é o motor do navegador, não código nosso.
+ *
+ *  Este módulo é a ÚNICA ponte entre o modelo (dados) e o DOM. Quando precisamos saber "onde a camada está
+ *  de verdade" (ex.: dentro de um auto layout), lemos do DOM aqui, em vez de recalcular layout na mão.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════
+ */
+
 import { nodeStyle, pathSvg, toCssText } from './css.js';
 import { round } from './model.js';
 
+/** Limites do zoom: 2% (para ver pranchas enormes) até 6400% (para conferir pixels). */
 const MIN_ZOOM = 0.02;
 const MAX_ZOOM = 64;
 
+/**
+ * Cria o CANVAS: transforma as camadas do documento em elementos HTML reais dentro do `viewport`.
+ *
+ * Estrutura do DOM:
+ *   .viewport  (a janela visível: recorta, recebe mouse/teclado, desenha o fundo pontilhado)
+ *     ├─ .world   (um "mundo" gigante; recebe translate+scale para fazer pan e zoom)
+ *     │    └─ .node  um <div> por camada, estilizado por css.js → nodeStyle (CSS de verdade!)
+ *     └─ .overlay (seleção, alças, guias — criado por overlay.js, em pixels de TELA, fora do zoom)
+ *
+ * Também oferece a GEOMETRIA: onde cada camada está no mundo (lida do DOM, porque em auto layout quem decide a
+ * posição é o navegador, não o modelo), conversões tela↔mundo, zoom ancorado no cursor e "ajustar à tela".
+ *
+ * @param {object} store  o store do app
+ * @param {HTMLElement} viewport  elemento que vira a janela do canvas
+ */
 export function createCanvas(store, viewport) {
+  // atalho para o estado de interface
   const ui = store.ui;
+  // o "mundo": todos os elementos das camadas moram aqui dentro; pan/zoom = transform neste único elemento
   const world = document.createElement('div');
   world.className = 'world';
   viewport.prepend(world);
+  // els: id da camada → elemento DOM. `alive`: ids vistos no render atual (o resto é removido).
   const els = new Map();
   let alive = new Set();
 
   // ------------------------------------------------------------------ vista (pan/zoom)
+  /**
+   * Vista (pan/zoom) da página atual: { x, y, zoom }. x/y = deslocamento do mundo em px de tela.
+   * Cada página lembra a sua. `fresh: true` marca "nunca foi ajustada" — o app então faz "ajustar tudo" sozinho.
+   */
   const getView = () => (ui.views[ui.pageId] ||= { x: 120, y: 120, zoom: 1, fresh: true });
 
+  /** Aplica a vista ao DOM: transforma o mundo e faz o fundo pontilhado acompanhar (some quando o zoom é muito baixo). */
   function applyView() {
     const v = getView();
     world.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
@@ -26,6 +61,7 @@ export function createCanvas(store, viewport) {
     viewport.style.setProperty('--dot-alpha', v.zoom < 0.4 ? '0' : '1');
   }
 
+  /** Atualiza parte da vista ({x, y, zoom}), limitando o zoom ao intervalo permitido, e avisa o app ('view'). */
   function setView(patch) {
     const v = getView();
     delete v.fresh;
@@ -35,27 +71,39 @@ export function createCanvas(store, viewport) {
     store.emit('view');
   }
 
-  /** Zoom mantendo o ponto (cx, cy), em px do viewport, parado. */
+  /**
+   * Muda o zoom MANTENDO O PONTO (cx, cy) parado na tela — é o que faz o zoom "ir para onde o mouse está".
+   * Matemática: queremos que o ponto do mundo sob o cursor continue sob o cursor, então deslocamos x/y na proporção da mudança.
+   * @param {number} newZoom  zoom desejado (1 = 100%)
+   * @param {number} cx  x do ponto fixo, em px relativos ao viewport
+   * @param {number} cy  y do ponto fixo
+   */
   function zoomAt(newZoom, cx, cy) {
     const v = getView();
     const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
     setView({ zoom: z, x: cx - ((cx - v.x) * z) / v.zoom, y: cy - ((cy - v.y) * z) / v.zoom });
   }
 
+  /** Retângulo do viewport na tela (px da janela do navegador). */
   const vpRect = () => viewport.getBoundingClientRect();
+  /** Converte um ponto da TELA (clientX/clientY de um evento) para coordenadas do MUNDO (as do documento). */
   const toWorld = (clientX, clientY) => {
     const r = vpRect();
     const v = getView();
     return { x: (clientX - r.left - v.x) / v.zoom, y: (clientY - r.top - v.y) / v.zoom };
   };
-  /** Mundo -> px relativos ao viewport. */
+  /** Converte coordenadas do MUNDO para px relativos ao viewport (o oposto de toWorld). */
   const toScreen = (wx, wy) => {
     const v = getView();
     return { x: wx * v.zoom + v.x, y: wy * v.zoom + v.y };
   };
 
   // ------------------------------------------------------------------ geometria
-  /** Origem (canto superior esquerdo, sem rotação) do elemento em coordenadas de mundo. */
+  /**
+   * Origem (canto superior esquerdo, sem rotação) da camada em coordenadas do mundo.
+   * Soma offsetLeft/offsetTop subindo a cadeia de pais posicionados — esses valores ignoram transform, então
+   * não são afetados por rotação/zoom. É por LER o DOM (e não o modelo) que isso também funciona em flex/grid.
+   */
   function originOf(id) {
     const el = els.get(id);
     if (!el) return { x: 0, y: 0 };
@@ -67,12 +115,17 @@ export function createCanvas(store, viewport) {
     return { x, y };
   }
 
+  /** Algum ancestral está rotacionado? (Nesse caso a soma de offsets deixa de valer e usamos o retângulo envolvente.) */
   const ancestorRotated = (id) => {
     for (let p = store.parentOf(id); p; p = store.parentOf(p.id)) if (p.rotation) return true;
     return false;
   };
 
-  /** Caixa da camada no mundo: centro, tamanho e rotação (a rotação própria é preservada). */
+  /**
+   * Caixa da camada no mundo: { x, y, w, h, cx, cy, rot } — centro, tamanho e a rotação PRÓPRIA da camada.
+   * É o que o overlay usa para desenhar a seleção girada. Se um ancestral está girado, devolve o retângulo
+   * envolvente com rot=0 (simplificação aceita).
+   */
   function worldBox(id) {
     const el = els.get(id);
     const node = store.get(id);
@@ -86,7 +139,10 @@ export function createCanvas(store, viewport) {
     return { x: o.x, y: o.y, w, h, cx: o.x + w / 2, cy: o.y + h / 2, rot: node.rotation || 0 };
   }
 
-  /** Retângulo envolvente alinhado aos eixos (considera rotação) em coordenadas de mundo. */
+  /**
+   * AABB = retângulo envolvente alinhado aos eixos (considera rotação), em coordenadas do mundo.
+   * Calculado com getBoundingClientRect, que já inclui qualquer transform. Usado em snap, alinhar, marquee e medidas.
+   */
   function aabb(id) {
     const el = els.get(id);
     if (!el) return null;
@@ -96,6 +152,7 @@ export function createCanvas(store, viewport) {
     return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
   }
 
+  /** Menor retângulo que envolve as AABBs de várias camadas (ou null se nenhuma existir). */
   function unionAabb(ids) {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const id of ids) {
@@ -107,7 +164,7 @@ export function createCanvas(store, viewport) {
     return x0 === Infinity ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
 
-  /** Rola a vista só o necessário para a camada ficar visível (sem mudar o zoom). */
+  /** Rola a vista só o necessário para a camada ficar visível (com 60px de folga), sem mexer no zoom. Usado pelo Tab. */
   function ensureVisible(id) {
     const b = aabb(id);
     if (!b) return;
@@ -122,6 +179,11 @@ export function createCanvas(store, viewport) {
     if (dx || dy) setView({ x: v.x + dx, y: v.y + dy });
   }
 
+  /**
+   * "Ajustar à tela": enquadra as camadas dadas (ou todas, se vazio) no centro do viewport.
+   * @param {string[]} [ids]  camadas a enquadrar; vazio/null = todas as da página
+   * @param {{maxZoom?: number, padding?: number}} [opts]  zoom máximo (padrão 200%) e margem em px
+   */
   function fit(ids, { maxZoom = 2, padding = 80 } = {}) {
     const all = ids?.length ? ids : store.page().children.map((n) => n.id);
     const box = unionAabb(all);
@@ -139,7 +201,17 @@ export function createCanvas(store, viewport) {
   }
 
   // ------------------------------------------------------------------ renderização
+  /**
+   * Sincroniza UMA camada (e, recursivamente, os filhos) com o DOM: cria o elemento se não existe, atualiza o
+   * estilo, o texto e a posição na lista de irmãos. É um "diff" simples: só toca no DOM quando algo mudou
+   * (comparamos o CSS novo com o último aplicado, guardado em `el._css` — ler `style.cssText` seria caro).
+   * @param {object} node  a camada
+   * @param {object|null} parent  o pai (decide se é item de flex/grid)
+   * @param {HTMLElement} parentEl  elemento DOM do pai
+   * @param {number} index  posição desejada entre os irmãos (a ordem do array é a ordem z)
+   */
   function syncNode(node, parent, parentEl, index) {
+    // marca como "ainda existe": o que não for marcado neste render é removido do DOM em render()
     alive.add(node.id);
     let el = els.get(node.id);
     if (!el) {
@@ -147,8 +219,10 @@ export function createCanvas(store, viewport) {
       el.dataset.id = node.id;
       els.set(node.id, el);
     }
+    // classe 'dragging' = camada sendo arrastada → pointer-events:none, para detectar o que está EMBAIXO dela
     el.className = `node node-${node.type}${ui.dragIds?.has(node.id) ? ' dragging' : ''}`;
     const editing = ui.editingId === node.id;
+    // CSS final = estilo calculado em css.js + extras só do editor (oculta, bloqueada, em edição de texto)
     let css = toCssText(nodeStyle(node, parent, store.state.doc.assets));
     if (!node.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;
@@ -158,12 +232,15 @@ export function createCanvas(store, viewport) {
       el._css = css;
     }
 
+    // Vetores: o desenho é um <svg> dentro do elemento; só reescreve se o markup mudou.
     if (node.type === 'path') {
       const svg = pathSvg(node, store.state.doc.assets);
       if (el._svg !== svg) { el.innerHTML = svg; el._svg = svg; }
       el.toggleAttribute('data-locked', node.locked);
     }
 
+    // Texto: o conteúdo vem do modelo, EXCETO durante a edição (aí o usuário digita direto no elemento,
+    // contentEditable 'plaintext-only' para não aceitar formatação colada).
     if (node.type === 'text') {
       if (!editing && el.textContent !== node.text) el.textContent = node.text;
       if (editing && !el.isContentEditable) {
@@ -173,11 +250,17 @@ export function createCanvas(store, viewport) {
       if (!editing && el.isContentEditable) el.contentEditable = 'false';
     }
 
+    // garante a ordem dos irmãos no DOM igual à do array (ordem z = ordem de desenho)
     if (parentEl.children[index] !== el) parentEl.insertBefore(el, parentEl.children[index] || null);
 
     if (node.children) node.children.forEach((c, i) => syncNode(c, node, el, i));
   }
 
+  /**
+   * "Medida de volta": para camadas com tamanho 'hug'/'fill' (ou dentro de auto layout), o tamanho real só o
+   * navegador sabe. Lemos offsetWidth/Height e gravamos em node.w/h, para o painel, o SVG e o 'ajustar' mostrarem
+   * o tamanho verdadeiro. Não cria entrada no histórico (é dado derivado).
+   */
   function measureBack(list, parent) {
     const flow = (parent?.layout?.mode ?? 'none') !== 'none';
     for (const n of list) {
@@ -196,6 +279,10 @@ export function createCanvas(store, viewport) {
     }
   }
 
+  /**
+   * Desenha a página atual: sincroniza todas as camadas, remove elementos órfãos (camada apagada ou de outra
+   * página), mede de volta os tamanhos e, se há texto em edição, dá foco e seleciona o conteúdo.
+   */
   function render() {
     const page = store.page();
     alive = new Set();
@@ -221,6 +308,7 @@ export function createCanvas(store, viewport) {
     }
   }
 
+  // Redesenha na hora (síncrono) quando o documento ou a seleção mudam; reaplica a vista quando o doc/zoom mudam.
   store.subscribeSync((reason) => {
     if (reason === 'doc' || reason === 'selection') render();
     if (reason === 'doc' || reason === 'view') applyView();
@@ -228,6 +316,7 @@ export function createCanvas(store, viewport) {
   applyView();
   render();
 
+  // API pública do canvas (usada por overlay, tools, commands, rulers...)
   return {
     world, els, getView, setView, zoomAt, toWorld, toScreen, originOf, worldBox, aabb, unionAabb, fit, ensureVisible,
     render, applyView,
