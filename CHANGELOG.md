@@ -6,6 +6,23 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.8.2] — 2026-10-07 — Auto layout que entende a intenção
+
+Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um pequeno em cima; ao ligar o auto layout, o pequeno ia mudando de lugar".
+
+### Corrigido
+- **`Shift+A` com um retângulo de fundo e itens em cima** punha o fundo e os itens lado a lado (o item "pulava" e transbordava). Agora o retângulo de baixo **vira o frame** (cor, cantos, contorno, sombra) e os itens entram nele, no mesmo lugar.
+- **`Shift+A` num grupo** embrulhava o grupo inteiro como um item só; agora o grupo vira o frame.
+- **`Shift+A` num retângulo sozinho** o embrulhava num frame inútil; agora o retângulo vira um frame com auto layout (mesmo id; `Ctrl+Z` desfaz).
+- A dedução do auto layout transformava o espaço livre em padding gigante (ex.: 520 px embaixo de um item no topo de uma sidebar), espremendo os itens seguintes; agora detecta conteúdo centralizado/no fim e mantém o espaço livre como espaço livre. Sidebar alta com um item vira coluna.
+- Frame criado em volta de camadas soltas agora abraça o conteúdo (hug): nada transborda.
+- **Formas nasciam invisíveis** (cinza sobre cinza, frame branco dentro de frame branco, texto preto sobre fundo escuro); agora nascem num tom que contrasta com o que está embaixo do cursor.
+
+### Adicionado
+- `tests/e2e/auto-layout-intencao.mjs` (16 verificações) reproduz o caso relatado.
+
+---
+
 ## [0.8.1] — 2026-10-07 — SVG do Figma e do Illustrator
 
 ### Adicionado

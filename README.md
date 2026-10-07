@@ -181,7 +181,8 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 1. **Desenhe um frame** — aperte `F` e arraste no canvas. Frames são as "telas".
 2. **Desenhe dentro dele** — `R` retângulo, `E` elipse, `T` texto (clique e digite). O frame sob o cursor vira o pai da camada nova.
 3. **Mova e redimensione** — `V` volta à ferramenta Mover. Arraste a camada (linhas rosa mostram o *snap*), puxe as alças para redimensionar (`Shift` mantém a proporção, `Alt` redimensiona do centro). Passe o mouse fora de um canto para **rotacionar**.
-4. **Ligue o auto layout** — selecione o frame e aperte `Shift+A`. O app deduz direção, `gap` e `padding` a partir de onde as camadas estavam. Agora arraste uma camada: ela **reordena** dentro do flexbox.
+4. **Ligue o auto layout** — selecione o frame e aperte `Shift+A`. O app deduz direção, `gap`, `padding` e alinhamento a partir de onde as camadas estavam (nada "pula" de lugar). Agora arraste uma camada: ela **reordena** dentro do flexbox.
+   > **Dica — retângulo não tem "dentro".** Para uma sidebar, um card ou um botão que vai *conter* outras coisas, use um **Frame** (`F`). Se você já desenhou um retângulo de fundo com itens em cima, selecione tudo e aperte `Shift+A`: o retângulo de baixo **vira o frame** (mesma cor e cantos) e os itens entram nele. Um retângulo sozinho + `Shift+A` também vira frame. Um **grupo** + `Shift+A` vira frame.
 5. **Veja o CSS** — abra a aba **Código** no painel direito.
 6. **Desfaça sem medo** — `Ctrl+Z` desfaz o gesto inteiro (um arrasto é um passo só).
 7. **Salve e exporte** — `Ctrl+S` dá um nome ao projeto e o grava na pasta (daí em diante salva sozinho). Painel Design → **Exportar** gera PNG, SVG ou HTML.
@@ -287,7 +288,7 @@ No app, aperte **`?`** para ver esta lista. (No Mac, use `⌘` no lugar de `Ctrl
 | | `0`–`9` | Opacidade (1 = 10% … 0 = 100%) |
 | **Agrupar e layout** | `Ctrl+G` / `Ctrl+Shift+G` | Agrupar / Desagrupar |
 | | `Ctrl+Alt+G` | Envolver em frame |
-| | `Shift+A` | Auto layout (liga/desliga ou envolve a seleção) |
+| | `Shift+A` | Auto layout: liga/desliga num frame; retângulo, grupo ou "fundo + itens" viram frame; camadas soltas ganham um frame que as abraça |
 | | `Ctrl+Alt+M` | Máscara |
 | | `Shift+H` / `Shift+V` | Espelhar |
 | **Componentes** | `Ctrl+Alt+K` / `Ctrl+Alt+B` | Criar componente / Desanexar |
