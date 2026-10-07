@@ -6,6 +6,19 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.8.3] — 2026-10-07 — Desenhar dentro de auto layout
+
+2º relato do teste real: "a caixa de seleção fica num lugar e o retângulo em outro" ao desenhar dentro da sidebar.
+
+### Corrigido
+- **Forma desenhada dentro de um frame com auto layout ia para o FIM da fila** já durante o desenho, longe do mouse (a caixa de seleção e o retângulo apareciam em lugares diferentes). Agora ela fica sob o mouse enquanto você arrasta e, ao soltar, entra na fila **na posição onde foi desenhada**. Vale para retângulo, elipse, frame e linha; texto entra onde você clicou.
+- **Nomes repetidos** ("Retângulo 4" duas vezes): o nome novo agora usa o maior número existente + 1.
+
+### Adicionado
+- 5 verificações em `tests/e2e/auto-layout-intencao.mjs` (desenhar entre itens, texto entre itens, nome único) e 1 teste unitário de nomes.
+
+---
+
 ## [0.8.2] — 2026-10-07 — Auto layout que entende a intenção
 
 Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um pequeno em cima; ao ligar o auto layout, o pequeno ia mudando de lugar".
