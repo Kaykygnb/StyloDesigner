@@ -15,7 +15,11 @@
  *      arcos (A) e curvas quadráticas (Q/T) são convertidos em cúbicas;
  *   4. cada forma vira UM vetor (com todos os seus contornos, para furos funcionarem: ver css.js → nodePathData).
  *
- *  O que NÃO é importado (contamos e avisamos): filtros, máscaras, padrões, imagens embutidas, texto em curva,
+ *  SOMBRAS: filtros de sombra no formato que o Figma exporta (feOffset + feGaussianBlur + feColorMatrix + feBlend,
+ *  inclusive várias sombras) e <feDropShadow> viram sombras de verdade do editor. Fontes com nome "técnico"
+ *  (PostScript, como o Illustrator exporta: "Poppins-Bold", "ArialMT") viram família + peso + itálico.
+ *
+ *  O que NÃO é importado (contamos e avisamos): outros filtros, máscaras, padrões, imagens embutidas, texto em curva,
  *  <use> para fora do arquivo, animações. Gradientes viram gradiente linear/radial aproximado (pela direção).
  *
  *  As funções de geometria (parsePathD, applyMatrix, parseTransform...) são PURAS e têm testes em tests/.
@@ -23,6 +27,7 @@
  */
 
 import { createNode, defaultFill, defaultStroke } from './model.js';
+import { GOOGLE, SYSTEM_FONTS } from './fonts.js';
 
 // ---------------------------------------------------------------- matrizes 2D
 // Matriz afim [a, b, c, d, e, f] = | a c e |   (mesma ordem do SVG/canvas)
@@ -272,7 +277,7 @@ export function parseColor(value) {
 
 /** Propriedades de estilo que nos interessam (e que são herdadas pelos filhos no SVG). */
 const STYLE_PROPS = ['fill', 'stroke', 'stroke-width', 'fill-opacity', 'stroke-opacity', 'opacity', 'fill-rule', 'display',
-  'visibility', 'stroke-dasharray', 'font-size', 'font-family', 'font-weight', 'text-anchor', 'color'];
+  'visibility', 'stroke-dasharray', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'color'];
 /** `opacity` e `display` não são herdados (cada elemento tem o seu); o resto é. */
 const NOT_INHERITED = new Set(['opacity', 'display']);
 
@@ -302,6 +307,33 @@ function parseDecl(text) {
   return out;
 }
 
+// ---------------------------------------------------------------- fontes com nome técnico
+/** Sufixos de estilo nos nomes PostScript → peso. */
+const PS_WEIGHTS = { thin: 100, hairline: 100, extralight: 200, ultralight: 200, light: 300, regular: 400, book: 400, normal: 400,
+  medium: 500, semibold: 600, demibold: 600, bold: 700, extrabold: 800, ultrabold: 800, black: 900, heavy: 900 };
+// nome "compacto" (sem espaços, minúsculo) → nome de verdade, para achar "OpenSans" como "Open Sans"
+let compactFonts = null;
+/**
+ * Converte o nome de fonte que veio no SVG em { family, weight?, italic? }.
+ *   "'Poppins-Bold'" → Poppins 700 · "OpenSans-SemiBoldItalic" → Open Sans 600 itálico · "ArialMT" → Arial
+ * Nomes que já são famílias conhecidas passam direto. Desconhecidos ficam como vieram.
+ * @param {string} raw  valor de font-family (pode ter lista com vírgulas e aspas)
+ */
+export function resolveFontName(raw) {
+  const name = String(raw || '').split(',')[0].replace(/['"]/g, '').trim();
+  if (!name) return { family: 'Inter' };
+  if (GOOGLE.has(name) || SYSTEM_FONTS.includes(name)) return { family: name };
+  compactFonts ||= new Map([...GOOGLE.keys(), ...SYSTEM_FONTS].map((f) => [f.replace(/\s+/g, '').toLowerCase(), f]));
+  const [base, style = ''] = name.split('-');
+  const key = base.replace(/(PSMT|MT|PS)$/, '').replace(/\s+/g, '').toLowerCase();
+  const family = compactFonts.get(key) || compactFonts.get(name.replace(/\s+/g, '').toLowerCase());
+  if (!family) return { family: name };
+  const st = style.toLowerCase();
+  const italic = /italic|oblique|it$/.test(st);
+  const w = PS_WEIGHTS[st.replace(/italic|oblique|it$/g, '') || 'regular'];
+  return { family, ...(w ? { weight: w } : {}), ...(italic ? { italic: true } : {}) };
+}
+
 // ---------------------------------------------------------------- importador
 /**
  * Converte um SVG (texto) em UMA camada do editor (vetor, ou grupo de vetores), posicionada em (0,0).
@@ -312,7 +344,8 @@ function parseDecl(text) {
  * @param {string} [opts.fill]         cor para formas SEM preenchimento declarado (o padrão do SVG é preto). Os ícones
  *        do Google não declaram cor nenhuma: o painel de ícones passa aqui a cor escolhida.
  * @param {number} [opts.size]         redimensiona para caber neste tamanho (o maior lado)
- * @returns {{ node: object, skipped: number }}  node = camada pronta para inserir; skipped = elementos ignorados
+ * @returns {{ node: object, skipped: number, ignored: string[] }}  node = camada pronta para inserir; skipped = quantos
+ *          detalhes foram ignorados; ignored = O QUE foi ignorado, em português (ex.: ['sombra interna', 'máscara'])
  */
 export function importSvg(text, { name, currentColor = '#111111', fill, size } = {}) {
   const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
@@ -322,6 +355,11 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
   // gradientes e elementos com id (para <use> e url(#...))
   const byId = new Map([...doc.querySelectorAll('[id]')].map((el) => [el.getAttribute('id'), el]));
   let skipped = 0;
+  const ignored = new Set();
+  /** Registra algo do SVG que não deu para importar (o aviso ao usuário diz o quê). */
+  const skip = (what) => { skipped++; ignored.add(what); };
+  /** Nome legível de um elemento não suportado. */
+  const whatTag = (tag) => ({ image: 'imagem', foreignObject: 'conteúdo HTML' })[tag] || (/^(animate|set)/.test(tag) ? 'animação' : `<${tag}>`);
 
   // tamanho e viewBox do SVG raiz: o viewBox vira escala + deslocamento
   const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
@@ -360,7 +398,7 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     if (url) {
       const g = gradientOf(byId.get(url[1]), opacity);
       if (g) return g;
-      skipped++;
+      skip('preenchimento com padrão');
       return { ...defaultFill(), type: 'solid', color: '#C4C4C4', opacity };
     }
     const c = parseColor(value);
@@ -393,6 +431,40 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
 
   const out = []; // camadas geradas (em coordenadas finais)
 
+  /**
+   * Lê um <filter> e devolve as SOMBRAS que ele descreve (ou null se for outro tipo de filtro).
+   * Formato do Figma: para cada sombra, feOffset (dx, dy) → feGaussianBlur (desfoque = 2 × stdDeviation) →
+   * [feMorphology = spread] → [feComposite arithmetic = sombra interna] → feColorMatrix (cor nos valores 5, 10, 15
+   * e opacidade no 19) → feBlend (fecha a sombra). Também aceita <feDropShadow>.
+   */
+  function shadowsOf(f) {
+    if (!f || f.nodeName !== 'filter') return null;
+    const shadows = [];
+    let cur = {};
+    for (const c of f.children) {
+      const n = c.nodeName, at = (k, d = 0) => { const v = parseFloat(c.getAttribute(k)); return Number.isFinite(v) ? v : d; };
+      if (n === 'feDropShadow') {
+        const col = parseColor(c.getAttribute('flood-color') || '#000000') || { color: '#000000', alpha: 1 };
+        shadows.push({ x: at('dx', 2), y: at('dy', 2), blur: at('stdDeviation', 2) * 2, spread: 0, color: col.color, opacity: round(col.alpha * at('flood-opacity', 1)), inset: false });
+      } else if (n === 'feOffset') { cur.x = at('dx'); cur.y = at('dy'); }
+      else if (n === 'feGaussianBlur') cur.blur = at('stdDeviation') * 2;
+      else if (n === 'feMorphology') cur.spread = (c.getAttribute('operator') === 'erode' ? -1 : 1) * at('radius');
+      else if (n === 'feComposite' && c.getAttribute('operator') === 'arithmetic') cur.inset = true;
+      else if (n === 'feColorMatrix' && c.getAttribute('in') !== 'SourceAlpha') {
+        const v = (c.getAttribute('values') || '').trim().split(/[\s,]+/).map(Number);
+        if (v.length === 20) {
+          const hex = [v[4], v[9], v[14]].map((x) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, '0')).join('');
+          cur.color = '#' + hex.toUpperCase();
+          cur.opacity = round(v[18]);
+        }
+      } else if (n === 'feBlend' && (cur.x !== undefined || cur.color)) {
+        shadows.push({ x: cur.x || 0, y: cur.y || 0, blur: round(cur.blur || 0), spread: cur.spread || 0, color: cur.color || '#000000', opacity: cur.opacity ?? 0.25, inset: !!cur.inset });
+        cur = {};
+      } else if (!['feFlood', 'feBlend', 'feComposite', 'feColorMatrix', 'feMerge', 'feMergeNode'].includes(n)) return null; // outro efeito
+    }
+    return shadows.length ? shadows : null;
+  }
+
   /** Uma forma (já em contornos no espaço do elemento) → vetor do editor. */
   function emitShape(contours, el, st, m) {
     if (!contours.length || !contours.some((c) => c.points.length > 1)) return;
@@ -415,6 +487,13 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
       node.stroke = { ...defaultStroke(), width: round(sw * scaleOf(m)), color: sc.color, opacity: round(sc.alpha * (st['stroke-opacity'] != null ? parseFloat(st['stroke-opacity']) : 1)), position: 'center', style: st['stroke-dasharray'] && st['stroke-dasharray'] !== 'none' ? 'dashed' : 'solid' };
     } else node.stroke = null;
     if (st.opacity != null) node.opacity = round(parseFloat(st.opacity));
+    // sombras vindas de um filtro (deste elemento ou de um grupo acima). Sombra INTERNA não existe para vetores no
+    // editor (o CSS drop-shadow só faz sombra externa), então ela é ignorada e contada no aviso.
+    if (st._shadows) {
+      const s = scaleOf(m);
+      node.shadows = st._shadows.filter((sh) => !sh.inset).map((sh) => ({ ...sh, x: round(sh.x * s), y: round(sh.y * s), blur: round(sh.blur * s), spread: round(sh.spread * s) }));
+      if (node.shadows.length < st._shadows.length) skip('sombra interna');
+    }
     out.push(node);
   }
 
@@ -428,8 +507,15 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     const node = createNode('text', { name: content.slice(0, 30), x: round(p.x), y: round(p.y - size * 0.9) });
     node.text = content;
     node.fontSize = size;
-    if (st['font-family']) node.fontFamily = st['font-family'].split(',')[0].replace(/['"]/g, '').trim();
-    if (st['font-weight']) node.fontWeight = st['font-weight'] === 'bold' ? 700 : parseInt(st['font-weight'], 10) || 400;
+    if (st['font-family']) {
+      const f = resolveFontName(st['font-family']);
+      node.fontFamily = f.family;
+      if (f.weight) node.fontWeight = f.weight;
+      if (f.italic) node.fontStyle = 'italic';
+    }
+    // font-weight explícito vence o peso deduzido do nome
+    if (st['font-weight']) node.fontWeight = st['font-weight'] === 'bold' ? 700 : parseInt(st['font-weight'], 10) || node.fontWeight;
+    if (st['font-style'] === 'italic') node.fontStyle = 'italic';
     const c = parseColor(st.fill === 'currentColor' ? currentColor : st.fill || '#000');
     if (c) node.fill = { ...defaultFill(), type: 'solid', color: c.color, opacity: c.alpha };
     node.w = round(Math.max(20, content.length * size * 0.6));
@@ -446,7 +532,16 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     if (st.display === 'none' || st.visibility === 'hidden') return;
     const mm = multiply(m, parseTransform(el.getAttribute('transform')));
     const a = (k, d = 0) => { const v = parseFloat(el.getAttribute(k)); return Number.isFinite(v) ? v : d; };
-    if (el.getAttribute('filter') || el.getAttribute('mask')) skipped++; // efeito ignorado, a forma em si entra
+    // filtro: se for sombra, vira sombra de verdade (e vale para tudo dentro do grupo); outro filtro é ignorado
+    st._shadows = parentStyle._shadows;
+    const filter = el.getAttribute('filter') || st.filter;
+    if (filter && filter !== 'none') {
+      const id = (filter.match(/url\(\s*['"]?#([^'")]+)/) || [])[1];
+      const sh = shadowsOf(byId.get(id));
+      if (sh) st._shadows = sh;
+      else skip('filtro');
+    }
+    if (el.getAttribute('mask')) skip('máscara'); // a forma em si entra
     switch (tag) {
       case 'svg': case 'g': case 'a': case 'switch':
         // um <svg> aninhado com x/y desloca o conteúdo
@@ -454,7 +549,7 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
         return;
       case 'use': {
         const ref = byId.get((el.getAttribute('href') || el.getAttribute('xlink:href') || '').replace(/^#/, ''));
-        if (!ref) { skipped++; return; }
+        if (!ref) { skip('referência a outro arquivo (<use>)'); return; }
         const holder = ref.nodeName === 'symbol' ? [...ref.children] : [ref];
         for (const c of holder) walk(c, multiply(mm, [1, 0, 0, 1, a('x'), a('y')]), st, depth + 1);
         return;
@@ -470,8 +565,8 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
       case 'line': emitShape([{ closed: false, points: [{ x: a('x1'), y: a('y1'), hin: null, hout: null }, { x: a('x2'), y: a('y2'), hin: null, hout: null }] }], el, { ...st, fill: 'none' }, mm); return;
       case 'polyline': emitShape(polyContour(el.getAttribute('points'), false), el, st, mm); return;
       case 'polygon': emitShape(polyContour(el.getAttribute('points'), true), el, st, mm); return;
-      case 'text': if (el.querySelector('textPath')) skipped++; else emitText(el, st, mm); return;
-      default: skipped++; // image, foreignObject, animate...
+      case 'text': if (el.querySelector('textPath')) skip('texto em curva'); else emitText(el, st, mm); return;
+      default: skip(whatTag(tag)); // image, foreignObject, animate...
     }
   }
   walk(svg, root, fill ? { color: currentColor, fill } : { color: currentColor });
@@ -481,7 +576,7 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
   // uma forma só → o próprio vetor; várias → um grupo, com os filhos relativos ao canto do grupo
   if (out.length === 1) {
     out[0].name = title;
-    return { node: out[0], skipped };
+    return { node: out[0], skipped, ignored: [...ignored] };
   }
   const x0 = Math.min(...out.map((n) => n.x)), y0 = Math.min(...out.map((n) => n.y));
   for (const n of out) { n.x = round(n.x - x0); n.y = round(n.y - y0); }
@@ -489,7 +584,7 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
   group.children = out;
   group.w = round(Math.max(...out.map((n) => n.x + n.w)));
   group.h = round(Math.max(...out.map((n) => n.y + n.h)));
-  return { node: group, skipped };
+  return { node: group, skipped, ignored: [...ignored] };
 }
 
 /** Nome legível do tipo de elemento. */

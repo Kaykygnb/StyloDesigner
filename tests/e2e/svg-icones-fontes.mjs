@@ -6,7 +6,8 @@
 //  - seletor de fontes: busca, aplica Lobster (baixada do Google), lista de pesos certa, <link> no HTML exportado.
 // Precisa de INTERNET para os ícones e as fontes (fonts.gstatic.com / fonts.googleapis.com).
 import { chromium } from 'playwright';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -83,6 +84,32 @@ try {
   });
   await p.waitForTimeout(300);
   ok('colar SVG como texto cria vetor (não uma caixa de texto)', await ev(() => { const s = designer.store.selected()[0]; return s?.type === 'path' && s.fill.color === '#22C55E'; }));
+
+  // ---------------------------------------------------------------- 3b. arquivos no formato do Figma e do Illustrator
+  // (tests/fixtures/: estrutura igual à que esses programas exportam — clip-path e filtros de sombra do Figma;
+  // classes .st0, gradiente fora do <defs>, texto com matrix e fonte "Poppins-Bold" do Illustrator)
+  const fx = (f) => readFileSync(fileURLToPath(new URL(`../fixtures/${f}`, import.meta.url)), 'utf8');
+  const fig = await ev(async (svg) => {
+    const { importSvg } = await import('/src/svgimport.js');
+    const { node, ignored } = importSvg(svg);
+    const k = node.children;
+    return { n: k.length, w: node.w, h: node.h, shadows: k[1].shadows, hole: k[3].contours?.length === 1 && k[3].fillRule === 'evenodd', ring: k[4].fill.type === 'none' && k[4].stroke?.width === 4, dash: k[5].stroke?.style, ignored };
+  }, fx('figma-export.svg'));
+  ok('Figma: 6 formas no tamanho do frame (360×200)', fig.n === 6 && fig.w === 360 && fig.h === 200, JSON.stringify(fig));
+  ok('Figma: as 2 sombras do filtro viram sombras de verdade (roxa 40% e preta 15% com spread)',
+    fig.shadows?.length === 2 && fig.shadows[0].color === '#7C5CFF' && fig.shadows[0].opacity === 0.4 && fig.shadows[0].y === 4 && fig.shadows[1].spread === 2, JSON.stringify(fig.shadows));
+  ok('Figma: furo (clip-rule evenodd), círculo só com contorno (fill="none" herdado da raiz) e linha tracejada', fig.hole && fig.ring && fig.dash === 'dashed');
+  ok('Figma: só a sombra INTERNA fica de fora, e o aviso diz isso', fig.ignored.join() === 'sombra interna', fig.ignored.join());
+  const ai = await ev(async (svg) => {
+    const { importSvg } = await import('/src/svgimport.js');
+    const { node, ignored } = importSvg(svg);
+    const k = node.children;
+    return { n: k.length, bg: k[0].fill.color, grad: k[1].fill.type, angle: k[1].fill.angle, line: [k[2].fill.type, k[2].stroke?.color, k[2].stroke?.width], text: [k[3].type, k[3].text, k[3].fontFamily, k[3].fontWeight, k[3].fill.color], ignored };
+  }, fx('illustrator-export.svg'));
+  ok('Illustrator: classes .st0/.st1/.st3 aplicadas', ai.n === 5 && ai.bg === '#2B1A6B' && ai.line.join() === 'none,#FF5CA8,6', JSON.stringify(ai));
+  ok('Illustrator: gradiente declarado fora do <defs> (userSpaceOnUse) vira gradiente horizontal', ai.grad === 'linear' && ai.angle === 90, JSON.stringify(ai));
+  ok('Illustrator: texto com matrix e fonte "Poppins-Bold" → texto Poppins 700 branco', ai.text.join() === 'text,Olá,Poppins,700,#FFFFFF', ai.text.join());
+  ok('Illustrator: nada ficou de fora', ai.ignored.length === 0, ai.ignored.join());
 
   // ---------------------------------------------------------------- 4. painel Ícones
   const frameId = await ev(async () => {

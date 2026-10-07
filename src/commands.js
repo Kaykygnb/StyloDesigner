@@ -576,15 +576,15 @@ export function createCommands(store, canvas) {
   }
 
   /**
-   * Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa se algo do SVG foi ignorado
-   * (filtros, imagens, texto em curva...). Lança erro se o texto não for um SVG com formas.
+   * Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa O QUE do SVG ficou de fora
+   * (ex.: "sombra interna, máscara"). Lança erro se o texto não for um SVG com formas.
    * @param {string} text
    * @param {{at?: {x,y}, name?: string, currentColor?: string, fill?: string, size?: number}} [opts]
    */
   function insertSvg(text, { at, name, currentColor, fill, size } = {}) {
-    const { node, skipped } = importSvg(text, { name, currentColor, fill, size });
+    const { node, ignored } = importSvg(text, { name, currentColor, fill, size });
     placeNew(node, at);
-    if (skipped) notify(`SVG importado. ${skipped} ${skipped === 1 ? 'detalhe não suportado foi ignorado' : 'detalhes não suportados foram ignorados'} (filtros, imagens, texto em curva...).`);
+    if (ignored.length) notify(`SVG importado. Não suportado, ficou de fora: ${ignored.join(', ')}.`);
     return node;
   }
 

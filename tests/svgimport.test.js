@@ -96,3 +96,13 @@ test('vetor com contornos extras gera um `d` com todos', () => {
   assert.equal((d.match(/M/g) || []).length, 2);
   assert.equal((d.match(/Z/g) || []).length, 2);
 });
+
+test('nomes de fonte "técnicos" (como o Illustrator exporta) viram família + peso + itálico', async () => {
+  const { resolveFontName } = await import('../src/svgimport.js');
+  assert.deepEqual(resolveFontName("'Poppins-Bold'"), { family: 'Poppins', weight: 700 });
+  assert.deepEqual(resolveFontName('OpenSans-SemiBoldItalic'), { family: 'Open Sans', weight: 600, italic: true });
+  assert.deepEqual(resolveFontName('Montserrat-Regular'), { family: 'Montserrat', weight: 400 });
+  assert.deepEqual(resolveFontName('ArialMT'), { family: 'Arial', weight: 400 });
+  assert.deepEqual(resolveFontName('Inter, sans-serif'), { family: 'Inter' }, 'nome normal passa direto');
+  assert.deepEqual(resolveFontName('MinhaFonteSecreta-Bold'), { family: 'MinhaFonteSecreta-Bold' }, 'desconhecida fica como veio');
+});
