@@ -118,6 +118,10 @@ const localOrigin = (origin) => !origin || /^http:\/\/(localhost|127\.0\.0\.1|\[
 const projectPath = (name) => join(config.folder, name);
 /** Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/ */
 const versionsDir = (name) => join(config.folder, '.versoes', name.replace(/\.json$/i, ''));
+/** Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg */
+const thumbPath = (name) => join(config.folder, '.miniaturas', name.replace(/\.json$/i, '.svg'));
+/** Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar). */
+const MAX_THUMB = 3 * 1024 * 1024;
 /** Valida o nome vindo da URL. */
 function checkName(name) {
   if (!FILE_RE.test(name) || name.includes('..')) throw httpError(400, 'Nome de arquivo inválido.');
@@ -169,6 +173,9 @@ async function snapshotVersion(name) {
  *        depois de o usuário confirmar).
  *   GET  /api/projects/<arquivo>/versions            → versões guardadas
  *   GET  /api/projects/<arquivo>/versions/<versão>   → conteúdo de uma versão
+ *   GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
+ *   PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
+ *   POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
  */
 async function api(req, res, path) {
   if (!localHost(req.headers.host)) throw httpError(403, 'Acesso negado.');
@@ -196,7 +203,9 @@ async function api(req, res, path) {
     const names = (await readdir(config.folder)).filter((f) => FILE_RE.test(f));
     const list = await Promise.all(names.map(async (file) => {
       const s = await stat(projectPath(file));
-      return s.isFile() ? { file, modified: s.mtimeMs, size: s.size } : null;
+      if (!s.isFile()) return null;
+      const thumb = await stat(thumbPath(file)).then((t) => t.mtimeMs, () => 0);
+      return { file, modified: s.mtimeMs, size: s.size, thumb };
     }));
     return sendJson(res, 200, list.filter(Boolean).sort((a, b) => b.modified - a.modified));
   }
@@ -226,6 +235,38 @@ async function api(req, res, path) {
       await writeFile(tmp, text);
       await rename(tmp, projectPath(name));
       return sendJson(res, 200, { ok: true, file: name, modified: (await stat(projectPath(name))).mtimeMs });
+    }
+    if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
+      const data = await readFile(thumbPath(name));
+      // SVG pode conter <script>: a política de segurança abaixo impede que rode, mesmo se alguém abrir a URL direto
+      res.writeHead(200, {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache',
+        'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'",
+        'X-Content-Type-Options': 'nosniff',
+      });
+      return res.end(data);
+    }
+    if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'PUT') {
+      const { svg } = JSON.parse((await readBody(req)) || '{}');
+      if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) throw httpError(400, 'Miniatura inválida.');
+      if (svg.length > MAX_THUMB) throw httpError(413, 'Miniatura grande demais.');
+      await stat(projectPath(name)); // só aceita miniatura de projeto que existe (senão: 404)
+      await mkdir(join(config.folder, '.miniaturas'), { recursive: true });
+      await writeFile(thumbPath(name), svg);
+      return sendJson(res, 200, { ok: true });
+    }
+    if (parts[2] === 'rename' && parts.length === 3 && req.method === 'POST') {
+      const { to } = JSON.parse((await readBody(req)) || '{}');
+      const target = checkName(String(to || ''));
+      if (target === name) return sendJson(res, 200, { ok: true, file: name });
+      await stat(projectPath(name)); // origem precisa existir (senão: 404)
+      if (await stat(projectPath(target)).catch(() => null)) throw httpError(409, `Já existe "${target}" na pasta.`);
+      await rename(projectPath(name), projectPath(target));
+      // versões e miniatura acompanham o projeto (se existirem)
+      await rename(versionsDir(name), versionsDir(target)).catch(() => {});
+      await rename(thumbPath(name), thumbPath(target)).catch(() => {});
+      return sendJson(res, 200, { ok: true, file: target, modified: (await stat(projectPath(target))).mtimeMs });
     }
     if (parts[2] === 'versions' && parts.length <= 4 && req.method === 'GET') {
       if (parts.length === 3) return sendJson(res, 200, await listVersions(name));

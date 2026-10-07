@@ -23,7 +23,7 @@ async function unusedPort() {
 
 const doc = (name) => ({ name, pages: [{ id: 'p1', name: 'Página 1', children: [] }], assets: {}, styles: { colors: [], texts: [] } });
 
-test('API de salvamento: pasta, gravar/ler, conflito, versões e segurança', async (t) => {
+test('API de salvamento: pasta, gravar/ler, conflito, versões, miniatura, renomear e segurança', async (t) => {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-api-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
@@ -95,6 +95,30 @@ test('API de salvamento: pasta, gravar/ler, conflito, versões e segurança', as
   const http = await import('node:http');
   const status = await new Promise((ok) => http.get({ host: '127.0.0.1', port, path: '/api/projects', headers: { Host: 'evil.example:' + port } }, (res) => { res.resume(); ok(res.statusCode); }));
   assert.equal(status, 403);
+  // 7. miniatura: grava, aparece na lista, é servida como SVG com política que impede scripts
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>';
+  assert.equal((await put('/api/projects/meu-app.json/thumb', { svg })).status, 200);
+  assert.equal((await put('/api/projects/meu-app.json/thumb', { svg: 'não é svg' })).status, 400);
+  assert.equal((await put('/api/projects/nao-existe.json/thumb', { svg })).status, 404, 'só aceita miniatura de projeto existente');
+  r = await fetch(base + '/api/projects/meu-app.json/thumb');
+  assert.equal(r.headers.get('content-type'), 'image/svg+xml');
+  assert.match(r.headers.get('content-security-policy'), /default-src 'none'/);
+  assert.equal(await r.text(), svg);
+  assert.ok((await (await fetch(base + '/api/projects')).json()).find((p) => p.file === 'meu-app.json').thumb > 0);
+
+  // 8. renomear: leva junto versões e miniatura; recusa nome existente e nome inválido
+  const post = (path, body) => fetch(base + path, { method: 'POST', headers: json, body: JSON.stringify(body) });
+  await put('/api/projects/outro.json', doc('Outro'));
+  assert.equal((await post('/api/projects/meu-app.json/rename', { to: 'outro.json' })).status, 409);
+  assert.equal((await post('/api/projects/meu-app.json/rename', { to: '../fora.json' })).status, 400);
+  r = await post('/api/projects/meu-app.json/rename', { to: 'app-final.json' });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).file, 'app-final.json');
+  assert.equal((await fetch(base + '/api/projects/meu-app.json')).status, 404);
+  assert.equal((await (await fetch(base + '/api/projects/app-final.json')).json()).name, 'Versão 3');
+  assert.equal((await (await fetch(base + '/api/projects/app-final.json/versions')).json()).length, 2, 'versões vieram junto');
+  assert.equal((await fetch(base + '/api/projects/app-final.json/thumb')).status, 200, 'miniatura veio junto');
+
   // os projetos e a configuração não vazam pelo servidor estático
   assert.equal((await fetch(base + '/designer.config.json')).status, 404);
   assert.equal((await fetch(base + '/projetos/meu-app.json')).status, 404);
