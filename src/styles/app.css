@@ -165,14 +165,17 @@ button.brand:hover { background: var(--panel-2); }
 .panel { background: var(--panel); overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .panel.left { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
 .panel.right { border-left: 1px solid var(--border); display: flex; flex-direction: column; }
-.panel-section { padding: 10px 12px 12px; border-bottom: 1px solid var(--border); }
+.panel-section { padding: 14px 16px 16px; border-bottom: 1px solid var(--border); }
 .section-head {
   display: flex; align-items: center; justify-content: space-between;
-  min-height: 22px; margin-bottom: 6px;
-  font-weight: 700; font-size: 11px; letter-spacing: 0.2px;
+  min-height: 24px; margin-bottom: 10px;
+  font-weight: 600; font-size: 13px; letter-spacing: 0;
 }
 .section-head > span:first-child { color: var(--text); }
-.section-body { display: flex; flex-direction: column; gap: 8px; }
+.section-body { display: flex; flex-direction: column; gap: 12px; }
+/* Legenda pequena em cima do controle (visual do Figma): "Posição", "Dimensões", "Opacidade"... */
+.cap-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cap { font-size: 11px; font-weight: 500; color: var(--muted); line-height: 14px; }
 .sub-label { font: 600 10px var(--mono); color: var(--muted); margin: 2px 0 -2px; }
 .hint { margin: 0; color: var(--muted); font-size: 11px; }
 .tabs { display: flex; padding: 8px 10px 0; gap: 2px; border-bottom: 1px solid var(--border); flex: none; background: var(--panel); position: sticky; top: 0; z-index: 3; }
@@ -242,15 +245,15 @@ button.brand:hover { background: var(--panel-2); }
 .row.disabled { opacity: 0.45; pointer-events: none; }
 /* Campo padrão do painel (fundo cinza, borda azul ao focar). O rótulo à esquerda é a alça de "arrastar para ajustar". */
 .field {
-  display: flex; align-items: center; height: 28px;
-  background: var(--panel-2); border: 1px solid transparent; border-radius: 8px;
+  display: flex; align-items: center; height: 32px;
+  background: var(--panel-2); border: 1px solid transparent; border-radius: 6px;
   transition: border-color 0.12s, background 0.12s;
 }
 .field:hover { background: color-mix(in srgb, var(--panel-3) 60%, var(--panel-2)); }
 .field:focus-within { border-color: var(--accent); background: var(--panel-2); }
 .num-label {
   width: 24px; flex: none; text-align: center; color: var(--muted);
-  font: 600 10.5px var(--mono); cursor: ew-resize; user-select: none; touch-action: none; line-height: 28px;
+  font: 600 10.5px var(--mono); cursor: ew-resize; user-select: none; touch-action: none; line-height: 32px;
 }
 .num-label:hover { color: var(--accent); }
 .num, .text {
@@ -308,10 +311,10 @@ button.brand:hover { background: var(--panel-2); }
 .effect-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: color-mix(in srgb, var(--panel-2) 55%, transparent); border: 1px solid var(--border); border-radius: 10px; }
 .effect-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .effect-foot .color-row { flex: 1 1 100%; min-width: 0; }
-.align-row { display: flex; align-items: center; justify-content: space-between; }
-.align-section { padding: 6px 8px; position: sticky; top: 43px; z-index: 2; background: var(--panel); }
-.align-row .icon-btn { width: 28px; }
-.align-row .sep { margin: 0 2px; }
+/* Alinhar/distribuir: três grupos de botões em "pílulas" cinza, como no Figma */
+.align-row { display: flex; align-items: center; gap: 8px; }
+.seg-group { display: flex; flex: 1; background: var(--panel-2); border-radius: 6px; padding: 2px; }
+.seg-group .icon-btn { flex: 1; width: auto; height: 28px; border-radius: 5px; }
 
 .empty-state { padding: 36px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .empty-state h3 { margin: 10px 0 0; font-size: 14px; }
@@ -400,6 +403,8 @@ button.brand:hover { background: var(--panel-2); }
   font-size: 11px; font-weight: 600; color: var(--muted); line-height: 18px; padding: 0 2px;
 }
 .board-label:hover { color: var(--text); }
+/* nome de uma SEÇÃO: mais forte que o de um frame, para organizar o canvas à primeira vista */
+.board-label.section { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: .01em; }
 .board-label.selected { color: var(--accent); }
 .guide { position: absolute; background: var(--accent-2); pointer-events: none; z-index: 2; }
 .marquee { position: absolute; border: 1px solid var(--accent); background: var(--accent-soft); pointer-events: none; }
@@ -436,6 +441,10 @@ button.brand:hover { background: var(--panel-2); }
   position: fixed; z-index: 1000; min-width: 240px; padding: 6px; border-radius: 13px;
   background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
   border: 1px solid var(--border); box-shadow: var(--shadow); animation: pop 0.12s ease-out;
+  /* Nunca maior que ~70% da janela (e sempre cabendo nela): o que passar disso rola dentro do menu. Assim a última
+     opção continua alcançável em telas baixas, e rolar o menu não rola o canvas por trás. */
+  max-height: min(70vh, calc(100vh - 16px)); overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 40%, transparent) transparent;
 }
 @keyframes pop { from { opacity: 0; transform: scale(0.97) translateY(-3px); } }
 .menu-item {
@@ -521,6 +530,16 @@ button.brand:hover { background: var(--panel-2); }
 .guide-line.h { cursor: ns-resize; background: linear-gradient(transparent 3px, #00c2ff 3px 4px, transparent 4px); }
 .guide-line.drag { pointer-events: none; }
 .layout-grid { position: absolute; pointer-events: none; }
+/* Células do CSS Grid do frame selecionado (guia visual: onde cada coluna/linha cai de verdade) */
+.grid-cell { position: absolute; pointer-events: none; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); box-sizing: border-box; }
+.grid-cell.occupied { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+/* Seletor visual de colunas × linhas */
+.grid-picker { display: flex; align-items: center; gap: 12px; background: var(--panel-2); border-radius: 6px; padding: 10px; }
+.gp-cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; flex: 1; }
+.gp-cell { aspect-ratio: 1.5; border: 0; padding: 0; border-radius: 3px; background: var(--panel-3); transition: background .08s; cursor: pointer; }
+.gp-cell.on { background: color-mix(in srgb, var(--accent) 45%, var(--panel-3)); }
+.gp-cell.hover { background: var(--accent); }
+.gp-label { font: 600 12px var(--mono); color: var(--text); min-width: 52px; text-align: center; }
 .pen-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .pen-line { stroke: var(--accent); stroke-width: 1; }
 .pen-pt { fill: #fff; stroke: var(--accent); stroke-width: 1.5; }
@@ -528,6 +547,29 @@ button.brand:hover { background: var(--panel-2); }
 .pen-pt.sel { fill: var(--accent); }
 .pen-handle { fill: #fff; stroke: var(--accent); stroke-width: 1.5; }
 .pen-pt.hit, .pen-handle.hit { pointer-events: all; cursor: move; }
+/* barra da caneta: encaixe na grade e atalhos, acima da barra de ferramentas */
+.pen-bar {
+  position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 12px;
+  padding: 6px 12px 6px 10px; border-radius: 99px; max-width: calc(100% - 32px);
+  background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--border); box-shadow: var(--shadow); font-size: 11px;
+}
+.pen-bar[hidden] { display: none; }
+.pen-bar-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.pen-bar .seg-btn.wide { height: 24px; padding: 0 9px; }
+.pen-bar-hint { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.segmented.wide { display: flex; }
+.seg-btn.wide { flex: 1; width: auto; padding: 0 12px; font-weight: 600; font-size: 11.5px; }
+details.svg-code { border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; background: color-mix(in srgb, var(--panel-2) 55%, transparent); }
+details.svg-code > summary { cursor: pointer; padding: 10px 0; font-weight: 600; display: flex; align-items: center; gap: 6px; list-style: none; }
+details.svg-code > summary::-webkit-details-marker { display: none; }
+details.svg-code[open] { padding-bottom: 12px; }
+details.svg-code .hint { margin: 0 0 8px; }
+details.svg-code .row { margin-top: 8px; }
+textarea.svg-d { width: 100%; resize: vertical; min-height: 70px; padding: 8px 10px; border: 1px solid transparent; border-radius: 9px; background: var(--panel-2); color: var(--text); font: 500 10.5px/1.5 var(--mono); outline: none; }
+textarea.svg-d:focus { border-color: color-mix(in srgb, var(--accent) 65%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* pontinho que mostra onde o Alt+clique vai adicionar um ponto no traço */
+.pen-ghost { fill: var(--accent-2); stroke: #fff; stroke-width: 1.5; opacity: .9; pointer-events: none; }
 .viewport[data-tool="pen"] { cursor: crosshair; }
 .viewport[data-tool="line"], .viewport[data-tool="polygon"], .viewport[data-tool="star"] { cursor: crosshair; }
 
@@ -792,3 +834,108 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); fon
 .font-cat { flex: none; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .font-more { margin: 6px 0; }
 .font-empty { padding: 12px 4px; }
+
+
+/* ============================================================ dicas ricas (título + CSS + explicação) */
+.rich-tip {
+  position: fixed; z-index: 1000; max-width: 270px; padding: 12px 14px; border-radius: 12px; pointer-events: none;
+  background: var(--panel-3); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .15);
+  opacity: 0; transform: translateY(3px) scale(.98); transition: opacity .14s, transform .14s;
+}
+.rich-tip.show { opacity: 1; transform: none; }
+.tip-title { font-weight: 700; font-size: 12.5px; color: var(--text); margin-bottom: 8px; }
+.tip-code {
+  font: 500 11px/1.6 var(--mono); padding: 8px 10px; margin-bottom: 8px; border-radius: 8px; white-space: pre-wrap;
+  background: color-mix(in srgb, #000 28%, var(--panel)); color: var(--text);
+}
+.tip-prop { color: var(--accent); }
+.tip-val { color: var(--accent-2); }
+.tip-text { font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+:root[data-theme="light"] .tip-code { background: color-mix(in srgb, var(--accent) 7%, #fff); }
+
+/* ============================================================ auto layout (visual próprio) */
+.al-badge {
+  font: 700 9.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; cursor: help;
+  padding: 3px 7px; border-radius: 99px; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.al-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.al-mode {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; min-width: 0;
+  border: 1px solid transparent; border-radius: 10px; background: var(--panel-2); color: var(--muted); cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s, transform .12s;
+}
+.al-mode:hover { color: var(--text); transform: translateY(-1px); }
+.al-mode.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.al-mode-name { font-weight: 600; font-size: 11.5px; color: var(--text); }
+.al-mode-css { font: 500 9px var(--mono); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* caixa "CSS ao vivo": parece um editor de código dentro do painel */
+.al-code { border-radius: 10px; overflow: hidden; background: color-mix(in srgb, #000 24%, var(--panel)); border: 1px solid var(--border); }
+.al-code-head {
+  display: flex; align-items: center; gap: 7px; padding: 6px 10px; cursor: help;
+  font: 600 10px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.al-dot { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 3px rgba(61, 220, 132, .18); }
+.al-code-body { padding: 8px 10px 9px; font: 500 11px/1.65 var(--mono); }
+.al-brace { color: var(--muted); }
+.al-line { padding-left: 14px; text-indent: -0px; border-radius: 4px; cursor: help; overflow-wrap: anywhere; }
+.al-line:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.al-prop { color: var(--accent); }
+.al-val { color: var(--accent-2); }
+:root[data-theme="light"] .al-code { background: color-mix(in srgb, var(--accent) 5%, #fff); }
+/* legenda com o nome da propriedade CSS ao lado */
+.cap.has-tip { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; cursor: help; }
+.cap-css { font: 500 9.5px var(--mono); color: var(--accent); opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row > .cap-group > .cap.has-tip { flex-direction: column; align-items: flex-start; gap: 1px; }
+.al-check { display: flex; align-items: center; height: 32px; }
+/* matriz 3×3: pontos ligados por linhas finas, como um mini mapa de posições */
+.al-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: 88px; padding: 6px; flex: none; border-radius: 10px; background: var(--panel-2); }
+.al-cell { aspect-ratio: 1.2; display: grid; place-items: center; border: 0; background: transparent; border-radius: 6px; padding: 0; cursor: pointer; }
+.al-cell i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); opacity: .45; transition: all .12s; }
+.al-cell:hover i { opacity: 1; transform: scale(1.5); }
+.al-cell.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.al-cell.on i { width: 9px; height: 9px; background: var(--accent); opacity: 1; }
+
+/* ============================================================ polimento: painéis laterais mais delicados */
+/* Rolagem fina e discreta nos painéis */
+.panel { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent; }
+/* Abas em "pílula": a ativa ganha um fundo suave em vez do sublinhado */
+.tabs, .panel.left .tabs { padding: 10px 10px 8px; gap: 3px; border-bottom: 0; }
+.tab, .panel.left .tab { flex: 1; justify-content: center; padding: 7px 8px; border-radius: 9px; transition: background .15s, color .15s; }
+.tab:hover { background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
+.tab.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+.tab.on::after, .panel.left .tab.on::after { display: none; }
+/* Seções com mais respiro e divisórias bem leves */
+.panel-section { padding: 16px 16px 18px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+.section-head { font-size: 12.5px; margin-bottom: 12px; }
+.section-body { gap: 14px; }
+.cap { font-size: 10.5px; letter-spacing: .01em; }
+/* Campos mais macios: cantos redondos e foco com halo em vez de borda dura */
+.field { border-radius: 9px; }
+.field:focus-within { border-color: color-mix(in srgb, var(--accent) 65%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.segmented, .seg-group, .al-matrix { border-radius: 10px; }
+.seg-btn { border-radius: 8px; }
+.icon-btn { border-radius: 9px; }
+.swatch { border-radius: 9px; }
+.panel .btn { border-radius: 10px; }
+.effect-card { border-radius: 12px; padding: 10px; }
+.al-mode { border-radius: 12px; }
+.al-code { border-radius: 12px; }
+
+/* CSS ao vivo: cabeçalho é um botão que abre/fecha (começa fechado) */
+button.al-code-head { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--muted); cursor: pointer; text-align: left; }
+button.al-code-head:hover { color: var(--text); }
+.al-code-head .al-chev { margin-left: auto; display: grid; transition: transform .18s; }
+.al-code.open .al-chev { transform: rotate(90deg); }
+.al-code:not(.open) .al-code-body { display: none; }
+.al-code:not(.open) button.al-code-head { border-bottom-color: transparent; }
+
+/* Lembrete "este projeto ainda não tem arquivo": menor e mais suave */
+.notice { top: 30px; padding: 10px 10px 10px 12px; gap: 10px; border-radius: 16px; max-width: min(460px, calc(100% - 48px)); }
+.notice > .ico { flex: none; width: 30px; height: 30px; padding: 7px; border-radius: 10px; background: var(--accent-soft); box-sizing: border-box; }
+.notice > div strong { font-size: 12px; }
+.notice > div span { font-size: 11px; }
+/* Indicador de salvo no topo: pílula discreta */
+.save-state { border-radius: 99px; padding: 5px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }

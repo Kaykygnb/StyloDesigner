@@ -6,7 +6,7 @@
 
 import { h, ico, selectField } from './dom.js';
 import { TRANSITION_OPTIONS } from '../present.js';
-import { walk } from '../model.js';
+import { isBoard, walk } from '../model.js';
 
 /**
  * Cria a aba PROTÓTIPO: para a camada selecionada, lista suas INTERAÇÕES. Cada interação tem gatilho (clicar / passar o
@@ -19,7 +19,7 @@ export function createProtoPanel({ store, present, toast }) {
   const el = h('div.proto-panel');
 
   /** Frames da raiz de todas as páginas: são os destinos possíveis de "Navegar para". */
-  const rootFrames = () => store.state.doc.pages.flatMap((p) => p.children.filter((n) => n.type === 'frame').map((f) => ({ f, page: p })));
+  const rootFrames = () => store.state.doc.pages.flatMap((p) => p.children.flatMap((n) => (n.type === 'section' ? n.children : [n])).filter((n) => n.type === 'frame').map((f) => ({ f, page: p })));
 
   /** Reconstrói a aba para a camada selecionada (só roda com a aba aberta). */
   function render() {
@@ -35,7 +35,7 @@ export function createProtoPanel({ store, present, toast }) {
       return;
     }
 
-    if (n.type === 'frame' && !store.parentOf(n.id)) {
+    if (isBoard(n, store.parentOf(n.id))) {
       const input = h('input', { type: 'checkbox', checked: !!n.flowStart });
       input.addEventListener('change', () => {
         store.update(() => {

@@ -160,7 +160,9 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     } else if (hasStroke) {
       if (node.type === 'path') {
         // vetores: traço centrado, com espessura constante ao esticar
-        out.push(`<path d="${shapeD(node, w, h)}" fill="none"${strokeAttr(st)} stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`);
+        // extremidade e quina como no editor (padrão: redondas); tracejado "pontilhado" já define a própria extremidade
+        const cap = st.style === 'dotted' ? '' : ` stroke-linecap="${st.cap || 'round'}"`;
+        out.push(`<path d="${shapeD(node, w, h)}" fill="none"${strokeAttr(st)}${cap} stroke-linejoin="${st.join || 'round'}" vector-effect="non-scaling-stroke"/>`);
       } else {
         // "dentro/fora": encolhe/expande a forma em metade da espessura (o SVG só tem traço centrado)
         const inset = { inside: -st.width / 2, outside: st.width / 2, center: 0 }[st.position] ?? 0;

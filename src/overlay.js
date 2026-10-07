@@ -171,12 +171,14 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     const editing = !!ui.editingId;
 
     // ---- nome de cada frame da raiz, acima do canto superior esquerdo (clicar nele seleciona/arrasta o frame)
-    for (const n of page.children) {
-      if (n.type !== 'frame' || !n.visible) continue;
+    // (frames da raiz, seções e as telas dentro das seções)
+    const boards = page.children.flatMap((n) => (n.type === 'section' ? [n, ...n.children] : [n]));
+    for (const n of boards) {
+      if ((n.type !== 'frame' && n.type !== 'section') || !n.visible) continue;
       const b = canvas.aabb(n.id);
       if (!b) continue;
       const p = canvas.toScreen(b.x, b.y);
-      const el = get(`label:${n.id}`, `board-label${sel.includes(n.id) ? ' selected' : ''}`);
+      const el = get(`label:${n.id}`, `board-label${n.type === 'section' ? ' section' : ''}${sel.includes(n.id) ? ' selected' : ''}`);
       if (el.textContent !== n.name) el.textContent = n.name;
       el.dataset.label = n.id;
       el.style.left = `${p.x}px`;
@@ -228,6 +230,39 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       place(el, a.x, a.y, g.axis === 'x' ? 1 : b.x - a.x, g.axis === 'x' ? b.y - a.y : 1);
     });
 
+    // ---- CELAS DO CSS GRID: com um frame em modo grid selecionado (ou um item dele), desenha as células reais
+    // (tamanhos lidos do estilo calculado do navegador, então valem até para linhas automáticas e span)
+    {
+      const owners = new Set();
+      for (const id of sel) {
+        const n = store.get(id), p = store.parentOf(id);
+        if (n?.type === 'frame' && n.layout?.mode === 'grid') owners.add(n.id);
+        if (p?.type === 'frame' && p.layout?.mode === 'grid') owners.add(p.id);
+      }
+      let gi = 0;
+      for (const oid of owners) {
+        const gel = canvas.els.get(oid);
+        if (!gel) continue;
+        const cs = getComputedStyle(gel);
+        const tracks = (v) => (v && v !== 'none' ? v.split(' ').map(parseFloat).filter(Number.isFinite) : []);
+        const cols = tracks(cs.gridTemplateColumns), rows = tracks(cs.gridTemplateRows);
+        if (!cols.length || !rows.length) continue;
+        const cg = parseFloat(cs.columnGap) || 0, rg = parseFloat(cs.rowGap) || 0;
+        const o = canvas.originOf(oid);
+        let y = o.y + (parseFloat(cs.paddingTop) || 0);
+        const x0 = o.x + (parseFloat(cs.paddingLeft) || 0);
+        for (const rh of rows) {
+          let x = x0;
+          for (const cw of cols) {
+            const p = canvas.toScreen(x, y);
+            place(get(`gc:${gi++}`, 'grid-cell'), p.x, p.y, cw * z, rh * z);
+            x += cw + cg;
+          }
+          y += rh + rg;
+        }
+      }
+    }
+
     // ---- grades de layout do frame (colunas/linhas/quadrícula): só guia visual, não geram CSS.
     // colunas: largura = (total - gutters) / quantidade; começa depois da margem.
     if (ui.showGrids !== false) {
@@ -247,6 +282,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
               const color = rgba(g.color || '#ff3d3d', g.opacity ?? 0.12);
               if (g.type === 'grid') {
                 const sz = Math.max(2, g.size || 8) * z;
+                if (sz < 4) continue; // células de menos de 4px de tela viram uma mancha: não desenha
                 const el = get(`lg:${n++}`, 'layout-grid');
                 place(el, o.x, o.y, b.w * z, b.h * z);
                 el.style.background = 'none';

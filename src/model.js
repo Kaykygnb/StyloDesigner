@@ -68,7 +68,7 @@ export const BLEND_MODES = [
  */
 export const TYPE_LABEL = {
   frame: 'Frame', rect: 'Retângulo', ellipse: 'Elipse', text: 'Texto', group: 'Grupo',
-  line: 'Linha', path: 'Vetor',
+  line: 'Linha', path: 'Vetor', section: 'Seção',
 };
 
 /**
@@ -136,7 +136,7 @@ export const defaultLayout = () => ({
  * SISTEMA DE COORDENADAS: `x` e `y` são relativos ao canto superior esquerdo do PAI (ou ao mundo, se for
  * uma camada na raiz da página) e SEM rotação. A rotação gira a caixa em torno do próprio centro.
  *
- * @param {'frame'|'rect'|'ellipse'|'text'|'group'|'line'|'path'} type  tipo da camada
+ * @param {'frame'|'rect'|'ellipse'|'text'|'group'|'line'|'path'|'section'} type  tipo da camada
  * @param {object} [props]  campos que sobrescrevem os padrões (ex.: { x: 10, name: 'Botão' })
  * @returns {object} o nó, já pronto para entrar em `page.children` ou `node.children`
  */
@@ -200,6 +200,12 @@ export function createNode(type, props = {}) {
     // grades de layout: guias visuais de colunas/linhas/quadrícula (não afetam o CSS gerado)
     node.grids = []; // grades de layout (colunas/linhas/quadrículas) só de guia
     node.children = [];
+  } else if (type === 'section') {
+    // Seção: contêiner de ORGANIZAÇÃO do canvas (como no Figma). Só existe na raiz da página, só guarda frames, não
+    // tem auto layout nem corta o conteúdo. No código exportado vira <section>.
+    node.w = 800; node.h = 600;
+    node.fill = defaultFill('#EDEDED');
+    node.children = [];
   } else if (type === 'line') {
     // Linha: uma caixa de 160×12 (a espessura real vem do stroke.width; os 12px extras só facilitam o clique)
     node.w = 160; node.h = 12;
@@ -246,8 +252,16 @@ export function createNode(type, props = {}) {
   return node;
 }
 
-/** true para camadas que guardam filhos (frame e grupo). */
-export const isContainer = (n) => !!n && (n.type === 'frame' || n.type === 'group');
+/** true para camadas que guardam filhos (frame, grupo e seção). */
+export const isContainer = (n) => !!n && (n.type === 'frame' || n.type === 'group' || n.type === 'section');
+
+/**
+ * "Prancheta" (board): frame no nível de cima, ou seja, na raiz da página OU direto dentro de uma seção. É o que
+ * ganha nome flutuante acima do canvas, vira tela no modo Apresentar e não entra em outros frames ao ser arrastado.
+ * @param {object} node  a camada
+ * @param {object|null} parent  o pai dela (null = raiz da página)
+ */
+export const isBoard = (node, parent) => !!node && node.type === 'frame' && (!parent || parent.type === 'section');
 
 /** Constraints de uma camada, com padrão (esquerda/topo) para documentos salvos antes desse recurso existir. */
 export const constraintsOf = (n) => n.constraints || { h: 'left', v: 'top' };

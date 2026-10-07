@@ -177,6 +177,93 @@ export function segmented({ options, get, set, commit }) {
   return { el, update: () => btns.forEach((b) => b.classList.toggle('on', String(get()) === b.dataset.v)) };
 }
 
+// ---------------------------------------------------------------- dicas ricas (título + CSS + explicação)
+// Dica flutuante nossa para os controles do painel: título curto, o CSS de verdade que o controle gera (colorido, em
+// fonte mono) e uma frase explicando. Substitui o `title=""` nativo (feio, lento e sem formatação). `tip()` só guarda
+// dados em `data-tip-*`; UM ouvinte global (instalado na 1ª chamada) mostra e esconde. Por isso é barato chamar `tip`
+// de novo toda vez que o painel é redesenhado.
+
+/** Quanto o mouse precisa ficar parado em cima antes da dica aparecer (ms): evita piscar ao atravessar o painel. */
+const TIP_DELAY = 320;
+let tipBox = null; // o elemento flutuante (criado na 1ª vez)
+let tipTimer = 0;
+let tipCurrent = null; // elemento com a dica aberta (ou agendada)
+let tipInstalled = false;
+
+/** Esconde a dica e cancela a que estava agendada. */
+function hideTip() {
+  clearTimeout(tipTimer);
+  tipCurrent = null;
+  tipBox?.classList.remove('show');
+}
+
+/** Mostra a dica ao lado do elemento: à esquerda (o painel fica à direita da tela) ou, sem espaço, à direita/embaixo. */
+function showTip(target) {
+  if (!target.isConnected) return;
+  if (!tipBox) { tipBox = h('div.rich-tip', { role: 'tooltip' }); document.body.append(tipBox); }
+  const d = target.dataset;
+  const parts = [];
+  if (d.tipTitle) parts.push(h('div.tip-title', d.tipTitle));
+  if (d.tipCss) {
+    // cada linha "prop: valor;" vira "prop" colorida + valor, como num editor de código
+    parts.push(h('div.tip-code', d.tipCss.split('\n').map((line) => {
+      const i = line.indexOf(':');
+      return i < 0 ? h('div', line) : h('div', h('span.tip-prop', line.slice(0, i)), ':', h('span.tip-val', line.slice(i + 1)));
+    })));
+  }
+  if (d.tipText) parts.push(h('div.tip-text', d.tipText));
+  tipBox.replaceChildren(...parts);
+  tipBox.style.left = '0px';
+  tipBox.style.top = '0px';
+  tipBox.classList.add('show');
+  const r = target.getBoundingClientRect();
+  const w = tipBox.offsetWidth, hh = tipBox.offsetHeight, gap = 12, m = 8;
+  let x = r.left - w - gap;
+  let below = false;
+  if (x < m) x = r.right + gap; // sem espaço à esquerda: tenta à direita
+  if (x + w > innerWidth - m) { x = Math.max(m, Math.min(r.left, innerWidth - w - m)); below = true; } // nenhum: embaixo
+  let y = below ? r.bottom + gap : r.top + r.height / 2 - hh / 2;
+  y = Math.max(m, Math.min(y, innerHeight - hh - m));
+  tipBox.style.left = `${Math.round(x)}px`;
+  tipBox.style.top = `${Math.round(y)}px`;
+}
+
+/** Liga os ouvintes globais das dicas (uma única vez). */
+function installTips() {
+  if (tipInstalled) return;
+  tipInstalled = true;
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest?.('[data-tip-title]');
+    if (t === tipCurrent) return;
+    hideTip();
+    if (!t) return;
+    tipCurrent = t;
+    tipTimer = setTimeout(() => showTip(t), TIP_DELAY);
+  });
+  // saiu de cima do elemento (e não foi para um filho dele): some
+  document.addEventListener('mouseout', (e) => { if (tipCurrent && !tipCurrent.contains(e.relatedTarget)) hideTip(); });
+  // qualquer interação fecha a dica (clicar, digitar, rolar)
+  document.addEventListener('pointerdown', hideTip, true);
+  document.addEventListener('keydown', hideTip, true);
+  document.addEventListener('scroll', hideTip, true);
+}
+
+/**
+ * Liga uma dica rica a um elemento. Remove o `title` nativo dele e dos filhos (senão as duas dicas apareceriam).
+ * @param {HTMLElement} el  o elemento que mostra a dica ao passar o mouse
+ * @param {{title: string, css?: string, text?: string}} doc  título, CSS (uma declaração por linha) e explicação
+ * @returns {HTMLElement} o próprio `el` (para usar inline)
+ */
+export function tip(el, { title, css = '', text = '' }) {
+  installTips();
+  el.removeAttribute('title');
+  el.querySelectorAll('[title]').forEach((c) => c.removeAttribute('title'));
+  el.dataset.tipTitle = title;
+  if (css) el.dataset.tipCss = css; else delete el.dataset.tipCss;
+  if (text) el.dataset.tipText = text; else delete el.dataset.tipText;
+  return el;
+}
+
 /** Botão só com ícone. `cls` opcional ('small', 'on'...). */
 export function iconButton(name, title, onclick, cls = '') {
   // aria-label: botão só com ícone não tem texto; sem isso o leitor de tela diria apenas "botão"

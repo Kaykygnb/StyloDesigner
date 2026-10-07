@@ -16,6 +16,7 @@ const P = {
   text: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 9"/>',
   hand: '<path d="M8 13V6.5a1.5 1.5 0 013 0V11m0-5.5a1.5 1.5 0 013 0V11m0-3.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-.5a6 6 0 01-5-2.7L4 14.5a1.5 1.5 0 012.4-1.7L8 14.5"/>',
+  section: '<rect x="3.5" y="5.5" width="17" height="14" rx="1.5"/><path d="M3.5 5.5V4M3.5 4h6"/>',
   group: '<rect x="3.5" y="3.5" width="17" height="17" rx="2" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="1"/>',
   eye: '<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 6.1A9.7 9.7 0 0112 6c6.3 0 10 6 10 6a17 17 0 01-3.2 3.9M6.5 7.6A16 16 0 002 12s3.7 7 10 7a9.6 9.6 0 004-.9"/>',
@@ -95,4 +96,4 @@ export const icon = (name, size = 16) =>
 
 /** Ícone usado na lista de camadas para cada tipo de camada. */
 export const nodeIcon = (type) =>
-  ({ frame: 'frame', rect: 'rect', ellipse: 'ellipse', text: 'text', group: 'group', line: 'line', path: 'pen' })[type] || 'rect';
+  ({ frame: 'frame', rect: 'rect', ellipse: 'ellipse', text: 'text', group: 'group', line: 'line', path: 'pen', section: 'section' })[type] || 'rect';

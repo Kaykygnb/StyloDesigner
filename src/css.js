@@ -438,7 +438,7 @@ export function pathSvg(node, assets = {}) {
   const w = st && st.width > 0 ? st.width : 0;
   const dash = !w ? '' : st.style === 'dashed' ? ` stroke-dasharray="${w * 3} ${w * 2}"` : st.style === 'dotted' ? ` stroke-dasharray="0 ${w * 2}"` : '';
   const stroke = w
-    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${st.opacity}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${dash}`
+    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${st.opacity}" stroke-width="${w}" stroke-linecap="${st.cap || 'round'}" stroke-linejoin="${st.join || 'round'}"${dash}`
     : '';
   const fo = opacity != null && opacity < 1 ? ` fill-opacity="${opacity}"` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${num(node.vw)} ${num(node.vh)}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible">` +
@@ -524,8 +524,9 @@ export function generateCode(nodes, parent, assets = {}, { root = false } = {}) 
       return `${pad}<div class="${cls}">\n${pad}  ${pathSvg(node, assets)}\n${pad}</div>`;
     }
     const kids = (node.children || []).map((c) => build(c, node, depth + 1, false)).filter(Boolean);
-    if (!kids.length) return `${pad}<div class="${cls}"></div>`;
-    return `${pad}<div class="${cls}">\n${kids.join('\n')}\n${pad}</div>`;
+    const tag = node.type === 'section' ? 'section' : 'div';
+    if (!kids.length) return `${pad}<${tag} class="${cls}"></${tag}>`;
+    return `${pad}<${tag} class="${cls}">\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
   return { html, css: rules.join('\n\n') };

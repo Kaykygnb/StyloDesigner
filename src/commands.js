@@ -128,7 +128,7 @@ export function createCommands(store, canvas) {
     clip.count++;
     // "into" = frame de destino quando há exatamente um frame selecionado
     const sel = store.selected();
-    const into = sel.length === 1 && sel[0].type === 'frame' && !clip.nodes.some((c) => c.id === sel[0].id) ? sel[0] : null;
+    const into = sel.length === 1 && sel[0].type === 'frame' && !clip.nodes.some((c) => c.id === sel[0].id || c.type === 'section') ? sel[0] : null;
     const parent = into || (clip.parentId ? store.get(clip.parentId) : null);
     const list = parent?.children ?? store.page().children;
     const created = [];
@@ -233,7 +233,7 @@ export function createCommands(store, canvas) {
    * A caixa do grupo é calculada depois, no commit, por fitGroups.
    */
   function group() {
-    const nodes = topSelection();
+    const nodes = topSelection().filter((n) => n.type !== 'section'); // seção não entra em grupo
     if (!nodes.length) return;
     const parent = store.parentOf(nodes[0].id);
     const list = store.listOf(nodes[0].id);
@@ -256,7 +256,7 @@ export function createCommands(store, canvas) {
    * (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
    */
   function ungroup() {
-    const groups = store.selected().filter((n) => n.type === 'group' || (n.type === 'frame' && !n.component && !n.instanceOf));
+    const groups = store.selected().filter((n) => n.type === 'group' || n.type === 'section' || (n.type === 'frame' && !n.component && !n.instanceOf));
     if (!groups.length) return;
     const out = [];
     store.update(() => {
@@ -405,7 +405,7 @@ export function createCommands(store, canvas) {
    *    senão o auto layout colocaria o fundo e os itens lado a lado. Sem fundo, o frame abraça o conteúdo (hug).
    */
   function toggleAutoLayout() {
-    const nodes = topSelection();
+    const nodes = topSelection().filter((n) => n.type !== 'section');
     if (!nodes.length) return;
     if (nodes.length === 1 && nodes[0].type === 'frame') {
       const f = nodes[0];
@@ -552,7 +552,9 @@ export function createCommands(store, canvas) {
    * @param {number|null} [index]  posição na lista do novo pai (null = no topo)
    */
   function reparent(nodes, newParent, index = null) {
-    const moves = nodes.filter((n) => n !== newParent && !(newParent && store.isAncestor(n.id, newParent.id)));
+    // seção só vive na raiz; dentro de uma seção só entram frames
+    const allowed = (n) => (n.type === 'section' ? !newParent : newParent?.type === 'section' ? n.type === 'frame' : true);
+    const moves = nodes.filter((n) => n !== newParent && allowed(n) && !(newParent && store.isAncestor(n.id, newParent.id)));
     if (!moves.length) return;
     const origins = new Map(moves.map((n) => [n.id, canvas.originOf(n.id)]));
     store.update(() => {
@@ -857,6 +859,53 @@ export function createCommands(store, canvas) {
   }
 
   /**
+   * Atualiza um vetor EXISTENTE com novos pontos (em coordenadas do mundo): usado ao CONTINUAR um caminho aberto com a
+   * caneta. Como addPathFromWorld, recalcula a caixa; nome, cor e contorno do vetor continuam.
+   */
+  function updatePathFromWorld(id, pts, closed) {
+    const node = store.get(id);
+    if (!node) return;
+    const parent = store.parentOf(id);
+    const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
+    const box = pathBounds(pts);
+    const w = Math.max(1, Math.round(box.x1 - box.x0)), h = Math.max(1, Math.round(box.y1 - box.y0));
+    const loc = (p) => (p ? { x: round(p.x - box.x0), y: round(p.y - box.y0) } : null);
+    store.update(() => {
+      Object.assign(node, {
+        x: round(box.x0 - po.x), y: round(box.y0 - po.y), w, h, vw: w, vh: h, closed,
+        points: pts.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout) })),
+      });
+      if (closed && node.fill.type === 'none') node.fill = { ...defaultFill('#D9D9D9') };
+    });
+    store.setSelection([id]);
+    store.commit();
+  }
+
+  /**
+   * Cria um frame de ÍCONE (24×24 por padrão, fundo branco, cortando o que sai) no centro da vista, com a grade de 1px
+   * ligada, enquadra com zoom grande, liga o encaixe de 1px e deixa a caneta pronta. É o começo de "desenhar o meu SVG".
+   */
+  function newIcon(size = 24) {
+    const r = canvas.vpRect();
+    const c = canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2);
+    const node = createNode('frame', {
+      name: `Ícone ${size}`, x: Math.round(c.x - size / 2), y: Math.round(c.y - size / 2), w: size, h: size, clip: true,
+      fill: defaultFill('#FFFFFF'), // fundo branco: o traço padrão é escuro e sumiria no canvas escuro. Para exportar sem fundo: Preenchimento → Nenhum
+    });
+    node.grids = [{ type: 'grid', size: 1, count: 12, gutter: 16, margin: 24, color: '#7C5CFF', opacity: 0.16 }];
+    store.update((page) => { page.children.push(node); });
+    store.setSelection([node.id]);
+    store.commit();
+    // enquadra pela geometria conhecida (o elemento ainda nem foi desenhado no DOM, então canvas.fit não serve aqui)
+    const vw = r.width || innerWidth - 560, vh = r.height || innerHeight - 100; // painel escondido mede 0: usa a janela
+    const z = Math.max(1, Math.min(32, (vw - 280) / size, (vh - 280) / size));
+    canvas.setView({ zoom: z, x: vw / 2 - (node.x + size / 2) * z, y: vh / 2 - (node.y + size / 2) * z });
+    store.ui.penSnap = 1;
+    store.setTool('pen');
+    return node;
+  }
+
+  /**
    * Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os
    * pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
    */
@@ -911,7 +960,7 @@ export function createCommands(store, canvas) {
 
   /** Ctrl+Alt+G: envolve a seleção num frame novo, sem layout. */
   function frameSelection() {
-    const nodes = topSelection();
+    const nodes = topSelection().filter((n) => n.type !== 'section');
     if (!nodes.length) return;
     let frame;
     store.update(() => { frame = wrapInFrame(sameLevel(nodes), nodes.length === 1 ? `Frame ${nodes[0].name}` : 'Frame'); });
@@ -931,7 +980,7 @@ export function createCommands(store, canvas) {
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addTextStyle, removeStyle,
-    addGuide, removeGuide, addPathFromWorld, normalizePath, addShapePath, syncInstances,
+    addGuide, removeGuide, addPathFromWorld, updatePathFromWorld, newIcon, normalizePath, addShapePath, syncInstances,
     notify: null, // função de aviso (toast); main.js liga
   };
   return api;

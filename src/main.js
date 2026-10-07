@@ -25,7 +25,7 @@ import { createIconsPanel } from './ui/googleicons.js';
 import { ensureFonts, usedFonts } from './fonts.js';
 import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
-import { h, ico, iconButton } from './ui/dom.js';
+import { h, ico, iconButton, tip } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleApp } from './sample.js';
 import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
@@ -203,6 +203,7 @@ const fileBtn = h('button.btn.ghost', {
     showMenu(r.left, r.bottom + 6, [
       { label: 'Página inicial', icon: 'layers', onClick: () => home.open() },
       'sep',
+      { label: 'Novo ícone (24×24)', icon: 'pen', onClick: () => { commands.newIcon(24); toast('Ícone 24×24 pronto: desenhe com a caneta. Para exportar sem fundo, ponha o Preenchimento do frame em Nenhum.'); } },
       { label: 'Novo projeto', icon: 'file', onClick: async () => { if (await confirmReplace('Começar um projeto novo em branco?')) { store.newDoc(); canvas.fit(null); } } },
       { label: 'Abrir da pasta…', hint: 'Ctrl+O', icon: 'folder', onClick: () => openProjects('open') },
       ...(recent.length ? [{ label: 'Recentes', disabled: true, heading: true }, ...recent.map((p) => ({
@@ -298,7 +299,7 @@ function syncTopbar() {
   const [state, text, title] = saveStatus();
   saveEl.dataset.state = state;
   saveEl.textContent = text;
-  saveEl.title = title;
+  tip(saveEl, { title: text, text: title }); // dica rica (ui/dom.js) no lugar do title nativo
 }
 /**
  * O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
@@ -321,6 +322,7 @@ function saveStatus() {
 const TOOLS = [
   ['move', 'move', 'Mover (V)'],
   ['frame', 'frame', 'Frame (F)'],
+  ['section', 'section', 'Seção (⇧S)'],
   ['rect', 'rect', 'Retângulo (R)'],
   ['ellipse', 'ellipse', 'Elipse (E)'],
   ['line', 'line', 'Linha (L)'],
@@ -349,6 +351,30 @@ $('#toolbar').append(
 );
 $('#toolbar').setAttribute('role', 'toolbar');
 $('#toolbar').setAttribute('aria-label', 'Ferramentas');
+// ---------------------------------------------------------------- barra da caneta (encaixe na grade + dicas)
+// Aparece sozinha quando a caneta está ativa ou quando se editam pontos de um vetor. O "Encaixe" faz os pontos
+// grudarem numa grade de 1, 2, 4 ou 8 px (contada do canto do frame): é o que deixa um ícone nítido.
+const penBar = h('div.pen-bar', { hidden: true });
+let penBarSig = '';
+function renderPenBar() {
+  const show = ui.tool === 'pen' || !!ui.editPathId;
+  const snap = Number(ui.penSnap) || 0;
+  const sig = `${show}|${snap}|${!!ui.editPathId}`;
+  if (sig === penBarSig) return;
+  penBarSig = sig;
+  penBar.hidden = !show;
+  if (!show) return;
+  penBar.replaceChildren(
+    h('span.pen-bar-title', ico('pen', 13), ui.editPathId ? 'Editando pontos' : 'Caneta'),
+    tip(h('div.segmented.wide', [0, 1, 2, 4, 8].map((s) =>
+      h('button.seg-btn.wide' + (snap === s ? '.on' : ''), { type: 'button', onclick: () => { ui.penSnap = s; store.emit('ui'); renderPenBar(); } }, s ? `${s}px` : 'Livre'))),
+    { title: 'Encaixe na grade', text: 'Os pontos grudam numa grade de pixels, contada do canto do frame onde você desenha. Em ícones de 24×24, use 1px.' }),
+    h('span.pen-bar-hint', 'Shift trava 45° · Alt+clique no ponto: canto/suave · Enter termina'));
+}
+store.subscribe((reasons) => { if (reasons.has('tool') || reasons.has('overlay') || reasons.has('ui') || reasons.has('selection')) renderPenBar(); });
+$('.stage').append(penBar);
+renderPenBar();
+
 /** Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada). */
 const syncTools = () => toolBtns.forEach((b) => {
   const on = b.dataset.tool === ui.tool;

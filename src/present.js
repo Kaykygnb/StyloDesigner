@@ -8,7 +8,7 @@
  */
 
 import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { walk } from './model.js';
+import { isBoard, walk } from './model.js';
 
 /**
  * Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave`
@@ -63,7 +63,7 @@ export function createPresent({ store, canvas }) {
   /** Todos os frames do documento (de todas as páginas) — destinos possíveis das interações. */
   const frames = () => {
     const out = [];
-    for (const p of store.state.doc.pages) walk(p.children, (n) => { if (n.type === 'frame') out.push(n); return n.type === 'frame'; });
+    for (const p of store.state.doc.pages) walk(p.children, (n) => { if (n.type === 'frame') out.push(n); return n.type === 'frame' || n.type === 'section'; });
     return out;
   };
   /** Frame pelo id. */
@@ -71,7 +71,7 @@ export function createPresent({ store, canvas }) {
   /** Frame da raiz que contém a camada (sobe os pais). */
   const rootOf = (id) => {
     let n = store.get(id);
-    while (n && store.parentOf(n.id)) n = store.parentOf(n.id);
+    while (n && !isBoard(n, store.parentOf(n.id)) && store.parentOf(n.id)) n = store.parentOf(n.id);
     return n;
   };
 
@@ -161,7 +161,7 @@ export function createPresent({ store, canvas }) {
   /** Abre a apresentação. Devolve false se não há nenhum frame para apresentar. */
   function open(startId) {
     close();
-    const list = frames().filter((f) => !store.parentOf(f.id));
+    const list = frames().filter((f) => isBoard(f, store.parentOf(f.id)));
     const start =
       (startId && rootOf(startId)) ||
       list.find((f) => f.flowStart) ||

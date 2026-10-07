@@ -15,12 +15,12 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { applyConstraints, createNode, hasLayout, isFlow, nextName, round, scaleNode, uid } from './model.js';
+import { applyConstraints, createNode, hasLayout, isBoard, isFlow, nextName, round, scaleNode, uid } from './model.js';
 import { createPen } from './pen.js';
 import { RULER } from './rulers.js';
 
 /** Ferramentas em que clicar/arrastar no canvas CRIA uma camada nova. */
-const DRAW_TOOLS = ['frame', 'rect', 'ellipse', 'text', 'line', 'polygon', 'star'];
+const DRAW_TOOLS = ['frame', 'section', 'rect', 'ellipse', 'text', 'line', 'polygon', 'star'];
 /** Atalho de teclado → ferramenta (V mover, F/B frame, R retângulo, E elipse, T texto, H mão, P caneta, L linha). */
 const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line' };
 /** Quantos px de tela o mouse precisa andar para um clique virar ARRASTO (evita mover sem querer ao clicar). */
@@ -71,13 +71,14 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   /**
    * Frame mais fundo sob o ponteiro (ou null = fundo do canvas). Usa `elementsFromPoint` e IGNORA o overlay
    * (alças, rótulos: eles ficam embaixo do cursor durante o arrasto e atrapalhariam) e o que está sendo arrastado.
-   * Serve para saber em qual frame uma camada foi solta/desenhada.
+   * Serve para saber em qual frame uma camada foi solta/desenhada. Com `sections: true` a SEÇÃO também conta como destino
+   * (só frames da raiz entram em seções).
    */
-  const frameUnder = (clientX, clientY) => {
+  const frameUnder = (clientX, clientY, { sections = false } = {}) => {
     for (const el of document.elementsFromPoint(clientX, clientY)) {
       const node = el.closest?.('.node');
       if (!node || node.classList.contains('dragging') || node.closest('.dragging')) continue;
-      const frame = node.closest('.node-frame');
+      const frame = node.closest(sections ? '.node-frame, .node-section' : '.node-frame');
       return frame ? store.get(frame.dataset.id) : null;
     }
     return null;
@@ -123,6 +124,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   function refreshAutoFill(node) {
     const af = node.autoFill;
     if (!af || node.fill?.type !== 'solid' || node.fill.color !== af.color) return;
+    // tela dentro de uma seção: branca sobre cinza claro é o esperado, não recolore
+    if (store.parentOf(node.id)?.type === 'section') return;
     const bg = backdropOf(store.parentOf(node.id));
     if (!bg || Math.abs(luma(af.color) - luma(bg)) >= 0.12) return; // continua visível: não mexe
     const color = contrastingFill(af.base, bg);
@@ -270,8 +273,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         drag = { type: 'pen' };
         return pen.downEdit(e, t.dataset.edit, Number(t.dataset.idx));
       }
-      if (hitId === ui.editPathId) {
-        if (e.altKey) pen.addPointAt(e);
+      // clicar no próprio vetor ou no vazio: Alt+clique no traço adiciona ponto; senão começa uma CAIXA de seleção de
+      // pontos (clicar sem arrastar limpa os pontos, ou sai da edição se foi fora do vetor). Outra camada: sai da edição.
+      if (hitId === ui.editPathId || !hitId) {
+        if (e.altKey && hitId === ui.editPathId) { pen.addPointAt(e); return; }
+        drag = pen.marqueeStart(e, hitId === ui.editPathId);
         return;
       }
       pen.exitEdit();
@@ -302,7 +308,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
 
     // Frame da RAIZ não clicado antes: um clique simples o seleciona, mas ARRASTAR faz marquee dentro dele
     // (estilo Figma: não dá para arrastar um frame "puxando" pelo fundo, só pelo nome ou depois de selecionado).
-    if (!labelId && node.type === 'frame' && !store.parentOf(id) && !inSel) {
+    if (!labelId && isBoard(node, store.parentOf(id)) && !inSel) {
       // frame raiz: clique seleciona, arrasto faz marquee dentro dele
       return startMarquee(e, id, id);
     }
@@ -462,9 +468,14 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (!nodes.length) return;
 
     // Troca de pai ao passar sobre outro frame. Frames da raiz não "entram" em outros ao serem arrastados (evita aninhar sem querer).
-    const canReparent = nodes.every((n) => !(n.type === 'frame' && !store.parentOf(n.id)));
+    // Telas (frames de cima) só trocam entre RAIZ e SEÇÃO; seções nunca trocam de pai; o resto entra em frames.
+    const boards = nodes.every((n) => isBoard(n, store.parentOf(n.id)));
+    const canReparent = !nodes.some((n) => n.type === 'section') && (boards || nodes.every((n) => !isBoard(n, store.parentOf(n.id))));
     if (canReparent) {
-      const target = frameUnder(e.clientX, e.clientY);
+      let target = frameUnder(e.clientX, e.clientY, { sections: boards });
+      // tela sobre outra tela não aninha: sobe até a seção que a contém (ou raiz)
+      if (boards) while (target && target.type !== 'section') target = store.parentOf(target.id);
+
       const currentId = store.parentOf(nodes[0].id)?.id ?? null;
       if ((target?.id ?? null) !== currentId) {
         commands.reparent(nodes, target);
@@ -714,7 +725,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    */
   function startDraw(e, tool) {
     const p = canvas.toWorld(e.clientX, e.clientY);
-    const parent = frameUnder(e.clientX, e.clientY);
+    // Seção nasce sempre na raiz; frame desenhado sobre uma seção entra nela.
+    const parent = tool === 'section' ? null : frameUnder(e.clientX, e.clientY, { sections: tool === 'frame' });
     const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
     drag = { type: 'draw', tool, p0: p, po, parent, node: null, sx: e.clientX, sy: e.clientY, moved: false };
     if (tool === 'line') {
@@ -729,7 +741,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         x: round(p.x - po.x), y: round(p.y - po.y), w: 1, h: 1,
       });
       // não nascer "invisível" (mesma cor do que está embaixo do cursor). autoFill: ver refreshAutoFill
-      if (node.fill?.type === 'solid') {
+      if (node.fill?.type === 'solid' && tool !== 'section' && !(tool === 'frame' && parent?.type === 'section')) {
         const base = node.fill.color;
         node.fill.color = contrastingFill(base, colorUnder(e.clientX, e.clientY));
         node.autoFill = { base, color: node.fill.color };
@@ -739,7 +751,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       // da fila durante o próprio desenho, longe do cursor.
       if (parent && hasLayout(parent)) { node.absolute = true; drag.flow = true; }
       if (tool === 'frame') node.name = parent ? 'Frame' : nextName(store.page(), 'frame');
-      store.update((page) => (parent ? parent.children : page.children).push(node));
+      // a seção vai para o FUNDO da raiz (atrás das telas que ela vai envolver)
+      if (tool === 'section') { store.update((page) => { page.children.unshift(node); }); }
+      else store.update((page) => (parent ? parent.children : page.children).push(node));
       drag.node = node;
       store.setSelection([node.id]);
     }
@@ -827,11 +841,27 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (d.tool === 'line' && !d.moved) {
       store.update(() => { d.node.w = 100; });
     } else if (!d.moved && d.node && d.tool !== 'line') {
-      const defaults = { frame: [320, 240], rect: [100, 100], ellipse: [100, 100] }[d.tool];
+      const defaults = { frame: [320, 240], section: [800, 600], rect: [100, 100], ellipse: [100, 100] }[d.tool];
       store.update(() => { d.node.w = defaults[0]; d.node.h = defaults[1]; });
     }
     if (d.flow && d.node) enterFlow(d.node);
+    if (d.tool === 'section' && d.node) adoptIntoSection(d.node);
     store.commit();
+  }
+
+  /**
+   * Seção recém-desenhada "adota" as telas da raiz que ficaram TOTALMENTE dentro dela: elas passam a ser filhas da
+   * seção (e andam junto com ela), mantendo a posição visual e a ordem entre si. Telas só parcialmente dentro ficam de fora.
+   */
+  function adoptIntoSection(sec) {
+    const inside = (b) => b.x >= sec.x && b.y >= sec.y && b.x + b.w <= sec.x + sec.w && b.y + b.h <= sec.y + sec.h;
+    store.update((page) => {
+      const taken = page.children.filter((n) => n !== sec && n.type === 'frame' && n.visible && !n.locked && !n.rotation && (() => { const b = canvas.aabb(n.id); return b && inside(b); })());
+      if (!taken.length) return;
+      page.children = page.children.filter((n) => !taken.includes(n));
+      for (const n of taken) { n.x = round(n.x - sec.x); n.y = round(n.y - sec.y); }
+      sec.children.push(...taken);
+    });
   }
 
   /**
@@ -883,7 +913,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     };
     ui.marquee = m;
     const scopeNode = d.scope ? store.get(d.scope) : null;
-    const list = scopeNode ? scopeNode.children : store.page().children;
+    // sem escopo: camadas da raiz + as telas dentro de cada seção
+    const list = scopeNode ? scopeNode.children : store.page().children.flatMap((n) => (n.type === 'section' ? [n, ...n.children] : [n]));
     const hit = [];
     for (const n of list) {
       if (!n.visible || n.locked) continue;
@@ -892,7 +923,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       // intersects: toca no retângulo · inside: está totalmente dentro dele
       const intersects = b.x < m.x + m.w && b.x + b.w > m.x && b.y < m.y + m.h && b.y + b.h > m.y;
       const inside = b.x >= m.x && b.y >= m.y && b.x + b.w <= m.x + m.w && b.y + b.h <= m.y + m.h;
-      if (n.type === 'frame' && !scopeNode ? inside : intersects) hit.push(n.id);
+      if ((n.type === 'frame' || n.type === 'section') && !scopeNode ? inside : intersects) hit.push(n.id);
     }
     store.setSelection([...new Set([...d.base, ...hit])]);
     store.emit('overlay');
@@ -906,6 +937,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   viewport.addEventListener('pointermove', (e) => {
     if (!drag) {
       if (pen.isDrawing()) pen.move(e);
+      else if (pen.isEditing()) pen.hover(e);
       if (ui.tool === 'move' && !ui.editingId) {
         const id = e.target.dataset?.label || nodeAt(e.target);
         const next = id ? (e.target.dataset?.label ? id : pickSelectable(id)) : null;
@@ -927,6 +959,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       case 'draw': drawDrag(e); break;
       case 'marquee': marqueeDrag(e); break;
       case 'pen': pen.move(e); break;
+      case 'penmarquee': pen.marqueeMove(e, drag); break;
       case 'guide': guideDrag(e); break;
       default: break;
     }
@@ -957,6 +990,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     setDragIds(null);
     if (d.type === 'pan') { store.emit('overlay'); return; }
     if (d.type === 'pen') { pen.up(); return; }
+    if (d.type === 'penmarquee') { pen.marqueeEnd(d); return; }
     if (d.type === 'guide') {
       const r = canvas.vpRect();
       const outside = d.axis === 'y' ? e.clientY - r.top < RULER : e.clientX - r.left < RULER;
@@ -1140,6 +1174,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (key === 'g') { e.preventDefault(); e.shiftKey ? commands.ungroup() : commands.group(); return; }
       if (key === 'a') {
         e.preventDefault();
+        if (pen.isEditing()) { pen.selectAll(); return; } // editando pontos: Ctrl+A seleciona todos os pontos
         const first = store.get(ui.selection[0]);
         const list = first ? store.listOf(first.id) : store.page().children;
         store.setSelection(list.filter((n) => n.visible && !n.locked).map((n) => n.id));
@@ -1175,6 +1210,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return;
     }
 
+    // Shift+S = seção (Ctrl/⌘+Shift+S é "Salvar como", tratado antes)
+    if (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && key === 's') { store.setTool('section'); return; }
     // letras de ferramenta (V, F, R, E, T, H, P, L)
     if (TOOL_KEYS[key] && !e.shiftKey && !e.altKey) { store.setTool(TOOL_KEYS[key]); return; }
 
@@ -1201,6 +1238,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       const step = e.shiftKey ? 10 : 1;
       const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
       const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+      // editando pontos de um vetor: as setas movem o PONTO selecionado, não a camada
+      if (pen.isEditing() && pen.nudge(dx, dy)) return;
       store.update(() => {
         for (const n of commands.topSelection()) {
           if (hasLayout(store.parentOf(n.id)) && !n.absolute) continue;

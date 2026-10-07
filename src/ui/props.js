@@ -7,7 +7,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { h, ico, iconButton, numField, selectField, segmented, colorRow } from './dom.js';
+import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip } from './dom.js';
 import { askText } from './menus.js';
 import { fontField } from './fontpicker.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
@@ -15,7 +15,7 @@ import {
   BLEND_MODES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
   constraintsOf,
 } from '../model.js';
-import { fillCss } from '../css.js';
+import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
 
 /**
@@ -42,6 +42,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   // estados de interface locais: mostrar os 4 cantos / os 4 paddings separados · escala escolhida na exportação
   let radiusExpanded = false;
   let paddingExpanded = false;
+  // grid: espaço entre colunas e linhas separados (senão um campo só vale para os dois)
+  let gapSplit = false;
+  // caixa "CSS ao vivo" do auto layout: começa FECHADA (é uma curiosidade, não faz parte do trabalho); lembra a escolha
+  let liveCssOpen = false;
+  try { liveCssOpen = localStorage.getItem('pd.liveCss') === '1'; } catch { /* sem armazenamento: fica fechada */ }
   let exportScale = 2;
 
   // ------------------------------------------------------------------ helpers
@@ -59,6 +64,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   /** Seção do painel: título + (ações opcionais à direita, ex.: botão +) + corpo. */
   const section = (title, body, actions) =>
     h('section.panel-section', h('header.section-head', h('span', title), actions || null), h('div.section-body', body));
+
+  /** Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...). */
+  const cap = (label, ...c) => h('div.cap-group', h('div.cap', label), ...c);
 
   // atalhos que ligam os componentes de dom.js ao painel (já registram o update e passam o commit)
   const num = (label, get, set, opts = {}) =>
@@ -84,22 +92,19 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   };
 
   // ------------------------------------------------------------------ seções
-  /** Barra fixa no topo: alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). */
-  function alignSection() {
+  /** Linha de alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). Fica dentro da seção Posição. */
+  function alignRow() {
     const many = ids().length >= 3;
     const btn = (name, title, fn, disabled) =>
       h('button.icon-btn', { type: 'button', title, disabled, onclick: fn }, ico(name));
-    return h('section.panel-section.align-section',
-      h('div.align-row',
-        btn('alignL', 'Alinhar à esquerda', () => commands.align('left')),
+    return h('div.align-row',
+      h('div.seg-group', btn('alignL', 'Alinhar à esquerda', () => commands.align('left')),
         btn('alignCH', 'Centralizar na horizontal', () => commands.align('hcenter')),
-        btn('alignR', 'Alinhar à direita', () => commands.align('right')),
-        h('span.sep'),
-        btn('alignT', 'Alinhar ao topo', () => commands.align('top')),
+        btn('alignR', 'Alinhar à direita', () => commands.align('right'))),
+      h('div.seg-group', btn('alignT', 'Alinhar ao topo', () => commands.align('top')),
         btn('alignCV', 'Centralizar na vertical', () => commands.align('vcenter')),
-        btn('alignB', 'Alinhar embaixo', () => commands.align('bottom')),
-        h('span.sep'),
-        btn('distH', 'Distribuir na horizontal', () => commands.distribute('h'), !many),
+        btn('alignB', 'Alinhar embaixo', () => commands.align('bottom'))),
+      h('div.seg-group', btn('distH', 'Distribuir na horizontal', () => commands.distribute('h'), !many),
         btn('distV', 'Distribuir na vertical', () => commands.distribute('v'), !many)));
   }
 
@@ -125,13 +130,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const n0 = P();
     const parent = store.parentOf(n0.id);
     const inFlow = isFlow(n0, parent);
-    const body = [];
+    const body = [cap('Alinhamento', alignRow())];
     if (!single) {
       // várias camadas: X/Y da caixa que envolve todas
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
-      body.push(h('div.sub-label', `${ids().length} camadas selecionadas`),
+      body.push(cap(`Posição · ${ids().length} camadas`,
         row(num('X', () => box().x, (v) => commands.setSelectionBox({ x: v }), { decimals: 1 }),
-          num('Y', () => box().y, (v) => commands.setSelectionBox({ y: v }), { decimals: 1 })));
+          num('Y', () => box().y, (v) => commands.setSelectionBox({ y: v }), { decimals: 1 }))));
     } else {
       const posRow = row(
         num('X', () => P().x, (v) => each((n) => { n.x = v; }), { decimals: 1, title: 'left' }),
@@ -140,18 +145,18 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         posRow.classList.add('disabled');
         posRow.title = 'Posição controlada pelo auto layout do pai';
       }
-      body.push(posRow);
+      body.push(cap('Posição', posRow));
       if (parent?.type === 'frame' && !hasLayout(parent) && !n0.absolute) {
-        body.push(row(
+        body.push(cap('Restrições', row(
           select(H_CONS, () => constraintsOf(P()).h, (v) => each((n) => { n.constraints = { ...constraintsOf(n), h: v }; }), 'Constraint horizontal: como reage quando o frame muda de largura', '↔'),
-          select(V_CONS, () => constraintsOf(P()).v, (v) => each((n) => { n.constraints = { ...constraintsOf(n), v: v }; }), 'Constraint vertical: como reage quando o frame muda de altura', '↕')));
+          select(V_CONS, () => constraintsOf(P()).v, (v) => each((n) => { n.constraints = { ...constraintsOf(n), v: v }; }), 'Constraint vertical: como reage quando o frame muda de altura', '↕'))));
       }
     }
-    body.push(row(
+    body.push(cap('Rotação', row(
       num('↻', () => P().rotation, (v) => each((n) => { n.rotation = v; }), { title: 'rotação (transform: rotate)', decimals: 1, min: -360, max: 360, unit: '°' }),
       h('div.btn-group',
         h('button.icon-btn.small' + (n0.flipX ? '.on' : ''), { type: 'button', title: 'Espelhar na horizontal (Shift+H)', onclick: () => commands.flip('x') }, ico('flipH', 14)),
-        h('button.icon-btn.small' + (n0.flipY ? '.on' : ''), { type: 'button', title: 'Espelhar na vertical (Shift+V)', onclick: () => commands.flip('y') }, ico('flipV', 14)))));
+        h('button.icon-btn.small' + (n0.flipY ? '.on' : ''), { type: 'button', title: 'Espelhar na vertical (Shift+V)', onclick: () => commands.flip('y') }, ico('flipV', 14))))));
     return section('Posição', body);
   }
 
@@ -167,17 +172,17 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const body = [];
     if (!single) {
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
-      body.push(row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
-        num('H', () => box().h, (v) => commands.setSelectionBox({ h: v }), { min: 1, decimals: 1 })));
+      body.push(cap('Dimensões', row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
+        num('H', () => box().h, (v) => commands.setSelectionBox({ h: v }), { min: 1, decimals: 1 }))));
       return section('Tamanho', body);
     }
-    body.push(row(
+    body.push(cap('Dimensões', row(
       num('W', () => P().w, (v) => each((n) => resizeNode(n, v, n.h, 'w')), { min: 1, title: 'width', decimals: 1 }),
       num('H', () => P().h, (v) => each((n) => resizeNode(n, n.w, v, 'h')), { min: 1, title: 'height', decimals: 1, disabled: n0.type === 'line' }),
       h('button.icon-btn.small' + (n0.lockRatio ? '.on' : ''), {
         type: 'button', title: 'Travar proporção',
         onclick: () => { each((n) => { n.lockRatio = !n.lockRatio; }); commit(); },
-      }, ico('link', 14))));
+      }, ico('link', 14)))));
     // modos de tamanho possíveis: 'hug' só para texto/frames com layout; 'fill' só dentro de um auto layout
     const sizeOpts = () => {
       const o = [['fixed', 'Fixo']];
@@ -208,17 +213,17 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const n0 = P();
     const parent = store.parentOf(n0.id);
     const body = [row(
-      num('%', () => P().opacity * 100, (v) => each((n) => { n.opacity = v / 100; }), { min: 0, max: 100, decimals: 0, title: 'opacity' }),
-      select(BLEND_MODES.map((m) => [m, m]), () => P().blend, (v) => each((n) => { n.blend = v; }), 'mix-blend-mode (mistura com o que está atrás)', '◐'))];
+      cap('Opacidade', num('%', () => P().opacity * 100, (v) => each((n) => { n.opacity = v / 100; }), { min: 0, max: 100, decimals: 0, title: 'opacity' })),
+      cap('Mesclagem', select(BLEND_MODES.map((m) => [m, m]), () => P().blend, (v) => each((n) => { n.blend = v; }), 'mix-blend-mode (mistura com o que está atrás)', '◐')))];
     const canRound = !NO_RADIUS.includes(n0.type);
     if (canRound) {
-      body.push(row(
+      body.push(cap('Raio dos cantos', row(
         num('◜', () => P().radius[0], (v) => each((n) => { n.radius = [v, v, v, v].map((x) => Math.max(0, x)); }),
           { title: 'border-radius (cantos arredondados)', min: 0, decimals: 1 }),
         h('button.icon-btn.small' + (radiusExpanded ? '.on' : ''), {
           type: 'button', title: 'Cantos independentes',
           onclick: () => { radiusExpanded = !radiusExpanded; lastSig = null; render(); },
-        }, ico('corners', 14))));
+        }, ico('corners', 14)))));
       if (radiusExpanded) {
         const corner = (i, label, title) => num(label, () => P().radius[i], (v) => each((n) => { n.radius[i] = Math.max(0, v); }), { title, min: 0, decimals: 1 });
         body.push(row(corner(0, '↖', 'border-top-left-radius'), corner(1, '↗', 'border-top-right-radius')));
@@ -260,36 +265,86 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   /** Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start). */
   const A_START = ['flex-start', 'start'], A_CENTER = ['center', 'center'], A_END = ['flex-end', 'end'], A_STRETCH = ['stretch', 'stretch'];
 
+  /** Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo". */
+  const CSS_DOC = {
+    display: ['display', 'display: flex;', 'Diz como o container organiza os filhos. "flex" coloca em fila (linha ou coluna); "grid" monta uma tabela de colunas e linhas.'],
+    'flex-direction': ['flex-direction', 'flex-direction: row;', 'A direção da fila: "row" = lado a lado, "column" = um embaixo do outro. É o chamado eixo principal.'],
+    'flex-wrap': ['flex-wrap', 'flex-wrap: wrap;', 'Quando os itens não cabem em uma fila, eles descem para a próxima em vez de ficarem apertados.'],
+    gap: ['gap', 'gap: 8px;', 'O espaço ENTRE os itens. Não é margem de ninguém: o próprio container distribui, e por isso nunca sobra espaço nas pontas.'],
+    padding: ['padding', 'padding: 16px 24px;', 'O respiro entre a borda do container e o que tem dentro. Com dois valores: o primeiro é cima/baixo, o segundo é esquerda/direita.'],
+    'justify-content': ['justify-content', 'justify-content: space-between;', 'Como os itens se distribuem ao longo do eixo principal (a direção da fila): começo, centro, fim ou espalhados.'],
+    'align-items': ['align-items', 'align-items: center;', 'Como os itens se alinham no eixo cruzado (o contrário da fila): no topo, no meio, embaixo ou esticados.'],
+    'justify-items': ['justify-items', 'justify-items: center;', 'No grid: a posição HORIZONTAL de cada item dentro da sua célula.'],
+    'grid-template-columns': ['grid-template-columns', 'grid-template-columns: repeat(3, 1fr);', 'Quantas colunas a grade tem. "repeat(3, 1fr)" = 3 colunas de larguras iguais; "fr" é uma fração do espaço livre.'],
+    'grid-template-rows': ['grid-template-rows', 'grid-template-rows: repeat(2, 1fr);', 'Quantas linhas a grade tem. Sem este valor (automático), o navegador cria linhas conforme os itens chegam.'],
+  };
+  /** Monta o objeto de dica de uma propriedade do CSS_DOC. */
+  const cssTip = (key) => ({ title: CSS_DOC[key][0], css: CSS_DOC[key][1], text: CSS_DOC[key][2] });
+  /** Grupo com legenda em português + nome da propriedade CSS (mono) e dica rica ao passar o mouse na legenda e no controle. */
+  const capK = (label, key, ...children) => {
+    const g = h('div.cap-group', h('div.cap.has-tip', label, h('span.cap-css', key)), ...children);
+    return tip(g, cssTip(key));
+  };
+
   /**
-   * Seção "Auto layout (CSS)" de um frame, organizada como as propriedades CSS que ela gera:
-   *  - display: none (posição absoluta) / flex em linha / flex em coluna / grid;
+   * Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o
+   * frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título,
+   * CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
    *  - FLEX: gap, flex-wrap, padding, justify-content (eixo principal) e align-items (eixo cruzado);
-   *  - GRID: grid-template-columns/rows (quantas colunas/linhas), column-gap/row-gap, padding,
-   *    justify-items/align-items (onde cada item fica DENTRO da sua célula) e um atalho "itens preenchem as células".
-   * A matriz 3×3 continua como atalho visual para escolher os dois alinhamentos de uma vez.
+   *  - GRID: colunas/linhas, gap, padding e justify-items/align-items (onde o item fica DENTRO da célula).
    */
   function autoLayoutSection() {
     const n0 = P();
     const L = () => P().layout;
-    const modeSeg = segmented({
-      options: [
-        ['none', 'none', 'Sem layout — camadas livres (position: absolute)'],
-        ['row', 'row', 'display: flex; flex-direction: row (em linha)'],
-        ['column', 'column', 'display: flex; flex-direction: column (em coluna)'],
-        ['grid', 'grid', 'display: grid (grade de células)'],
-      ],
-      get: () => L().mode,
-      set: (v) => store.update(() => commands.setLayoutMode(nodes(), v)),
-      commit,
-    });
-    updaters.push(modeSeg.update);
     const mode = n0.layout.mode;
-    const modeName = { none: 'nenhum', row: 'flex · linha', column: 'flex · coluna', grid: 'grid' }[mode];
-    const body = [h('div.prop-head', h('span.prop-name', 'display')), h('div.prop-inline', modeSeg.el, h('span.prop-note', modeName))];
+
+    // ---- modo: 4 cartões ----
+    const MODES = [
+      ['none', 'none', 'Livre', 'absolute', { title: 'Livre (sem layout)', css: 'position: absolute;\nleft: 20px;\ntop: 20px;', text: 'Cada camada fica exatamente onde você a coloca. Nada se reorganiza sozinho: é o modo "desenho livre".' }],
+      ['row', 'row', 'Linha', 'flex · row', { title: 'Linha (flexbox)', css: 'display: flex;\nflex-direction: row;', text: 'Os itens se enfileiram lado a lado. O navegador distribui o espaço e alinha tudo: você só escolhe as regras.' }],
+      ['column', 'column', 'Coluna', 'flex · column', { title: 'Coluna (flexbox)', css: 'display: flex;\nflex-direction: column;', text: 'A mesma ideia da linha, mas empilhando de cima para baixo.' }],
+      ['grid', 'grid', 'Grade', 'grid', { title: 'Grade (CSS Grid)', css: 'display: grid;\ngrid-template-columns: repeat(3, 1fr);', text: 'Uma tabela invisível de colunas e linhas. Cada item cai numa célula: ótimo para cards, galerias e painéis.' }],
+    ];
+    const cards = MODES.map(([v, icon, name, css, doc]) => {
+      const b = h('button.al-mode', { type: 'button', onclick: () => { store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
+        ico(icon, 20), h('span.al-mode-name', name), h('span.al-mode-css', css));
+      updaters.push(() => b.classList.toggle('on', L().mode === v));
+      return tip(b, doc);
+    });
+    const body = [h('div.al-modes', cards)];
+
     if (mode === 'none') {
-      body.push(h('p.hint', 'Sem layout: cada camada fica onde você a coloca (position: absolute). Escolha flex ou grid para o navegador organizar os filhos.'));
-      return section('Auto layout (CSS)', body);
+      body.push(h('p.hint', 'Sem layout: cada camada fica onde você a coloca (position: absolute). Escolha Linha, Coluna ou Grade para o navegador organizar os filhos.'));
+      return autoSection(body);
     }
+
+    // ---- "CSS ao vivo": as declarações reais do frame, relidas a cada mudança ----
+    const LIVE_KEYS = ['display', 'flex-direction', 'flex-wrap', 'grid-template-columns', 'grid-template-rows', 'gap', 'justify-content', 'justify-items', 'align-items', 'padding'];
+    const code = h('div.al-code-body');
+    const fillCode = () => {
+      const s = nodeStyle(P(), store.parentOf(P().id), store.state.doc.assets);
+      code.replaceChildren(
+        h('div.al-brace', '.frame {'),
+        ...LIVE_KEYS.filter((k) => s[k] != null).map((k) => tip(h('div.al-line', h('span.al-prop', k), ':', h('span.al-val', ` ${s[k]}`), ';'), cssTip(k))),
+        h('div.al-brace', '}'));
+    };
+    // fechada = nem calcula (poupa trabalho a cada arrasto); ao abrir, preenche na hora
+    updaters.push(() => { if (liveCssOpen) fillCode(); });
+    const wrap = h('div.al-code' + (liveCssOpen ? '.open' : ''));
+    const head = h('button.al-code-head', {
+      type: 'button', 'aria-expanded': String(liveCssOpen),
+      onclick: () => {
+        liveCssOpen = !liveCssOpen;
+        try { localStorage.setItem('pd.liveCss', liveCssOpen ? '1' : '0'); } catch { /* ignora */ }
+        wrap.classList.toggle('open', liveCssOpen);
+        head.setAttribute('aria-expanded', String(liveCssOpen));
+        if (liveCssOpen) fillCode();
+      },
+    }, h('span.al-dot'), 'CSS ao vivo', h('span.al-chev', ico('chevron', 12)));
+    tip(head, { title: 'Ver o CSS gerado', text: 'Clique para abrir ou fechar. Mostra exatamente o que este frame escreve no código exportado, e muda junto com os controles. É só uma curiosidade: não é editável.' });
+    wrap.append(head, code);
+    body.push(wrap);
+
     /** Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS). */
     const pad = (labels) => labels.map(([i, l, t]) =>
       num(l, () => L().padding[i], (v) => each((n) => { n.layout.padding[i] = Math.max(0, v); }), { title: t, min: 0, decimals: 0 }));
@@ -297,18 +352,19 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const asym = n0.layout.padding[0] !== n0.layout.padding[2] || n0.layout.padding[1] !== n0.layout.padding[3];
     const showAll = paddingExpanded || asym;
     /** padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão. */
-    const paddingBlock = () => [
-      h('div.prop-head', h('span.prop-name', 'padding'),
-        asym ? null : h('button.icon-btn.small' + (showAll ? '.on' : ''), {
-          type: 'button', title: showAll ? 'Simplificar (horizontal/vertical)' : 'Padding por lado (top/right/bottom/left)',
-          onclick: () => { paddingExpanded = !paddingExpanded; lastSig = null; render(); },
-        }, ico('corners', 14))),
-      ...(showAll
-        ? [row(...pad([[0, 'T', 'padding-top'], [1, 'R', 'padding-right']])), row(...pad([[3, 'L', 'padding-left'], [2, 'B', 'padding-bottom']]))]
-        : [row(
-          num('↔', () => L().padding[3], (v) => each((n) => { n.layout.padding[1] = n.layout.padding[3] = Math.max(0, v); }), { title: 'padding horizontal (esquerda e direita)', min: 0, decimals: 0 }),
-          num('↕', () => L().padding[0], (v) => each((n) => { n.layout.padding[0] = n.layout.padding[2] = Math.max(0, v); }), { title: 'padding vertical (topo e base)', min: 0, decimals: 0 }))]),
-    ];
+    const paddingBlock = () => {
+      const g = capK('Respiro interno', 'padding',
+        ...(showAll
+          ? [row(...pad([[0, 'T', 'padding-top'], [1, 'R', 'padding-right']])), row(...pad([[3, 'L', 'padding-left'], [2, 'B', 'padding-bottom']]))]
+          : [row(
+            num('↔', () => L().padding[3], (v) => each((n) => { n.layout.padding[1] = n.layout.padding[3] = Math.max(0, v); }), { title: 'padding horizontal (esquerda e direita)', min: 0, decimals: 0 }),
+            num('↕', () => L().padding[0], (v) => each((n) => { n.layout.padding[0] = n.layout.padding[2] = Math.max(0, v); }), { title: 'padding vertical (topo e base)', min: 0, decimals: 0 }),
+            asym ? null : h('button.icon-btn.small' + (showAll ? '.on' : ''), {
+              type: 'button', title: 'Padding por lado',
+              onclick: () => { paddingExpanded = !paddingExpanded; lastSig = null; render(); },
+            }, ico('corners', 14)))]));
+      return g;
+    };
     /**
      * Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o
      * vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
@@ -321,62 +377,116 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         for (let c = 0; c < 3; c++) {
           const [mainI, crossI] = col ? [r, c] : [c, r];
           const j = three[mainI][0], a = three[crossI][0];
-          const btn = h('button.am-cell', {
-            type: 'button', title: `${jName}: ${three[mainI][1]}; ${aName}: ${three[crossI][1]}`,
+          const btn = h('button.al-cell', {
+            type: 'button',
             onclick: () => { each((n) => { n.layout.justify = j; n.layout.align = a; }); commit(); },
           }, h('i'));
           updaters.push(() => btn.classList.toggle('on', L().justify === j && L().align === a));
           cells.push(btn);
         }
       }
-      return h('div.align-matrix', cells);
+      return tip(h('div.al-matrix', cells), {
+        title: 'Alinhamento rápido', css: `${jName}: …;\n${aName}: …;`,
+        text: 'Um clique define os dois alinhamentos de uma vez: onde os itens ficam dentro do container (cantos, bordas ou centro).',
+      });
     };
     /** Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between"). */
     const opts = (list, grid) => list.map(([v, css]) => [v, grid ? css : v]);
+    /** Legenda mono pequena com dica (usada acima dos selects de alinhamento). */
+    const subTip = (text, key) => tip(h('div.sub-label', text), cssTip(key));
+
+    /**
+     * Seletor visual de grade 6×6 (como o de tabela de um editor de texto): passar o mouse destaca "colunas × linhas",
+     * clicar aplica as duas contagens de uma vez. A grade atual (se couber em 6×6) fica marcada.
+     */
+    const gridPicker = () => {
+      const N = 6;
+      const cells = [];
+      const label = h('div.gp-label');
+      const paint = (c, r, cls) => cells.forEach((el, i) => el.classList.toggle(cls, i % N < c && Math.floor(i / N) < r));
+      const showCur = () => {
+        const c = L().cols ?? 2, r = L().rows || Math.ceil((P().children?.filter((k) => !k.absolute).length || 1) / c);
+        paint(c, r, 'on');
+        label.textContent = `${c} × ${L().rows ? L().rows : 'auto'}`;
+      };
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = h('button.gp-cell', { type: 'button', 'aria-label': `${c + 1} colunas × ${r + 1} linhas` });
+          cell.addEventListener('mouseenter', () => { paint(c + 1, r + 1, 'hover'); label.textContent = `${c + 1} × ${r + 1}`; });
+          cell.addEventListener('click', () => { each((n) => { n.layout.cols = c + 1; n.layout.rows = r + 1; }); commit(); });
+          cells.push(cell);
+        }
+      }
+      const box = h('div.grid-picker', h('div.gp-cells', cells), label);
+      box.addEventListener('mouseleave', () => { paint(0, 0, 'hover'); showCur(); });
+      updaters.push(showCur);
+      return box;
+    };
 
     if (mode === 'grid') {
       const gridAligns = [A_START, A_CENTER, A_END, A_STRETCH];
-      body.push(
-        prop('grid-template-columns', num('col', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); }),
-          { title: 'quantas colunas: repeat(N, 1fr)', min: 1, decimals: 0 }), 'repeat(N, 1fr): N colunas de larguras iguais'),
-        prop('grid-template-rows', num('lin', () => L().rows ?? 0, (v) => each((n) => { n.layout.rows = Math.max(0, Math.round(v)); }),
-          { title: 'quantas linhas (0 = automático: cria linhas conforme precisar)', min: 0, decimals: 0 }), '0 = automático'),
-        prop('gap', row(
+      // O espaço só aparece "junto" quando colunas e linhas têm o mesmo valor (senão mostra os dois)
+      const split = gapSplit || (L().colGap ?? 8) !== (L().rowGap ?? 8);
+      const gapRow = split
+        ? row(
           num('↔', () => L().colGap ?? 8, (v) => each((n) => { n.layout.colGap = Math.max(0, v); }), { title: 'column-gap (espaço entre colunas)', min: 0, decimals: 0 }),
-          num('↕', () => L().rowGap ?? 8, (v) => each((n) => { n.layout.rowGap = Math.max(0, v); }), { title: 'row-gap (espaço entre linhas)', min: 0, decimals: 0 })),
-        'column-gap / row-gap'),
-        ...paddingBlock(),
-        h('div.prop-head', h('span.prop-name', 'alinhamento dentro da célula')),
-        row(matrix('justify-items', 'align-items'), h('div.col',
-          h('div.sub-label', 'justify-items ↔'),
-          select(opts(gridAligns, true), () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-items: posição horizontal de cada item na célula'),
-          h('div.sub-label', 'align-items ↕'),
-          select(opts(gridAligns, true), () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items: posição vertical de cada item na célula'))),
-        h('button.btn', {
-          type: 'button', title: 'Os itens passam a ocupar a célula inteira (largura e altura "Preencher" = justify-self/align-self: stretch)',
+          num('↕', () => L().rowGap ?? 8, (v) => each((n) => { n.layout.rowGap = Math.max(0, v); }), { title: 'row-gap (espaço entre linhas)', min: 0, decimals: 0 }),
+          h('button.icon-btn.small', { type: 'button', title: 'Unir', onclick: () => {
+            each((n) => { n.layout.rowGap = n.layout.colGap; }); commit(); gapSplit = false; lastSig = null; render();
+          } }, ico('link', 14)))
+        : row(
+          num('⇔', () => L().colGap ?? 8, (v) => each((n) => { n.layout.colGap = n.layout.rowGap = Math.max(0, v); }), { title: 'gap', min: 0, decimals: 0 }),
+          h('button.icon-btn.small', { type: 'button', title: 'Separar', onclick: () => { gapSplit = true; lastSig = null; render(); } }, ico('corners', 14)));
+      body.push(
+        tip(h('div.cap-group', h('div.cap', 'Grade rápida'), gridPicker()), {
+          title: 'Colunas × linhas', css: 'grid-template-columns: repeat(N, 1fr);\ngrid-template-rows: repeat(M, 1fr);',
+          text: 'Passe o mouse para ver o tamanho da grade e clique para aplicar. Para algo diferente, use os campos logo abaixo.',
+        }),
+        row(
+          capK('Colunas', 'grid-template-columns', num('col', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); }), { min: 1, decimals: 0 })),
+          capK('Linhas', 'grid-template-rows', num('lin', () => L().rows ?? 0, (v) => each((n) => { n.layout.rows = Math.max(0, Math.round(v)); }), { min: 0, decimals: 0 }))),
+        capK('Espaço entre células', 'gap', gapRow),
+        paddingBlock(),
+        capK('Posição na célula', 'justify-items',
+          row(matrix('justify-items', 'align-items'), h('div.col',
+            subTip('justify-items ↔', 'justify-items'),
+            select(opts(gridAligns, true), () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-items'),
+            subTip('align-items ↕', 'align-items'),
+            select(opts(gridAligns, true), () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items')))),
+        tip(h('button.btn', {
+          type: 'button',
           onclick: () => {
             each((f) => f.children.forEach((c) => { if (!c.absolute) { c.sizeX = 'fill'; c.sizeY = 'fill'; } }));
             commit();
           },
-        }, ico('grid', 13), ' Itens preenchem as células'));
+        }, ico('grid', 13), ' Itens preenchem as células'), {
+          title: 'Esticar os itens', css: 'justify-self: stretch;\nalign-self: stretch;',
+          text: 'Os itens passam a ocupar a célula inteira (largura e altura "Preencher").',
+        }));
     } else {
       const flexJustify = [A_START, A_CENTER, A_END, ['space-between', 'space-between'], ['space-around', 'space-around'], ['space-evenly', 'space-evenly']];
       const flexAlign = [A_START, A_CENTER, A_END, A_STRETCH, ['baseline', 'baseline']];
       const mainArrow = mode === 'row' ? '↔' : '↕', crossArrow = mode === 'row' ? '↕' : '↔';
       body.push(
-        prop('gap', num(mainArrow, () => L().gap, (v) => each((n) => { n.layout.gap = Math.max(0, v); }), { title: 'gap: espaço entre os itens', min: 0, decimals: 0 })),
-        prop('flex-wrap', check('wrap (quebra linha)', () => L().wrap, (v) => each((n) => { n.layout.wrap = v; })),
-          'Quando não cabe, os itens descem para a próxima linha'),
-        ...paddingBlock(),
-        h('div.prop-head', h('span.prop-name', 'alinhamento')),
-        row(matrix('justify-content', 'align-items'), h('div.col',
-          h('div.sub-label', `justify-content ${mainArrow}`),
-          select(opts(flexJustify), () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-content: distribui os itens no eixo principal'),
-          h('div.sub-label', `align-items ${crossArrow}`),
-          select(opts(flexAlign), () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items: alinha os itens no eixo cruzado'))));
+        row(
+          capK('Espaço entre itens', 'gap', num(mainArrow, () => L().gap, (v) => each((n) => { n.layout.gap = Math.max(0, v); }), { min: 0, decimals: 0 })),
+          capK('Quebra de linha', 'flex-wrap', h('div.al-check', check('wrap', () => L().wrap, (v) => each((n) => { n.layout.wrap = v; }))))),
+        paddingBlock(),
+        capK('Alinhamento', 'justify-content',
+          row(matrix('justify-content', 'align-items'), h('div.col',
+            subTip(`justify-content ${mainArrow}`, 'justify-content'),
+            select(opts(flexJustify), () => L().justify, (v) => each((n) => { n.layout.justify = v; }), 'justify-content'),
+            subTip(`align-items ${crossArrow}`, 'align-items'),
+            select(opts(flexAlign), () => L().align, (v) => each((n) => { n.layout.align = v; }), 'align-items')))));
     }
-    return section('Auto layout (CSS)', body);
+    return autoSection(body);
   }
+
+  /** Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita. */
+  const autoSection = (body) => section('Auto layout', body, tip(h('span.al-badge', 'CSS puro'), {
+    title: 'Auto layout é CSS de verdade', css: 'display: flex;\ndisplay: grid;',
+    text: 'Nada aqui é imitação: o que você configura vira flexbox e grid no navegador, e o mesmo código sai na exportação.',
+  }));
 
   /**
    * Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
@@ -458,13 +568,66 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Grades de layout', body, add);
   }
 
-  /** Seção "Vetor": caminho fechado e botão para editar pontos. */
+  /**
+   * Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter
+   * direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+   */
   function vectorSection() {
-    return section('Vetor', [
-      check('Caminho fechado', () => P().closed, (v) => each((n) => { n.closed = v; if (v && n.fill.type === 'none') n.fill = defaultFill('#D9D9D9'); })),
-      h('button.btn', { type: 'button', onclick: () => tools.pen.startEdit(P().id) }, ico('pen', 13), ' Editar pontos (Enter)'),
-      h('p.hint', 'Arraste pontos e alças. Alt+clique no traço adiciona um ponto. Duplo clique num ponto alterna canto/suave. Delete remove.'),
-    ]);
+    const pen = tools.pen;
+    const editing = ui.editPathId === P().id;
+    const body = [];
+    body.push(editing
+      ? h('button.btn.primary', { type: 'button', onclick: () => pen.exitEdit() }, ico('check', 13), ' Concluir edição (Enter)')
+      : h('button.btn', { type: 'button', onclick: () => pen.startEdit(P().id) }, ico('pen', 13), ' Editar pontos (Enter)'));
+
+    // ---- ponto selecionado (só durante a edição de pontos) ----
+    const count = editing ? pen.selectedCount() : 0;
+    if (editing && !count) {
+      body.push(h('p.hint', 'Clique num ponto para selecioná-lo, ou arraste uma caixa no vazio para pegar vários (Shift soma; Ctrl+A seleciona todos).'));
+    }
+    if (editing && count) {
+      const typeBtn = (v, label, doc) => {
+        const b = h('button.seg-btn.wide', { type: 'button', onclick: () => pen.setPointType(v) }, label);
+        updaters.push(() => b.classList.toggle('on', pen.pointType() === v));
+        return tip(b, doc);
+      };
+      body.push(
+        cap(count > 1 ? `${count} pontos selecionados` : `Ponto ${ui.editPt + 1} de ${P().points.length}`, h('div.segmented.wide',
+          typeBtn('corner', 'Canto', { title: 'Ponto de canto', css: 'L x y', text: 'Sem alças: o traço chega e sai em linha reta, formando uma quina.' }),
+          typeBtn('smooth', 'Suave', { title: 'Ponto suave', css: 'C x1 y1, x2 y2, x y', text: 'Duas alças iguais e opostas: a curva passa sem quebra pelo ponto. Arraste uma alça para curvar (Alt quebra o espelho).' }))),
+        count === 1 ? row(
+          num('X', () => pen.pointPos()?.x ?? 0, (v) => pen.setPointPos('x', v), { decimals: 1, title: 'Posição X do ponto (relativa ao pai)' }),
+          num('Y', () => pen.pointPos()?.y ?? 0, (v) => pen.setPointPos('y', v), { decimals: 1, title: 'Posição Y do ponto (relativa ao pai)' })) : null,
+        h('div.row',
+          h('button.btn', { type: 'button', disabled: P().points.length - count < 2, onclick: () => pen.deletePoint() }, ico('trash', 13), count > 1 ? ' Excluir pontos' : ' Excluir ponto'),
+          count === 1 && P().closed
+            ? tip(h('button.btn', { type: 'button', onclick: () => pen.openAfter() }, ico('x', 13), ' Abrir aqui'),
+              { title: 'Abrir o caminho aqui', text: 'Corta o segmento logo depois deste ponto: o caminho fechado vira aberto e o ponto seguinte passa a ser o início.' })
+            : null));
+    }
+
+    // ---- caminho ----
+    body.push(
+      h('div.row',
+        check('Caminho fechado', () => P().closed, (v) => each((n) => { n.closed = v; if (v && n.fill.type === 'none') n.fill = defaultFill('#D9D9D9'); })),
+        tip(h('button.btn.small', { type: 'button', onclick: () => pen.reverse(P().id) }, ico('flipH', 13), ' Inverter'),
+          { title: 'Inverter direção', text: 'O primeiro ponto vira o último. O desenho fica igual; muda o sentido em que o traço é percorrido.' })));
+
+    // ---- código SVG do caminho ----
+    const ta = h('textarea.svg-d', { spellcheck: false, rows: 4, placeholder: 'M 0 0 L 10 10 …' });
+    updaters.push(() => { if (document.activeElement !== ta) ta.value = pen.pathD(P().id); });
+    body.push(h('details.svg-code', { open: false },
+      h('summary', ico('code', 13), ' Código SVG (path d)'),
+      h('p.hint', `O desenho como atributo \`d\` do SVG, no espaço 0 0 ${P().vw} ${P().vh}. Cole aqui o \`d\` de outro SVG e aplique para trocar a forma (cor, contorno e nome ficam).`),
+      ta,
+      h('div.row',
+        h('button.btn', { type: 'button', onclick: async () => {
+          try { await navigator.clipboard.writeText(ta.value); toast('Path copiado.'); } catch { ta.select(); toast('Selecione e copie (Ctrl+C).'); }
+        } }, ico('copy', 13), ' Copiar'),
+        h('button.btn.primary', { type: 'button', onclick: () => { if (pen.applyPathD(P().id, ta.value)) toast('Forma aplicada.'); else toast('Não achei um caminho nesse texto.'); } }, ico('check', 13), ' Aplicar'))));
+
+    body.push(h('p.hint', 'Arraste pontos e alças (Shift trava em 45°). Alt+clique no traço adiciona ponto; Alt+clique num ponto alterna canto/suave. Com a caneta (P), clique na ponta de um caminho aberto para continuar desenhando. Setas movem os pontos.'));
+    return section('Vetor', body);
   }
 
   /** Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical. */
@@ -481,17 +644,17 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addTextStyle(P(), name);
         }, 'small')),
-      reg(fontField({
+      cap('Fonte', reg(fontField({
         get: () => P().fontFamily,
         // ao trocar a fonte: começa a baixar (Google Fonts) e ajusta o peso para o mais próximo que ela tem
         set: (v) => { ensureFonts([v]); each((n) => { n.fontFamily = v; n.fontWeight = nearestWeight(v, n.fontWeight); delete n.textStyleId; }); commit(); },
-      })),
+      }))),
       row(
-        select((weights.length ? weights : FONT_WEIGHTS).map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight'),
-        num('Aa', () => P().fontSize, (v) => each((n) => { n.fontSize = Math.max(1, v); delete n.textStyleId; }), { title: 'font-size', min: 1, decimals: 1 })),
+        cap('Peso', select((weights.length ? weights : FONT_WEIGHTS).map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight')),
+        cap('Tamanho', num('Aa', () => P().fontSize, (v) => each((n) => { n.fontSize = Math.max(1, v); delete n.textStyleId; }), { title: 'font-size', min: 1, decimals: 1 }))),
       row(
-        num('↕', () => P().lineHeight, (v) => each((n) => { n.lineHeight = v; delete n.textStyleId; }), { title: 'line-height (multiplicador)', min: 0, step: 0.05, decimals: 2 }),
-        num('↔', () => P().letterSpacing, (v) => each((n) => { n.letterSpacing = v; delete n.textStyleId; }), { title: 'letter-spacing (px)', step: 0.1, decimals: 2 })),
+        cap('Altura da linha', num('↕', () => P().lineHeight, (v) => each((n) => { n.lineHeight = v; delete n.textStyleId; }), { title: 'line-height (multiplicador)', min: 0, step: 0.05, decimals: 2 })),
+        cap('Espaçamento', num('↔', () => P().letterSpacing, (v) => each((n) => { n.letterSpacing = v; delete n.textStyleId; }), { title: 'letter-spacing (px)', step: 0.1, decimals: 2 }))),
       row(
         reg(segmented({
           options: [['left', 'alignTextL', 'Esquerda'], ['center', 'alignTextC', 'Centro'], ['right', 'alignTextR', 'Direita']],
@@ -554,13 +717,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const isText = n0.type === 'text';
     const fill = () => P().fill;
     const body = [
-      select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['image', 'Imagem']],
+      cap('Tipo', select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['image', 'Imagem']],
         () => fill().type, (v) => {
           each((n) => { n.fill.type = v; });
           if (v === 'image' && !fill().assetId) {
             pickImage(({ assetId }) => { each((n) => { n.fill.assetId = assetId; }); commit(); });
           }
-        }, 'Tipo de preenchimento'),
+        }, 'Tipo de preenchimento')),
     ];
     const t = n0.fill.type;
     if (t === 'solid') {
@@ -625,18 +788,24 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           get: () => st().color, set: (v) => each((n) => { if (n.stroke) n.stroke.color = v; }), commit,
           opacity: () => st().opacity, setOpacity: (v) => each((n) => { if (n.stroke) n.stroke.opacity = v; }),
         })),
-        row(num('▭', () => st().width, (v) => each((n) => {
+        row(cap('Espessura', num('▭', () => st().width, (v) => each((n) => {
           if (!n.stroke) return;
           n.stroke.width = Math.max(0, v);
           // com lados ativos, a espessura vale para todos os lados ligados
           if (n.stroke.sides) n.stroke.sides = n.stroke.sides.map((x) => (x > 0 ? n.stroke.width : 0));
-        }), { title: 'espessura', min: 0, step: 0.5, decimals: 1 }),
+        }), { title: 'espessura', min: 0, step: 0.5, decimals: 1 })),
           n0.type === 'text'
             ? null
-            : select([['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']], () => st().style, (v) => each((n) => { if (n.stroke) n.stroke.style = v; }), 'outline-style')),
+            : cap('Estilo', select([['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']], () => st().style, (v) => each((n) => { if (n.stroke) n.stroke.style = v; }), 'outline-style'))),
         n0.type === 'text' || sidesOn()
           ? null
-          : select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno'));
+          : cap('Posição', select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno')));
+      // vetores: extremidade (stroke-linecap) e quina (stroke-linejoin) do traço, essenciais para desenhar ícones
+      if (n0.type === 'path') {
+        body.push(row(
+          cap('Extremidade', select([['round', 'Redonda'], ['butt', 'Reta'], ['square', 'Quadrada']], () => st().cap || 'round', (v) => each((n) => { if (n.stroke) n.stroke.cap = v; }), 'stroke-linecap')),
+          cap('Quina', select([['round', 'Redonda'], ['miter', 'Pontuda'], ['bevel', 'Chanfrada']], () => st().join || 'round', (v) => each((n) => { if (n.stroke) n.stroke.join = v; }), 'stroke-linejoin'))));
+      }
       // LADOS (só retângulo e frame): todos (outline) ou só alguns (border-top/right/bottom/left do CSS)
       if (['rect', 'frame'].includes(n0.type)) body.push(...strokeSidesRows(st));
     }
@@ -776,9 +945,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
+      // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)
+      n.type === 'path' ? `${ui.editPathId === n.id}|${ui.editPt}|${(ui.editPts || []).join('.')}|${ui.editPathId === n.id ? tools.pen.pointType() : ''}` : '',
       store.state.doc.styles.colors.length, store.state.doc.styles.texts.length, n.fill.styleId, n.textStyleId, n.type,
       n.type === 'text' ? n.fontFamily : '', // a lista de pesos depende da fonte
-      n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)), paddingExpanded, n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
+      n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)), paddingExpanded, gapSplit, n.layout ? n.layout.colGap !== n.layout.rowGap : '', n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
     ].join('|');
   }
 
@@ -798,17 +969,18 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         const one = ids().length === 1;
         const canComp = one && ['frame', 'group', 'rect', 'ellipse'].includes(n.type);
         const isComp = !!(n.component || n.instanceOf);
-        const parts = [alignSection()];
+        const parts = [];
         if (canComp && isComp) parts.push(componentSection());
         parts.push(positionSection(), sizeSection());
         if (one && hasLayout(parent)) parts.push(flowItemSection());
         if (one && n.type === 'frame') parts.push(autoLayoutSection(), layoutGridsSection());
         if (n.type === 'text') parts.push(textSection());
         if (n.type === 'path') parts.push(vectorSection());
-        parts.push(appearanceSection());
+        // Seção é só organização do canvas: sem contorno, cantos, mesclagem nem efeitos (só cor de fundo)
+        if (n.type !== 'section') parts.push(appearanceSection());
         if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
-        if (n.type !== 'group') parts.push(strokeSection());
-        parts.push(effectsSection());
+        if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
+        if (n.type !== 'section') parts.push(effectsSection());
         if (canComp && !isComp) parts.push(componentSection());
         parts.push(exportSection());
         el.replaceChildren(...parts);

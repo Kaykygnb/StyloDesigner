@@ -6,7 +6,7 @@
 
 import { h, ico, iconButton } from './dom.js';
 import { nodeIcon } from './icons.js';
-import { isContainer } from '../model.js';
+import { isBoard, isContainer } from '../model.js';
 import { showMenu, ask, askText } from './menus.js';
 
 /**
@@ -151,7 +151,7 @@ export function createLayersPanel({ store, commands, container }) {
         store.emit('ui');
       },
     }, ico('chevron', 10)),
-    h('span.layer-icon' + (node.component || node.instanceOf ? '.comp' : node.type === 'frame' && !store.parentOf(node.id) ? '.board' : ''),
+    h('span.layer-icon' + (node.component || node.instanceOf ? '.comp' : (node.type === 'section' || isBoard(node, store.parentOf(node.id))) ? '.board' : ''),
       ico(node.component || node.instanceOf ? 'component' : nodeIcon(node.type), 14)),
     nameEl,
     h('span.row-actions',
