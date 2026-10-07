@@ -1,13 +1,15 @@
-# Testes de navegador (opcionais)
+# Testes de navegador
 
 Testam o app **de verdade**, num navegador: desenhar, arrastar entre frames, redimensionar com rotação, caneta, componentes, protótipo, atalhos, painéis e desempenho. Os testes *unitários* (`npm test`) cobrem a lógica pura; estes cobrem a interação.
 
-Eles precisam do Playwright, que **não** faz parte das dependências do projeto (o app não tem nenhuma):
+O Playwright é uma dependência de desenvolvimento; o app continua sem dependências em tempo de execução.
 
 ```bash
-npm i --no-save playwright && npx playwright install chromium
-npm start                                   # em outro terminal (porta 5173)
-node tests/e2e/basico.mjs                   # cada arquivo imprime PASS/FAIL e "ALL PASS" no final
+npm install
+npx playwright install chromium
+npm start                 # em outro terminal (porta 5173)
+npm run test:e2e          # todos os fluxos no navegador
+npm run test:all          # unitários + navegador
 ```
 
 Variáveis de ambiente: `APP_URL` (padrão `http://localhost:5173/`) e `CHROMIUM_PATH` (se você já tem um Chromium instalado).

@@ -44,7 +44,11 @@ ok('dica aparece com canvas vazio', await p.locator('.empty-canvas').isVisible()
 await ev(() => { setTimeout(() => { throw new Error('teste'); }, 0); });
 await p.waitForTimeout(200);
 ok('erro inesperado mostra aviso amigável', (await p.locator('.toast').count()) === 1);
-console.log(errors.filter(e => !e.includes('teste')).join('\n') || 'sem outros erros');
+const unexpectedErrors = errors.filter(e => !e.includes('teste'));
+if (unexpectedErrors.length) { console.error(unexpectedErrors.join('\n')); fails += unexpectedErrors.length; }
+else console.log('sem outros erros');
 console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
+// codex: garante que falhas de interface ou console sejam visíveis para npm e CI.
+process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.filter(e => !e.includes('teste')).length ? 1 : 0;

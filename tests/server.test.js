@@ -1,26 +1,56 @@
-// Teste HTTP do server.js: sobe o servidor real numa porta livre e confere o que ele entrega e o que bloqueia.
-// Protege contra a regressão do Windows (assets em subpastas davam 404 → tela em branco).
-import test from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer as createProbeServer } from 'node:net';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
-const port = 5900 + Math.floor(Math.random() * 90);
-let child;
-test.before(async () => {
-  child = spawn(process.execPath, ['server.js'], { cwd: root, env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise((ok) => child.stdout.once('data', ok)); // espera a mensagem "rodando em ..."
-});
-test.after(() => child.kill());
-const get = (p) => fetch(`http://127.0.0.1:${port}${p}`);
+async function unusedPort() {
+  const probe = createProbeServer();
+  probe.listen(0, '127.0.0.1');
+  await once(probe, 'listening');
+  const { port } = probe.address();
+  probe.close();
+  await once(probe, 'close');
+  return port;
+}
 
-test('entrega a página e os assets em subpastas', async () => {
-  for (const p of ['/', '/src/main.js', '/src/styles/app.css', '/src/ui/props.js']) assert.equal((await get(p)).status, 200, p);
-});
-test('bloqueia arquivos privados e path traversal', async () => {
-  for (const p of ['/package.json', '/.git/config', '/server.js', '/tests/css.test.js', '/src/../package.json', '/%2e%2e/package.json', '/src/%5c..%5cpackage.json']) {
-    assert.equal((await get(p)).status, 404, p);
+test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t) => {
+  // codex: escolhe uma porta livre e espera o servidor ficar pronto para evitar colisões entre execuções.
+  const port = await unusedPort();
+  const serverPath = fileURLToPath(new URL('../server.js', import.meta.url));
+  const child = spawn(process.execPath, [serverPath], {
+    env: { ...process.env, PORT: String(port) },
+    stdio: 'ignore',
+  });
+  t.after(() => child.kill());
+
+  const base = `http://127.0.0.1:${port}`;
+  let ready = false;
+  for (let attempt = 0; attempt < 100 && !ready; attempt++) {
+    if (child.exitCode !== null) throw new Error(`server exited with ${child.exitCode}`);
+    try {
+      ready = (await fetch(base)).status === 200;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+  assert.equal(ready, true, 'server should start and serve the app shell');
+
+  // codex: cobre assets aninhados e tentativas comuns de sair da allowlist em Windows e Unix.
+  for (const path of ['/', '/src/main.js', '/src/styles/app.css', '/src/ui/props.js']) {
+    assert.equal((await fetch(`${base}${path}`)).status, 200, `${path} should be served`);
+  }
+  for (const path of [
+    '/package.json',
+    '/.git/config',
+    '/server.js',
+    '/tests/css.test.js',
+    '/src/../package.json',
+    '/%2e%2e/package.json',
+    '/src/%5c..%5cpackage.json',
+    '/src/nao-existe.js',
+  ]) {
+    assert.equal((await fetch(`${base}${path}`)).status, 404, `${path} should be blocked or missing`);
   }
 });
-test('arquivo inexistente é 404', async () => assert.equal((await get('/src/nao-existe.js')).status, 404));

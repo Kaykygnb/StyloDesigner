@@ -65,6 +65,10 @@ p.on('download', d => downloads.push(d.suggestedFilename()));
 await p.click('.menu-item:has-text("Exportar todos os frames")');
 await p.waitForTimeout(2500);
 ok('exporta um PNG por frame (3)', downloads.length === 3, JSON.stringify(downloads));
-console.log(errors.join('\n') || 'sem erros'); console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
+if (errors.length) { console.error(errors.join('\n')); fails += errors.length; }
+else console.log('sem erros');
+console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
+// codex: retorna falha ao shell quando uma asserção ou erro de navegador ocorrer.
+process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.length ? 1 : 0;

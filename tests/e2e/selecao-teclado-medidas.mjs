@@ -76,6 +76,10 @@ ok('soltar Alt remove as medidas', (await p.locator('.measure-text').count()) ==
 // ---- grade de pixels
 await ev(() => designer.canvas.zoomAt(10, 600, 400)); await p.waitForTimeout(100);
 ok('zoom ≥ 800% liga a grade de pixels', await ev(() => document.querySelector('.overlay').classList.contains('pixels')));
-console.log(errors.join('\n') || 'sem erros'); console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
+if (errors.length) { console.error(errors.join('\n')); fails += errors.length; }
+else console.log('sem erros');
+console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
+// codex: transforma erro de navegador e asserção em código de saída não zero.
+process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.length ? 1 : 0;
