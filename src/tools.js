@@ -108,6 +108,27 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    * retângulo cinza desenhado em cima de outro cinza; um frame branco dentro de outro branco). Aí usa um tom que
    * contrasta: mais escuro sobre fundo claro, branco sobre fundo escuro.
    */
+  /** Cor de fundo visível atrás das camadas de um frame: o preenchimento sólido dele ou do ancestral mais próximo. */
+  function backdropOf(parent) {
+    for (let n = parent; n; n = store.parentOf(n.id)) {
+      if (n.visible && n.fill?.type === 'solid' && n.fill.opacity > 0.5 && n.opacity > 0.5) return n.fill.color;
+    }
+    return null;
+  }
+  /**
+   * Cor AUTOMÁTICA (escolhida pelo app, nunca mexida por você) se reajusta quando a camada muda de lugar: um
+   * retângulo criado fora e arrastado para dentro de uma sidebar da mesma cor sumiria. `node.autoFill` guarda a
+   * cor padrão do tipo e a cor que o app escolheu; se você trocou a cor, ela não bate mais e nada acontece.
+   */
+  function refreshAutoFill(node) {
+    const af = node.autoFill;
+    if (!af || node.fill?.type !== 'solid' || node.fill.color !== af.color) return;
+    const bg = backdropOf(store.parentOf(node.id));
+    if (!bg || Math.abs(luma(af.color) - luma(bg)) >= 0.12) return; // continua visível: não mexe
+    const color = contrastingFill(af.base, bg);
+    node.fill.color = color;
+    af.color = color;
+  }
   function contrastingFill(color, under) {
     if (!under || Math.abs(luma(color) - luma(under)) >= 0.12) return color;
     if (luma(under) < 0.45) return '#FFFFFF';
@@ -482,10 +503,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     // "fantasma": o item em auto layout fica na vaga que o navegador deu, mas visualmente segue o ponteiro (CSS translate)
     for (const it of d.items) {
       const n = store.get(it.id);
-      if (n && isFlow(n, store.parentOf(n.id))) {
+      const el = n && canvas.els.get(n.id);
+      if (!el) continue;
+      if (isFlow(n, store.parentOf(n.id))) {
         const o = canvas.originOf(n.id);
-        canvas.els.get(n.id).style.translate = `${it.a0.x + dx - o.x}px ${it.a0.y + dy - o.y}px`;
-      }
+        el.style.translate = `${it.a0.x + dx - o.x}px ${it.a0.y + dy - o.y}px`;
+      } else el.style.translate = ''; // saiu do auto layout: está livre, o "fantasma" não vale mais
     }
     store.emit('overlay');
   }
@@ -648,8 +671,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         name: nextName(store.page(), tool),
         x: round(p.x - po.x), y: round(p.y - po.y), w: 1, h: 1,
       });
-      // não nascer "invisível" (mesma cor do que está embaixo do cursor)
-      if (node.fill?.type === 'solid') node.fill.color = contrastingFill(node.fill.color, colorUnder(e.clientX, e.clientY));
+      // não nascer "invisível" (mesma cor do que está embaixo do cursor). autoFill: ver refreshAutoFill
+      if (node.fill?.type === 'solid') {
+        const base = node.fill.color;
+        node.fill.color = contrastingFill(base, colorUnder(e.clientX, e.clientY));
+        node.autoFill = { base, color: node.fill.color };
+      }
       // Dentro de um frame com AUTO LAYOUT: enquanto arrasta, a forma fica "solta" (absoluta) exatamente sob o mouse;
       // ao soltar, entra na fila NA POSIÇÃO onde foi desenhada (finishDraw → enterFlow). Sem isso ela ia para o fim
       // da fila durante o próprio desenho, longe do cursor.
@@ -717,7 +744,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         name: 'Texto', x: round(Math.min(d.p0.x, p.x) - d.po.x), y: round(Math.min(d.p0.y, p.y) - d.po.y),
       });
       node.name = nextName(store.page(), 'text');
-      node.fill.color = contrastingFill(node.fill.color, colorUnder(d.sx, d.sy)); // texto preto sobre fundo escuro sumiria
+      const base = node.fill.color;
+      node.fill.color = contrastingFill(base, colorUnder(d.sx, d.sy)); // texto preto sobre fundo escuro sumiria
+      node.autoFill = { base, color: node.fill.color };
       if (d.moved && Math.abs(p.x - d.p0.x) > 12) {
         node.w = Math.round(Math.abs(p.x - d.p0.x));
         node.sizeX = 'fixed';
@@ -888,6 +917,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       return;
     }
     if (d.type === 'move') {
+      // SEMPRE desfaz o "fantasma" (CSS translate) do arrasto em auto layout. Sem isso, quando o desenho da camada
+      // não era refeito do zero (ex.: retângulo trazido de fora para dentro de uma sidebar com auto layout), o
+      // empurrão ficava para sempre: o desenho aparecia num lugar e as alças da seleção em outro.
+      for (const it of d.items || []) { const el = canvas.els.get(it.id); if (el) el.style.translate = ''; }
+      // mudou de pai? cor automática se reajusta ao novo fundo (não some cinza sobre cinza)
+      if (d.moved) store.update(() => { for (const it of d.items || []) { const n = store.get(it.id); if (n) refreshAutoFill(n); } }, { structural: false });
       if (!d.moved) {
         if (d.collapseTo) store.setSelection([d.collapseTo]);
         store.emit('doc');

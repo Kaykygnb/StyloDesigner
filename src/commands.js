@@ -318,7 +318,8 @@ export function createCommands(store, canvas) {
    */
   function enableAutoLayout(frame) {
     const kids = frame.children.filter((c) => c.visible);
-    const layout = { ...defaultLayout(), mode: 'row', gap: 8 };
+    // sem filhos: frame alto (ex.: uma sidebar vazia) → coluna; largo → linha
+    const layout = { ...defaultLayout(), mode: frame.h > frame.w ? 'column' : 'row', gap: 8 };
     if (kids.length) {
       const xs = kids.map((k) => k.x), ys = kids.map((k) => k.y);
       const spreadX = Math.max(...xs) - Math.min(...xs);

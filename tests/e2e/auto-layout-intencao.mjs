@@ -95,6 +95,38 @@ try {
   // y=395 cai entre o "Retângulo 3" e o "Retângulo 4" (a fila já desceu por causa do item inserido acima)
   ok('texto clicado entre dois itens entra entre eles', order.join() === 'Retângulo 2,Retângulo 5,Retângulo 3,Menu,Retângulo 4', order.join());
 
+  // ---------------------------------------------------------------- 2c. retângulo criado FORA e arrastado para DENTRO
+  // (3º relato: "o retângulo e a bordinha de redimensionar estão ligados, porém separados")
+  await ev(() => designer.store.newDoc());
+  await draw('f', 200, 60, 400, 760);
+  await ev(() => { const f = designer.store.selected()[0]; designer.store.update(() => { f.fill.color = '#D9D9D9'; }, { commit: true }); });
+  await p.keyboard.press('Shift+A');
+  await p.waitForTimeout(200);
+  ok('frame alto e VAZIO + Shift+A vira coluna', (await ev(() => designer.store.page().children[0].layout.mode)) === 'column');
+  await draw('r', 215, 160, 385, 280);
+  await draw('r', 600, 300, 770, 410);
+  await p.mouse.move(vp.x + 685, vp.y + 355); await p.mouse.down();
+  await p.mouse.move(vp.x + 300, vp.y + 400, { steps: 12 }); await p.mouse.up();
+  await p.waitForTimeout(300);
+  const dragged = await ev(() => {
+    const id = designer.store.ui.selection[0], n = designer.store.get(id), el = designer.canvas.els.get(id);
+    const r = el.getBoundingClientRect(), box = document.querySelector('#viewport .sel-box').getBoundingClientRect();
+    return { inside: designer.store.parentOf(id)?.type === 'frame', translate: el.style.translate, dx: Math.round(r.left - box.left), dy: Math.round(r.top - box.top), color: n.fill.color };
+  });
+  ok('arrastado para dentro: o desenho e as alças da seleção ficam JUNTOS', dragged.inside && dragged.translate === '' && dragged.dx === 0 && dragged.dy === 0, JSON.stringify(dragged));
+  ok('e a cor automática se ajusta para não sumir (cinza sobre cinza)', dragged.color !== '#D9D9D9', dragged.color);
+  // cor escolhida à mão ("quase igual ao fundo"): arrastar a forma (sai e volta para a sidebar) NÃO pode trocá-la
+  const c = await ev(() => {
+    const s = designer.store, id = s.ui.selection[0];
+    s.update(() => { s.get(id).fill.color = '#D9D9DA'; }, { commit: true });
+    const r = designer.canvas.els.get(id).getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
+  await p.mouse.move(c.x, c.y); await p.mouse.down();
+  await p.mouse.move(vp.x + 650, vp.y + 450, { steps: 8 }); await p.mouse.move(c.x, c.y + 5, { steps: 8 }); await p.mouse.up();
+  await p.waitForTimeout(250);
+  ok('cor escolhida à mão não é alterada ao arrastar para fora e para dentro', (await ev(() => designer.store.selected()[0].fill.color)) === '#D9D9DA');
+
   // ---------------------------------------------------------------- 3. grupo → o grupo vira o frame
   await sidebar();
   await p.keyboard.press('Control+a');
