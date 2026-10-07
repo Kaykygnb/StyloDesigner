@@ -144,6 +144,15 @@ try {
   ok('barra de ferramentas e zoom não se sobrepõem (900–1440 px)', !clash.length, clash.join(','));
   await p.setViewportSize({ width: 1440, height: 900 });
 
+  // codex: a busca da página inicial deve continuar permitindo voltar ao editor com Esc.
+  await p.click('.topbar button.brand');
+  await p.waitForSelector('.home');
+  await p.keyboard.press('/');
+  ok('/ foca a busca da página inicial', await p.evaluate(() => document.activeElement === document.querySelector('.home-search input')));
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(100);
+  ok('Esc volta ao editor mesmo com o foco na busca', !(await homeOpen()));
+
   // ---------------------------------------------------------------- 9. preferência: ir direto para o editor
   await ev(() => { const k = 'projeto-designer:prefs'; const v = JSON.parse(localStorage.getItem(k) || '{}'); v.startScreen = 'editor'; localStorage.setItem(k, JSON.stringify(v)); });
   await p.reload();

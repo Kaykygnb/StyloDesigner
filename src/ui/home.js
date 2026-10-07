@@ -105,7 +105,8 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
   function onKey(e) {
     if (document.querySelector('.modal-backdrop') || document.querySelector('.menu')) return;
     const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
-    if (e.key === 'Escape' && !typing) { e.preventDefault(); close(); }
+    // codex: a busca deve permitir que Esc volte ao editor mesmo enquanto mantém o foco.
+    if (e.key === 'Escape' && (!typing || e.target.matches?.('.home-search input'))) { e.preventDefault(); close(); }
     if (e.key === '/' && !typing) { e.preventDefault(); root.querySelector('.home-search input')?.focus(); }
   }
 
