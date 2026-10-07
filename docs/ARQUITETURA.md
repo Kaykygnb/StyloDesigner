@@ -39,7 +39,8 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `svg.js` | Exportação SVG vetorial | ✅ |
 | `store.js` | Estado, `update`/`commit`, histórico, índice id→camada, **quando** salvar (debounce), eventos | ✅ (recebe `persist` pronto) |
 | `storage.js` | **Como** gravar: IndexedDB (com migração do `localStorage` antigo), preferências e cliente da API da pasta | — |
-| `saving.js` | **Regras** de salvamento: pasta x navegador, conflito, servidor desligado, reconciliação ao abrir | — |
+| `saving.js` | **Regras** de salvamento: pasta x navegador, conflito, servidor desligado, reconciliação ao abrir; miniaturas, renomear, duplicar | — |
+| `thumbnail.js` | Miniatura SVG da página aberta (reaproveita `svg.js` medindo o DOM do canvas) | — |
 | `canvas.js` | Renderiza o documento em DOM; pan/zoom; geometria (`originOf`, `aabb`, `worldBox`) | — |
 | `overlay.js` | Seleção, alças, guias, grades, medidas, setas do protótipo | — |
 | `tools.js` | Todos os gestos do mouse e atalhos de teclado | — |
@@ -49,7 +50,7 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `present.js` | Modo Apresentar | — |
 | `export.js` | Baixar PNG/SVG/HTML/projeto | — |
 | `sample.js` | Dois projetos de exemplo | ✅ |
-| `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; menus e janelas modais (`openModal`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
+| `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; **página inicial** (`home.js`); menus e janelas modais (`openModal`, `ask`, `askText`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
 | `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
 | `main.js` | Monta tudo na ordem certa | — |
 
@@ -240,7 +241,13 @@ Compara, sem usar relógios, *"o arquivo mudou desde a última vez?"* com *"o na
 | **arquivo mudou** | abre o do disco | conflito (mantém o do navegador) |
 
 ### API do servidor
-`GET /api/status` · `PUT /api/config {folder, keepVersions}` · `GET /api/projects` · `GET|PUT /api/projects/<arquivo>` · `GET /api/projects/<arquivo>/versions[/<id>]`. Detalhes e proteções (Host/Origin/Content-Type, nomes de arquivo, gravação atômica, versões a cada 10 min) no cabeçalho de [`server.js`](../server.js); testes em [`tests/api.test.js`](../tests/api.test.js).
+`GET /api/status` · `PUT /api/config {folder, keepVersions}` · `GET /api/projects` · `GET|PUT /api/projects/<arquivo>` · `GET /api/projects/<arquivo>/versions[/<id>]` · `GET|PUT /api/projects/<arquivo>/thumb` · `POST /api/projects/<arquivo>/rename {to}`.
+
+### Miniaturas
+Depois de cada gravação na pasta (no máximo 1 a cada 15 s por arquivo, quando o navegador fica ocioso), `saving.js` chama `thumbnail.js`, que monta um "grupo de mentira" com as camadas da raiz da página aberta e converte com `svg.js` (posições medidas no DOM, como no exportar SVG). Imagens grandes viram um retângulo cinza para a miniatura ficar leve. O servidor guarda em `.miniaturas/` e serve com uma `Content-Security-Policy` que impede scripts dentro do SVG.
+
+### Trocar de projeto (`confirmReplace` em main.js)
+Toda troca (abrir da pasta, Recentes, página inicial, novo, exemplo, importar, versão antiga) passa por `confirmReplace`: sem pergunta se o projeto está gravado na pasta ou é um exemplo/em branco não editado (`ui.pristine`); senão, `ask()` oferece salvar antes, descartar ou cancelar. O navegador guarda **um** projeto, então trocar sem perguntar apagaria o único lugar onde o rascunho existe. Detalhes e proteções (Host/Origin/Content-Type, nomes de arquivo, gravação atômica, versões a cada 10 min) no cabeçalho de [`server.js`](../server.js); testes em [`tests/api.test.js`](../tests/api.test.js).
 
 ### Preferências
 Largura dos painéis, auto-salvar na pasta e modo da roda do mouse ficam em outra chave do `localStorage` (`projeto-designer:prefs`), para não "sujar" o documento.
@@ -314,4 +321,6 @@ Função `createXPanel({ store, ... })` em `ui/`, devolvendo `{ el, render }`; a
 - **`measureBack` escreve no modelo durante o render.** É intencional (dado derivado) e não passa por `update`; por isso não gera histórico nem eventos.
 - **Imagens grandes são reduzidas** (1600 px) antes de entrar em `assets`: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagens enormes deixariam o salvamento lento.
 - **Gravação atômica na pasta.** O servidor grava num arquivo temporário e renomeia; se a energia cair no meio, o projeto antigo continua inteiro.
+- **Canvas "coberto" não reage.** Com a página inicial ou uma janela aberta, `tools.js` ignora teclado/copiar/colar (`covered()`) e o `#app` fica `inert`. Antes disso, `Delete` com o foco num botão de uma janela apagava camadas escondidas.
+- **Container query no palco.** A barra de ferramentas (~480 px) e o zoom ficam no rodapé do palco; quando o **palco** fica estreito (< 900 px), o zoom sobe. A regra olha o palco e não a janela, então vale também ao alargar os painéis.
 - **Sem login no Google.** Integrar a API do Google Drive exigiria registrar o app no Google Cloud e fazer OAuth; apontar a pasta para dentro do Drive para computador dá o mesmo resultado sem nada disso.

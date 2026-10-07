@@ -25,7 +25,7 @@ const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || u
 const ctx = await b.newContext({ viewport: { width: 1600, height: 960 } });
 const p = await ctx.newPage();
 const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('console', m => m.type() === 'error' && errors.push(m.text()));
-await p.goto(process.env.APP_URL || 'http://localhost:5173/'); await p.waitForTimeout(700);
+await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(700);
 const ev = (f, a) => p.evaluate(f, a);
 const loadApp = async () => { await ev(async () => { const { buildSampleApp } = await import('/src/sample.js'); designer.store.setTheme('dark'); designer.store.loadDoc(buildSampleApp()); designer.store.ui.rightTab; }); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
 const loadLanding = async () => { await ev(() => { designer.store.setTheme('dark'); designer.store.loadSample(); }); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
@@ -105,23 +105,20 @@ await ev(() => designer.store.setTheme('dark'));
 await loadLanding(); await select('Glass card', { fitSel: true, pad: 220, maxZoom: 1.6 });
 await select('Painel vidro'); await scrollPanel('Efeitos'); await shot('12-efeito-vidro');
 
-// 13 e 14 — salvamento na pasta. Usa uma pasta TEMPORÁRIA com dois projetos de exemplo (e uma versão antiga),
-// e devolve a configuração original do servidor no fim.
+// 13, 14 e 15 — salvamento na pasta e página inicial. Usa uma pasta TEMPORÁRIA; os projetos são salvos pelo próprio
+// app (assim as miniaturas da página inicial são as de verdade). No fim devolve a configuração original do servidor.
 const api = (path, method = 'GET', body) => ev(async ({ path, method, body }) => (await fetch('/api' + path, {
-  method, headers: body ? { 'Content-Type': 'application/json', 'X-Overwrite': '1' } : {}, body: body && JSON.stringify(body),
+  method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body && JSON.stringify(body),
 })).json(), { path, method, body });
 const original = await api('/status');
 const demo = join(tmpdir(), 'Meus projetos Designer');
 rmSync(demo, { recursive: true, force: true });
 await api('/config', 'PUT', { folder: demo });
-const app = await ev(async () => (await import('/src/sample.js')).buildSampleApp());
-const landing = await ev(async () => (await import('/src/sample.js')).buildSample());
-await api('/projects/landing-page.json', 'PUT', landing);
-await api('/projects/carteira-app.json', 'PUT', { ...app, name: 'Carteira (rascunho)' });
-await api('/projects/carteira-app.json', 'PUT', app); // a 1ª sobrescrita guarda a anterior como versão
-await loadApp();
-await ev(async () => { const { folder } = await import('/src/storage.js'); const { modified } = await folder.load('carteira-app.json'); designer.store.setLink({ file: 'carteira-app.json', modified, synced: true }); });
-await p.waitForTimeout(900);
+const saveAs = async (name) => { await ev(() => designer.canvas.fit(null)); await ev((n) => designer.saving.saveAs(n), name); await p.waitForTimeout(1500); };
+await loadLanding(); await ev(() => { designer.store.state.doc.name = 'Landing Aurora'; designer.store.commit(); }); await saveAs('landing-aurora');
+await loadApp(); await ev(() => { designer.store.state.doc.name = 'Carteira (rascunho)'; designer.store.commit(); }); await saveAs('carteira-app');
+// uma edição depois de salvar: o servidor guarda a versão anterior (aparece em "Versões")
+await ev(() => { designer.store.state.doc.name = 'Carteira digital'; designer.store.commit(); }); await p.waitForTimeout(1200);
 await select('Cartão de saldo');
 await p.keyboard.press('Control+,'); await p.waitForSelector('.set-status'); await p.waitForTimeout(200);
 await shot('13-configuracoes-salvamento');
@@ -131,6 +128,11 @@ await p.locator('.proj-row', { hasText: 'carteira-app' }).getByRole('button', { 
 await p.waitForSelector('.proj-version'); await p.waitForTimeout(200);
 await shot('14-projetos-na-pasta');
 await p.keyboard.press('Escape');
+await ev(() => designer.store.setSelection([]));
+await ev(() => designer.home.open()); await p.waitForSelector('.home-card:not(.sample) img'); await p.waitForTimeout(600);
+await ev(() => document.activeElement?.blur());
+await shot('15-pagina-inicial');
+await ev(() => designer.home.close());
 await ev(() => designer.store.setLink(null));
 await api('/config', 'PUT', { folder: original.folder });
 rmSync(demo, { recursive: true, force: true });

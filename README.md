@@ -45,6 +45,11 @@ Funciona como Figma e Penpot (frames, camadas, auto layout, componentes, protót
 
 Cada imagem abaixo é uma captura real do app (geradas por [`scripts/gerar-capturas.mjs`](scripts/gerar-capturas.mjs)). O projeto de exemplo "app mobile" está em **Arquivo → Exemplo: app mobile**.
 
+### Página inicial: seus projetos
+Ao abrir o app aparece a **página inicial**: o projeto em que você estava ("continuar de onde parou"), os projetos da pasta com **miniaturas**, busca (`/`), ordenação e um menu **⋯** em cada um (abrir, renomear, duplicar, versões), além dos exemplos. `Esc` ou **Ir para o editor** volta ao canvas; o logo no topo do editor traz você de volta. Prefere cair direto no editor? **Configurações → Ao abrir o app**.
+
+![Página inicial com os projetos](docs/screenshots/15-pagina-inicial.png)
+
 ### Auto layout é flexbox de verdade
 Selecione um frame, escolha o modo (linha, coluna, grid) e use a **matriz 3×3** para alinhar. Os campos são o CSS: `gap`, `padding`, `justify-content`, `align-items`. Camadas filhas escolhem **Fixo**, **Ajustar ao conteúdo** (`hug`) ou **Preencher** (`flex: 1`).
 
@@ -154,12 +159,14 @@ Em **dois lugares**, e o indicador ao lado do nome do projeto (topo) diz qual es
 - **Versões antigas** ficam em `.versoes/` dentro da pasta (até 20 por projeto, configurável). Abra em **Arquivo → Abrir da pasta → Versões**. Uma versão abre "solta"; para restaurá-la, salve com o mesmo nome e confirme.
 - **Projetos antigos** (versões ≤ 0.5 salvavam no `localStorage`) são migrados sozinhos para o IndexedDB na primeira vez que você abre o app.
 - **Importar/baixar:** **Arquivo → Importar arquivo .json** e **Baixar cópia (.json)** continuam existindo, para levar um projeto de um computador a outro sem pasta compartilhada.
+- **Trocar de projeto nunca apaga trabalho sem perguntar.** Se o projeto aberto só existe no navegador (sem arquivo), abrir outro, criar um novo ou abrir um exemplo pergunta antes, com a opção **Salvar na pasta antes**. Projetos já gravados na pasta, ou exemplos que você nem mexeu, trocam direto.
+- Depois de algumas edições num projeto sem arquivo, aparece **uma vez** um lembrete no topo do canvas com o botão **Salvar na pasta**.
 
 ---
 
 ## 4. Primeiros passos no editor
 
-Um roteiro de 5 minutos para sentir o app. (Dica: **Arquivo → Exemplo: app mobile** abre um projeto pronto para explorar.)
+Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card **App mobile** abre um projeto pronto para explorar.)
 
 1. **Desenhe um frame** — aperte `F` e arraste no canvas. Frames são as "telas".
 2. **Desenhe dentro dele** — `R` retângulo, `E` elipse, `T` texto (clique e digite). O frame sob o cursor vira o pai da camada nova.
@@ -249,7 +256,7 @@ Gatilhos **ao clicar** e **ao passar o mouse**; ações **navegar para**, **volt
 Painéis **redimensionáveis** (arraste a borda; duplo clique restaura) · **modo foco** `Ctrl+\` esconde os painéis · busca de camadas · grade de pixels a partir de 800% de zoom · indicador de salvamento (pasta / navegador / conflito) · **Configurações** (`Ctrl+,`): pasta, versões, tema, roda do mouse · aviso amigável se algo inesperado acontecer.
 
 ### Acessibilidade (teclado e leitor de tela)
-Menus abrem com `Enter`/`Espaço` e navegam com `↑`/`↓`/`Home`/`End`; `Esc` fecha e devolve o foco. As janelas (Configurações, Projetos, Atalhos) prendem o foco enquanto abertas. Botões só com ícone, ferramentas e abas têm nome e estado para leitores de tela (`aria-label`, `aria-pressed`, `aria-selected`), e o foco do teclado aparece com um contorno.
+Menus abrem com `Enter`/`Espaço` e navegam com `↑`/`↓`/`Home`/`End`; `Esc` fecha e devolve o foco. As janelas (Configurações, Projetos, Atalhos, perguntas) prendem o foco enquanto abertas, e o app não usa mais as caixas `confirm()`/`prompt()` do navegador. Com a página inicial ou uma janela aberta, o editor por trás fica inativo (`inert`): nenhum atalho age escondido. Botões só com ícone, ferramentas e abas têm nome e estado para leitores de tela (`aria-label`, `aria-pressed`, `aria-selected`), e o foco do teclado aparece com um contorno.
 
 ---
 
@@ -290,6 +297,7 @@ No app, aperte **`?`** para ver esta lista. (No Mac, use `⌘` no lugar de `Ctrl
 | | `Ctrl+\` | Esconder/mostrar painéis |
 | **Ao arrastar** | `Shift` / `Alt` / `Ctrl` | Mantém proporção (ou trava eixo) / do centro / sem *snap* |
 | **Texto (editando)** | `Ctrl+B` / `I` / `U` | Negrito / itálico / sublinhado |
+| **Página inicial** | `/` · `Esc` | Buscar projeto · voltar ao editor (o logo do editor abre a página) |
 | **Arquivo** | `Ctrl+S` | Salvar na pasta (na 1ª vez, escolhe o nome) |
 | | `Ctrl+Shift+S` | Salvar como… (outro nome) |
 | | `Ctrl+O` | Abrir projeto da pasta |
@@ -352,6 +360,7 @@ projetodesigner2/
 │   ├── store.js            Estado, histórico (desfazer) e QUANDO salvar (auto-salvar)
 │   ├── saving.js           Regras de salvamento: pasta x navegador, conflito, servidor desligado
 │   ├── storage.js          COMO gravar: IndexedDB, preferências e a API da pasta
+│   ├── thumbnail.js        Miniatura SVG da página (para a página inicial)
 │   ├── components.js       Componentes, instâncias e estilos (puro)
 │   ├── canvas.js           Desenha o documento em HTML; pan, zoom e geometria
 │   ├── overlay.js          Seleção, alças, guias, medidas, setas
@@ -363,14 +372,14 @@ projetodesigner2/
 │   ├── svg.js              Exportação SVG (puro)
 │   ├── export.js           PNG, SVG, HTML e arquivo de projeto
 │   ├── sample.js           Os dois projetos de exemplo
-│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo), menus e janelas
-│   │                       (configurações, projetos na pasta), ícones
+│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo), página inicial (home.js),
+│   │                       menus e janelas (perguntas, configurações, projetos na pasta), ícones
 │   └── styles/app.css      Todo o visual (tema claro/escuro por variáveis CSS)
 └── tests/
     ├── css.test.js         Testes unitários do gerador de CSS e do modelo
     ├── features.test.js    Testes unitários de componentes, SVG, vetores, constraints...
     ├── server.test.js      Servidor: entrega os assets e bloqueia arquivos privados
-    ├── api.test.js         API de salvamento: pasta, gravar/ler, conflito, versões, segurança
+    ├── api.test.js         API: pasta, gravar/ler, conflito, versões, miniatura, renomear, segurança
     └── e2e/                Testes de navegador (usam Playwright)
 ```
 
@@ -386,7 +395,7 @@ npm test      # 32 testes
 ```
 
 ### Testes de navegador
-Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimensionar com rotação, caneta, componentes, protótipo, atalhos, salvar na pasta (conflito, versões, servidor desligado), teclado e desempenho. Usam o Playwright (dependência só de desenvolvimento):
+Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimensionar com rotação, caneta, componentes, protótipo, atalhos, salvar na pasta (conflito, versões, servidor desligado), página inicial (miniaturas, renomear, duplicar), teclado, layout e desempenho. Eles abrem o app com `?editor` para pular a página inicial. Usam o Playwright (dependência só de desenvolvimento):
 
 ```bash
 npm install && npx playwright install chromium
