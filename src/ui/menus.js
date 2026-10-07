@@ -100,12 +100,12 @@ export function contextMenuItems({ store, commands, tools }) {
 const SHORTCUTS = [
   ['Ferramentas', [['V', 'Mover'], ['F / B', 'Frame'], ['R', 'Retângulo'], ['E', 'Elipse'], ['L', 'Linha'], ['P', 'Caneta (vetor)'], ['T', 'Texto'], ['H', 'Mão (ou segure Espaço)']]],
   ['Edição', [['Ctrl Z / Ctrl ⇧ Z', 'Desfazer / Refazer'], ['Ctrl D', 'Duplicar'], ['Alt + arrastar', 'Duplicar arrastando'], ['Ctrl C / X / V', 'Copiar / Recortar / Colar'],
-    ['Ctrl G / Ctrl ⇧ G', 'Agrupar / Desagrupar'], ['Ctrl Alt K / B', 'Criar componente / Desanexar'], ['Ctrl Alt M', 'Máscara'], ['⇧ H / ⇧ V', 'Espelhar'], ['0–9', 'Opacidade (1=10% … 0=100%)'], ['⇧ A', 'Auto layout (flexbox)'], ['Delete', 'Excluir'], ['Setas (⇧ = 10px)', 'Mover']]],
+    ['Ctrl A', 'Selecionar tudo no mesmo nível'], ['Ctrl G / Ctrl ⇧ G', 'Agrupar / Desagrupar'], ['Ctrl Alt G', 'Envolver em frame'], ['Ctrl Alt K / B', 'Criar componente / Desanexar'], ['Ctrl Alt M', 'Máscara'], ['⇧ H / ⇧ V', 'Espelhar'], ['0–9', 'Opacidade (1=10% … 0=100%)'], ['⇧ A', 'Auto layout (flexbox)'], ['Delete', 'Excluir'], ['Setas (⇧ = 10px)', 'Mover']]],
   ['Camadas', [['Ctrl ] / [', 'Avançar / Recuar'], ['Ctrl ⇧ ] / [', 'Frente / Fundo'], ['Ctrl ⇧ L', 'Travar'], ['Ctrl ⇧ H', 'Ocultar'], ['F2', 'Renomear'], ['Enter / ⇧ Enter', 'Entrar / sair do grupo']]],
-  ['Vista', [['⇧ R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
+  ['Vista', [['⇧ R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Ctrl + / − / 0', 'Aproximar / afastar / 100%'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
   ['Ao redimensionar / mover', [['⇧', 'Mantém proporção / trava eixo'], ['Alt', 'A partir do centro'], ['Ctrl', 'Sem snap']]],
   ['Seleção', [['Ctrl + clique', 'Seleciona através de grupos'], ['Tab / ⇧ Tab', 'Próxima / anterior camada'], ['Alt + mouse', 'Mostra distâncias até outra camada'], ['Ctrl Alt C / V', 'Copiar / colar propriedades'], ['Ctrl B / I / U', 'Negrito / itálico / sublinhado (editando texto)'], ['Ctrl \\', 'Esconder/mostrar painéis']]],
-  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar projeto'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
+  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S / Ctrl O', 'Salvar / abrir projeto (arquivo)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Esta lista de atalhos'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 
 /** Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora. */
