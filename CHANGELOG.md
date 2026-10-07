@@ -6,6 +6,30 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.7.0] — 2026-10-07 — Página inicial e polimentos
+
+### Adicionado
+- **Página inicial** com os seus projetos: "continuar de onde parou" (miniatura ao vivo e onde está salvo), projetos da pasta com **miniaturas**, busca (`/`), ordenação, menu ⋯ (abrir, renomear, duplicar, versões) e cards dos exemplos. Abre ao iniciar (configurável) e pelo logo do editor ou Arquivo → Página inicial.
+- **Miniaturas**: geradas a partir do exportador SVG depois de salvar na pasta (no máximo 1 a cada 15 s) e servidas com política que bloqueia scripts.
+- **Renomear e duplicar** projetos da pasta (versões e miniatura vão junto ao renomear).
+- **Recentes** no menu Arquivo (os 5 últimos projetos da pasta).
+- **Lembrete** "este projeto ainda não tem arquivo", uma vez por projeto, com botão Salvar na pasta.
+- Configurações → **Ao abrir o app**: página inicial ou direto no editor.
+- `tests/e2e/pagina-inicial.mjs` (33 verificações) e testes da API para miniatura e renomear.
+
+### Alterado
+- **Janelas do app no lugar de `confirm()`, `prompt()` e `alert()`** do navegador (trocar de projeto, conflito, substituir arquivo, excluir/renomear página, estilos de cor/texto). A pergunta de conflito ganhou 3 opções: substituir, salvar com outro nome ou cancelar.
+- Trocar de projeto só pergunta quando algo se perderia; exemplos e projetos em branco não editados trocam direto.
+- O logo do topo virou botão para a página inicial.
+- Botões desabilitados ficam visivelmente apagados.
+
+### Corrigido
+- **Abrir um projeto pela janela Projetos (ou abrir uma versão antiga) substituía sem perguntar** um projeto que só existia no navegador, que se perdia.
+- Com uma janela aberta (Configurações, Projetos...), `Delete`, `Ctrl+V` e outros atalhos do canvas ainda agiam nas camadas escondidas atrás dela.
+- Em palcos estreitos (~1100 px de janela), o controle de zoom cobria o fim da barra de ferramentas.
+
+---
+
 ## [0.6.0] — 2026-10-07 — Salvamento na pasta do computador
 
 ### Adicionado
