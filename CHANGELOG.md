@@ -6,7 +6,37 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
-## [Não lançado]
+## [0.6.0] — 2026-10-07 — Salvamento na pasta do computador
+
+### Adicionado
+- **Salvar numa pasta do computador.** O `server.js` ganhou uma API (`/api`) que grava os projetos como arquivos `.json` numa pasta escolhida por você. Com o projeto ligado a um arquivo, **cada mudança é gravada lá sozinha**.
+  - `Ctrl+S` na 1ª vez pede o nome; `Ctrl+Shift+S` salva com outro nome; `Ctrl+O` abre da pasta.
+  - **Versões antigas** de cada projeto (no máximo uma a cada 10 min, até 20 por padrão), que podem ser abertas na janela Projetos.
+  - **Proteção contra conflito**: se o arquivo mudar fora do editor (outra aba, outro computador pelo Drive), o app para de gravar nele e pergunta antes de substituir.
+  - Gravação atômica (arquivo temporário + renomear).
+- **Janela Configurações** (engrenagem no topo, `Ctrl+,`): pasta de projetos (com instruções para Google Drive/OneDrive/Dropbox), auto-salvar na pasta, nº de versões, espaço usado no navegador, proteção contra limpeza automática, tema e roda do mouse.
+- **Janela Projetos na pasta**: salvar como, lista com data e tamanho, abrir e versões.
+- Indicador do topo mostra **onde** está salvo: *Salvo na pasta*, *Salvo no navegador*, *Só no navegador* (servidor desligado) ou *Conflito no arquivo*. Clicar nele abre as Configurações.
+- **Acessibilidade**: menus por teclado (`↑`/`↓`/`Home`/`End`, `Esc` devolve o foco), janelas modais com foco preso e `role="dialog"`, `aria-label` em botões só com ícone, `aria-pressed` nas ferramentas, `aria-selected` nas abas, contorno de foco visível.
+- Testes: `tests/api.test.js` (API numa pasta temporária: gravar/ler, conflito, versões, segurança) e `tests/e2e/salvar-pasta.mjs` (40 verificações no navegador).
+- Capturas `13-configuracoes-salvamento` e `14-projetos-na-pasta`.
+
+### Alterado
+- **Cópia no navegador agora usa IndexedDB** em vez de `localStorage`: acaba o limite de ~5 MB (testado com projeto de 8 MB). Projetos antigos são **migrados sozinhos** na primeira abertura.
+- Arquivo: "Abrir arquivo" virou **Importar arquivo .json** e "Salvar projeto" virou **Baixar cópia (.json)**; `Ctrl+S`/`Ctrl+O` passaram a usar a pasta (sem servidor, `Ctrl+S` continua baixando o `.json`).
+- Trocar de projeto (novo, exemplo, importar) avisa quando o projeto atual só existe no navegador.
+- A preferência "roda do mouse dá zoom" agora é lembrada.
+
+### Corrigido
+- Versões guardadas no mesmo segundo se sobrescreviam (achado pelo teste da API).
+- Ao recarregar a página, o editor podia acusar "conflito" com o próprio arquivo (a gravação feita ao fechar a aba chegava à pasta, mas não à cópia do navegador).
+
+### Segurança
+- A API só aceita pedidos de `localhost` (cabeçalho `Host`, contra *DNS rebinding*), exige `Content-Type: application/json` e `Origin` local para gravar (um site aberto em outra aba não consegue mandar o servidor gravar), e só aceita nomes de arquivo `[a-z0-9._-].json`.
+
+---
+
+## [0.5.1] — 2026-10-07 — Correções do Windows e dos testes
 
 ### Corrigido
 - **Tela em branco no Windows**: o servidor comparava caminhos com `/`, mas no Windows o separador é `\`; `/src/main.js` e o CSS davam 404. Achado numa revisão feita em Windows + Chrome.
