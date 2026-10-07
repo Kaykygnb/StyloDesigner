@@ -30,6 +30,7 @@
   --glass: rgba(24, 24, 32, 0.78);
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
   --danger: #ff6b7a;
+  --ok: #3ddc84; --warn: #ffb020;
 }
 /* Tema CLARO: só redefine as mesmas variáveis; nenhuma regra do app precisa saber qual tema está ativo. */
 :root[data-theme="light"] {
@@ -46,6 +47,7 @@
   --glass: rgba(255, 255, 255, 0.82);
   --shadow: 0 12px 40px rgba(40, 30, 90, 0.16), 0 2px 8px rgba(40, 30, 90, 0.1);
   --danger: #e5384d;
+  --ok: #15803d; --warn: #b45309;
 }
 
 /* ============================================================ base */
@@ -62,6 +64,11 @@ body {
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; }
+/* FOCO VISÍVEL para quem navega pelo teclado (Tab). :focus-visible não aparece no clique do mouse, só no teclado. */
+button:focus-visible, [role="tab"]:focus-visible, .menu-item:focus-visible, a:focus-visible, input[type="radio"]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.menu-item:focus-visible { outline-offset: -2px; background: var(--accent-soft); }
 kbd {
   font: 600 10px/1 var(--mono);
   background: var(--panel-3);
@@ -130,6 +137,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 }
 .btn:hover { background: var(--panel-3); }
 .btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover { background: var(--panel-2); }
 .btn.wide { flex: 1; }
@@ -428,6 +436,44 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .modal-head h2 { margin: 0; font-size: 16px; }
 .shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px; padding: 20px; }
 .shortcuts h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent); }
+/* Janelas Configurações e Projetos */
+.modal.narrow { width: min(620px, 92vw); }
+.modal-body.settings, .modal-body.projects { padding: 6px 20px 20px; }
+.small { font-size: 11px; }
+.btn.small { height: 26px; padding: 0 10px; font-size: 11.5px; }
+.set-section { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.set-section:last-child { border-bottom: 0; }
+.set-section h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 13px; }
+.set-section p { margin: 6px 0; line-height: 1.5; }
+.set-section code, .projects code { font: 11px var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 5px; }
+.set-status { font-weight: 600; font-size: 12px; }
+.set-status.on { color: var(--ok); }
+.set-status.off { color: var(--warn); }
+.set-path { display: flex; gap: 8px; align-items: center; }
+.set-path > .field { flex: 1; min-width: 0; }
+.set-msg { min-height: 0; margin: 4px 0; font-size: 12px; color: var(--muted); }
+.set-msg:empty { display: none; }
+.set-msg.error { color: var(--danger); }
+.set-tip { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+.set-tip p { margin: 4px 0; }
+.set-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.set-row > .field { flex: none; }
+.set-label { font-weight: 600; min-width: 110px; }
+.set-radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.set-radio input { accent-color: var(--accent); margin: 0; }
+.proj-folder { display: flex; align-items: center; gap: 8px; padding: 12px 0; color: var(--muted); }
+.proj-folder .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-save { padding: 4px 0 14px; border-bottom: 1px solid var(--border); }
+.proj-save .set-label { display: block; margin-bottom: 6px; }
+.proj-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.proj-row { border-radius: 10px; }
+.proj-row.current { background: var(--accent-soft); }
+.proj-main { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+.proj-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.proj-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-versions { padding: 0 10px 8px 22px; }
+.proj-version { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 12px; }
+.proj-version > span:first-child { display: inline-flex; align-items: center; gap: 4px; flex: 1; }
 .sc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--border); }
 
 #toasts { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 2000; pointer-events: none; }
@@ -501,9 +547,16 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .proto-arrow { fill: var(--accent-2); }
 
 /* ============================================================ indicador de salvo, painéis redimensionáveis, modo foco, canvas vazio */
-.save-state { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; min-width: 76px; }
-.save-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; }
+.save-state {
+  font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; min-width: 76px;
+  background: none; border: 0; padding: 4px 8px; border-radius: 7px; white-space: nowrap;
+}
+.save-state:hover { background: var(--panel-2); color: var(--text); }
+.save-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
 .save-state[data-state="saving"]::before { background: #ffb020; }
+/* "warn": tem arquivo na pasta mas não gravou lá (servidor desligado / conflito) — só a cópia do navegador está em dia */
+.save-state[data-state="warn"] { color: var(--warn); }
+.save-state[data-state="warn"]::before { background: var(--warn); }
 .save-state[data-state="error"] { color: var(--danger); }
 .save-state[data-state="error"]::before { background: var(--danger); }
 /* Alça para arrastar a borda dos painéis. #app.focus (Ctrl+\) esconde os painéis. */

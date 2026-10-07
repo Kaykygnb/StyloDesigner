@@ -1,6 +1,6 @@
 /**
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  ui/menus.js — MENUS FLUTUANTES E AJUDA DE ATALHOS
+ *  ui/menus.js — MENUS FLUTUANTES, JANELAS MODAIS E AJUDA DE ATALHOS
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
@@ -9,6 +9,8 @@ import { hasLayout } from '../model.js';
 
 // menu aberto no momento (só um por vez)
 let openMenu = null;
+// elemento que tinha o foco antes de o menu abrir: ao fechar com Esc, o foco volta para ele (navegação por teclado)
+let menuReturnFocus = null;
 /** Fecha o menu aberto, se houver. */
 export function closeMenus() {
   openMenu?.remove();
@@ -24,11 +26,14 @@ export function closeMenus() {
  */
 export function showMenu(x, y, items, { anchorRight = false } = {}) {
   closeMenus();
+  menuReturnFocus = document.activeElement;
   const menu = h('div.menu', { role: 'menu' },
     items.map((it) => {
-      if (it === 'sep') return h('div.menu-sep');
+      if (it === 'sep') return h('div.menu-sep', { role: 'separator' });
       return h('button.menu-item' + (it.danger ? '.danger' : '') + (it.checked ? '.checked' : ''), {
         type: 'button', disabled: it.disabled,
+        role: it.checked !== undefined ? 'menuitemcheckbox' : 'menuitem',
+        'aria-checked': it.checked !== undefined ? String(!!it.checked) : null,
         onclick: () => { closeMenus(); it.onClick?.(); },
       }, it.icon ? ico(it.icon, 15) : h('span.ico-pad'), h('span.menu-label', it.label), it.hint ? h('kbd', it.hint) : null,
       it.checked ? ico('check', 13) : null);
@@ -47,9 +52,30 @@ export function showMenu(x, y, items, { anchorRight = false } = {}) {
     };
     window.addEventListener('pointerdown', off, true);
     window.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') { closeMenus(); window.removeEventListener('keydown', esc); }
+      if (e.key === 'Escape') { closeMenus(); window.removeEventListener('keydown', esc); menuReturnFocus?.focus?.(); }
     });
   });
+  // TECLADO: ↑/↓ andam entre os itens habilitados, Home/End vão ao primeiro/último. O 1º item já recebe o foco,
+  // então dá para abrir o menu com Enter/Espaço e escolher sem tocar no mouse.
+  const enabled = () => [...menu.querySelectorAll('.menu-item:not(:disabled)')];
+  menu.addEventListener('keydown', (e) => {
+    const list = enabled();
+    const i = list.indexOf(document.activeElement);
+    // Esc aqui também (além do ouvinte da janela): o foco está no menu, então tratamos na hora, sem depender de timers
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeMenus();
+      menuReturnFocus?.focus?.();
+      return;
+    }
+    const go = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: list.length - 1 }[e.key];
+    if (go === undefined || !list.length) return;
+    e.preventDefault();
+    e.stopPropagation();
+    list[(go + list.length) % list.length].focus();
+  });
+  enabled()[0]?.focus({ preventScroll: true });
   return menu;
 }
 
@@ -105,20 +131,63 @@ const SHORTCUTS = [
   ['Vista', [['⇧ R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Ctrl + / − / 0', 'Aproximar / afastar / 100%'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
   ['Ao redimensionar / mover', [['⇧', 'Mantém proporção / trava eixo'], ['Alt', 'A partir do centro'], ['Ctrl', 'Sem snap']]],
   ['Seleção', [['Ctrl + clique', 'Seleciona através de grupos'], ['Tab / ⇧ Tab', 'Próxima / anterior camada'], ['Alt + mouse', 'Mostra distâncias até outra camada'], ['Ctrl Alt C / V', 'Copiar / colar propriedades'], ['Ctrl B / I / U', 'Negrito / itálico / sublinhado (editando texto)'], ['Ctrl \\', 'Esconder/mostrar painéis']]],
-  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S / Ctrl O', 'Salvar / abrir projeto (arquivo)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Esta lista de atalhos'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
+  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar na pasta (escolhe o nome na 1ª vez)'], ['Ctrl ⇧ S', 'Salvar como… (novo nome na pasta)'], ['Ctrl O', 'Abrir projeto da pasta'], ['Ctrl ,', 'Configurações (onde salvar, tema...)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Esta lista de atalhos'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
+
+/**
+ * JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
+ *  - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
+ *  - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
+ *  - fecha com Esc, no X ou clicando fora; ao fechar, o foco volta para quem abriu.
+ * @param {object} o
+ * @param {string} o.title        título (h2)
+ * @param {Node|Node[]} o.body     conteúdo
+ * @param {string} [o.cls]         classe extra para o .modal (ex.: 'narrow')
+ * @param {() => void} [o.onClose]
+ * @returns {{ el: HTMLElement, close: () => void }}
+ */
+let modalSeq = 0;
+export function openModal({ title, body, cls = '', onClose }) {
+  closeMenus();
+  const returnFocus = document.activeElement;
+  const titleId = `modal-title-${++modalSeq}`;
+  const close = () => {
+    dlg.remove();
+    window.removeEventListener('keydown', onKey, true);
+    onClose?.();
+    returnFocus?.focus?.();
+  };
+  const modal = h('div.modal' + (cls ? '.' + cls : ''), { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId },
+    h('header.modal-head', h('h2', { id: titleId }, title), h('button.icon-btn', { type: 'button', title: 'Fechar (Esc)', 'aria-label': 'Fechar', onclick: () => close() }, ico('x'))),
+    body);
+  const dlg = h('div.modal-backdrop', { onpointerdown: (e) => e.target === dlg && close() }, modal);
+  const focusables = () => [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => el.offsetParent !== null);
+  // captura (true): o Esc da janela não chega aos atalhos do canvas; Tab dá a volta dentro da janela
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (e.key !== 'Tab') return;
+    const list = focusables();
+    if (!list.length) return;
+    const first = list[0];
+    const last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  }
+  window.addEventListener('keydown', onKey, true);
+  document.body.append(dlg);
+  // foca o 1º campo de texto (se houver) ou o 1º botão depois do X
+  const list = focusables();
+  (list.find((el) => el.matches('input[type=text], input:not([type])')) || list[1] || list[0])?.focus();
+  return { el: modal, close };
+}
 
 /** Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora. */
 export function showHelp() {
-  closeMenus();
-  const close = () => dlg.remove();
-  const dlg = h('div.modal-backdrop', { onpointerdown: (e) => e.target === dlg && close() },
-    h('div.modal',
-      h('header.modal-head', h('h2', 'Atalhos de teclado'), h('button.icon-btn', { type: 'button', onclick: close }, ico('x'))),
-      h('div.modal-body.shortcuts', SHORTCUTS.map(([title, rows]) =>
-        h('section', h('h4', title), rows.map(([k, d]) => h('div.sc-row', h('span', d), h('kbd', k))))))));
-  document.body.append(dlg);
-  window.addEventListener('keydown', function esc(e) {
-    if (e.key === 'Escape') { close(); window.removeEventListener('keydown', esc); }
+  openModal({
+    title: 'Atalhos de teclado',
+    body: h('div.modal-body.shortcuts', SHORTCUTS.map(([title, rows]) =>
+      h('section', h('h4', title), rows.map(([k, d]) => h('div.sc-row', h('span', d), h('kbd', k)))))),
   });
 }

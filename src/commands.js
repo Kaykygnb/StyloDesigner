@@ -800,7 +800,8 @@ export function createCommands(store, canvas) {
 
 /**
  * Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num
- * <canvas> menor: o projeto fica no localStorage (limite ~5MB), então imagem enorme estouraria o salvamento.
+ * <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria
+ * o salvamento lento e o .json gigante.
  * PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
  */
 function readImage(file) {

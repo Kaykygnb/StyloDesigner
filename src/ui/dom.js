@@ -49,7 +49,7 @@ export function h(tag, attrs, ...children) {
 }
 
 /** Ícone SVG pronto para usar como filho: ico('trash', 14). Os desenhos estão em icons.js. */
-export const ico = (name, size = 16) => h('span.ico', { html: icon(name, size) });
+export const ico = (name, size = 16) => h('span.ico', { html: icon(name, size), 'aria-hidden': 'true' });
 
 /** Limita `v` ao intervalo [min, max]. */
 export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -177,7 +177,8 @@ export function segmented({ options, get, set, commit }) {
 
 /** Botão só com ícone. `cls` opcional ('small', 'on'...). */
 export function iconButton(name, title, onclick, cls = '') {
-  return h('button.icon-btn' + (cls ? '.' + cls : ''), { type: 'button', title, onclick }, ico(name));
+  // aria-label: botão só com ícone não tem texto; sem isso o leitor de tela diria apenas "botão"
+  return h('button.icon-btn' + (cls ? '.' + cls : ''), { type: 'button', title, 'aria-label': title.replace(/\s*\(.*\)$/, ''), onclick }, ico(name));
 }
 
 /**

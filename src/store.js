@@ -4,7 +4,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  É o "cérebro" do app: guarda o documento e o estado da interface, expõe como consultar (get, parentOf,
  *  selected...) e como alterar (update/commit), mantém o histórico de desfazer/refazer e salva sozinho no
- *  navegador. Nenhum outro módulo guarda estado próprio do documento; todos pedem ao store.
+ *  (via `persist`, ver storage.js). Nenhum outro módulo guarda estado próprio do documento; todos pedem ao store.
  *
  *  REGRA DE OURO: nunca altere uma camada "por fora". Use `store.update(fn)` e, ao terminar o gesto,
  *  `store.commit()` — é isso que faz o desfazer, o salvamento e os painéis funcionarem.
@@ -15,8 +15,6 @@ import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
 import { buildSample } from './sample.js';
 import { syncInstances, syncStyles } from './components.js';
 
-/** Chave do localStorage onde o projeto é salvo automaticamente. O sufixo ":v1" permite mudar o formato no futuro sem ler dados antigos por engano. */
-const STORAGE_KEY = 'projeto-designer:v1';
 
 /**
  * Cria o STORE: a única fonte de verdade do app. Tudo que o usuário vê (canvas, painéis, menus) é uma
@@ -28,9 +26,14 @@ const STORAGE_KEY = 'projeto-designer:v1';
  *   state.doc  → o DOCUMENTO (o que é salvo): páginas, camadas, imagens, estilos
  *   state.ui   → estado de INTERFACE (não é salvo no .json): seleção, ferramenta, zoom, painel aberto...
  *
+ * @param {object} [opts]
+ * @param {object|null} [opts.initial]  projeto já carregado do navegador ({ doc, views, theme, link }) — ver storage.loadLocal.
+ *        null/ausente = abre o projeto de exemplo.
+ * @param {(record) => Promise<string>} [opts.persist]  grava o projeto (navegador e, se ligado, a pasta). Devolve onde
+ *        gravou ('browser' | 'folder'). O store só decide QUANDO salvar; o COMO fica em main.js/storage.js.
  * @returns {object} a API do store (get, update, commit, undo, setSelection, subscribe...)
  */
-export function createStore() {
+export function createStore({ initial = null, persist = async () => 'browser' } = {}) {
   // Quem assina o store. `listeners` são chamados no máximo 1x por frame (painéis); `syncListeners` na hora (canvas).
   const listeners = new Set();
   const syncListeners = new Set();
@@ -43,6 +46,12 @@ export function createStore() {
   let indexVersion = -1;
   // timer do salvamento automático (debounce de 400 ms)
   let saveTimer = 0;
+  // salvamento em andamento (Promise) e "mudou de novo enquanto salvava?" — garante 1 gravação por vez, sem perder a última
+  let saving = null;
+  let dirtyAgain = false;
+  // há mudanças ainda NÃO gravadas? Evita gravar à toa (ex.: ao trocar de aba sem ter editado nada) — gravar sem
+  // necessidade ao fechar a página já causou "conflito" falso com o arquivo da pasta
+  let dirty = false;
 
   // Estado completo. `doc` é preenchido por init() logo abaixo.
   const state = {
@@ -68,6 +77,12 @@ export function createStore() {
       collapsed: {},
       theme: 'dark',
       rightTab: 'design',
+      // ARQUIVO NA PASTA ligado a este projeto: { file: 'meu-app.json', modified: <data do disco> } ou null.
+      // Com ele, o auto-salvar também grava na pasta. `modified` serve para detectar se outro programa mexeu no arquivo.
+      link: null,
+      // situação do salvamento: saveState 'saving' | 'saved' | 'error' · savedWhere 'browser' | 'folder'
+      saveState: 'saved',
+      savedWhere: 'browser',
     },
   };
 
@@ -263,11 +278,14 @@ export function createStore() {
   /**
    * Substitui o documento inteiro (novo projeto, abrir arquivo, exemplo). Zera o histórico: o estado carregado
    * vira o primeiro item. `keepAssets` junta as imagens novas às que já existiam.
+   * `link` = arquivo da pasta de onde o projeto veio ({ file, modified }); sem ele (novo, exemplo, importado),
+   * o projeto fica só no navegador até você usar "Salvar na pasta" — assim um exemplo nunca sobrescreve seu arquivo.
    */
-  api.loadDoc = (doc, { keepAssets = false } = {}) => {
+  api.loadDoc = (doc, { keepAssets = false, link = null } = {}) => {
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     doc.styles ||= { colors: [], texts: [] };
     state.doc = doc;
+    state.ui.link = link;
     state.ui.pageId = doc.pages[0].id;
     state.ui.selection = [];
     state.ui.editingId = null;
@@ -295,6 +313,7 @@ export function createStore() {
    * Marca saveState='saving' para o topo mostrar "Salvando…".
    */
   function scheduleSave() {
+    dirty = true;
     clearTimeout(saveTimer);
     if (state.ui.saveState !== 'saving') {
       state.ui.saveState = 'saving';
@@ -303,25 +322,49 @@ export function createStore() {
     saveTimer = setTimeout(save, 400);
   }
   /**
-   * Grava o projeto no localStorage do navegador. O limite do navegador é ~5 MB; se estourar (muitas imagens),
-   * saveState vira 'error' e `onSaveError` avisa o usuário para usar Arquivo → Salvar projeto.
+   * Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar
+   * enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde).
+   * Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+   * @returns {Promise<void>} resolve quando o projeto (como estava) terminou de ser gravado
    */
   function save() {
     clearTimeout(saveTimer);
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ doc: state.doc, views: state.ui.views, theme: state.ui.theme }),
-      );
-      state.ui.saveState = 'saved';
-    } catch (err) {
-      state.ui.saveState = 'error';
-      api.onSaveError?.(err);
+    if (saving) {
+      dirtyAgain = true;
+      return saving;
     }
-    emit('ui');
+    if (!dirty) return Promise.resolve();
+    dirty = false;
+    saving = (async () => {
+      try {
+        const where = await persist({ doc: state.doc, views: state.ui.views, theme: state.ui.theme, link: state.ui.link });
+        state.ui.saveState = 'saved';
+        state.ui.savedWhere = where;
+      } catch (err) {
+        state.ui.saveState = 'error';
+        dirty = true; // continua pendente: a próxima tentativa grava de novo
+        api.onSaveError?.(err);
+      }
+    })();
+    return saving.then(() => {
+      saving = null;
+      emit('ui');
+      if (dirtyAgain) {
+        dirtyAgain = false;
+        return save();
+      }
+    });
   }
-  /** Salva imediatamente (usado ao fechar a aba). */
+  /** Salva imediatamente, sem esperar o atraso (ao esconder/fechar a aba, ou antes de trocar de projeto). */
   api.saveNow = save;
+  /** Marca o projeto como "precisa gravar" e agenda o salvamento (ex.: o servidor voltou e a pasta está atrasada). */
+  api.touch = scheduleSave;
+  /** Liga (ou desliga, com null) o projeto a um arquivo da pasta e salva. Ver `state.ui.link`. */
+  api.setLink = (link) => {
+    state.ui.link = link;
+    emit('ui');
+    scheduleSave();
+  };
   /** Troca o tema ('dark' | 'light') e lembra a escolha. */
   api.setTheme = (theme) => {
     state.ui.theme = theme;
@@ -331,29 +374,26 @@ export function createStore() {
   };
 
   /**
-   * Estado inicial: lê o projeto salvo no localStorage; se não houver (ou estiver corrompido), abre o projeto de exemplo.
+   * Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo.
    * Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
    */
   function init() {
-    let loaded = null;
-    try {
-      loaded = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    } catch {
-      loaded = null;
-    }
-    if (loaded?.doc?.pages?.length) {
-      state.doc = loaded.doc;
+    if (initial?.doc?.pages?.length) {
+      state.doc = initial.doc;
       state.doc.assets ||= {};
       state.doc.styles ||= { colors: [], texts: [] };
-      state.ui.views = loaded.views || {};
-      state.ui.theme = loaded.theme || 'dark';
+      state.ui.views = initial.views || {};
+      state.ui.theme = initial.theme || 'dark';
+      state.ui.link = initial.link || null;
       state.ui.pageId = state.doc.pages[0].id;
       history.stack = [snapshot()];
       history.i = 0;
+      // veio do localStorage antigo: grava logo no IndexedDB (conclui a migração)
+      if (initial.migrated) scheduleSave();
     } else {
       api.loadDoc(buildSample());
     }
-    document.documentElement.dataset.theme = state.ui.theme;
+    globalThis.document && (document.documentElement.dataset.theme = state.ui.theme);
   }
   init();
 

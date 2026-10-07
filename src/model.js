@@ -3,8 +3,8 @@
  *  model.js — MODELO DE DADOS DO DOCUMENTO
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  O QUE É
- *    Define como um documento de design é guardado na memória (e, depois, no localStorage e no
- *    arquivo .json): páginas → árvore de camadas ("nós"). Também tem as funções puras que mexem
+ *    Define como um documento de design é guardado na memória (e, depois, no navegador e no
+ *    arquivo .json da pasta): páginas → árvore de camadas ("nós"). Também tem as funções puras que mexem
  *    nessa árvore (clonar, percorrer, ajustar grupos, aplicar constraints...).
  *
  *  POR QUE É ASSIM

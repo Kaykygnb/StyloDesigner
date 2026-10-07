@@ -19,9 +19,9 @@ ok('Shift+clique seleciona intervalo', (await ev(() => designer.store.ui.selecti
 // salvar indicador
 await ev(() => designer.store.commit());
 await p.waitForTimeout(150);
-ok('indicador mostra salvando/salvo', ['Salvando…', 'Salvo'].includes(await p.locator('.save-state').innerText()));
+ok('indicador mostra salvando/salvo', /^(Salvando…|Salvo)/.test(await p.locator('.save-state').innerText()));
 await p.waitForTimeout(700);
-ok('indicador volta a "Salvo"', (await p.locator('.save-state').innerText()) === 'Salvo');
+ok('indicador volta a "Salvo no navegador"', (await p.locator('.save-state').innerText()) === 'Salvo no navegador');
 // duplicar página
 await p.locator('.page-row').first().click({ button: 'right' });
 await p.click('.menu-item:has-text("Duplicar página")');

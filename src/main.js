@@ -3,6 +3,7 @@
  *  main.js — PONTO DE ENTRADA: MONTA O APP
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  Cria o store e liga todas as peças, nesta ordem:
+ *    salvamento (lê o projeto guardado no navegador e pergunta se o servidor está aí) →
  *    store → canvas (desenha) → overlay (seleção) → commands/tools (editar) → painéis (camadas, recursos,
  *    propriedades, protótipo, código) → barra superior, barra de ferramentas, zoom, menus → preferências.
  *  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
@@ -25,13 +26,13 @@ import { contextMenuItems, showHelp, showMenu } from './ui/menus.js';
 import { h, ico, iconButton } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleApp } from './sample.js';
+import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
+import { createSaving } from './saving.js';
+import { openSettings as openSettingsDialog } from './ui/settings.js';
+import { openProjects as openProjectsDialog } from './ui/projects.js';
 
 /** Atalho: primeiro elemento que casa com o seletor CSS. */
 const $ = (sel) => document.querySelector(sel);
-// o STORE é criado primeiro: todos os outros módulos recebem ele (ver store.js)
-const store = createStore();
-// estado de interface (seleção, ferramenta, painel aberto...)
-const ui = store.ui;
 
 // ---------------------------------------------------------------- toasts
 // timer para sumir com o aviso depois de alguns segundos
@@ -44,14 +45,39 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.remove(), 3200);
 }
+
+// ---------------------------------------------------------------- salvamento + store
+// PREFERÊNCIAS DE INTERFACE (largura dos painéis, auto-salvar na pasta, roda do mouse), guardadas à parte do
+// projeto: mudar o layout não "suja" o documento
+const prefs = loadPrefs();
+/** Grava as preferências (falhas silenciosas: é só conveniência). */
+const savePrefs = () => writePrefs(prefs);
+// SALVAMENTO: regras de onde gravar (navegador sempre; pasta do computador quando o projeto tem um arquivo)
+const saving = createSaving({ prefs, toast });
+// lê o projeto guardado no navegador e, ao mesmo tempo, pergunta se o servidor (pasta) está disponível.
+// `await` no topo do módulo: o app só monta quando o projeto já foi lido (IndexedDB é assíncrono).
+const [initial] = await Promise.all([loadLocal(), saving.refresh()]);
+// o STORE: todos os outros módulos recebem ele (ver store.js). `persist` é chamado a cada salvamento automático.
+const store = createStore({ initial, persist: saving.persist });
+saving.attach(store);
+// projeto ligado a um arquivo da pasta? confere se o arquivo mudou desde a última vez (ver saving.reconcile)
+await saving.reconcile();
+// estado de interface (seleção, ferramenta, painel aberto...)
+const ui = store.ui;
+ui.wheelMode = prefs.wheelMode || 'pan';
 // avisa só UMA vez que o salvamento automático falhou (senão encheria a tela de avisos)
 let warnedSave = false;
-// quando o localStorage estoura (muitas imagens), orienta a salvar em arquivo
+// quando o navegador recusa gravar (espaço cheio), orienta a salvar na pasta
 store.onSaveError = () => {
   if (warnedSave) return;
   warnedSave = true;
-  toast('Auto-salvar falhou (muitas imagens?). Use Arquivo → Salvar projeto.');
+  toast('Não consegui salvar no navegador (espaço cheio?). Use Arquivo → Salvar na pasta.');
 };
+/** Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js). */
+const openSettings = () => openSettingsDialog({ store, saving, prefs, savePrefs, toast });
+const openProjects = (mode = 'open') => openProjectsDialog({ store, saving, canvas, toast, openSettings, mode });
+/** Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome. */
+const quickSave = async () => { if (!(await saving.quickSave())) openProjects('save'); };
 
 // ---------------------------------------------------------------- núcleo
 // NÚCLEO: canvas (desenha), overlay (seleção por cima), comandos (editar), ferramentas (mouse/teclado) e réguas.
@@ -73,14 +99,17 @@ const layersBox = h('div.left-body');
 const assetsBox = h('div.left-body');
 const assets = createAssetsPanel({ store, commands, canvas, container: assetsBox });
 createLayersPanel({ store, commands, container: layersBox });
-const ltLayers = h('button.tab', { type: 'button', onclick: () => setLeftTab('layers') }, ico('layers', 14), ' Camadas');
-const ltAssets = h('button.tab', { type: 'button', onclick: () => setLeftTab('assets') }, ico('component', 14), ' Recursos');
-$('#left').append(h('div.tabs', ltLayers, ltAssets), leftBody);
+const ltLayers = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('layers') }, ico('layers', 14), ' Camadas');
+const ltAssets = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('assets') }, ico('component', 14), ' Recursos');
+$('#left').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel esquerdo' }, ltLayers, ltAssets), leftBody);
 /** Troca a aba do painel esquerdo ('layers' | 'assets'). */
 function setLeftTab(tab) {
   ui.leftTab = tab;
   ltLayers.classList.toggle('on', tab === 'layers');
   ltAssets.classList.toggle('on', tab === 'assets');
+  // aria-selected: o leitor de tela anuncia qual aba está ativa
+  ltLayers.setAttribute('aria-selected', String(tab === 'layers'));
+  ltAssets.setAttribute('aria-selected', String(tab === 'assets'));
   leftBody.replaceChildren(tab === 'layers' ? layersBox : assetsBox);
   if (tab === 'assets') assets.render();
 }
@@ -93,16 +122,17 @@ const code = createCodePanel({ store, commands, toast });
 const present = createPresent({ store, canvas });
 const proto = createProtoPanel({ store, present, toast });
 const rightBody = h('div.right-body');
-const tabDesign = h('button.tab', { type: 'button', onclick: () => setTab('design') }, ico('sliders', 14), ' Design');
-const tabProto = h('button.tab', { type: 'button', onclick: () => setTab('proto') }, ico('play', 13), ' Protótipo');
-const tabCode = h('button.tab', { type: 'button', onclick: () => setTab('code') }, ico('code', 14), ' Código');
-$('#right').append(h('div.tabs', tabDesign, tabProto, tabCode), rightBody);
+const tabDesign = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('design') }, ico('sliders', 14), ' Design');
+const tabProto = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('proto') }, ico('play', 13), ' Protótipo');
+const tabCode = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('code') }, ico('code', 14), ' Código');
+$('#right').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel direito' }, tabDesign, tabProto, tabCode), rightBody);
 /** Troca a aba do painel direito ('design' | 'proto' | 'code') e já redesenha o painel escolhido. */
 function setTab(tab) {
   ui.rightTab = tab;
   tabDesign.classList.toggle('on', tab === 'design');
   tabProto.classList.toggle('on', tab === 'proto');
   tabCode.classList.toggle('on', tab === 'code');
+  [[tabDesign, 'design'], [tabProto, 'proto'], [tabCode, 'code']].forEach(([b, t]) => b.setAttribute('aria-selected', String(tab === t)));
   rightBody.replaceChildren(tab === 'design' ? design.el : tab === 'proto' ? proto.el : code.el);
   if (tab === 'code') code.render();
   else if (tab === 'proto') proto.render();
@@ -121,11 +151,12 @@ nameInput.addEventListener('change', () => {
 });
 nameInput.addEventListener('keydown', (e) => e.key === 'Enter' && nameInput.blur());
 
-// indicador "Salvo / Salvando… / Não salvou!" (atualizado em syncTopbar)
-const saveEl = h('span.save-state', { title: 'O projeto é salvo sozinho neste navegador' }, 'Salvo');
+// indicador de salvamento (atualizado em syncTopbar). É um botão: clicar abre as Configurações de onde salvar.
+const saveEl = h('button.save-state', { type: 'button', onclick: () => openSettings() }, 'Salvo');
 const undoBtn = iconButton('undo', 'Desfazer (Ctrl+Z)', () => store.undo());
 const redoBtn = iconButton('redo', 'Refazer (Ctrl+Shift+Z)', () => store.redo());
 const themeBtn = iconButton('sun', 'Alternar tema claro/escuro', () => store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'));
+const settingsBtn = iconButton('settings', 'Configurações (Ctrl+,)', () => openSettings());
 // seletor de arquivo escondido: o menu Arquivo → Abrir "clica" nele para abrir o diálogo do sistema
 const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
 fileInput.addEventListener('change', async () => {
@@ -133,23 +164,29 @@ fileInput.addEventListener('change', async () => {
   fileInput.value = '';
   if (!f) return;
   try {
+    await store.saveNow();
     store.loadDoc(await openProjectFile(f));
     canvas.fit(null);
-    toast(`Projeto "${store.state.doc.name}" aberto.`);
+    toast(`Projeto "${store.state.doc.name}" importado. Use Ctrl+S para guardá-lo na pasta.`);
   } catch (err) {
     toast(err.message || 'Arquivo inválido.');
   }
 });
 
-// menu "Arquivo": novo, abrir, salvar, exportar (HTML da seleção; PNG de todos os frames) e carregar o exemplo
+// menu "Arquivo": novo, abrir/salvar na pasta, importar/baixar .json, exportar (HTML da seleção; PNG de todos os
+// frames), exemplos e configurações
 const fileBtn = h('button.btn.ghost', {
   type: 'button',
   onclick: (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     showMenu(r.left, r.bottom + 6, [
-      { label: 'Novo projeto', icon: 'file', onClick: () => confirm('Descartar o projeto atual e começar um novo em branco?') && (store.newDoc(), canvas.fit(null)) },
-      { label: 'Abrir arquivo…', icon: 'folder', onClick: () => fileInput.click() },
-      { label: 'Salvar projeto (.json)', hint: 'Ctrl+S', icon: 'download', onClick: () => saveProject(store.state.doc) },
+      { label: 'Novo projeto', icon: 'file', onClick: () => confirmReplace('Começar um projeto novo em branco?') && (store.newDoc(), canvas.fit(null)) },
+      { label: 'Abrir da pasta…', hint: 'Ctrl+O', icon: 'folder', onClick: () => openProjects('open') },
+      { label: ui.link ? `Salvar (${ui.link.file})` : 'Salvar na pasta…', hint: 'Ctrl+S', icon: 'save', onClick: quickSave },
+      { label: 'Salvar como…', hint: 'Ctrl+⇧+S', onClick: () => openProjects('save') },
+      'sep',
+      { label: 'Importar arquivo .json…', icon: 'upload', onClick: () => fileInput.click() },
+      { label: 'Baixar cópia (.json)', icon: 'download', onClick: () => saveProject(store.state.doc) },
       'sep',
       {
         label: 'Exportar seleção como HTML', icon: 'code', disabled: !ui.selection.length,
@@ -167,11 +204,23 @@ const fileBtn = h('button.btn.ghost', {
         },
       },
       'sep',
-      { label: 'Exemplo: landing page', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadSample(), canvas.fit(null)) },
-      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: () => confirm('Substituir o projeto atual pelo exemplo?') && (store.loadDoc(buildSampleApp()), canvas.fit(null)) },
+      { label: 'Exemplo: landing page', icon: 'layers', onClick: () => confirmReplace('Abrir o exemplo no lugar do projeto atual?') && (store.loadSample(), canvas.fit(null)) },
+      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: () => confirmReplace('Abrir o exemplo no lugar do projeto atual?') && (store.loadDoc(buildSampleApp()), canvas.fit(null)) },
+      'sep',
+      { label: 'Configurações…', hint: 'Ctrl+,', icon: 'settings', onClick: () => openSettings() },
     ]);
   },
 }, ico('folder', 15), ' Arquivo');
+fileBtn.setAttribute('aria-haspopup', 'menu');
+
+/**
+ * Confirma antes de trocar o projeto aberto. Se ele está ligado a um arquivo da pasta, nada se perde (já está lá);
+ * se está SÓ no navegador, avisa que a cópia do navegador será substituída — é a única cópia.
+ */
+function confirmReplace(question) {
+  if (ui.link && ui.savedWhere === 'folder') return confirm(`${question}\n\n"${ui.link.file}" continua salvo na pasta.`);
+  return confirm(`${question}\n\nAtenção: o projeto atual só está salvo no navegador e será substituído. Para guardá-lo, cancele e use Arquivo → Salvar na pasta.`);
+}
 
 // monta a barra superior
 $('#topbar').append(
@@ -187,6 +236,7 @@ $('#topbar').append(
   h('div.spacer'),
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
+  settingsBtn,
   iconButton('help', 'Atalhos de teclado (?)', showHelp),
   fileInput,
 );
@@ -197,8 +247,25 @@ function syncTopbar() {
   redoBtn.disabled = !store.canRedo();
   themeBtn.replaceChildren(ico(ui.theme === 'dark' ? 'sun' : 'moon'));
   if (document.activeElement !== nameInput) nameInput.value = store.state.doc.name;
-  saveEl.dataset.state = ui.saveState || 'saved';
-  saveEl.textContent = { saving: 'Salvando…', error: 'Não salvou!', saved: 'Salvo' }[ui.saveState || 'saved'];
+  const [state, text, title] = saveStatus();
+  saveEl.dataset.state = state;
+  saveEl.textContent = text;
+  saveEl.title = title;
+}
+/**
+ * O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+ *  - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
+ *  - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
+ *  - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
+ */
+function saveStatus() {
+  if (ui.saveState === 'saving') return ['saving', 'Salvando…', 'Gravando as últimas mudanças'];
+  if (ui.saveState === 'error') return ['error', 'Não salvou!', 'O navegador recusou gravar. Use Arquivo → Salvar na pasta.'];
+  if (ui.link && ui.savedWhere === 'folder') return ['saved', 'Salvo na pasta', `Gravado em ${ui.link.file} — ${ui.server?.folder || ''}`];
+  if (ui.link && ui.link.conflict) return ['warn', 'Conflito no arquivo', `${ui.link.file} mudou fora do editor. Ctrl+S para decidir; enquanto isso, salvo só no navegador.`];
+  if (ui.link && prefs.autoFolder === false) return ['saved', 'Salvo no navegador', 'Auto-salvar na pasta está desligado: Ctrl+S grava no arquivo.'];
+  if (ui.link) return ['warn', 'Só no navegador', ui.folderProblem === 'offline' || !ui.server ? 'Servidor desligado: rode npm start para voltar a gravar na pasta.' : `Não gravou na pasta: ${ui.folderProblem}`];
+  return ['saved', 'Salvo no navegador', 'Este projeto ainda não tem arquivo. Ctrl+S salva na pasta do computador.'];
 }
 
 // ---------------------------------------------------------------- barra de ferramentas
@@ -216,7 +283,7 @@ const TOOLS = [
   ['hand', 'hand', 'Mão (H)'],
 ];
 const toolBtns = TOOLS.map(([id, ic, title]) =>
-  h('button.tool', { type: 'button', title, dataset: { tool: id }, onclick: () => store.setTool(id) }, ico(ic, 18)));
+  h('button.tool', { type: 'button', title, 'aria-label': title, dataset: { tool: id }, onclick: () => store.setTool(id) }, ico(ic, 18)));
 // botão de imagem: abre o seletor de arquivos e cria camadas com as imagens escolhidas
 const imgInput = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true });
 imgInput.addEventListener('change', async () => {
@@ -227,13 +294,19 @@ imgInput.addEventListener('change', async () => {
 // monta a barra de ferramentas: 9 ferramentas + imagem, separador e a Mão
 $('#toolbar').append(
   ...toolBtns.slice(0, 9),
-  h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', onclick: () => imgInput.click() }, ico('image', 18)),
+  h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18)),
   h('span.tool-sep'),
   toolBtns[9],
   imgInput,
 );
-/** Destaca o botão da ferramenta ativa. */
-const syncTools = () => toolBtns.forEach((b) => b.classList.toggle('on', b.dataset.tool === ui.tool));
+$('#toolbar').setAttribute('role', 'toolbar');
+$('#toolbar').setAttribute('aria-label', 'Ferramentas');
+/** Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada). */
+const syncTools = () => toolBtns.forEach((b) => {
+  const on = b.dataset.tool === ui.tool;
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-pressed', String(on));
+});
 
 // ---------------------------------------------------------------- zoom
 // controle de zoom (canto inferior direito): −, porcentagem (abre menu com ajustar/50%/100%/200%, réguas, guias, grades), +, ajustar
@@ -253,7 +326,7 @@ const zoomLabel = h('button.zoom-pct', {
       { label: 'Guias', checked: ui.showGuides !== false, onClick: () => { ui.showGuides = ui.showGuides === false; store.emit('overlay'); } },
       { label: 'Grades de layout', checked: ui.showGrids !== false, onClick: () => { ui.showGrids = ui.showGrids === false; store.emit('overlay'); } },
       'sep',
-      { label: 'Roda do mouse dá zoom', checked: ui.wheelMode === 'zoom', onClick: () => { ui.wheelMode = ui.wheelMode === 'zoom' ? 'pan' : 'zoom'; toast(ui.wheelMode === 'zoom' ? 'Roda = zoom' : 'Roda = rolar (Ctrl + roda = zoom)'); } },
+      { label: 'Roda do mouse dá zoom', checked: ui.wheelMode === 'zoom', onClick: () => { ui.wheelMode = ui.wheelMode === 'zoom' ? 'pan' : 'zoom'; prefs.wheelMode = ui.wheelMode; savePrefs(); toast(ui.wheelMode === 'zoom' ? 'Roda = zoom' : 'Roda = rolar (Ctrl + roda = zoom)'); } },
     ], { anchorRight: true });
   },
 });
@@ -277,18 +350,26 @@ store.subscribe((reasons) => {
 });
 
 // ---------------------------------------------------------------- atalhos globais do app
-// Atalhos GLOBAIS do app (os do canvas estão em tools.js): Ctrl+S salva em arquivo · Ctrl+Alt+Enter apresenta ·
-// Ctrl+O abre arquivo · "?" abre a lista de atalhos (não dispara enquanto você digita num campo)
+// Atalhos GLOBAIS do app (os do canvas estão em tools.js): Ctrl+S salva na pasta · Ctrl+Shift+S salvar como ·
+// Ctrl+O abre da pasta · Ctrl+, configurações · Ctrl+Alt+Enter apresenta · "?" atalhos (não enquanto digita num campo)
 window.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   const typing = e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
-  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); saveProject(store.state.doc); toast('Projeto salvo no seu computador.'); }
+  // com uma janela aberta (Configurações, Projetos, ajuda), os atalhos do app ficam quietos
+  if (document.querySelector('.modal-backdrop')) return;
+  const key = e.key.toLowerCase();
+  if (mod && key === 's') { e.preventDefault(); e.shiftKey ? openProjects('save') : quickSave(); }
   if (mod && e.altKey && e.key === 'Enter') { e.preventDefault(); present.open(ui.selection[0]); }
-  if (mod && e.key.toLowerCase() === 'o') { e.preventDefault(); fileInput.click(); }
+  if (mod && key === 'o') { e.preventDefault(); openProjects('open'); }
+  if (mod && e.key === ',') { e.preventDefault(); openSettings(); }
   if (e.key === '?' && !typing) showHelp();
 });
-// ao fechar a aba, grava na hora (sem esperar o atraso do salvamento automático)
-window.addEventListener('beforeunload', () => store.saveNow());
+// ao esconder a aba (trocar de aba, minimizar, fechar) e ao sair, grava na hora, sem esperar o atraso do auto-salvar.
+// `visibilitychange` é o mais confiável: o IndexedDB é assíncrono e pode não terminar dentro do `beforeunload`.
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && store.saveNow());
+window.addEventListener('pagehide', () => store.saveNow());
+// voltando para a aba: o servidor pode ter sido ligado/desligado enquanto isso
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && saving.refresh());
 
 // ---------------------------------------------------------------- sincronização
 // mantém topo, ferramentas e zoom em dia (1x por frame)
@@ -314,12 +395,6 @@ requestAnimationFrame(() => {
 window.designer = { store, canvas, commands, tools };
 
 // ---------------------------------------------------------------- painéis redimensionáveis e modo foco
-// PREFERÊNCIAS DE INTERFACE (largura dos painéis), guardadas à parte do projeto: mudar o layout não "suja" o documento
-const PREF_KEY = 'projeto-designer:prefs';
-/** Lê as preferências salvas; se estiverem corrompidas, começa vazio. */
-const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch { return {}; } })();
-/** Grava as preferências (falhas silenciosas: é só conveniência). */
-const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ignore */ } };
 // <html>: as larguras dos painéis são variáveis CSS (--left, --right) definidas aqui
 const root = document.documentElement;
 /** Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado. */
