@@ -71,7 +71,14 @@ try {
   await p.waitForSelector('.home-card:not(.sample)');
   ok('card do projeto aparece com a miniatura do servidor', (await card('casa-teste').locator('img').getAttribute('src') || '').includes('/thumb'));
   ok('card marca o projeto aberto', (await card('casa-teste').innerText()).includes('aberto'));
-  ok('miniatura carrega de verdade (imagem válida)', await card('casa-teste').locator('img').evaluate((img) => img.complete && img.naturalWidth > 0));
+  // espera a imagem terminar de carregar (até 5 s: com a máquina ocupada ela pode demorar) e confere se é válida;
+  // uma miniatura quebrada dispara 'error' e o teste falha do mesmo jeito
+  ok('miniatura carrega de verdade (imagem válida)', await card('casa-teste').locator('img').evaluate((img) => new Promise((done) => {
+    if (img.complete) return done(img.naturalWidth > 0);
+    img.addEventListener('load', () => done(img.naturalWidth > 0));
+    img.addEventListener('error', () => done(false));
+    setTimeout(() => done(false), 5000);
+  })));
   await p.fill('.home-search input', 'xyz');
   ok('busca sem resultado avisa', (await p.locator('.home-empty').innerText()).includes('Nada encontrado'));
   await p.fill('.home-search input', 'casa');
