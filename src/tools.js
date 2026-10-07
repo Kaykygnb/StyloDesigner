@@ -1098,7 +1098,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     const text = e.clipboardData?.getData('text/plain') || '';
     e.preventDefault();
     if (files.length) commands.addImageFiles(files).catch(() => toast('Não consegui abrir a imagem.'));
-    else if (text && text !== MARKER) commands.addText(text.slice(0, 2000));
+    // SVG copiado como TEXTO (Figma "Copiar como SVG", sites de ícones, código) → vetor editável
+    else if (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) {
+      try { commands.insertSvg(text); } catch (err) { toast(err.message); }
+    } else if (text && text !== MARKER) commands.addText(text.slice(0, 2000));
     else commands.paste();
   });
 

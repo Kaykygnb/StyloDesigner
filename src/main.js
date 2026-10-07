@@ -93,6 +93,7 @@ const canvas = createCanvas(store, viewport);
 let toolsRef = null;
 createOverlay(store, canvas, viewport, { penSvg: () => toolsRef?.pen.overlaySvg() || '' });
 const commands = createCommands(store, canvas);
+commands.notify = (msg) => toast(msg);
 const tools = createTools({ store, canvas, commands, viewport, toast });
 toolsRef = tools;
 createRulers({ store, canvas, stage: $('.stage'), commands });

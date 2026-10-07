@@ -8,7 +8,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { pathData, rgba } from './css.js';
+import { nodePathData, rgba } from './css.js';
 import { round } from './model.js';
 
 /** Arredonda para 2 casas decimais (mantém o SVG enxuto). */
@@ -33,7 +33,7 @@ function shapeD(node, w, h) {
   if (node.type === 'ellipse') return `M 0 ${h / 2} A ${w / 2} ${h / 2} 0 1 0 ${w} ${h / 2} A ${w / 2} ${h / 2} 0 1 0 0 ${h / 2} Z`;
   if (node.type === 'path') {
     const sx = w / (node.vw || 1), sy = h / (node.vh || 1);
-    return pathData(node.points, node.closed, (x) => x * sx, (y) => y * sy);
+    return nodePathData(node, (x) => x * sx, (y) => y * sy);
   }
   return roundedRect(w, h, node.radius || [0, 0, 0, 0]);
 }
@@ -146,7 +146,7 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     } else if (plainRect && !hasRadius) {
       out.push(`<rect width="${n2(w)}" height="${n2(h)}" ${p.attr}/>`);
     } else {
-      out.push(`<path d="${shapeD(node, w, h)}" ${p.attr}/>`);
+      out.push(`<path d="${shapeD(node, w, h)}" ${p.attr}${node.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : ''}/>`);
     }
 
     if (hasStroke) {

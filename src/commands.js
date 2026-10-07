@@ -11,6 +11,7 @@
 import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, resizeNode, round, uid } from './model.js';
 import { generateCode } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
+import { importSvg } from './svgimport.js';
 
 /**
  * Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez
@@ -514,6 +515,16 @@ export function createCommands(store, canvas) {
     const created = [];
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
+      // .svg entra como VETOR EDITÁVEL (ver svgimport.js); se não der para ler, cai para imagem comum
+      if (file.type === 'image/svg+xml' || /\.svg$/i.test(file.name || '')) {
+        try {
+          insertSvg(await file.text(), { at: at && { x: at.x + created.length * 24, y: at.y + created.length * 24 }, name: file.name?.replace(/\.svg$/i, '') });
+          created.push(null);
+          continue;
+        } catch (err) {
+          notify(`SVG não pôde ser lido como vetor (${err.message}); entrou como imagem.`);
+        }
+      }
       const { assetId, w, h } = await importAsset(file);
       const scale = Math.min(1, 520 / Math.max(w, h));
       const node = createNode('rect', {
@@ -528,10 +539,53 @@ export function createCommands(store, canvas) {
       created.push(node);
     }
     if (!created.length) return false;
-    store.update((page) => page.children.push(...created));
-    store.setSelection(created.map((n) => n.id));
+    const images = created.filter(Boolean); // null = SVG já inserido como vetor
+    if (!images.length) return true;
+    store.update((page) => page.children.push(...images));
+    store.setSelection(images.map((n) => n.id));
     store.commit();
     return true;
+  }
+
+  /** Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`). */
+  const notify = (msg) => api.notify?.(msg);
+
+  /**
+   * Insere uma camada NOVA já pronta: dentro do frame selecionado (centralizada nele; se o frame tem auto layout,
+   * ela entra no fluxo) ou na raiz da página, centralizada em `at` (mundo) ou no meio da tela. Seleciona e grava.
+   */
+  function placeNew(node, at) {
+    const sel = store.selected();
+    const frame = !at && sel.length === 1 && sel[0].type === 'frame' ? sel[0] : null;
+    store.update((page) => {
+      if (frame) {
+        node.x = round((frame.w - node.w) / 2);
+        node.y = round((frame.h - node.h) / 2);
+        frame.children.push(node);
+      } else {
+        const r = canvas.vpRect();
+        const p = at || canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2);
+        node.x = round(p.x - node.w / 2);
+        node.y = round(p.y - node.h / 2);
+        page.children.push(node);
+      }
+    });
+    store.setSelection([node.id]);
+    store.commit();
+    return node;
+  }
+
+  /**
+   * Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa se algo do SVG foi ignorado
+   * (filtros, imagens, texto em curva...). Lança erro se o texto não for um SVG com formas.
+   * @param {string} text
+   * @param {{at?: {x,y}, name?: string, currentColor?: string, fill?: string, size?: number}} [opts]
+   */
+  function insertSvg(text, { at, name, currentColor, fill, size } = {}) {
+    const { node, skipped } = importSvg(text, { name, currentColor, fill, size });
+    placeNew(node, at);
+    if (skipped) notify(`SVG importado. ${skipped} ${skipped === 1 ? 'detalhe não suportado foi ignorado' : 'detalhes não suportados foram ignorados'} (filtros, imagens, texto em curva...).`);
+    return node;
   }
 
   /** Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas). */
@@ -731,11 +785,15 @@ export function createCommands(store, canvas) {
   function normalizePath(node) {
     if (node.rotation || !node.points.length) return;
     const sx = node.w / (node.vw || 1), sy = node.h / (node.vh || 1);
-    const box = pathBounds(node.points);
+    // limites de TODOS os contornos (vetores importados de SVG podem ter vários: ver css.js → nodePathData)
+    const boxes = [pathBounds(node.points, node.closed), ...(node.contours || []).map((c) => pathBounds(c.points, c.closed))];
+    const box = { x0: Math.min(...boxes.map((b) => b.x0)), y0: Math.min(...boxes.map((b) => b.y0)), x1: Math.max(...boxes.map((b) => b.x1)), y1: Math.max(...boxes.map((b) => b.y1)) };
     const nw = Math.max(1, (box.x1 - box.x0) * sx), nh = Math.max(1, (box.y1 - box.y0) * sy);
     const shiftX = box.x0, shiftY = box.y0;
     const sh = (p) => (p ? { x: round(p.x - shiftX), y: round(p.y - shiftY) } : null);
-    node.points = node.points.map((p) => ({ x: round(p.x - shiftX), y: round(p.y - shiftY), hin: sh(p.hin), hout: sh(p.hout) }));
+    const shiftAll = (pts) => pts.map((p) => ({ x: round(p.x - shiftX), y: round(p.y - shiftY), hin: sh(p.hin), hout: sh(p.hout) }));
+    node.points = shiftAll(node.points);
+    if (node.contours) node.contours = node.contours.map((c) => ({ ...c, points: shiftAll(c.points) }));
     node.x = round(node.x + shiftX * sx);
     node.y = round(node.y + shiftY * sy);
     node.vw = round(box.x1 - box.x0) || 1;
@@ -790,12 +848,15 @@ export function createCommands(store, canvas) {
   }
 
   // API pública dos comandos
-  return {
+  const api = {
+    insertSvg, placeNew,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addTextStyle, removeStyle,
     addGuide, removeGuide, addPathFromWorld, normalizePath, addShapePath, syncInstances,
+    notify: null, // função de aviso (toast); main.js liga
   };
+  return api;
 }
 
 /**

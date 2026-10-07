@@ -367,6 +367,23 @@ export function pathData(points, closed, tx = (x) => x, ty = (y) => y) {
 }
 
 /**
+ * `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver.
+ * Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas
+ * num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
+ * @param {object} node  camada do tipo 'path'
+ * @param {(x:number)=>number} [tx]
+ * @param {(y:number)=>number} [ty]
+ */
+export function nodePathData(node, tx, ty) {
+  let d = pathData(node.points, node.closed, tx, ty);
+  for (const c of node.contours || []) {
+    const cd = pathData(c.points, c.closed, tx, ty);
+    if (cd) d += (d ? ' ' : '') + cd;
+  }
+  return d;
+}
+
+/**
  * Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por
  * url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }.
  * O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
@@ -395,8 +412,9 @@ function svgPaint(fill, id, assets) {
  *  - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
  */
 export function pathSvg(node, assets = {}) {
-  const d = pathData(node.points, node.closed);
+  const d = nodePathData(node);
   const { paint, opacity, defs } = svgPaint(node.fill, node.id, assets);
+  const rule = node.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : '';
   const st = node.stroke;
   const w = st && st.width > 0 ? st.width : 0;
   const dash = !w ? '' : st.style === 'dashed' ? ` stroke-dasharray="${w * 3} ${w * 2}"` : st.style === 'dotted' ? ` stroke-dasharray="0 ${w * 2}"` : '';
@@ -406,7 +424,7 @@ export function pathSvg(node, assets = {}) {
   const fo = opacity != null && opacity < 1 ? ` fill-opacity="${opacity}"` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${num(node.vw)} ${num(node.vh)}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible">` +
     `${defs ? `<defs>${defs}</defs>` : ''}` +
-    `<path d="${d}" fill="${node.closed || paint !== 'none' ? paint : 'none'}"${fo}${stroke} vector-effect="non-scaling-stroke" data-vis="1"/>` +
+    `<path d="${d}" fill="${node.closed || paint !== 'none' ? paint : 'none'}"${fo}${rule}${stroke} vector-effect="non-scaling-stroke" data-vis="1"/>` +
     `<path d="${d}" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/>` +
     `</svg>`;
 }
@@ -424,7 +442,8 @@ export function maskClip(group) {
   }
   if (m.type === 'path') {
     const sx = m.w / (m.vw || 1), sy = m.h / (m.vh || 1);
-    return `path('${pathData(m.points, true, (x) => m.x + x * sx, (y) => m.y + y * sy)}')`;
+    const rule = m.fillRule === 'evenodd' ? 'evenodd, ' : '';
+    return `path(${rule}'${nodePathData({ ...m, closed: true }, (x) => m.x + x * sx, (y) => m.y + y * sy)}')`;
   }
   const [a, b, c, d] = m.radius || [0, 0, 0, 0];
   const round_ = a || b || c || d ? ` round ${px(a)} ${px(b)} ${px(c)} ${px(d)}` : '';
