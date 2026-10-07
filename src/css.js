@@ -23,6 +23,7 @@
  */
 
 import { isFlow, hasLayout, round, slugify } from './model.js';
+import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
 const px = (v) => `${round(v)}px`;
@@ -518,13 +519,16 @@ export function generateCode(nodes, parent, assets = {}, { root = false } = {}) 
  */
 export function exportHtml(node, assets, title = 'Design') {
   const { html, css } = generateCode([node], null, assets, { root: true });
+  // fontes do Google usadas nos textos: o HTML exportado já leva o <link> (sem ele, cairia na fonte padrão)
+  const fontsUrl = googleFontsUrl(usedFonts([node]));
+  const fontLink = fontsUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fontsUrl}">\n` : '';
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<style>
+${fontLink}<style>
 * { margin: 0; box-sizing: border-box; }
 body { display: grid; place-items: start center; padding: 24px; background: #f3f3f5; }
 ${css}

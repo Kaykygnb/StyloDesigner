@@ -9,8 +9,10 @@
 
 import { h, ico, iconButton, numField, selectField, segmented, colorRow } from './dom.js';
 import { askText } from './menus.js';
+import { fontField } from './fontpicker.js';
+import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
-  BLEND_MODES, FONT_FAMILIES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
+  BLEND_MODES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
   constraintsOf,
 } from '../model.js';
 import { fillCss } from '../css.js';
@@ -397,9 +399,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
   /** Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical. */
   function textSection() {
-    const fonts = FONT_FAMILIES.map((f) => [f, f]);
-    const cur = P().fontFamily;
-    if (cur && !FONT_FAMILIES.includes(cur)) fonts.unshift([cur, cur]);
+    // pesos que a fonte atual TEM (ex.: Lobster só tem 400); os demais nem aparecem na lista
+    const avail = weightsOf(P().fontFamily);
+    const weights = FONT_WEIGHTS.filter(([w]) => avail.includes(w));
     const styles = store.state.doc.styles.texts;
     return section('Texto', [
       row(
@@ -409,9 +411,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addTextStyle(P(), name);
         }, 'small')),
-      select(fonts, () => P().fontFamily, (v) => each((n) => { n.fontFamily = v; delete n.textStyleId; }), 'font-family'),
+      reg(fontField({
+        get: () => P().fontFamily,
+        // ao trocar a fonte: começa a baixar (Google Fonts) e ajusta o peso para o mais próximo que ela tem
+        set: (v) => { ensureFonts([v]); each((n) => { n.fontFamily = v; n.fontWeight = nearestWeight(v, n.fontWeight); delete n.textStyleId; }); commit(); },
+      })),
       row(
-        select(FONT_WEIGHTS.map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight'),
+        select((weights.length ? weights : FONT_WEIGHTS).map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight'),
         num('Aa', () => P().fontSize, (v) => each((n) => { n.fontSize = Math.max(1, v); delete n.textStyleId; }), { title: 'font-size', min: 1, decimals: 1 })),
       row(
         num('↕', () => P().lineHeight, (v) => each((n) => { n.lineHeight = v; delete n.textStyleId; }), { title: 'line-height (multiplicador)', min: 0, step: 0.05, decimals: 2 }),
@@ -642,6 +648,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       store.state.doc.styles.colors.length, store.state.doc.styles.texts.length, n.fill.styleId, n.textStyleId, n.type,
+      n.type === 'text' ? n.fontFamily : '', // a lista de pesos depende da fonte
       n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)), paddingExpanded, n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
     ].join('|');
   }

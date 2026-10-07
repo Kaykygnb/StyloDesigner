@@ -21,6 +21,8 @@ import { createDesignPanel } from './ui/props.js';
 import { createCodePanel } from './ui/code.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
+import { createIconsPanel } from './ui/googleicons.js';
+import { ensureFonts, usedFonts } from './fonts.js';
 import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
 import { h, ico, iconButton } from './ui/dom.js';
@@ -103,21 +105,29 @@ createRulers({ store, canvas, stage: $('.stage'), commands });
 const leftBody = h('div.left-body');
 const layersBox = h('div.left-body');
 const assetsBox = h('div.left-body');
+const iconsBox = h('div.left-body');
+// o painel de ícones só é montado na 1ª vez que a aba abre (são milhares de nomes; não precisa no início)
+let iconsPanel = null;
 const assets = createAssetsPanel({ store, commands, canvas, container: assetsBox });
 createLayersPanel({ store, commands, container: layersBox });
 const ltLayers = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('layers') }, ico('layers', 14), ' Camadas');
 const ltAssets = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('assets') }, ico('component', 14), ' Recursos');
-$('#left').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel esquerdo' }, ltLayers, ltAssets), leftBody);
-/** Troca a aba do painel esquerdo ('layers' | 'assets'). */
+const ltIcons = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('icons') }, ico('star', 14), ' Ícones');
+$('#left').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel esquerdo' }, ltLayers, ltAssets, ltIcons), leftBody);
+/** Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons'). */
 function setLeftTab(tab) {
   ui.leftTab = tab;
-  ltLayers.classList.toggle('on', tab === 'layers');
-  ltAssets.classList.toggle('on', tab === 'assets');
   // aria-selected: o leitor de tela anuncia qual aba está ativa
-  ltLayers.setAttribute('aria-selected', String(tab === 'layers'));
-  ltAssets.setAttribute('aria-selected', String(tab === 'assets'));
-  leftBody.replaceChildren(tab === 'layers' ? layersBox : assetsBox);
+  for (const [b, t] of [[ltLayers, 'layers'], [ltAssets, 'assets'], [ltIcons, 'icons']]) {
+    b.classList.toggle('on', tab === t);
+    b.setAttribute('aria-selected', String(tab === t));
+  }
+  leftBody.replaceChildren(tab === 'layers' ? layersBox : tab === 'assets' ? assetsBox : iconsBox);
   if (tab === 'assets') assets.render();
+  if (tab === 'icons') {
+    iconsPanel ||= createIconsPanel({ commands, container: iconsBox, toast });
+    iconsPanel.focus();
+  }
 }
 setLeftTab('layers');
 
@@ -431,6 +441,15 @@ requestAnimationFrame(() => {
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
 window.designer = { store, canvas, commands, tools };
+
+// ---------------------------------------------------------------- fontes do Google
+// Baixa as fontes do Google que os textos do projeto usam: ao abrir e depois de cada mudança gravada no histórico
+// (abrir outro projeto, colar, trocar fonte, desfazer...). Cada fonte é baixada uma vez só (ver fonts.js).
+ensureFonts(usedFonts(store.state.doc));
+store.subscribe((reasons) => { if (reasons.has('history')) ensureFonts(usedFonts(store.state.doc)); });
+// quando uma fonte termina de carregar, o tamanho dos textos muda (letras mais largas/estreitas): redesenha e
+// remede tudo para as caixas de seleção e o auto layout ficarem certos
+document.fonts?.addEventListener('loadingdone', () => store.emit('doc'));
 
 // ---------------------------------------------------------------- página inicial
 // PÁGINA INICIAL: tela com os projetos da pasta, "continuar de onde parou" e exemplos (ver ui/home.js).
