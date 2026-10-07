@@ -6,6 +6,53 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.10.0] — 2026-10-07 — Seção, auto layout com cara de produto e caneta para ícones SVG
+
+### Adicionado
+- **Seção** (`Shift+S`, como no Figma): contêiner de organização do canvas. Só existe na raiz, guarda frames, tem o nome em destaque acima dela e leva as telas junto ao ser movida. Desenhar uma seção em volta de telas da raiz **adota** as que ficaram totalmente dentro. Clicar no nome ou no corpo seleciona e arrasta a seção. Telas podem entrar e sair arrastando. Painel Design mostra só Posição, Tamanho, Preenchimento e Exportar. Exportada como `<section>`; `Ctrl+Shift+G` desfaz a seção.
+### Adicionado (caneta para criar ícones SVG)
+- **Arquivo → Novo ícone (24×24)**: cria um frame de ícone no centro da vista, com a **grade de pixels de 1px**, enquadra com zoom grande, liga o **encaixe de 1px** e deixa a caneta pronta. Exporte pelo painel (SVG) como qualquer frame.
+- **Barra da caneta** (aparece sozinha com a caneta ou na edição de pontos): **Encaixe** Livre/1/2/4/8 px — pontos grudam na grade contada do canto do frame — e os atalhos à vista.
+- **Continuar um caminho**: com um vetor aberto selecionado, a caneta (P) clicando na **ponta** dele continua desenhando o mesmo vetor (clicar no início também vale). Clicar no outro extremo fecha.
+- **Vários pontos**: arraste uma caixa no vazio, **Shift+clique** soma/tira, **Ctrl+A** seleciona todos. Mover, setas, canto/suave e Excluir valem para o grupo.
+- **Alt+clique num ponto** converte canto ↔ suave (como o "converter ponto" do Illustrator). **Abrir aqui** corta um caminho fechado depois do ponto selecionado.
+- **Extremidade e quina do traço** (reta/redonda/quadrada, pontuda/redonda/chanfrada) para vetores, no painel Contorno e no SVG exportado — o SVG antes ignorava a extremidade (saía "reta" mesmo com o editor mostrando redonda).
+
+### Adicionado (caneta e SVG)
+- **Alt+clique no traço agora segue a CURVA**: o ponto novo é inserido no lugar certo do trecho curvo e nasce com as alças corretas (divisão de Bézier, De Casteljau), então o desenho **não muda** ao adicionar pontos. Antes ele media na corda reta e entortava a curva.
+- Com **Alt** pressionado, um pontinho rosa mostra no traço **onde** o clique vai adicionar o ponto.
+- **Shift** trava em múltiplos de 45°: ao desenhar um segmento novo, ao arrastar um ponto e ao arrastar uma alça.
+- **Setas movem o ponto selecionado** (Shift = 10 px) durante a edição de pontos.
+- **Painel Vetor renovado**: botão Concluir edição; "Ponto N de M" com tipo **Canto / Suave**, **X / Y** numéricos (relativos ao pai, como a camada) e Excluir ponto; **Inverter** direção do caminho.
+- **Código SVG (path `d`)** do vetor num bloco recolhível: **Copiar** e **Aplicar**. Cole o `d` de outro SVG (aceita M L H V C S Q T A Z, absolutos e relativos) para trocar a forma sem perder cor, contorno e nome. Texto sem caminho válido é recusado.
+
+### Corrigido
+- **Menu de contexto (botão direito) cortado em telas baixas**: os menus agora têm altura máxima (~70% da janela, sempre dentro dela) e rolam por dentro, então a última opção sempre dá para alcançar. Vale para todos os menus flutuantes (camadas, canvas, Arquivo, zoom).
+
+### Alterado (polimento)
+- A caixa **"CSS ao vivo"** agora começa **fechada** e abre/fecha com a setinha (a escolha fica lembrada). Segue não editável: é só uma curiosidade.
+- **Painéis laterais mais delicados**: abas em pílula (sem sublinhado), seções com mais respiro e divisórias leves, campos e botões com cantos mais redondos, foco com halo suave, rolagem fina.
+- **Lembrete "este projeto ainda não tem arquivo"** menor e mais suave, com ícone num selo; indicador de "Salvo" no topo virou uma pílula discreta com dica rica.
+
+### Adicionado (Auto layout com cara de produto)
+- **Auto layout redesenhado**: o modo virou 4 cartões (Livre · Linha · Coluna · Grade) com o CSS de cada um embaixo, um selo "CSS puro" e a caixa **"CSS ao vivo"**, que mostra as declarações reais que o frame gera agora (`display`, `gap`, `padding`, `justify-*`, `align-items`...) e muda junto com os controles.
+- **Dicas ricas** (`tip` em `ui/dom.js`): ao passar o mouse, aparece um cartão com título, o CSS correspondente (colorido, em fonte mono) e uma frase em português explicando o que aquilo faz. Vale para os cartões de modo, a caixa de CSS ao vivo (cada propriedade), a matriz de alinhamento, gap, padding, wrap, colunas/linhas e alinhamentos. Substitui a dica nativa do navegador nesses controles.
+- Cada legenda mostra o nome da propriedade CSS ao lado ("Espaço entre itens · gap").
+
+### Adicionado (CSS Grid)
+- **Seletor visual de grade** 6×6 no Auto layout em modo grid: passe o mouse para ver "colunas × linhas" e clique para aplicar as duas contagens de uma vez.
+- **Células do grid no canvas**: com um frame em grid selecionado (ou um item dele), as células reais aparecem tracejadas, lidas do estilo calculado do navegador (valem para linhas automáticas e `gap`).
+- **Espaço entre células unido**: um campo só para `gap`, com botão para separar em coluna/linha (separa sozinho se os valores forem diferentes).
+
+### Alterado
+- **Painel Design com o visual do Figma**: títulos de seção maiores, legendas pequenas em cima dos campos ("Alinhamento", "Posição", "Dimensões", "Opacidade", "Raio dos cantos", "Peso", "Espessura"... também em Texto, Preenchimento e Contorno), campos mais altos com cantos suaves e os botões de alinhar/distribuir em três "pílulas". O alinhamento deixou de ser uma barra fixa no topo e passou a fazer parte da seção Posição.
+- Tela dentro de uma seção não é mais recolorida pela cor automática (branco sobre cinza claro é o esperado).
+
+### Adicionado (continuação)
+- Telas dentro de seções valem como "telas" no modo Apresentar e no painel Protótipo (`isBoard` em `model.js`).
+
+---
+
 ## [0.9.1] — 2026-10-07 — Documentação do código
 
 ### Documentação

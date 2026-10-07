@@ -1,6 +1,6 @@
 {
   "name": "projeto-designer",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Editor de design local, em JavaScript puro, inspirado no Figma e no Penpot. O canvas é CSS de verdade.",
   "private": true,
   "type": "module",

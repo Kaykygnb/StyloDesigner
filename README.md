@@ -78,7 +78,9 @@ Na aba **Protótipo**, defina "ao clicar / ao passar o mouse → navegar para um
 ![Modo Apresentar](docs/screenshots/07-apresentar.png)
 
 ### Vetores com a caneta
-Curvas de Bézier: clique e arraste para criar pontos suaves com alças; duplo clique num vetor para **editar os pontos** (arrastar pontos e alças, `Alt` + clique adiciona ponto, duplo clique alterna canto/suave). Polígono e estrela viram vetores editáveis.
+Curvas de Bézier: clique e arraste para criar pontos suaves com alças; duplo clique num vetor para **editar os pontos** (arrastar pontos e alças, `Alt` + clique adiciona ponto **sem deformar a curva**, duplo clique alterna canto/suave, `Shift` trava em 45°, as setas movem o ponto). O painel **Vetor** edita o ponto selecionado (canto/suave, X/Y), inverte a direção e mostra o **código SVG (`d`)** do desenho: copie, ou cole o `d` de outro SVG para trocar a forma. Polígono e estrela viram vetores editáveis.
+
+**Desenhar o seu próprio ícone SVG:** *Arquivo → Novo ícone (24×24)* abre um frame com grade de pixels e **encaixe de 1px**; desenhe com a caneta, continue um caminho aberto clicando na ponta dele, selecione **vários pontos** (caixa, `Shift`, `Ctrl+A`), converta canto/suave com `Alt`+clique, e ajuste **extremidade e quina** do traço (redondas para ícones de linha). Depois exporte o frame como **SVG**.
 
 ![Caneta e edição de pontos](docs/screenshots/08-vetores-caneta.png)
 
@@ -196,6 +198,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 |---|---|---|
 | Mover | `V` | Seleciona, move, redimensiona, rotaciona. |
 | Frame | `F` ou `B` | Desenha uma prancha/contêiner. Tem presets de tamanho (iPhone, Android, iPad, Desktop, A4, Story...). |
+| Seção | `Shift+S` | Contêiner de **organização** do canvas (como no Figma): nome em destaque, só na raiz, guarda frames/telas e as leva junto ao mover. Desenhe em volta de telas existentes para **adotá-las**. Clique no nome ou no corpo para selecionar e arrastar. Sem auto layout, contorno nem efeitos; no código vira `<section>`. `Ctrl+Shift+G` desfaz a seção. |
 | Retângulo / Elipse | `R` / `E` | Formas básicas. Um clique sem arrastar cria 100×100. |
 | Linha | `L` | Linha com ângulo livre (`Shift` prende em múltiplos de 15°). |
 | Polígono / Estrela | botão da barra | Viram vetores editáveis. |
