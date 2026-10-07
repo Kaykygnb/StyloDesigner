@@ -32,9 +32,10 @@ function when(ms) {
  * @param {object} deps.canvas     para "ajustar tudo" depois de abrir
  * @param {(m: string) => void} deps.toast
  * @param {() => void} deps.openSettings
+ * @param {(q: string) => Promise<boolean>} [deps.confirmReplace]  pergunta antes de trocar o projeto aberto (main.js)
  * @param {'open'|'save'} [deps.mode='open']  'save' = o foco vai para o nome (Ctrl+S / Salvar como)
  */
-export function openProjects({ store, saving, canvas, toast, openSettings, mode = 'open' }) {
+export function openProjects({ store, saving, canvas, toast, openSettings, confirmReplace = async () => true, mode = 'open' }) {
   const body = h('div.modal-body.projects');
   const { close } = openModal({ title: mode === 'save' ? 'Salvar na pasta' : 'Projetos na pasta', body });
 
@@ -81,6 +82,7 @@ export function openProjects({ store, saving, canvas, toast, openSettings, mode 
               h('button.btn.small', {
                 type: 'button',
                 onclick: async () => {
+                  if (!(await confirmReplace('Abrir esta versão antiga?'))) return;
                   try {
                     await saving.openVersion(p.file, v.id);
                     canvas.fit(null);
@@ -101,6 +103,7 @@ export function openProjects({ store, saving, canvas, toast, openSettings, mode 
           h('button.btn.small', {
             type: 'button', disabled: isOpen,
             onclick: async () => {
+              if (!(await confirmReplace(`Abrir "${p.file.replace(/\.json$/, '')}"?`))) return;
               try {
                 await saving.open(p.file);
                 canvas.fit(null);

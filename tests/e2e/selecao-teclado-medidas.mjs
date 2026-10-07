@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const p = await (await b.newContext({ viewport: { width: 1440, height: 860 } })).newPage();
 const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('console', m => m.type() === 'error' && errors.push(m.text()));
-await p.goto((process.env.APP_URL || 'http://localhost:5173/')); await p.waitForTimeout(800);
+await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(800);
 let fails = 0; const ok = (n, c, x = '') => { if (!c) fails++; console.log((c ? 'PASS ' : 'FAIL ') + n + (c ? '' : '  ' + x)); };
 const ev = (f, a) => p.evaluate(f, a);
 const find = (name) => ev((name) => { let id; const w = (l) => l.forEach(n => { if (n.name === name) id = n.id; n.children && w(n.children); }); w(designer.store.page().children); return id; }, name);

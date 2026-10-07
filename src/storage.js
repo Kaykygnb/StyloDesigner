@@ -195,4 +195,10 @@ export const folder = {
   versions: (file) => call(`/projects/${encodeURIComponent(file)}/versions`),
   /** Conteúdo de uma versão antiga. */
   loadVersion: (file, id) => call(`/projects/${encodeURIComponent(file)}/versions/${encodeURIComponent(id)}`),
+  /** Grava a miniatura (SVG) mostrada na página inicial. */
+  saveThumb: (file, svg) => call(`/projects/${encodeURIComponent(file)}/thumb`, { method: 'PUT', body: { svg } }),
+  /** URL da miniatura; `version` (data da miniatura) entra na URL para o navegador não mostrar uma antiga do cache. */
+  thumbUrl: (file, version) => `/api/projects/${encodeURIComponent(file)}/thumb?v=${Math.round(version || 0)}`,
+  /** Renomeia um projeto da pasta (versões e miniatura vão junto). @returns {Promise<{file, modified}>} */
+  rename: (file, to) => call(`/projects/${encodeURIComponent(file)}/rename`, { method: 'POST', body: { to } }),
 };

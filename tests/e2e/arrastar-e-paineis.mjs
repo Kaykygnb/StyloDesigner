@@ -8,7 +8,7 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE ' + m.text()); });
-await page.goto((process.env.APP_URL || 'http://localhost:5173/')); await page.waitForTimeout(600);
+await page.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await page.waitForTimeout(600);
 let fails = 0;
 const ok = (name, cond, extra='') => { if (!cond) fails++; console.log((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : '  ' + extra)); };
 const ev = (fn, arg) => page.evaluate(fn, arg);

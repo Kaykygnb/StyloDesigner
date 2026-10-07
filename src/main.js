@@ -22,7 +22,7 @@ import { createCodePanel } from './ui/code.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
 import { createPresent } from './present.js';
-import { contextMenuItems, showHelp, showMenu } from './ui/menus.js';
+import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
 import { h, ico, iconButton } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleApp } from './sample.js';
@@ -30,6 +30,9 @@ import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
 import { createSaving } from './saving.js';
 import { openSettings as openSettingsDialog } from './ui/settings.js';
 import { openProjects as openProjectsDialog } from './ui/projects.js';
+import { createHome } from './ui/home.js';
+import { pageThumbnail } from './thumbnail.js';
+import { folder } from './storage.js';
 
 /** Atalho: primeiro elemento que casa com o seletor CSS. */
 const $ = (sel) => document.querySelector(sel);
@@ -53,7 +56,9 @@ const prefs = loadPrefs();
 /** Grava as preferências (falhas silenciosas: é só conveniência). */
 const savePrefs = () => writePrefs(prefs);
 // SALVAMENTO: regras de onde gravar (navegador sempre; pasta do computador quando o projeto tem um arquivo)
-const saving = createSaving({ prefs, toast });
+// `thumbnail` gera a miniatura da página aberta para a página inicial (usa `commands`, criado mais abaixo — a
+// função só é chamada depois, quando tudo já existe)
+const saving = createSaving({ prefs, toast, thumbnail: () => pageThumbnail(store, commands) });
 // lê o projeto guardado no navegador e, ao mesmo tempo, pergunta se o servidor (pasta) está disponível.
 // `await` no topo do módulo: o app só monta quando o projeto já foi lido (IndexedDB é assíncrono).
 const [initial] = await Promise.all([loadLocal(), saving.refresh()]);
@@ -75,7 +80,7 @@ store.onSaveError = () => {
 };
 /** Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js). */
 const openSettings = () => openSettingsDialog({ store, saving, prefs, savePrefs, toast });
-const openProjects = (mode = 'open') => openProjectsDialog({ store, saving, canvas, toast, openSettings, mode });
+const openProjects = (mode = 'open') => openProjectsDialog({ store, saving, canvas, toast, openSettings, confirmReplace, mode });
 /** Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome. */
 const quickSave = async () => { if (!(await saving.quickSave())) openProjects('save'); };
 
@@ -163,9 +168,11 @@ fileInput.addEventListener('change', async () => {
   const f = fileInput.files[0];
   fileInput.value = '';
   if (!f) return;
+  if (!(await confirmReplace(`Importar "${f.name}"?`))) return;
   try {
     await store.saveNow();
     store.loadDoc(await openProjectFile(f));
+    home.close();
     canvas.fit(null);
     toast(`Projeto "${store.state.doc.name}" importado. Use Ctrl+S para guardá-lo na pasta.`);
   } catch (err) {
@@ -177,11 +184,24 @@ fileInput.addEventListener('change', async () => {
 // frames), exemplos e configurações
 const fileBtn = h('button.btn.ghost', {
   type: 'button',
-  onclick: (e) => {
+  onclick: async (e) => {
     const r = e.currentTarget.getBoundingClientRect();
+    // RECENTES: os 5 projetos da pasta mexidos por último (menos o aberto). Pede a lista antes de abrir o menu;
+    // é rápido (servidor local), e se falhar o menu abre sem eles.
+    const recent = ui.server ? (await folder.list().catch(() => [])).filter((p) => p.file !== ui.link?.file).slice(0, 5) : [];
     showMenu(r.left, r.bottom + 6, [
-      { label: 'Novo projeto', icon: 'file', onClick: () => confirmReplace('Começar um projeto novo em branco?') && (store.newDoc(), canvas.fit(null)) },
+      { label: 'Página inicial', icon: 'layers', onClick: () => home.open() },
+      'sep',
+      { label: 'Novo projeto', icon: 'file', onClick: async () => { if (await confirmReplace('Começar um projeto novo em branco?')) { store.newDoc(); canvas.fit(null); } } },
       { label: 'Abrir da pasta…', hint: 'Ctrl+O', icon: 'folder', onClick: () => openProjects('open') },
+      ...(recent.length ? [{ label: 'Recentes', disabled: true, heading: true }, ...recent.map((p) => ({
+        label: p.file.replace(/\.json$/, ''), icon: 'history',
+        onClick: async () => {
+          if (!(await confirmReplace(`Abrir "${p.file.replace(/\.json$/, '')}"?`))) return;
+          try { await saving.open(p.file); canvas.fit(null); } catch (err) { toast(err.message); }
+        },
+      }))] : []),
+      'sep',
       { label: ui.link ? `Salvar (${ui.link.file})` : 'Salvar na pasta…', hint: 'Ctrl+S', icon: 'save', onClick: quickSave },
       { label: 'Salvar como…', hint: 'Ctrl+⇧+S', onClick: () => openProjects('save') },
       'sep',
@@ -204,8 +224,8 @@ const fileBtn = h('button.btn.ghost', {
         },
       },
       'sep',
-      { label: 'Exemplo: landing page', icon: 'layers', onClick: () => confirmReplace('Abrir o exemplo no lugar do projeto atual?') && (store.loadSample(), canvas.fit(null)) },
-      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: () => confirmReplace('Abrir o exemplo no lugar do projeto atual?') && (store.loadDoc(buildSampleApp()), canvas.fit(null)) },
+      { label: 'Exemplo: landing page', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Landing page"?')) { store.loadSample(); canvas.fit(null); } } },
+      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "App mobile"?')) { store.loadDoc(buildSampleApp(), { pristine: true }); canvas.fit(null); } } },
       'sep',
       { label: 'Configurações…', hint: 'Ctrl+,', icon: 'settings', onClick: () => openSettings() },
     ]);
@@ -214,17 +234,34 @@ const fileBtn = h('button.btn.ghost', {
 fileBtn.setAttribute('aria-haspopup', 'menu');
 
 /**
- * Confirma antes de trocar o projeto aberto. Se ele está ligado a um arquivo da pasta, nada se perde (já está lá);
- * se está SÓ no navegador, avisa que a cópia do navegador será substituída — é a única cópia.
+ * Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+ *  - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
+ *  - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
+ *    Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
+ * @returns {Promise<boolean>} true = pode trocar
  */
-function confirmReplace(question) {
-  if (ui.link && ui.savedWhere === 'folder') return confirm(`${question}\n\n"${ui.link.file}" continua salvo na pasta.`);
-  return confirm(`${question}\n\nAtenção: o projeto atual só está salvo no navegador e será substituído. Para guardá-lo, cancele e use Arquivo → Salvar na pasta.`);
+async function confirmReplace(question) {
+  if (ui.pristine || (ui.link && ui.savedWhere === 'folder' && !ui.link.conflict)) return true;
+  const choice = await ask({
+    title: question,
+    message: [
+      h('p', h('strong', `"${store.state.doc.name}"`), ' só está salvo neste navegador, e o navegador guarda um projeto por vez.'),
+      'Se continuar, ele será substituído e não dá para desfazer.',
+    ],
+    buttons: [
+      { label: 'Cancelar', value: null },
+      ...(ui.server ? [{ label: 'Salvar na pasta antes', value: 'save', primary: true }] : [{ label: 'Baixar cópia antes', value: 'download', primary: true }]),
+      { label: 'Descartar e continuar', value: 'go', danger: true },
+    ],
+  });
+  if (choice === 'save') { quickSave(); return false; }
+  if (choice === 'download') { saveProject(store.state.doc); return false; }
+  return choice === 'go';
 }
 
 // monta a barra superior
 $('#topbar').append(
-  h('div.brand',
+  h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', onclick: () => home.open() },
     h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>' }),
     h('span.brand-name', 'Projeto Designer')),
   fileBtn,
@@ -356,7 +393,7 @@ window.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   const typing = e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
   // com uma janela aberta (Configurações, Projetos, ajuda), os atalhos do app ficam quietos
-  if (document.querySelector('.modal-backdrop')) return;
+  if (document.querySelector('.modal-backdrop') || ui.homeOpen) return;
   const key = e.key.toLowerCase();
   if (mod && key === 's') { e.preventDefault(); e.shiftKey ? openProjects('save') : quickSave(); }
   if (mod && e.altKey && e.key === 'Enter') { e.preventDefault(); present.open(ui.selection[0]); }
@@ -393,6 +430,48 @@ requestAnimationFrame(() => {
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
 window.designer = { store, canvas, commands, tools };
+
+// ---------------------------------------------------------------- página inicial
+// PÁGINA INICIAL: tela com os projetos da pasta, "continuar de onde parou" e exemplos (ver ui/home.js).
+// Abre ao iniciar, a não ser que a pessoa prefira ir direto ao editor (Configurações) ou a URL tenha ?editor
+// (os testes automáticos usam isso para cair direto no editor).
+const home = createHome({
+  store, saving, canvas, toast, openSettings, openProjects, confirmReplace,
+  thumbnail: () => pageThumbnail(store, commands),
+  importFile: () => fileInput.click(),
+  create: {
+    blank: () => store.newDoc(),
+    samples: [
+      { label: 'Landing page', description: 'Hero, cartões em flexbox, vidro e gradientes', load: () => store.loadSample() },
+      { label: 'App mobile', description: 'CSS Grid, componentes, estilos e protótipo', load: () => store.loadDoc(buildSampleApp(), { pristine: true }) },
+    ],
+  },
+});
+window.designer.home = home;
+window.designer.saving = saving;
+if (prefs.startScreen !== 'editor' && !new URLSearchParams(location.search).has('editor')) home.open();
+
+// ---------------------------------------------------------------- lembrete "só no navegador"
+// Projeto SEM arquivo na pasta e com servidor disponível: depois de algumas edições, mostra UMA vez (por projeto)
+// um lembrete discreto com o botão "Salvar na pasta". O indicador do topo já diz isso, mas é fácil não reparar.
+let notice = null;
+let noticeDoc = null;
+let editsHere = 0;
+const hideNotice = () => { notice?.remove(); notice = null; };
+// subscribeSync: conta CADA edição (a assinatura por quadro juntaria várias edições rápidas numa só)
+store.subscribeSync((reason) => {
+  if (store.state.doc !== noticeDoc) { noticeDoc = store.state.doc; editsHere = 0; hideNotice(); return; }
+  if (ui.link) return hideNotice();
+  if (reason !== 'history' || !store.canUndo()) return;
+  editsHere += 1;
+  if (editsHere !== 12 || !ui.server || notice) return;
+  notice = h('div.notice', { role: 'status' },
+    ico('save', 16),
+    h('div', h('strong', 'Este projeto ainda não tem arquivo'), h('span', 'Ele só está guardado neste navegador. Salve na pasta para não perder.')),
+    h('button.btn.primary.small', { type: 'button', onclick: () => { hideNotice(); quickSave(); } }, 'Salvar na pasta'),
+    h('button.icon-btn.small', { type: 'button', title: 'Agora não', 'aria-label': 'Fechar lembrete', onclick: hideNotice }, ico('x', 14)));
+  $('.stage').append(notice);
+});
 
 // ---------------------------------------------------------------- painéis redimensionáveis e modo foco
 // <html>: as larguras dos painéis são variáveis CSS (--left, --right) definidas aqui

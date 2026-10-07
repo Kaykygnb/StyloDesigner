@@ -6,7 +6,7 @@ const page = await (await browser.newContext({ viewport: { width: 1440, height: 
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE ' + m.text()); });
-await page.goto((process.env.APP_URL || 'http://localhost:5173/')); await page.waitForTimeout(600);
+await page.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await page.waitForTimeout(600);
 let fails = 0; const ok = (n, c, x='') => { if (!c) fails++; console.log((c ? 'PASS ' : 'FAIL ') + n + (c ? '' : '  ' + x)); };
 const ev = (f, a) => page.evaluate(f, a);
 // monta 2 boards com botão na primeira apontando para a segunda

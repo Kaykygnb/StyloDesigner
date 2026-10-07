@@ -20,9 +20,10 @@ const p = await ctx.newPage();
 const errors = [];
 p.on('pageerror', (e) => errors.push(e.message));
 p.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
-// diálogos nativos (confirm): a resposta é definida por cada passo do teste
-let answer = true;
-p.on('dialog', (d) => (answer ? d.accept() : d.dismiss()));
+// o app não usa mais confirm()/prompt() do navegador: se algum aparecer, é erro
+p.on('dialog', (d) => { errors.push('diálogo nativo do navegador: ' + d.message()); d.dismiss(); });
+/** Clica num botão da janela de pergunta do app (ask). */
+const answerAsk = async (label) => { await p.waitForSelector('.ask-buttons'); await p.locator('.ask-buttons button', { hasText: label }).click(); };
 const state = () => p.locator('.save-state').innerText();
 const docName = () => p.evaluate(() => designer.store.state.doc.name);
 const rename = (name) => p.evaluate((n) => { designer.store.state.doc.name = n; designer.store.commit(); }, name);
@@ -33,7 +34,7 @@ const waitState = async (text, ms = 4000) => {
 
 try {
   // ---------------------------------------------------------------- 1. migração do localStorage antigo
-  await p.goto(URL_);
+  await p.goto(new URL('?editor', URL_).href);
   await p.evaluate(() => new Promise((r) => { const q = indexedDB.deleteDatabase('projeto-designer'); q.onsuccess = q.onerror = q.onblocked = r; }));
   await p.evaluate(() => localStorage.setItem('projeto-designer:v1', JSON.stringify({
     doc: { name: 'Projeto migrado', pages: [{ id: 'pg', name: 'Página 1', children: [] }], assets: {} }, theme: 'light',
@@ -106,8 +107,8 @@ try {
   await rename('Minha mudança');
   ok('editor percebe o conflito', await waitState('Conflito no arquivo'), await state());
   ok('e NÃO sobrescreve o arquivo alheio', JSON.parse(await readFile(file, 'utf8')).name === 'Editado por fora');
-  answer = true;
   await p.keyboard.press('Control+s');
+  await answerAsk('Substituir o arquivo');
   await p.waitForTimeout(800);
   ok('Ctrl+S + confirmar substitui o arquivo', JSON.parse(await readFile(file, 'utf8')).name === 'Minha mudança');
   ok('indicador volta a "Salvo na pasta"', await waitState('Salvo na pasta'), await state());
@@ -141,7 +142,12 @@ try {
   await p.keyboard.press('Control+o');
   await p.waitForSelector('.proj-row');
   await p.locator('.proj-row', { hasText: 'outro-projeto' }).getByRole('button', { name: 'Abrir', exact: true }).click();
+  // a versão aberta só existe no navegador: trocar de projeto PERGUNTA antes (senão ela se perderia)
+  await p.waitForSelector('.ask-buttons');
+  ok('trocar um projeto que só está no navegador pede confirmação', (await p.locator('.ask-buttons').count()) === 1);
+  await answerAsk('Descartar e continuar');
   await p.waitForTimeout(800);
+  ok('e depois de confirmar abre o outro', (await p.evaluate(() => designer.store.ui.link?.file)) === 'outro-projeto.json');
   await p.route('**/api/**', (r) => r.abort());
   await rename('Sem servidor');
   ok('sem servidor: indicador avisa "Só no navegador"', await waitState('Só no navegador'), await state());
@@ -169,7 +175,7 @@ try {
   await p.waitForSelector('.menu');
   ok('menu aberto pelo teclado já foca o 1º item', await p.evaluate(() => document.activeElement.classList.contains('menu-item')));
   await p.keyboard.press('ArrowDown');
-  ok('↓ vai para o próximo item', (await p.evaluate(() => document.activeElement.textContent)).includes('Abrir da pasta'));
+  ok('↓ vai para o próximo item', (await p.evaluate(() => document.activeElement.textContent)).includes('Novo projeto'));
   await p.keyboard.press('Escape');
   ok('Esc fecha o menu e devolve o foco ao botão Arquivo', (await p.locator('.menu').count()) === 0 && (await p.evaluate(() => document.activeElement.textContent.trim())) === 'Arquivo', await p.evaluate(() => document.activeElement.outerHTML.slice(0, 120)));
   await p.keyboard.press('?');

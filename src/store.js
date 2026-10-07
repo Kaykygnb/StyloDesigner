@@ -80,6 +80,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       // ARQUIVO NA PASTA ligado a este projeto: { file: 'meu-app.json', modified: <data do disco> } ou null.
       // Com ele, o auto-salvar também grava na pasta. `modified` serve para detectar se outro programa mexeu no arquivo.
       link: null,
+      // projeto "intocado": exemplo ou em branco que ninguém editou ainda. Trocar de projeto não precisa perguntar nada.
+      pristine: false,
       // situação do salvamento: saveState 'saving' | 'saved' | 'error' · savedWhere 'browser' | 'folder'
       saveState: 'saved',
       savedWhere: 'browser',
@@ -193,6 +195,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     version++;
     const snap = snapshot();
     if (snap !== history.stack[history.i]) {
+      state.ui.pristine = false;
       history.stack.length = history.i + 1;
       history.stack.push(snap);
       if (history.stack.length > 200) history.stack.shift();
@@ -278,14 +281,16 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   /**
    * Substitui o documento inteiro (novo projeto, abrir arquivo, exemplo). Zera o histórico: o estado carregado
    * vira o primeiro item. `keepAssets` junta as imagens novas às que já existiam.
+   * `pristine` = exemplo/em branco ainda não editado (trocar de projeto não pergunta nada).
    * `link` = arquivo da pasta de onde o projeto veio ({ file, modified }); sem ele (novo, exemplo, importado),
    * o projeto fica só no navegador até você usar "Salvar na pasta" — assim um exemplo nunca sobrescreve seu arquivo.
    */
-  api.loadDoc = (doc, { keepAssets = false, link = null } = {}) => {
+  api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false } = {}) => {
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     doc.styles ||= { colors: [], texts: [] };
     state.doc = doc;
     state.ui.link = link;
+    state.ui.pristine = pristine;
     state.ui.pageId = doc.pages[0].id;
     state.ui.selection = [];
     state.ui.editingId = null;
@@ -299,8 +304,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     emit('history');
   };
   /** Projeto em branco / projeto de exemplo. */
-  api.newDoc = () => api.loadDoc(makeDoc());
-  api.loadSample = () => api.loadDoc(buildSample());
+  api.newDoc = () => api.loadDoc(makeDoc(), { pristine: true });
+  api.loadSample = () => api.loadDoc(buildSample(), { pristine: true });
 
   /** Guarda uma imagem (data URL) em doc.assets sob o id dado. */
   api.addAsset = (id, dataUrl) => {
@@ -391,7 +396,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       // veio do localStorage antigo: grava logo no IndexedDB (conclui a migração)
       if (initial.migrated) scheduleSave();
     } else {
-      api.loadDoc(buildSample());
+      api.loadDoc(buildSample(), { pristine: true });
     }
     globalThis.document && (document.documentElement.dataset.theme = state.ui.theme);
   }

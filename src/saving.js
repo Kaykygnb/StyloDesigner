@@ -19,15 +19,22 @@
 
 import { folder, saveLocal, fileNameFor } from './storage.js';
 import { saveProject } from './export.js';
+import { ask } from './ui/menus.js';
+
+/** Intervalo mínimo entre duas miniaturas do mesmo projeto: gerar SVG da página toda a cada tecla seria desperdício. */
+const THUMB_EVERY_MS = 15 * 1000;
 
 /**
  * @param {object} deps
  * @param {object} deps.store   o store (criado DEPOIS: use `attach(store)`)
  * @param {object} deps.prefs   preferências (prefs.autoFolder: auto-salvar na pasta; padrão ligado)
  * @param {(msg: string) => void} deps.toast
+ * @param {() => string|null} [deps.thumbnail]  gera a miniatura SVG da página aberta (ver thumbnail.js)
  */
-export function createSaving({ prefs, toast }) {
+export function createSaving({ prefs, toast, thumbnail = () => null }) {
   let store = null;
+  // quando a última miniatura foi enviada, por arquivo (ver THUMB_EVERY_MS)
+  const thumbAt = new Map();
   /** Situação do servidor: { ok, folder, keepVersions } ou null (sem servidor). Atualizada por refresh(). */
   let server = null;
   // avisos que só devem aparecer uma vez por "episódio" (senão o auto-salvar repetiria a cada 400 ms)
@@ -109,6 +116,7 @@ export function createSaving({ prefs, toast }) {
         where = 'folder';
         ui.folderProblem = null;
         warnedOffline = false;
+        sendThumb(link.file);
       } catch (err) {
         link.synced = false;
         if (err.status === 409) {
@@ -127,6 +135,21 @@ export function createSaving({ prefs, toast }) {
   }
 
   /**
+   * Gera e envia a miniatura do projeto (no máximo 1 a cada 15 s por arquivo; `force` ignora o intervalo).
+   * Roda "por fora": não atrasa o salvamento e, se falhar, só fica sem miniatura nova.
+   */
+  function sendThumb(file, { force = false } = {}) {
+    if (!force && Date.now() - (thumbAt.get(file) || 0) < THUMB_EVERY_MS) return;
+    thumbAt.set(file, Date.now());
+    // espera o navegador ficar ocioso: gerar o SVG mede o DOM, e não queremos competir com um arrasto em andamento
+    (globalThis.requestIdleCallback || ((f) => setTimeout(f, 200)))(() => {
+      let svg = null;
+      try { svg = thumbnail(); } catch (err) { console.warn('miniatura:', err); }
+      if (svg) folder.saveThumb(file, svg).catch(() => {});
+    });
+  }
+
+  /**
    * Ctrl+S. Projeto ligado a um arquivo → grava agora. Em conflito → pergunta se substitui o arquivo do disco.
    * Não ligado → devolve false (quem chamou abre a janela "Projetos" para escolher o nome).
    * Sem servidor → baixa o .json (o comportamento antigo).
@@ -141,8 +164,19 @@ export function createSaving({ prefs, toast }) {
     const link = store.ui.link;
     if (!link) return false;
     if (link.conflict) {
-      if (!confirm(`O arquivo "${link.file}" foi alterado fora deste editor.\n\nOK = substituir pelo que está aqui (o do disco vira uma versão antiga).\nCancelar = escolher outro nome.`)) return false;
-      return saveAs(link.file, { overwrite: true });
+      const choice = await ask({
+        title: 'O arquivo mudou fora do editor',
+        message: [`"${link.file}" foi alterado por outro programa, outra aba ou outro computador enquanto você editava aqui.`,
+          'Substituir grava o que está na tela; o conteúdo atual do arquivo não se perde: vira uma versão antiga.'],
+        buttons: [
+          { label: 'Cancelar', value: null },
+          { label: 'Salvar com outro nome', value: 'other' },
+          { label: 'Substituir o arquivo', value: 'replace', primary: true },
+        ],
+      });
+      if (choice === 'other') return false;
+      if (choice === 'replace') return saveAs(link.file, { overwrite: true });
+      return true;
     }
     await store.saveNow();
     if (store.ui.savedWhere === 'folder') toast(`Salvo em ${link.file}`);
@@ -160,11 +194,17 @@ export function createSaving({ prefs, toast }) {
       const r = await folder.save(file, store.state.doc, { base: same ? store.ui.link.modified : undefined, overwrite });
       store.setLink({ file, modified: r.modified, synced: true });
       store.ui.folderProblem = null;
+      sendThumb(file, { force: true });
       toast(`Salvo em ${file}`);
       return true;
     } catch (err) {
       if (err.status === 409 && !overwrite) {
-        if (!confirm(`Já existe "${file}" na pasta. Substituir? (o arquivo atual vira uma versão antiga)`)) return false;
+        const ok = await ask({
+          title: 'Substituir o arquivo?',
+          message: `Já existe "${file}" na pasta. Se substituir, o conteúdo atual dele vira uma versão antiga (não se perde).`,
+          buttons: [{ label: 'Cancelar', value: false }, { label: 'Substituir', value: true, primary: true }],
+        });
+        if (!ok) return false;
         return saveAs(file, { overwrite: true });
       }
       toast(err.status ? err.message : 'Servidor desligado: não consegui gravar na pasta.');
@@ -190,8 +230,44 @@ export function createSaving({ prefs, toast }) {
     store.loadDoc(doc);
   }
 
+  /**
+   * Renomeia um projeto da pasta. Se for o projeto aberto, o vínculo passa para o nome novo.
+   * @returns {Promise<string|null>} o nome final do arquivo, ou null se não deu
+   */
+  async function renameFile(file, newName) {
+    const to = fileNameFor(String(newName).replace(/\.json$/i, ''));
+    try {
+      const r = await folder.rename(file, to);
+      if (store.ui.link?.file === file) store.setLink({ ...store.ui.link, file: r.file, modified: r.modified });
+      return r.file;
+    } catch (err) {
+      toast(err.message || 'Não consegui renomear.');
+      return null;
+    }
+  }
+
+  /** Cria uma cópia de um projeto da pasta ("nome-copia.json", "nome-copia-2.json"...). Não abre a cópia. */
+  async function duplicateFile(file) {
+    const { doc } = await folder.load(file);
+    const names = new Set((await folder.list()).map((p) => p.file));
+    const base = file.replace(/\.json$/i, '');
+    let n = 1;
+    let target = `${base}-copia.json`;
+    while (names.has(target)) target = `${base}-copia-${++n}.json`;
+    doc.name = `${doc.name || base} (cópia)`;
+    await folder.save(target, doc);
+    // a miniatura também vem junto (se existir), para a cópia não aparecer em branco na página inicial
+    try {
+      const r = await fetch(folder.thumbUrl(file, Date.now()));
+      if (r.ok) await folder.saveThumb(target, await r.text());
+    } catch { /* sem miniatura: tudo bem */ }
+    return target;
+  }
+
   return {
     attach: (s) => { store = s; s.ui.server = server; },
+    renameFile,
+    duplicateFile,
     persist,
     reconcile,
     refresh,

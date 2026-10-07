@@ -7,7 +7,7 @@
  *   1. Pasta de projetos  — caminho no computador (o SERVIDOR grava lá), auto-salvar e nº de versões.
  *      Explica como usar Google Drive/OneDrive/Dropbox: escolher uma pasta sincronizada por eles.
  *   2. Cópia no navegador — sempre ligada (IndexedDB); mostra o espaço e pede proteção contra limpeza.
- *   3. Aparência e controles — tema e o que a roda do mouse faz.
+ *   3. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
@@ -137,6 +137,9 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
       h('div.set-row', { role: 'radiogroup', 'aria-label': 'Tema' }, h('span.set-label', 'Tema'),
         opt('theme', 'dark', 'Escuro', ui.theme, (v) => store.setTheme(v)),
         opt('theme', 'light', 'Claro', ui.theme, (v) => store.setTheme(v))),
+      h('div.set-row', { role: 'radiogroup', 'aria-label': 'Ao abrir o app' }, h('span.set-label', 'Ao abrir o app'),
+        opt('start', 'home', 'Mostrar a página inicial', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); }),
+        opt('start', 'editor', 'Ir direto para o editor', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); })),
       h('div.set-row', { role: 'radiogroup', 'aria-label': 'Roda do mouse' }, h('span.set-label', 'Roda do mouse'),
         opt('wheel', 'pan', 'Rola o canvas (Ctrl + roda = zoom)', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); }),
         opt('wheel', 'zoom', 'Dá zoom', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); })));

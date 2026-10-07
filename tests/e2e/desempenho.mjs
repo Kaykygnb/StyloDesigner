@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const p = await (await b.newContext({ viewport: { width: 1440, height: 860 } })).newPage();
 const errors = []; p.on('pageerror', e => errors.push(e.message));
-await p.goto((process.env.APP_URL || 'http://localhost:5173/')); await p.waitForTimeout(700);
+await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(700);
 const N = Number(process.argv[2] || 400);
 await p.evaluate(async (N) => {
   const m = await import('/src/model.js'); const s = designer.store;
