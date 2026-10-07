@@ -51,6 +51,8 @@ function thumbBox(name, src) {
 }
 
 /**
+ * Cria a PÁGINA INICIAL: cards dos projetos da pasta (com miniatura, busca, renomear, duplicar), "continuar de
+ * onde parou" e exemplos. Abre por cima do editor e o deixa inativo (inert) enquanto estiver aberta.
  * @param {object} deps
  * @param {object} deps.store, deps.saving, deps.canvas
  * @param {() => string|null} deps.thumbnail      miniatura da página aberta (thumbnail.js)

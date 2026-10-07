@@ -246,8 +246,9 @@ export function contoursBounds(contours) {
 }
 
 // ---------------------------------------------------------------- estilos e cores
-/** Converte qualquer cor CSS ("red", "rgb(...)", "#abc") em { color: '#RRGGBB', alpha }. Usa o canvas do navegador. */
+/** Contexto 2D reaproveitado por parseColor para traduzir nomes de cor (criado só na primeira vez). */
 let colorCtx = null;
+/** Converte qualquer cor CSS ("red", "rgb(...)", "#abc") em { color: '#RRGGBB', alpha }. Usa o canvas do navegador. */
 export function parseColor(value) {
   const v = String(value || '').trim();
   let m = v.match(/^#([0-9a-f]{3,8})$/i);

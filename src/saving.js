@@ -25,6 +25,8 @@ import { ask } from './ui/menus.js';
 const THUMB_EVERY_MS = 15 * 1000;
 
 /**
+ * Cria o SALVAMENTO: decide quando e onde gravar (navegador sempre; pasta do computador quando o projeto está
+ * ligado a um arquivo), reconcilia ao abrir (navegador × pasta, avisando conflito) e envia as miniaturas.
  * @param {object} deps
  * @param {object} deps.store   o store (criado DEPOIS: use `attach(store)`)
  * @param {object} deps.prefs   preferências (prefs.autoFolder: auto-salvar na pasta; padrão ligado)

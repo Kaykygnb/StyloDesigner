@@ -346,7 +346,7 @@ Os pontos que mais importam:
 4. **Gesto = um passo de histórico.** Durante um arrasto o documento muda ao vivo sem histórico; ao soltar o mouse há **um** `commit()`. Um `Ctrl+Z` desfaz o gesto inteiro.
 5. **Instâncias de componente guardam uma "foto base".** A cada commit o app compara a instância com a foto para descobrir o que o usuário sobrescreveu, reconstrói a partir do principal e reaplica as sobrescritas ([`components.js`](src/components.js)).
 
-Para o aprofundamento (modelo de dados campo a campo, algoritmos, como estender o editor) leia **[`docs/ARQUITETURA.md`](docs/ARQUITETURA.md)**. O código inteiro é comentado em português, explicando o *porquê* de cada decisão.
+Quer ler ou mexer no código? Comece pelo **[Guia do código](docs/GUIA-DO-CODIGO.md)**: por onde começar, o caminho de um clique pelo código e "quero mudar X → mexo no arquivo Y". Para o aprofundamento (modelo de dados campo a campo, algoritmos, como estender o editor) leia **[`docs/ARQUITETURA.md`](docs/ARQUITETURA.md)**, e para consultar qualquer função a **[Referência](docs/REFERENCIA.md)** (gerada dos comentários com `npm run docs`). O código inteiro é comentado em português, explicando o *porquê* de cada decisão.
 
 ---
 
@@ -356,15 +356,18 @@ Para o aprofundamento (modelo de dados campo a campo, algoritmos, como estender 
 projetodesigner2/
 ├── index.html              Página única: só o "esqueleto" (o app é montado por src/main.js)
 ├── server.js               Servidor local (sem dependências): entrega o app e grava os projetos na pasta (API /api)
-├── package.json            Scripts: `npm start`, `npm test`, `npm run test:e2e`, `npm run test:all`
+├── package.json            Scripts: `npm start`, `npm test`, `npm run test:e2e`, `npm run test:all`, `npm run docs`
 ├── README.md               Este arquivo
 ├── CONTRIBUTING.md         Como contribuir e a convenção de commits
 ├── CHANGELOG.md            O que mudou em cada versão
 ├── docs/
+│   ├── GUIA-DO-CODIGO.md   Por onde começar a ler o código e onde mexer para mudar cada coisa
 │   ├── ARQUITETURA.md      Funcionamento interno e guia para estender
+│   ├── REFERENCIA.md       Todas as funções, arquivo por arquivo (GERADO: npm run docs)
 │   └── screenshots/        As capturas de tela usadas aqui
 ├── scripts/
 │   ├── gerar-capturas.mjs  Regenera as capturas (usa Playwright)
+│   ├── gerar-referencia.mjs  Gera docs/REFERENCIA.md a partir dos comentários do código
 │   └── gerar-listas-google.mjs  Atualiza as listas de fontes e ícones do Google (src/data/)
 ├── src/
 │   ├── main.js             Ponto de entrada: monta o app
@@ -398,6 +401,7 @@ projetodesigner2/
     ├── api.test.js         API: pasta, gravar/ler, conflito, versões, miniatura, renomear, segurança
     ├── svgimport.test.js   Importador de SVG: caminhos, arcos, curvas, transformações, cores
     ├── fonts.test.js       Google Fonts: URL, pesos, fontes usadas, <link> no HTML exportado
+    ├── referencia.test.js  Confere se docs/REFERENCIA.md está em dia com os comentários
     └── e2e/                Testes de navegador (usam Playwright)
 ```
 
@@ -409,7 +413,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 52 testes
+npm test      # 54 testes
 ```
 
 ### Testes de navegador

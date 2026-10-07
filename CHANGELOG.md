@@ -6,6 +6,15 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.9.1] — 2026-10-07 — Documentação do código
+
+### Documentação
+- **[Guia do código](docs/GUIA-DO-CODIGO.md)** para quem vai ler ou mexer no código: glossário, ordem de leitura, o caminho de um clique (desenhar um retângulo) pelos arquivos, tabela "quero mudar X → arquivo/função", regras do projeto e como manter a documentação.
+- **[Referência](docs/REFERENCIA.md)** com as 496 funções e constantes, arquivo por arquivo, com parâmetros e link para a linha. É **gerada dos comentários** do próprio código por `scripts/gerar-referencia.mjs` (`npm run docs`), então não envelhece; `npm test` avisa se ela ficou desatualizada.
+- Comentários nas 5 funções exportadas que ainda não tinham descrição (`createSaving`, `createHome`, `createIconsPanel`, `openModal`, `parseColor`).
+
+---
+
 ## [0.9.0] — 2026-10-07 — CSS de verdade no painel: grid, contorno por lado, snap ao redimensionar
 
 4º relato do teste real: "contorno só de um lado", "CSS Grid não exerce força", "opções de layout esquisitas", "não vejo a barreira do frame ao redimensionar", "painel meio feio".

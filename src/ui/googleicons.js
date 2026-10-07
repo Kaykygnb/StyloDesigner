@@ -43,6 +43,8 @@ const PT = {
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /**
+ * Cria a aba "Ícones": busca nos Material Symbols (aceita palavras em português), escolha de estilo, cor e
+ * tamanho, e insere o ícone escolhido como vetor editável (commands.insertSvg).
  * @param {object} deps
  * @param {object} deps.commands   usa commands.insertSvg
  * @param {HTMLElement} deps.container

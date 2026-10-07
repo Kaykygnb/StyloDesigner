@@ -24,7 +24,7 @@ npm start        # http://localhost:5173
 npm test         # testes unitários (sem navegador)
 ```
 
-Para entender o código antes de mexer, leia [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) (inclui a seção **"Como estender"** com passo a passo para adicionar propriedades, tipos de camada, atalhos e painéis).
+Para entender o código antes de mexer, comece pelo [Guia do código](docs/GUIA-DO-CODIGO.md) e depois leia [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) (inclui a seção **"Como estender"** com passo a passo para adicionar propriedades, tipos de camada, atalhos e painéis).
 
 ## 2. Fluxo de trabalho
 
@@ -143,6 +143,6 @@ Projetos .json antigos são migrados automaticamente ao abrir.
 - [ ] Os testes de navegador relacionados passam (se mexeu em interação).
 - [ ] Os commits seguem a [convenção](#3-convenção-de-commits) e cada um trata de **um** assunto.
 - [ ] Código novo está **comentado** (cabeçalho, JSDoc, decisões não óbvias).
-- [ ] Documentação atualizada: README (funcionalidade/atalho), `docs/ARQUITETURA.md` (se mudou a estrutura), `CHANGELOG.md`.
+- [ ] Documentação atualizada: comentário `/** ... */` das funções novas/alteradas + `npm run docs` (regenera `docs/REFERENCIA.md`), README (funcionalidade/atalho), `docs/ARQUITETURA.md` (se mudou a estrutura), `CHANGELOG.md`.
 - [ ] Atalho novo? Está em `ui/menus.js` (`SHORTCUTS`) e na tabela do README.
 - [ ] Mudança visual? Captura de tela no PR.

@@ -137,6 +137,9 @@ const SHORTCUTS = [
   ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar na pasta (escolhe o nome na 1ª vez)'], ['Ctrl ⇧ S', 'Salvar como… (novo nome na pasta)'], ['Ctrl O', 'Abrir projeto da pasta'], ['Ctrl ,', 'Configurações (onde salvar, tema...)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Esta lista de atalhos'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 
+/** Contador para dar um id único ao título de cada janela (aria-labelledby). */
+let modalSeq = 0;
+
 /**
  * JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
  *  - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
@@ -149,7 +152,6 @@ const SHORTCUTS = [
  * @param {() => void} [o.onClose]
  * @returns {{ el: HTMLElement, close: () => void }}
  */
-let modalSeq = 0;
 export function openModal({ title, body, cls = '', onClose }) {
   closeMenus();
   const returnFocus = document.activeElement;

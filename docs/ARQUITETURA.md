@@ -1,6 +1,6 @@
 # Arquitetura do Projeto Designer
 
-Este documento explica **como o app funciona por dentro** e **como estendê-lo**. Para uso, veja o [README](../README.md). O código também é comentado, arquivo por arquivo, em português.
+Este documento explica **como o app funciona por dentro** e **como estendê-lo**. Para uso, veja o [README](../README.md). Primeira vez no código? Comece pelo [Guia do código](GUIA-DO-CODIGO.md). Para consultar uma função específica, veja a [Referência](REFERENCIA.md) (gerada dos comentários do código).
 
 ## Índice
 
@@ -316,7 +316,7 @@ Função `createXPanel({ store, ... })` em `ui/`, devolvendo `{ el, render }`; a
 
 ## 13. Decisões técnicas e armadilhas
 
-- **`outline` em vez de `border` para contornos.** `outline` não altera o tamanho da caixa nem empurra vizinhos em auto layout, e segue o `border-radius` nos navegadores atuais.
+- **`outline` em vez de `border` para contornos.** `outline` não altera o tamanho da caixa nem empurra vizinhos em auto layout, e segue o `border-radius` nos navegadores atuais. A exceção é o **contorno por lado** (`stroke.sides`): `outline` não tem lados, então ali vira `border-top/right/bottom/left` (com `box-sizing: border-box`, a caixa não cresce).
 - **`contentEditable = 'plaintext-only'`** na edição de texto: impede colar formatação; há *fallback* para `'true'`.
 - **Pointer capture + `dblclick`.** Com `setPointerCapture`, o `dblclick` chega com alvo = viewport; por isso `tools.js` guarda o alvo real do último `pointerdown`.
 - **`elementsFromPoint` ignorando o overlay.** Durante o arrasto, as alças da seleção ficam sob o cursor; sem filtrá-las, a detecção do "frame de destino" falhava.
