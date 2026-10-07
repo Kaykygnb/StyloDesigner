@@ -83,6 +83,37 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     return null;
   };
 
+  /**
+   * Cor (sólida) que está VISÍVEL sob o ponteiro: a da camada mais de cima ali (ou de um pai dela) com preenchimento
+   * sólido e opaco. null = o fundo do canvas. Usada para a forma nova não nascer da mesma cor do que está embaixo.
+   */
+  const colorUnder = (clientX, clientY) => {
+    for (const el of document.elementsFromPoint(clientX, clientY)) {
+      const id = el.closest?.('.node')?.dataset.id;
+      if (!id) continue;
+      for (let n = store.get(id); n; n = store.parentOf(n.id)) {
+        if (n.visible && n.fill?.type === 'solid' && n.fill.opacity > 0.5 && n.opacity > 0.5) return n.fill.color;
+      }
+      return null;
+    }
+    return null;
+  };
+  /** Brilho percebido de uma cor #RRGGBB (0 = preto, 1 = branco). */
+  const luma = (hex) => {
+    const v = parseInt(String(hex).slice(1, 7), 16);
+    return (0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255)) / 255;
+  };
+  /**
+   * Cor inicial de uma forma nova: a padrão, a não ser que ela fique INVISÍVEL sobre o que está embaixo (ex.: um
+   * retângulo cinza desenhado em cima de outro cinza; um frame branco dentro de outro branco). Aí usa um tom que
+   * contrasta: mais escuro sobre fundo claro, branco sobre fundo escuro.
+   */
+  function contrastingFill(color, under) {
+    if (!under || Math.abs(luma(color) - luma(under)) >= 0.12) return color;
+    if (luma(under) < 0.45) return '#FFFFFF';
+    return luma(under) > 0.93 ? '#EDEDF2' : '#A9A9B6';
+  }
+
   // a ferramenta caneta (vetores) vive em pen.js; aqui só a conectamos
   const pen = createPen({ store, canvas, commands, frameUnder });
 
@@ -616,6 +647,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         name: nextName(store.page(), tool),
         x: round(p.x - po.x), y: round(p.y - po.y), w: 1, h: 1,
       });
+      // não nascer "invisível" (mesma cor do que está embaixo do cursor)
+      if (node.fill?.type === 'solid') node.fill.color = contrastingFill(node.fill.color, colorUnder(e.clientX, e.clientY));
       if (tool === 'frame') node.name = parent ? 'Frame' : nextName(store.page(), 'frame');
       store.update((page) => (parent ? parent.children : page.children).push(node));
       drag.node = node;
@@ -679,6 +712,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         name: 'Texto', x: round(Math.min(d.p0.x, p.x) - d.po.x), y: round(Math.min(d.p0.y, p.y) - d.po.y),
       });
       node.name = nextName(store.page(), 'text');
+      node.fill.color = contrastingFill(node.fill.color, colorUnder(d.sx, d.sy)); // texto preto sobre fundo escuro sumiria
       if (d.moved && Math.abs(p.x - d.p0.x) > 12) {
         node.w = Math.round(Math.abs(p.x - d.p0.x));
         node.sizeX = 'fixed';

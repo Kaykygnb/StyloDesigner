@@ -304,10 +304,16 @@ export function createCommands(store, canvas) {
 
   // ------------------------------------------------------------------ auto layout
   /**
-   * Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão:
-   *  - direção: se os filhos se espalham mais na horizontal → 'row'; senão 'column'
-   *  - gap: média dos vãos entre filhos consecutivos
-   *  - padding: distância entre os filhos e as bordas do frame
+   * Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão,
+   * para nada "pular" de lugar:
+   *  - direção: filhos espalhados mais na horizontal → 'row'; senão 'column'. Um filho só: frame alto (ex.: uma
+   *    sidebar) → 'column'; largo → 'row';
+   *  - gap: média dos vãos entre filhos consecutivos;
+   *  - padding: distância entre os filhos e as bordas. Mas se o conteúdo está encostado no início e sobra MUITO
+   *    espaço no fim (ex.: um item no topo de uma sidebar), essa sobra é espaço livre, não margem: o padding do fim
+   *    fica igual ao do início (senão um padding-bottom de 500px espremeria os próximos itens);
+   *  - alinhamento: conteúdo centralizado no frame → 'center'; encostado no fim → 'flex-end'. No eixo cruzado, com
+   *    vários filhos, olha se eles estavam alinhados pelo início, pelo centro ou pelo fim.
    * Também reordena os filhos na ordem em que aparecem na tela, e tira o "absoluto" de todos.
    */
   function enableAutoLayout(frame) {
@@ -317,9 +323,11 @@ export function createCommands(store, canvas) {
       const xs = kids.map((k) => k.x), ys = kids.map((k) => k.y);
       const spreadX = Math.max(...xs) - Math.min(...xs);
       const spreadY = Math.max(...ys) - Math.min(...ys);
-      layout.mode = spreadX >= spreadY ? 'row' : 'column';
-      const key = layout.mode === 'row' ? 'x' : 'y';
-      const size = layout.mode === 'row' ? 'w' : 'h';
+      if (kids.length === 1) layout.mode = frame.h > frame.w ? 'column' : 'row';
+      else layout.mode = spreadX >= spreadY ? 'row' : 'column';
+      const row = layout.mode === 'row';
+      const key = row ? 'x' : 'y';
+      const size = row ? 'w' : 'h';
       frame.children.sort((a, b) => a[key] - b[key]);
       const sorted = kids.sort((a, b) => a[key] - b[key]);
       let gaps = 0;
@@ -327,12 +335,28 @@ export function createCommands(store, canvas) {
       layout.gap = sorted.length > 1 ? Math.round(gaps / (sorted.length - 1)) : 8;
       const minX = Math.min(...kids.map((k) => k.x)), minY = Math.min(...kids.map((k) => k.y));
       const maxX = Math.max(...kids.map((k) => k.x + k.w)), maxY = Math.max(...kids.map((k) => k.y + k.h));
-      layout.padding = [
-        Math.max(0, Math.round(minY)),
-        Math.max(0, Math.round(frame.w - maxX)),
-        Math.max(0, Math.round(frame.h - maxY)),
-        Math.max(0, Math.round(minX)),
-      ];
+      // distâncias do conteúdo até cada borda (nunca negativas)
+      const d = { top: minY, right: frame.w - maxX, bottom: frame.h - maxY, left: minX };
+      for (const k in d) d[k] = Math.max(0, Math.round(d[k]));
+      const [ms, me] = row ? [d.left, d.right] : [d.top, d.bottom]; // eixo principal: início, fim
+      const [cs, ce] = row ? [d.top, d.bottom] : [d.left, d.right]; // eixo cruzado: início, fim
+      const near = (a, b) => Math.abs(a - b) <= 2;
+      // ---- eixo principal
+      let pms = ms, pme = me;
+      if (near(ms, me) && ms > 0) { layout.justify = 'center'; }
+      else if (ms > me * 2 + 16) { layout.justify = 'flex-end'; pms = me; }
+      else if (me > ms * 2 + 16) { pme = ms; }
+      // ---- eixo cruzado
+      let pcs = cs, pce = ce;
+      const cross = row ? ['y', 'h'] : ['x', 'w'];
+      const starts = kids.map((k) => k[cross[0]]), centers = kids.map((k) => k[cross[0]] + k[cross[1]] / 2), ends = kids.map((k) => k[cross[0]] + k[cross[1]]);
+      const same = (v) => Math.max(...v) - Math.min(...v) <= 2;
+      if (kids.length > 1 && !same(starts) && same(centers)) layout.align = 'center';
+      else if (kids.length > 1 && !same(starts) && same(ends)) { layout.align = 'flex-end'; pcs = ce; }
+      else if (near(cs, ce) && cs > 0) layout.align = 'center';
+      else if (cs > ce * 2 + 16) { layout.align = 'flex-end'; pcs = ce; }
+      else if (ce > cs * 2 + 16) pce = cs;
+      layout.padding = row ? [pcs, pme, pce, pms] : [pms, pce, pme, pcs];
     }
     frame.layout = layout;
     frame.children.forEach((c) => { c.absolute = false; });
@@ -363,8 +387,14 @@ export function createCommands(store, canvas) {
   }
 
   /**
-   * Shift+A: liga/desliga o auto layout de um frame; com outras camadas selecionadas, ENVOLVE todas num frame novo
-   * já com auto layout (o clássico "Add auto layout" do Figma).
+   * Shift+A — "Adicionar auto layout", tentando entender a INTENÇÃO (como no Figma), em vez de só embrulhar:
+   *  - FRAME selecionado → liga/desliga o auto layout dele;
+   *  - um RETÂNGULO sozinho → ele VIRA um frame com auto layout (mesma cor, cantos, contorno, sombra e id), pronto
+   *    para receber camadas. Embrulhar um retângulo num frame não serviria para nada: retângulo não tem filhos;
+   *  - um GRUPO → o grupo vira o frame (os filhos dele são os itens do layout);
+   *  - várias camadas → um frame novo envolve todas. Se a camada MAIS AO FUNDO for um retângulo que contém todas as
+   *    outras (ex.: o fundo de uma sidebar com itens em cima), ele vira o FUNDO do frame em vez de mais um item —
+   *    senão o auto layout colocaria o fundo e os itens lado a lado. Sem fundo, o frame abraça o conteúdo (hug).
    */
   function toggleAutoLayout() {
     const nodes = topSelection();
@@ -375,26 +405,66 @@ export function createCommands(store, canvas) {
       store.commit();
       return;
     }
-    const parent = store.parentOf(nodes[0].id);
-    const list = store.listOf(nodes[0].id);
-    const same = nodes.filter((n) => store.listOf(n.id) === list).sort((a, b) => list.indexOf(a) - list.indexOf(b));
-    freezePositions(same, parent);
-    const x0 = Math.min(...same.map((n) => n.x)), y0 = Math.min(...same.map((n) => n.y));
-    const x1 = Math.max(...same.map((n) => n.x + n.w)), y1 = Math.max(...same.map((n) => n.y + n.h));
-    const frame = createNode('frame', {
-      name: 'Auto layout', x: x0, y: y0, w: x1 - x0, h: y1 - y0, clip: false,
-      fill: { ...defaultFill('#FFFFFF'), type: 'none' },
+    const first = nodes[0];
+    const parent = store.parentOf(first.id);
+    const list = store.listOf(first.id);
+    /** Frame com a APARÊNCIA de um retângulo (para o retângulo "virar" o frame). */
+    const frameFrom = (r, props) => createNode('frame', {
+      id: r.id, name: r.name, fill: r.fill, stroke: r.stroke, radius: r.radius, shadows: r.shadows, blur: r.blur,
+      bgBlur: r.bgBlur, opacity: r.opacity, blend: r.blend, rotation: r.rotation, constraints: r.constraints,
+      sizeX: r.sizeX, sizeY: r.sizeY, alignSelf: r.alignSelf, absolute: r.absolute, interactions: r.interactions,
+      clip: true, x: r.x, y: r.y, w: r.w, h: r.h, ...props,
     });
+
+    // um retângulo sozinho: vira o próprio frame
+    if (nodes.length === 1 && first.type === 'rect') {
+      const frame = frameFrom(first);
+      store.update(() => {
+        list.splice(list.indexOf(first), 1, frame);
+        enableAutoLayout(frame);
+        frame.layout.mode = frame.h > frame.w ? 'column' : 'row';
+        frame.layout.padding = [16, 16, 16, 16];
+      });
+      store.setSelection([frame.id]);
+      store.commit();
+      notify('O retângulo virou um frame com auto layout: desenhe ou arraste camadas para dentro dele.');
+      return;
+    }
+
+    // os ITENS do layout e onde eles estão: num grupo, os filhos dele (coordenadas relativas ao grupo)
+    const group = nodes.length === 1 && first.type === 'group' ? first : null;
+    let items, ox = 0, oy = 0;
+    if (group) {
+      items = [...group.children];
+      ox = group.x; oy = group.y;
+    } else {
+      items = nodes.filter((n) => store.listOf(n.id) === list).sort((a, b) => list.indexOf(a) - list.indexOf(b));
+      freezePositions(items, parent);
+    }
+    // fundo: a camada mais ao fundo é um retângulo (sem rotação) que contém todas as outras?
+    const inside = (n, r) => n.x >= r.x - 1 && n.y >= r.y - 1 && n.x + n.w <= r.x + r.w + 1 && n.y + n.h <= r.y + r.h + 1;
+    const bg = items.length > 1 && items[0].type === 'rect' && !items[0].rotation && items.slice(1).every((n) => inside(n, items[0])) ? items[0] : null;
+    const kids = bg ? items.slice(1) : items;
+    const x0 = bg ? bg.x : Math.min(...kids.map((n) => n.x)), y0 = bg ? bg.y : Math.min(...kids.map((n) => n.y));
+    const x1 = bg ? bg.x + bg.w : Math.max(...kids.map((n) => n.x + n.w)), y1 = bg ? bg.y + bg.h : Math.max(...kids.map((n) => n.y + n.h));
+    const frame = bg
+      ? frameFrom(bg, { x: round(ox + x0), y: round(oy + y0) })
+      : createNode('frame', { name: group ? group.name : 'Auto layout', x: round(ox + x0), y: round(oy + y0), w: round(x1 - x0), h: round(y1 - y0), clip: false, fill: { ...defaultFill('#FFFFFF'), type: 'none' } });
     store.update(() => {
-      const at = list.indexOf(same[same.length - 1]);
-      same.forEach((n) => list.splice(list.indexOf(n), 1));
-      same.forEach((n) => { n.x -= x0; n.y -= y0; n.absolute = false; });
-      frame.children = same;
+      // o frame entra na posição (camada) do item mais ao fundo, para não passar por cima de vizinhos
+      const removed = group ? [group] : items;
+      const at = Math.min(...removed.map((n) => list.indexOf(n)));
+      removed.forEach((n) => list.splice(list.indexOf(n), 1));
+      kids.forEach((n) => { n.x = round(n.x - x0); n.y = round(n.y - y0); n.absolute = false; });
+      frame.children = kids;
       enableAutoLayout(frame);
-      list.splice(at - same.length + 1, 0, frame);
+      // sem fundo, o frame é só um "embrulho": abraça o conteúdo (nada transborda); com fundo, mantém o tamanho dele
+      if (!bg) { frame.sizeX = 'hug'; frame.sizeY = 'hug'; }
+      list.splice(at, 0, frame);
     });
     store.setSelection([frame.id]);
     store.commit();
+    if (bg) notify(`"${bg.name}" virou o fundo do frame; as camadas de cima entraram no auto layout.`);
   }
 
   // ------------------------------------------------------------------ alinhar / distribuir
