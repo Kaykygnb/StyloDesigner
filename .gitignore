@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+
+# dados locais do usuário (projetos salvos pelo servidor e a configuração da pasta)
+projetos/
+designer.config.json
