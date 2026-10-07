@@ -21,12 +21,12 @@ ok('mudar X do conjunto move tudo junto', r[0] === 0 && r[1] === 300, JSON.strin
 
 // ---- matriz 3x3
 await ev(async () => { const m = await import('/src/model.js'); const s = designer.store; s.newDoc(); const f = m.createNode('frame', { w: 300, h: 200 }); f.children.push(m.createNode('rect', { x: 10, y: 10, w: 40, h: 40 }), m.createNode('rect', { x: 80, y: 10, w: 40, h: 40 })); s.update((pg) => pg.children.push(f), { commit: true }); s.setSelection([f.id]); });
-await p.click('.seg-btn[title^="Flex em linha"]');
+await p.click('.seg-btn[data-v="row"]');
 await p.waitForTimeout(150);
 await p.locator('.am-cell').nth(8).click(); // canto inferior direito
 let lay = await ev(() => designer.store.page().children[0].layout);
 ok('matriz: canto inferior direito → flex-end/flex-end', lay.justify === 'flex-end' && lay.align === 'flex-end', JSON.stringify(lay));
-await p.click('.seg-btn[title^="Flex em coluna"]');
+await p.click('.seg-btn[data-v="column"]');
 await p.waitForTimeout(100);
 await p.locator('.am-cell').nth(2).click(); // topo-direita
 lay = await ev(() => designer.store.page().children[0].layout);
@@ -35,7 +35,7 @@ ok('célula ativa fica marcada', (await p.locator('.am-cell.on').count()) === 1)
 
 // ---- padding H/V
 await ev(() => designer.store.update(() => { designer.store.page().children[0].layout.padding = [0, 0, 0, 0]; }, { commit: true })); await p.waitForTimeout(200);
-const hPad = p.locator('.num-field:has(.num-label:text-is("↔")) input').nth(1);
+const hPad = p.locator('.num-field:has(.num-label[title^="padding horizontal"]) input');
 await hPad.fill('30'); await hPad.press('Enter');
 lay = await ev(() => designer.store.page().children[0].layout.padding);
 ok('padding horizontal define esquerda e direita', lay[1] === 30 && lay[3] === 30 && lay[0] === 0, JSON.stringify(lay));

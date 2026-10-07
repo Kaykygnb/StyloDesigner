@@ -160,11 +160,13 @@ export function textField({ get, set, commit, placeholder = '', mono = false }) 
 }
 
 /** Lista suspensa estilizada. `options`: [[valor, rótulo], ...]. Ao escolher, aplica e já grava no histórico. */
-export function selectField({ options, get, set, commit, title }) {
+export function selectField({ options, get, set, commit, title, label }) {
   const sel = h('select.select', { title: title || '' },
     options.map(([v, l]) => h('option', { value: v }, l)));
   sel.addEventListener('change', () => { set(sel.value); commit?.(); });
-  return { el: h('label.field.select-wrap', sel, ico('chevron', 12)), update: () => { sel.value = String(get()); }, input: sel };
+  // `label` opcional: rótulo curto à esquerda, dentro do campo (ex.: "W" no modo de largura), como nos campos numéricos
+  const lab = label ? h('span.sel-label', { title: title || '' }, label) : null;
+  return { el: h('label.field.select-wrap' + (label ? '.labeled' : ''), lab, sel, ico('chevron', 12)), update: () => { sel.value = String(get()); }, input: sel };
 }
 
 /** Grupo de botões de ícone onde um fica "ligado" (ex.: alinhamento de texto). `options`: [[valor, ícone, dica], ...]. */

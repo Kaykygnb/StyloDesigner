@@ -128,3 +128,16 @@ test('texto é escapado no HTML exportado', () => {
   const { html } = generateCode([t], null);
   assert.ok(html.includes('&lt;b&gt;&quot;oi&quot; &amp; tchau&lt;/b&gt;'));
 });
+
+test('contorno por lado vira border-top/right/bottom/left (e "todos" continua sendo outline)', () => {
+  const r = createNode('rect', { stroke: { color: '#FF0000', opacity: 1, width: 2, style: 'solid', position: 'inside', sides: [0, 0, 2, 1] } });
+  const s = nodeStyle(r, null);
+  assert.equal(s['border-bottom'], '2px solid #ff0000'); // rgba() escreve o hex em minúsculas
+  assert.equal(s['border-left'], '1px solid #ff0000');
+  assert.equal(s['border-top'], undefined);
+  assert.equal(s.outline, undefined);
+  delete r.stroke.sides;
+  assert.match(nodeStyle(r, null).outline, /^2px solid/);
+  const e = createNode('ellipse', { stroke: { color: '#000000', opacity: 1, width: 2, style: 'solid', position: 'inside', sides: [2, 0, 0, 0] } });
+  assert.ok(nodeStyle(e, null).outline && !nodeStyle(e, null)['border-top'], 'elipse ignora lados (não faz sentido)');
+});

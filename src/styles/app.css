@@ -265,6 +265,10 @@ button.brand:hover { background: var(--panel-2); }
   background: transparent; border: 0; outline: none; padding: 0 24px 0 9px; text-overflow: ellipsis; cursor: pointer;
 }
 .select option { background: var(--panel); color: var(--text); }
+.select-wrap.labeled { display: flex; align-items: center; }
+.select-wrap.labeled .select { padding-left: 2px; }
+.sel-label { width: 24px; flex: none; text-align: center; color: var(--muted); font: 600 10.5px var(--mono); }
+.btn-group { display: inline-flex; gap: 2px; flex: none !important; }
 .select-wrap > .ico { position: absolute; right: 8px; transform: rotate(90deg); pointer-events: none; color: var(--muted); }
 .segmented { display: inline-flex; background: var(--panel-2); border-radius: 8px; padding: 2px; gap: 1px; }
 .seg-btn {
@@ -603,6 +607,15 @@ button.brand:hover { background: var(--panel-2); }
 .am-cell.on { background: var(--accent-soft); }
 .am-cell.on i { background: var(--accent); opacity: 1; width: 9px; height: 9px; }
 .col { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+/* Linhas "propriedade CSS → controle" do auto layout: nome da propriedade em mono à esquerda, campo à direita. */
+.prop-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 6px; }
+.prop-row .num-label { width: auto; padding: 0 6px 0 9px; }
+.prop-row > .row { gap: 6px; }
+.prop-name { font: 600 10px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prop-head { display: flex; align-items: center; justify-content: space-between; min-height: 22px; margin-bottom: -4px; }
+.prop-inline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.prop-note { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row > .align-matrix { flex: none; }
 .color-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { width: 20px; height: 20px; border-radius: 6px; border: 1px solid var(--border); padding: 0; cursor: pointer; transition: transform .1s; }
 .chip:hover { transform: scale(1.2); }

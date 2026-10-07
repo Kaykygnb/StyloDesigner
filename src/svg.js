@@ -8,7 +8,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { nodePathData, rgba } from './css.js';
+import { nodePathData, rgba, hasStrokeSides } from './css.js';
 import { round } from './model.js';
 
 /** Arredonda para 2 casas decimais (mantém o SVG enxuto). */
@@ -149,7 +149,15 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
       out.push(`<path d="${shapeD(node, w, h)}" ${p.attr}${node.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : ''}/>`);
     }
 
-    if (hasStroke) {
+    if (st && hasStrokeSides(node)) {
+      // contorno por lado (border-top/right/bottom/left): uma linha por lado, DENTRO da caixa
+      const [t, r, b, l] = st.sides;
+      const line = (x1, y1, x2, y2, sw) => sw > 0 && out.push(`<line x1="${n2(x1)}" y1="${n2(y1)}" x2="${n2(x2)}" y2="${n2(y2)}"${strokeAttr({ ...st, width: sw })}/>`);
+      line(0, t / 2, w, t / 2, t);
+      line(w - r / 2, 0, w - r / 2, h, r);
+      line(0, h - b / 2, w, h - b / 2, b);
+      line(l / 2, 0, l / 2, h, l);
+    } else if (hasStroke) {
       if (node.type === 'path') {
         // vetores: traço centrado, com espessura constante ao esticar
         out.push(`<path d="${shapeD(node, w, h)}" fill="none"${strokeAttr(st)} stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`);

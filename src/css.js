@@ -29,9 +29,10 @@ import { googleFontsUrl, usedFonts } from './fonts.js';
 const px = (v) => `${round(v)}px`;
 /**
  * Tradução dos valores de alinhamento do flexbox (usados no modelo, ex. 'flex-start') para os do CSS Grid
- * ('start'). O grid não aceita 'flex-start' em justify-items/align-items.
+ * ('start'). O grid não aceita 'flex-start' em justify-items/align-items. 'auto' (ou valor desconhecido) fica de fora:
+ * o item herda o alinhamento do grid pai.
  */
-const GRID_ALIGN = { 'flex-start': 'start', center: 'center', 'flex-end': 'end', auto: 'start' };
+const GRID_ALIGN = { 'flex-start': 'start', center: 'center', 'flex-end': 'end', stretch: 'stretch' };
 
 /**
  * Converte uma cor hexadecimal ("#RGB" ou "#RRGGBB") em { r, g, b } (0..255).
@@ -129,11 +130,15 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s.height = px(node.h);
   } else if (flow && parent.layout.mode === 'grid') {
     // (b) Item de GRID: o tamanho 'fill' vira justify-self/align-self: stretch; colSpan/rowSpan viram `span N`.
+    // Sem 'fill' e sem alinhamento próprio, o item NÃO escreve justify-self/align-self: assim vale o
+    // justify-items/align-items do grid pai (como no CSS de verdade — um 'start' fixo aqui anulava o do pai).
     s.position = 'relative';
     s.width = node.sizeX === 'fixed' ? px(node.w) : 'auto';
     s.height = node.sizeY === 'fixed' ? px(node.h) : 'auto';
-    s['justify-self'] = node.sizeX === 'fill' ? 'stretch' : 'start';
-    s['align-self'] = node.sizeY === 'fill' ? 'stretch' : GRID_ALIGN[node.alignSelf] || 'start';
+    const js = node.sizeX === 'fill' ? 'stretch' : GRID_ALIGN[node.justifySelf];
+    const as = node.sizeY === 'fill' ? 'stretch' : GRID_ALIGN[node.alignSelf];
+    if (js) s['justify-self'] = js;
+    if (as) s['align-self'] = as;
     if ((node.colSpan || 1) > 1) s['grid-column'] = `span ${node.colSpan}`;
     if ((node.rowSpan || 1) > 1) s['grid-row'] = `span ${node.rowSpan}`;
   } else if (flow) {
@@ -250,6 +255,12 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   if (st && st.width > 0 && node.type !== 'path') {
     if (isText) {
       s['-webkit-text-stroke'] = `${px(st.width)} ${rgba(st.color, st.opacity)}`;
+    } else if (hasStrokeSides(node)) {
+      // CONTORNO POR LADO: `border-top/right/bottom/left` de verdade (o que um dev escreveria). Com box-sizing:
+      // border-box a borda fica DENTRO da caixa e, como em qualquer site, ocupa espaço do conteúdo.
+      ['top', 'right', 'bottom', 'left'].forEach((side, i) => {
+        if (st.sides[i] > 0) s[`border-${side}`] = `${px(st.sides[i])} ${st.style} ${rgba(st.color, st.opacity)}`;
+      });
     } else {
       s.outline = `${px(st.width)} ${st.style} ${rgba(st.color, st.opacity)}`;
       s['outline-offset'] =
@@ -340,6 +351,13 @@ function lineStyle(node, s, flow) {
   const tf = transformOf(node);
   if (tf) s.transform = tf;
 }
+
+/**
+ * A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e
+ * grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
+ */
+export const hasStrokeSides = (node) =>
+  Array.isArray(node.stroke?.sides) && ['rect', 'frame'].includes(node.type);
 
 // ---------------------------------------------------------------- vetores (caminhos SVG)
 /** Arredonda para 2 casas (coordenadas de SVG). */

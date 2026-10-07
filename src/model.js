@@ -174,6 +174,8 @@ export function createNode(type, props = {}) {
     absolute: false, // true = ignora o auto layout do pai (position:absolute)
     // CSS align-self do item dentro de um auto layout
     alignSelf: 'auto',
+    // CSS justify-self do item dentro de um GRID (posição horizontal na célula); 'auto' = herda o justify-items do pai
+    justifySelf: 'auto',
     // espelhamento (vira scale(-1, 1) no transform) e trava de proporção ao redimensionar
     flipX: false,
     flipY: false,

@@ -94,7 +94,7 @@ ok('constraints right/bottom: filho acompanha o canto ao redimensionar', cr.fw =
 await ev(() => designer.store.page().children[0].children.push(...[1,2,3].map(i => ({ ...designer.store.page().children[0].children[0], id: 'g' + i, constraints: { h: 'left', v: 'top' }, x: 0, y: 0, w: 50, h: 30 }))));
 await ev(() => { designer.store.update(() => {}); designer.store.setSelection([designer.store.page().children[0].id]); });
 await page.waitForTimeout(150);
-await page.click('.seg-btn[title^="CSS Grid"]');
+await page.click('.seg-btn[data-v="grid"]');
 const gd = await ev(() => { const f = designer.store.page().children[0]; return { mode: f.layout.mode, cols: f.layout.cols, disp: getComputedStyle(designer.canvas.els.get(f.id)).display, tpl: getComputedStyle(designer.canvas.els.get(f.id)).gridTemplateColumns }; });
 ok('modo Grid: display:grid no DOM com colunas', gd.mode === 'grid' && gd.disp === 'grid' && gd.tpl.split(' ').length === gd.cols, JSON.stringify(gd));
 

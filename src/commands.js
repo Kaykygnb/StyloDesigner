@@ -382,6 +382,13 @@ export function createCommands(store, canvas) {
         const wasNone = f.layout.mode === 'none';
         if (wasNone) enableAutoLayout(f);
         f.layout.mode = mode;
+        // os valores de alinhamento não são os mesmos no flex e no grid: troca o que não existe no destino
+        // (grid não tem space-between/baseline em justify-items/align-items; flex não tem stretch em justify-content)
+        const GRIDOK = ['flex-start', 'center', 'flex-end', 'stretch'];
+        if (mode === 'grid') {
+          if (!GRIDOK.includes(f.layout.justify)) f.layout.justify = 'flex-start';
+          if (!GRIDOK.includes(f.layout.align)) f.layout.align = 'flex-start';
+        } else if (f.layout.justify === 'stretch') f.layout.justify = 'flex-start';
         if (mode === 'grid' && wasNone) f.layout.cols = Math.max(2, Math.min(4, Math.round(Math.sqrt(f.children.length)) + 1));
       }
     }
@@ -413,7 +420,7 @@ export function createCommands(store, canvas) {
     const frameFrom = (r, props) => createNode('frame', {
       id: r.id, name: r.name, fill: r.fill, stroke: r.stroke, radius: r.radius, shadows: r.shadows, blur: r.blur,
       bgBlur: r.bgBlur, opacity: r.opacity, blend: r.blend, rotation: r.rotation, constraints: r.constraints,
-      sizeX: r.sizeX, sizeY: r.sizeY, alignSelf: r.alignSelf, absolute: r.absolute, interactions: r.interactions,
+      sizeX: r.sizeX, sizeY: r.sizeY, alignSelf: r.alignSelf, justifySelf: r.justifySelf, colSpan: r.colSpan, rowSpan: r.rowSpan, absolute: r.absolute, interactions: r.interactions,
       clip: true, x: r.x, y: r.y, w: r.w, h: r.h, ...props,
     });
 
