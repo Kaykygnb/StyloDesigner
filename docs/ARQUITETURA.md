@@ -107,13 +107,14 @@ Todo nó tem os campos abaixo; cada tipo acrescenta os seus.
 | `visible`, `locked` | bool | Oculta (`display:none`) / não clicável |
 | `opacity`, `blend` | number, string | `opacity` e `mix-blend-mode` |
 | `fill` | objeto | `type: none\|solid\|linear\|radial\|image` + dados de **todos** os tipos (assim trocar de tipo não perde valores) |
-| `stroke` | objeto\|null | `{ color, opacity, width, style, position }` → `outline` |
+| `stroke` | objeto\|null | `{ color, opacity, width, style, position }` → `outline`. Em rect/frame, `sides: [t, r, b, l]` (espessura por lado; 0 = sem contorno) vira `border-top/right/bottom/left`; `sidesCustom` mantém o modo "personalizado" no painel |
 | `radius` | `[tl,tr,br,bl]` | `border-radius` |
 | `shadows` | lista | `{ x, y, blur, spread, color, opacity, inset }` |
 | `blur`, `bgBlur` | number | `filter: blur` / `backdrop-filter: blur` |
 | `sizeX`, `sizeY` | `fixed\|hug\|fill` | Como a camada calcula o tamanho |
 | `absolute` | bool | Ignora o auto layout do pai |
-| `alignSelf` | string | `align-self` do item |
+| `alignSelf` | string | `align-self` do item (`auto` = herda o `align-items` do pai) |
+| `justifySelf` | string | `justify-self` do item de grid (`auto` = herda o `justify-items` do pai) |
 | `constraints` | `{h, v}` | Reação ao redimensionar o frame pai (sem auto layout) |
 | `colSpan`, `rowSpan` | number | Itens de grid (`span N`) |
 | `flipX`, `flipY`, `lockRatio` | bool | Espelhar; travar proporção |
@@ -190,11 +191,11 @@ O "mundo" é um elemento com `transform: translate(x, y) scale(zoom)`; pan e zoo
 | Situação | CSS |
 |---|---|
 | Raiz da exportação | `position: relative` + `width/height` |
-| Item de **grid** (pai em grid, não absoluto) | `position: relative`, `justify-self`/`align-self`, `grid-column: span N` |
+| Item de **grid** (pai em grid, não absoluto) | `position: relative`, `grid-column: span N`; `justify-self`/`align-self` **só** quando o tamanho é `fill` (`stretch`) ou o item escolheu um alinhamento — senão vale o `justify-items`/`align-items` do grid |
 | Item de **flex** | `position: relative`, `flex: 1 1 0%` (se `fill` no eixo principal) ou `0 0 auto`, `align-self: stretch` (se `fill` no cruzado) |
 | Camada livre | `position: absolute`, `left`, `top`; `hug` na largura vira `max-content` |
 
-Em seguida acrescenta o layout do próprio frame (`display: flex|grid`...), tipografia, fundo, `border-radius`, contorno (`outline` + `outline-offset`), efeitos e `transform`.
+Em seguida acrescenta o layout do próprio frame (`display: flex|grid`...), tipografia, fundo, `border-radius`, contorno (`outline` + `outline-offset`, ou `border-*` quando é por lado), efeitos e `transform`.
 
 ## 7. Gestos do mouse
 

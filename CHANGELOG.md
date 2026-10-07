@@ -6,6 +6,27 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.9.0] — 2026-10-07 — CSS de verdade no painel: grid, contorno por lado, snap ao redimensionar
+
+4º relato do teste real: "contorno só de um lado", "CSS Grid não exerce força", "opções de layout esquisitas", "não vejo a barreira do frame ao redimensionar", "painel meio feio".
+
+### Corrigido
+- **CSS Grid não alinhava os itens**: todo item de grid recebia `justify-self: start` / `align-self: start` fixos, e no CSS isso anula o `justify-items` / `align-items` do grid pai. Agora o item só escreve `*-self` quando você escolhe (ou quando o tamanho é "Fill" = `stretch`), então o alinhamento do grid vale de verdade.
+- **Trocar de flex para grid** com `space-between` (que não existe no grid) caía num valor inválido; agora vira `start`. E `stretch` (que não existe em `justify-content`) vira `flex-start` ao voltar para flex.
+
+### Adicionado
+- **Snap ao redimensionar**: a borda que você puxa gruda (até 6 px de tela) nas bordas do frame pai, dos vizinhos e das guias da régua, com a linha rosa. `Ctrl` ou `Alt` desligam. Só bordas: centros não puxam, para não atrapalhar um tamanho livre.
+- **Contorno por lado** em retângulos e frames: todos, só em cima, só embaixo, só esquerda, só direita, cima+baixo, esquerda+direita ou personalizado (espessura por lado). Vira `border-top/right/bottom/left` no CSS e linhas no SVG exportado.
+- **Grid**: opção `stretch` em `justify-items`/`align-items`, `justify-self` por item e o botão "Itens preenchem as células".
+- **Flex**: `stretch` e `baseline` em `align-items`, `stretch` em `align-self`.
+- 19 verificações novas em `tests/e2e/css-polimento.mjs`.
+
+### Alterado
+- **Seção de layout com os nomes do CSS**: cada controle mostra a propriedade que gera (`display`, `gap`, `flex-wrap`, `justify-content`, `align-items`, `grid-template-columns`, `grid-template-rows`, `column-gap`/`row-gap`, `justify-items`…). Os seletores mostram o valor CSS de verdade (`flex-start`, `space-between`…). No item: `position: absolute`, `grid-column`/`grid-row` span, `justify-self`, `align-self`. Escolher `stretch` no item liga o tamanho "Fill" daquele eixo (são a mesma coisa no CSS).
+- **Painel direito reorganizado** na ordem do Figma: a antiga seção "Camada" virou **Posição** (X/Y, constraints, rotação, espelhar), **Tamanho** (W/H, modo W/H fixo/hug/fill com rótulo, tamanhos prontos) e **Aparência** (opacidade, mistura, cantos, cortar conteúdo, máscara). "Criar componente" foi para o fim (componente principal/instância continua no topo). Desfoques com o nome da propriedade (`filter: blur`, `backdrop-filter`).
+
+---
+
 ## [0.8.4] — 2026-10-07 — Arrastar para dentro de auto layout
 
 3º relato do teste real (print): "o retângulo e a bordinha de redimensionar estão ligados, porém separados".

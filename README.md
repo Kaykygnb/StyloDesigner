@@ -51,12 +51,12 @@ Ao abrir o app aparece a **página inicial**: o projeto em que você estava ("co
 ![Página inicial com os projetos](docs/screenshots/15-pagina-inicial.png)
 
 ### Auto layout é flexbox de verdade
-Selecione um frame, escolha o modo (linha, coluna, grid) e use a **matriz 3×3** para alinhar. Os campos são o CSS: `gap`, `padding`, `justify-content`, `align-items`. Camadas filhas escolhem **Fixo**, **Ajustar ao conteúdo** (`hug`) ou **Preencher** (`flex: 1`).
+Selecione um frame, escolha o modo (linha, coluna, grid) e use a **matriz 3×3** para alinhar. Cada controle mostra o nome da propriedade CSS que gera: `display`, `gap`, `flex-wrap`, `padding`, `justify-content`, `align-items` (com os valores de verdade, como `flex-start`, `space-between`, `stretch`). Camadas filhas escolhem **Fixo**, **Hug** (do tamanho do conteúdo) ou **Fill** (`flex: 1`) e podem ter `align-self` próprio.
 
 ![Auto layout com flexbox](docs/screenshots/02-auto-layout-flexbox.png)
 
 ### CSS Grid
-O mesmo painel liga `display: grid`: número de colunas e linhas, `column-gap`/`row-gap`, e cada item pode ocupar várias células (`grid-column: span N`).
+O mesmo painel liga `display: grid`: `grid-template-columns`/`rows` (quantas colunas e linhas), `column-gap`/`row-gap`, `justify-items`/`align-items` (onde cada item fica dentro da célula, incluindo `stretch`) e o botão **Itens preenchem as células**. Cada item pode ocupar várias células (`grid-column: span N`) e ter `justify-self`/`align-self` próprios.
 
 ![CSS Grid](docs/screenshots/03-css-grid.png)
 
@@ -100,7 +100,7 @@ Segure **Alt** e passe o mouse sobre outra camada para ver as **distâncias**. A
 ![Réguas, guias e grades de colunas](docs/screenshots/10-reguas-guias-grades.png)
 
 ### Tema claro/escuro e efeitos
-Gradientes, sombras múltiplas, `filter: blur`, **vidro fosco** (`backdrop-filter`), contorno tracejado, `mix-blend-mode`... tudo com os valores do CSS.
+Gradientes, sombras múltiplas, `filter: blur`, **vidro fosco** (`backdrop-filter`), contorno tracejado, **contorno só de um lado** (`border-bottom`, `border-left`…), `mix-blend-mode`... tudo com os valores do CSS.
 
 ![Tema claro](docs/screenshots/11-tema-claro.png)
 
@@ -180,7 +180,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 
 1. **Desenhe um frame** — aperte `F` e arraste no canvas. Frames são as "telas".
 2. **Desenhe dentro dele** — `R` retângulo, `E` elipse, `T` texto (clique e digite). O frame sob o cursor vira o pai da camada nova.
-3. **Mova e redimensione** — `V` volta à ferramenta Mover. Arraste a camada (linhas rosa mostram o *snap*), puxe as alças para redimensionar (`Shift` mantém a proporção, `Alt` redimensiona do centro). Passe o mouse fora de um canto para **rotacionar**.
+3. **Mova e redimensione** — `V` volta à ferramenta Mover. Arraste a camada (linhas rosa mostram o *snap*), puxe as alças para redimensionar (`Shift` mantém a proporção, `Alt` redimensiona do centro). Ao redimensionar, a borda **gruda** nas bordas do frame pai e dos vizinhos (linha rosa); `Ctrl` solta. Passe o mouse fora de um canto para **rotacionar**.
 4. **Ligue o auto layout** — selecione o frame e aperte `Shift+A`. O app deduz direção, `gap`, `padding` e alinhamento a partir de onde as camadas estavam (nada "pula" de lugar). Agora arraste uma camada: ela **reordena** dentro do flexbox.
    > **Dica — retângulo não tem "dentro".** Para uma sidebar, um card ou um botão que vai *conter* outras coisas, use um **Frame** (`F`). Se você já desenhou um retângulo de fundo com itens em cima, selecione tudo e aperte `Shift+A`: o retângulo de baixo **vira o frame** (mesma cor e cantos) e os itens entram nele. Um retângulo sozinho + `Shift+A` também vira frame. Um **grupo** + `Shift+A` vira frame.
 5. **Veja o CSS** — abra a aba **Código** no painel direito.
@@ -225,7 +225,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Recurso | Detalhe |
 |---|---|
 | **Flexbox** | `flex-direction` (linha/coluna), `gap`, `padding` (horizontal/vertical ou por lado), `justify-content`, `align-items`, `flex-wrap`. |
-| **CSS Grid** | Colunas, linhas, `column-gap`/`row-gap`; itens podem ocupar várias células (`grid-column: span N`). |
+| **CSS Grid** | Colunas, linhas, `column-gap`/`row-gap`, `justify-items`/`align-items` (com `stretch`); itens podem ocupar várias células (`grid-column: span N`) e ter `justify-self`/`align-self`. |
 | Matriz 3×3 | Define `justify` e `align` de uma vez; troca de papel entre linha e coluna. |
 | Tamanho do item | **Fixo**, **Ajustar ao conteúdo** (`hug`) ou **Preencher** (`flex: 1` / `align-self: stretch`). |
 | Posição absoluta | Marque "Posição absoluta" para um item **ignorar** o auto layout do pai (enfeites, selos). |
