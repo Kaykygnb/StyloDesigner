@@ -47,3 +47,4 @@ ok('erro inesperado mostra aviso amigável', (await p.locator('.toast').count())
 console.log(errors.filter(e => !e.includes('teste')).join('\n') || 'sem outros erros');
 console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
 await b.close();
+process.exitCode = fails || errors.filter(e => !e.includes('teste')).length ? 1 : 0;

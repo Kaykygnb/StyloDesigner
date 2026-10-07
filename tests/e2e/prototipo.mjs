@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 860 } })).newPage();
@@ -31,7 +33,7 @@ const it = await ev((id) => designer.store.get(id).interactions[0], ids.btn);
 ok('interação aponta para o frame destino', it.target === ids.b && it.action === 'navigate', JSON.stringify(it));
 ok('seta do protótipo desenhada', (await page.locator('.pen-layer .proto-path').count()) === 1);
 await ev((id) => designer.store.update(() => { designer.store.get(id).interactions = [{ trigger: 'click', action: 'back' }]; }, { commit: true }), ids.back);
-await page.screenshot({ path: (process.env.TMPDIR || '/tmp') + '/proto-edit.png' });
+await page.screenshot({ path: join(tmpdir(), 'proto-edit.png') });
 
 // apresentar
 await page.click('button:has-text("Apresentar")');
@@ -43,7 +45,7 @@ await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 await page.waitForTimeout(700);
 ok('clicar navega para Detalhe', (await page.locator('.present-title').innerText()) === 'Detalhe');
 ok('só um board no stage depois da transição', (await page.locator('.present-board').count()) === 1);
-await page.screenshot({ path: (process.env.TMPDIR || '/tmp') + '/proto-present.png' });
+await page.screenshot({ path: join(tmpdir(), 'proto-present.png') });
 const box2 = await page.locator('.present-board [data-id="' + ids.back + '"]').boundingBox();
 await page.mouse.click(box2.x + 5, box2.y + 5);
 await page.waitForTimeout(700);
@@ -53,3 +55,4 @@ ok('Esc fecha o modo apresentar', (await page.locator('.present').count()) === 0
 console.log(errors.join('\n') || 'no console errors');
 console.log(fails ? `${fails} FAILURES` : 'ALL PASS');
 await browser.close();
+process.exitCode = fails || errors.length ? 1 : 0;

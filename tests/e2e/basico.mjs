@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 }, permissions: ['clipboard-read','clipboard-write'] });
@@ -119,7 +121,8 @@ await page.waitForTimeout(600);
 await page.reload(); await page.waitForTimeout(600);
 ok('autosave recarrega o projeto', (await ev(() => designer.store.page().children.length)) === total0);
 
-await page.screenshot({ path: (process.env.TMPDIR || '/tmp') + '/after.png' });
+await page.screenshot({ path: join(tmpdir(), 'after.png') });
 console.log(errors.join('\n') || 'no console errors');
 console.log(fails ? `${fails} FAILURES` : 'ALL PASS');
 await browser.close();
+process.exitCode = fails || errors.length ? 1 : 0;

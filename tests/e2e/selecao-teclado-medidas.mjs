@@ -78,3 +78,4 @@ await ev(() => designer.canvas.zoomAt(10, 600, 400)); await p.waitForTimeout(100
 ok('zoom ≥ 800% liga a grade de pixels', await ev(() => document.querySelector('.overlay').classList.contains('pixels')));
 console.log(errors.join('\n') || 'sem erros'); console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
 await b.close();
+process.exitCode = fails || errors.length ? 1 : 0;

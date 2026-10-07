@@ -23,3 +23,4 @@ const rows = await p.locator('.layer-row').count();
 ok('busca filtra camadas por nome', rows >= 2 && rows <= 4, String(rows));
 console.log(errors.join('\n') || 'no console errors'); console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
 await b.close();
+process.exitCode = fails || errors.length ? 1 : 0;

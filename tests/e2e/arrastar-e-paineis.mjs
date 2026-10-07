@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
@@ -88,8 +90,8 @@ await page.keyboard.press('Escape');
 
 // --- imagem via arquivo (input)
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-writeFileSync((process.env.TMPDIR || '/tmp') + '/px.png', png);
-await page.locator('#toolbar input[type=file]').setInputFiles((process.env.TMPDIR || '/tmp') + '/px.png');
+writeFileSync(join(tmpdir(), 'px.png'), png);
+await page.locator('#toolbar input[type=file]').setInputFiles(join(tmpdir(), 'px.png'));
 await page.waitForTimeout(400);
 const imgNode = await ev(() => designer.store.page().children.find(c => c.fill.type === 'image'));
 ok('imagem vira retângulo com fill image', !!imgNode && !!(await ev((id) => designer.store.state.doc.assets[designer.store.get(id).fill.assetId], imgNode.id)));
@@ -101,3 +103,4 @@ ok('nova página', (await ev(() => designer.store.state.doc.pages.length)) === 2
 console.log(errors.join('\n') || 'no console errors');
 console.log(fails ? `${fails} FAILURES` : 'ALL PASS');
 await browser.close();
+process.exitCode = fails || errors.length ? 1 : 0;

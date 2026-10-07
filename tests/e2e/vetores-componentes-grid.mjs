@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 860 } })).newPage();
@@ -154,7 +156,8 @@ await page.click('.tab:has-text("Recursos")');
 ok('aba Recursos lista o estilo', (await page.locator('.asset-row:has-text("Marca")').count()) === 1);
 
 console.log('rulers:', await ev(() => JSON.stringify({ top: getComputedStyle(document.querySelector('.ruler-top')).display, show: designer.store.ui.showRulers, w: document.querySelector('.ruler-top').width })));
-await page.screenshot({ path: (process.env.TMPDIR || '/tmp') + '/feat.png' });
+await page.screenshot({ path: join(tmpdir(), 'feat.png') });
 console.log(errors.join('\n') || 'no console errors');
 console.log(fails ? `${fails} FAILURES` : 'ALL PASS');
 await browser.close();
+process.exitCode = fails || errors.length ? 1 : 0;

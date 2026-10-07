@@ -6,6 +6,22 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [Não lançado]
+
+### Corrigido
+- **Tela em branco no Windows**: o servidor comparava caminhos com `/`, mas no Windows o separador é `\`; `/src/main.js` e o CSS davam 404. Achado numa revisão feita em Windows + Chrome.
+- Suítes de navegador agora **saem com código ≠ 0 quando falham** (antes só imprimiam `FAIL`, e o CI poderia ficar verde).
+- Arquivos temporários dos testes usam `os.tmpdir()` (funcionam no Windows).
+- Servidor distingue arquivo inexistente (404) de erro interno (500, com log).
+
+### Alterado
+- Medição de desempenho separa o tempo do *handler* do app (p95 ≈ 7 ms com 400 camadas) da latência da automação.
+
+### Adicionado
+- `tests/server.test.js` (assets 200; `package.json`, `.git`, traversal 404), `npm run test:e2e` e `npm run test:all`.
+
+---
+
 ## [0.5.0] — 2026-10-07
 
 Documentação completa, capturas de tela e correções achadas ao fotografar o produto.

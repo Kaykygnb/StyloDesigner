@@ -11,7 +11,7 @@
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
@@ -44,9 +44,11 @@ createServer(async (req, res) => {
     if (path === '/') path = '/index.html';
     // caminho absoluto no disco; `rel` = caminho relativo à pasta do projeto
     const file = resolve(join(root, normalize(path)));
-    const rel = file.slice(root.length + 1);
+    // No Windows o separador é \ e não /: normaliza para / antes de comparar com a lista branca
+    // (sem isso /src/main.js dava 404 e a tela ficava em branco).
+    const rel = file.slice(root.length + 1).split(sep).join('/');
     // Barra: fora da pasta do projeto (path traversal) OU fora da lista branca → 404 (sem revelar que o arquivo existe)
-    if (!file.startsWith(root) || !allowed.some((a) => rel === a || rel.startsWith(a + '/'))) {
+    if (!(file === root || file.startsWith(root + sep)) || !allowed.some((a) => rel === a || rel.startsWith(a + '/'))) {
       res.writeHead(404).end('Not found');
       return;
     }
@@ -57,8 +59,11 @@ createServer(async (req, res) => {
       'Cache-Control': 'no-cache',
     });
     res.end(await readFile(file));
-  } catch {
-    res.writeHead(404).end('Not found');
+  } catch (err) {
+    // Arquivo inexistente / pedido inválido = 404; qualquer outra falha (permissão, disco...) = 500 e vai pro log.
+    const notFound = err && (err.code === 'ENOENT' || err.code === 'ENOTDIR' || err.message === 'not a file' || err instanceof URIError);
+    if (!notFound) console.error(err);
+    res.writeHead(notFound ? 404 : 500).end(notFound ? 'Not found' : 'Internal error');
   }
 // escuta só em 127.0.0.1 (localhost): ninguém na sua rede consegue acessar o servidor
 }).listen(port, '127.0.0.1', () => {
