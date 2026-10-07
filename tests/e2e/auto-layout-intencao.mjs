@@ -58,6 +58,43 @@ try {
   ok('e também nasce visível (contrasta com o fundo cinza)', r[0].kids[1].fill !== '#D9D9D9', r[0].kids[1].fill);
   ok('frame que ainda tem espaço sobrando não ganhou padding gigante embaixo', r[0].layout.padding[2] === 30, String(r[0].layout.padding));
 
+  // ---------------------------------------------------------------- 2b. desenhar ENTRE itens de uma sidebar com auto layout
+  // (2º relato: "a caixa de seleção fica num lugar e o retângulo em outro" — a forma ia para o fim da fila)
+  await ev(() => designer.store.newDoc());
+  await draw('r', 200, 60, 400, 760);
+  await draw('r', 215, 80, 385, 180);
+  await draw('r', 215, 220, 385, 330);
+  await draw('r', 215, 360, 385, 470);
+  await p.keyboard.press('Control+a');
+  await p.keyboard.press('Control+g');
+  await p.keyboard.press('Shift+A');
+  await p.waitForTimeout(300);
+  await p.keyboard.press('r');
+  await p.mouse.move(vp.x + 215, vp.y + 185); await p.mouse.down();
+  await p.mouse.move(vp.x + 380, vp.y + 215, { steps: 6 });
+  await p.waitForTimeout(150);
+  const during = await ev((vy) => {
+    const id = designer.store.ui.selection[0];
+    const el = designer.canvas.els.get(id).getBoundingClientRect(), box = document.querySelector('#viewport .sel-box').getBoundingClientRect();
+    return { el: Math.round(el.top - vy), box: Math.round(box.top - vy) };
+  }, vp.y);
+  ok('durante o desenho, a forma e a caixa de seleção ficam sob o mouse (juntas)', during.el === 185 && during.box === 185, JSON.stringify(during));
+  await p.mouse.up();
+  await p.waitForTimeout(250);
+  let order = await ev(() => designer.store.page().children[0].children.map((c) => c.name));
+  ok('ao soltar, entra na fila ONDE foi desenhada (entre o logo e o 1º item)', order.join() === 'Retângulo 2,Retângulo 5,Retângulo 3,Retângulo 4', order.join());
+  ok('e ganha um nome que ainda não existe (antes repetia "Retângulo 4")', new Set(order).size === order.length);
+  ok('não fica "solta" (absoluta) depois de soltar', await ev(() => designer.store.selected()[0].absolute === false));
+  await p.keyboard.press('t');
+  await p.mouse.click(vp.x + 230, vp.y + 395);
+  await p.waitForTimeout(150);
+  await p.keyboard.type('Menu');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(200);
+  order = await ev(() => designer.store.page().children[0].children.map((c) => (c.type === 'text' ? c.text : c.name)));
+  // y=395 cai entre o "Retângulo 3" e o "Retângulo 4" (a fila já desceu por causa do item inserido acima)
+  ok('texto clicado entre dois itens entra entre eles', order.join() === 'Retângulo 2,Retângulo 5,Retângulo 3,Menu,Retângulo 4', order.join());
+
   // ---------------------------------------------------------------- 3. grupo → o grupo vira o frame
   await sidebar();
   await p.keyboard.press('Control+a');

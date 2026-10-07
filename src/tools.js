@@ -381,8 +381,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    * está mais perto do ponteiro e põe o item antes ou depois dele (conforme o ponteiro esteja antes/depois do centro
    * dele no eixo principal). Funciona também com flex-wrap, porque usa distância 2D.
    */
-  function flowReorder(node, p) {
-    const parent = store.parentOf(node.id);
+  function flowReorder(node, p, parent = store.parentOf(node.id)) {
+    // `parent` pode vir de fora: uma camada recém-criada ainda não está no índice do store (ver finishDraw)
     const row = parent.layout.mode === 'row';
     const sibs = parent.children.filter((c) => c !== node && c.visible && !c.absolute);
     let idx = 0;
@@ -639,6 +639,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     drag = { type: 'draw', tool, p0: p, po, parent, node: null, sx: e.clientX, sy: e.clientY, moved: false };
     if (tool === 'line') {
       const node = createNode('line', { name: nextName(store.page(), 'line'), x: round(p.x - po.x), y: round(p.y - po.y - 6), w: 1 });
+      if (parent && hasLayout(parent)) { node.absolute = true; drag.flow = true; }
       store.update((page) => (parent ? parent.children : page.children).push(node));
       drag.node = node;
       store.setSelection([node.id]);
@@ -649,6 +650,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       });
       // não nascer "invisível" (mesma cor do que está embaixo do cursor)
       if (node.fill?.type === 'solid') node.fill.color = contrastingFill(node.fill.color, colorUnder(e.clientX, e.clientY));
+      // Dentro de um frame com AUTO LAYOUT: enquanto arrasta, a forma fica "solta" (absoluta) exatamente sob o mouse;
+      // ao soltar, entra na fila NA POSIÇÃO onde foi desenhada (finishDraw → enterFlow). Sem isso ela ia para o fim
+      // da fila durante o próprio desenho, longe do cursor.
+      if (parent && hasLayout(parent)) { node.absolute = true; drag.flow = true; }
       if (tool === 'frame') node.name = parent ? 'Frame' : nextName(store.page(), 'frame');
       store.update((page) => (parent ? parent.children : page.children).push(node));
       drag.node = node;
@@ -717,7 +722,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         node.w = Math.round(Math.abs(p.x - d.p0.x));
         node.sizeX = 'fixed';
       }
-      store.update((page) => (d.parent ? d.parent.children : page.children).push(node));
+      store.update((page) => {
+        (d.parent ? d.parent.children : page.children).push(node);
+        if (d.parent && hasLayout(d.parent)) flowReorder(node, p, d.parent); // em auto layout: entra onde você clicou
+      });
       store.setSelection([node.id]);
       store.commit();
       startEdit(node.id);
@@ -736,7 +744,20 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       const defaults = { frame: [320, 240], rect: [100, 100], ellipse: [100, 100] }[d.tool];
       store.update(() => { d.node.w = defaults[0]; d.node.h = defaults[1]; });
     }
+    if (d.flow && d.node) enterFlow(d.node);
     store.commit();
+  }
+
+  /**
+   * Forma recém-desenhada dentro de um auto layout (estava "solta" durante o arrasto): entra na fila na posição
+   * mais próxima de onde foi desenhada — entre os dois itens em volta do centro dela (flowReorder).
+   */
+  function enterFlow(node) {
+    const b = canvas.aabb(node.id);
+    store.update(() => {
+      node.absolute = false;
+      flowReorder(node, { x: b.x + b.w / 2, y: b.y + b.h / 2 });
+    });
   }
 
   // ------------------------------------------------------------------ guias

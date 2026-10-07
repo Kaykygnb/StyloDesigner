@@ -305,11 +305,16 @@ export function makeDoc() {
 
 /** Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página. */
 export function nextName(page, type) {
-  let count = 0;
+  // MAIOR número já usado + 1 (e não "quantos existem + 1"): se um "Retângulo 1" virou frame ou foi apagado, contar
+  // daria um nome repetido ("Retângulo 4" duas vezes)
+  const label = TYPE_LABEL[type] || type;
+  const re = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} (\\d+)$`);
+  let max = 0;
   walk(page.children, (n) => {
-    if (n.type === type) count++;
+    const m = re.exec(n.name || '');
+    if (m) max = Math.max(max, Number(m[1]));
   });
-  return `${TYPE_LABEL[type] || type} ${count + 1}`;
+  return `${label} ${max + 1}`;
 }
 
 /**

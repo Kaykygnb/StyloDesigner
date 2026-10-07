@@ -265,3 +265,10 @@ test('exemplo "app mobile": instâncias sincronizadas, estilos ligados e protót
   assert.equal(navs.length, 2);
   assert.ok(navs.every((i) => byId.get(i.target)?.type === 'frame'));
 });
+
+test('nome novo usa o MAIOR número existente + 1 (não repete quando algo virou frame ou foi apagado)', async () => {
+  const { nextName } = await import('../src/model.js');
+  const page = { children: [{ type: 'frame', name: 'Retângulo 1', children: [{ type: 'rect', name: 'Retângulo 4' }, { type: 'rect', name: 'Retângulo 2' }] }] };
+  assert.equal(nextName(page, 'rect'), 'Retângulo 5');
+  assert.equal(nextName({ children: [] }, 'rect'), 'Retângulo 1');
+});
