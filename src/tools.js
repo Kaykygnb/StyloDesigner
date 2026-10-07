@@ -901,6 +901,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   // ------------------------------------------------------------------ teclado
   /** O foco está num campo onde o usuário DIGITA (input, select, texto editável)? Então os atalhos do canvas não devem agir. */
   const isTyping = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  /**
+   * O canvas está "coberto"? (página inicial aberta ou uma janela modal: Configurações, Projetos, pergunta...)
+   * Então NENHUM atalho do canvas pode agir — senão um Delete com o foco num botão da janela apagaria camadas
+   * escondidas atrás dela.
+   */
+  const covered = () => ui.homeOpen || !!document.querySelector('.modal-backdrop');
 
   /**
    * TECLADO — todos os atalhos do editor. Ordem importa (do mais específico ao mais geral):
@@ -909,6 +915,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    * A lista completa para o usuário está em ui/menus.js (tecla ?) e no README.
    */
   window.addEventListener('keydown', (e) => {
+    if (covered()) return;
     // mod = Ctrl (Windows/Linux) ou ⌘ (Mac); key = tecla em minúsculas
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
@@ -1076,17 +1083,17 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   const MARKER = 'projeto-designer:clip';
   // Ctrl+C: copia as camadas (se o foco não está num campo de texto)
   document.addEventListener('copy', (e) => {
-    if (isTyping(e.target)) return;
+    if (isTyping(e.target) || covered()) return;
     if (commands.copy()) { e.clipboardData.setData('text/plain', MARKER); e.preventDefault(); }
   });
   // Ctrl+X: copia e apaga
   document.addEventListener('cut', (e) => {
-    if (isTyping(e.target)) return;
+    if (isTyping(e.target) || covered()) return;
     if (commands.copy()) { e.clipboardData.setData('text/plain', MARKER); e.preventDefault(); commands.deleteSelection(); }
   });
   // Ctrl+V: imagem da área de transferência → cria camada de imagem; texto do sistema → cria camada de texto; marcador → cola camadas
   document.addEventListener('paste', (e) => {
-    if (isTyping(e.target)) return;
+    if (isTyping(e.target) || covered()) return;
     const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
     const text = e.clipboardData?.getData('text/plain') || '';
     e.preventDefault();
