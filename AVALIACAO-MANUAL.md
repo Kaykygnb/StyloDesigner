@@ -38,7 +38,7 @@ Ambiente: Windows, Node.js v24.19.0, Chrome, execução local com `npm start`.
 1. **Matriz de navegadores e plataformas:** os fluxos E2E foram executados em Chrome no Windows; repetir em Chromium/Linux e Firefox/WebKit.
 2. **Acessibilidade e responsividade:** revisar navegação por leitor de tela, contraste e telas móveis/tablets.
 3. **Projetos maiores e uso prolongado:** ampliar cenários para arquivos grandes, muitas páginas e restauração após reiniciar o navegador.
-4. **Diagnóstico do servidor:** separar erros internos de arquivos inexistentes; hoje o `catch` responde 404 para qualquer falha.
+4. ~~Diagnóstico do servidor~~ — resolvido: arquivo inexistente responde 404; qualquer outra falha responde 500 e é logada.
 
 ## Evidências
 

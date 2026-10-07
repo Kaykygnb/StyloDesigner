@@ -79,7 +79,5 @@ ok('zoom ≥ 800% liga a grade de pixels', await ev(() => document.querySelector
 if (errors.length) { console.error(errors.join('\n')); fails += errors.length; }
 else console.log('sem erros');
 console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
-// codex: transforma erro de navegador e asserção em código de saída não zero.
-process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.length ? 1 : 0;

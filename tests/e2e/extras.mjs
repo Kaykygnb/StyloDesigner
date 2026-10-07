@@ -24,7 +24,5 @@ ok('busca filtra camadas por nome', rows >= 2 && rows <= 4, String(rows));
 if (errors.length) { console.error(errors.join('\n')); fails += errors.length; }
 else console.log('no console errors');
 console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
-// codex: propaga as falhas do fluxo para o processo que executa a suíte.
-process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.length ? 1 : 0;

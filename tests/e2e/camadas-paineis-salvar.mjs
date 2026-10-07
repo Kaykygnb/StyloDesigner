@@ -48,7 +48,5 @@ const unexpectedErrors = errors.filter(e => !e.includes('teste'));
 if (unexpectedErrors.length) { console.error(unexpectedErrors.join('\n')); fails += unexpectedErrors.length; }
 else console.log('sem outros erros');
 console.log(fails ? fails + ' FAILURES' : 'ALL PASS');
-// codex: garante que falhas de interface ou console sejam visíveis para npm e CI.
-process.exitCode = fails ? 1 : 0;
 await b.close();
 process.exitCode = fails || errors.filter(e => !e.includes('teste')).length ? 1 : 0;
