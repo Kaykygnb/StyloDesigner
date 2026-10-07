@@ -6,6 +6,20 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.8.4] — 2026-10-07 — Arrastar para dentro de auto layout
+
+3º relato do teste real (print): "o retângulo e a bordinha de redimensionar estão ligados, porém separados".
+
+### Corrigido
+- **Desenho e alças da seleção separados** depois de arrastar uma camada de fora para dentro de um frame com auto layout. Durante o arrasto em auto layout, o app desloca o desenho com CSS `translate` (o "fantasma" que segue o mouse) e nunca o limpava ao soltar; quando a camada não era redesenhada do zero, o deslocamento ficava para sempre. Agora é limpo ao soltar e quando a camada sai do auto layout no meio do arrasto.
+- **Frame alto e vazio + `Shift+A` virava linha**: agora vira coluna (uma sidebar vazia), como já acontecia com um filho só.
+- **Cinza sobre cinza ao arrastar**: a cor que o app escolheu sozinho (e que você nunca mexeu) se ajusta quando a camada vai para um fundo da mesma cor. Cor escolhida por você nunca é alterada.
+
+### Adicionado
+- 5 verificações em `tests/e2e/auto-layout-intencao.mjs` com o caso relatado.
+
+---
+
 ## [0.8.3] — 2026-10-07 — Desenhar dentro de auto layout
 
 2º relato do teste real: "a caixa de seleção fica num lugar e o retângulo em outro" ao desenhar dentro da sidebar.
