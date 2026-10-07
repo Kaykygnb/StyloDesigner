@@ -5,8 +5,8 @@
  *  Abre o app num navegador de verdade (Playwright), monta cada cena (carrega um exemplo, seleciona uma camada,
  *  abre a aba certa, rola o painel) e tira a foto. Rode de novo sempre que o visual do app mudar.
  *
- *  Como usar (precisa do Playwright; ele NÃO faz parte do projeto):
- *    npm i --no-save playwright && npx playwright install chromium
+ *  Como usar (precisa do Playwright, dependência de desenvolvimento):
+ *    npm install && npx playwright install chromium
  *    npm start                              # em outro terminal
  *    node scripts/gerar-capturas.mjs
  *
@@ -15,7 +15,9 @@
  */
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const OUT = fileURLToPath(new URL('../docs/screenshots', import.meta.url));
 mkdirSync(OUT, { recursive: true });
@@ -102,6 +104,36 @@ await ev(() => designer.store.setTheme('dark'));
 // 12 — efeito vidro (backdrop-filter)
 await loadLanding(); await select('Glass card', { fitSel: true, pad: 220, maxZoom: 1.6 });
 await select('Painel vidro'); await scrollPanel('Efeitos'); await shot('12-efeito-vidro');
+
+// 13 e 14 — salvamento na pasta. Usa uma pasta TEMPORÁRIA com dois projetos de exemplo (e uma versão antiga),
+// e devolve a configuração original do servidor no fim.
+const api = (path, method = 'GET', body) => ev(async ({ path, method, body }) => (await fetch('/api' + path, {
+  method, headers: body ? { 'Content-Type': 'application/json', 'X-Overwrite': '1' } : {}, body: body && JSON.stringify(body),
+})).json(), { path, method, body });
+const original = await api('/status');
+const demo = join(tmpdir(), 'Meus projetos Designer');
+rmSync(demo, { recursive: true, force: true });
+await api('/config', 'PUT', { folder: demo });
+const app = await ev(async () => (await import('/src/sample.js')).buildSampleApp());
+const landing = await ev(async () => (await import('/src/sample.js')).buildSample());
+await api('/projects/landing-page.json', 'PUT', landing);
+await api('/projects/carteira-app.json', 'PUT', { ...app, name: 'Carteira (rascunho)' });
+await api('/projects/carteira-app.json', 'PUT', app); // a 1ª sobrescrita guarda a anterior como versão
+await loadApp();
+await ev(async () => { const { folder } = await import('/src/storage.js'); const { modified } = await folder.load('carteira-app.json'); designer.store.setLink({ file: 'carteira-app.json', modified, synced: true }); });
+await p.waitForTimeout(900);
+await select('Cartão de saldo');
+await p.keyboard.press('Control+,'); await p.waitForSelector('.set-status'); await p.waitForTimeout(200);
+await shot('13-configuracoes-salvamento');
+await p.keyboard.press('Escape');
+await p.keyboard.press('Control+o'); await p.waitForSelector('.proj-row');
+await p.locator('.proj-row', { hasText: 'carteira-app' }).getByRole('button', { name: 'Versões' }).click();
+await p.waitForSelector('.proj-version'); await p.waitForTimeout(200);
+await shot('14-projetos-na-pasta');
+await p.keyboard.press('Escape');
+await ev(() => designer.store.setLink(null));
+await api('/config', 'PUT', { folder: original.folder });
+rmSync(demo, { recursive: true, force: true });
 
 console.log(errors.join('\n') || 'sem erros no navegador');
 await b.close();

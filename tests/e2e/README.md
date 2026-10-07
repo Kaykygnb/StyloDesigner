@@ -26,4 +26,5 @@ Variáveis de ambiente: `APP_URL` (padrão `http://localhost:5173/`) e `CHROMIUM
 | `camadas-paineis-salvar.mjs` | Camadas recolhidas, seleção em intervalo, indicador de salvo, duplicar página, redimensionar painel, modo foco, canvas vazio, aviso de erro |
 | `selecao-teclado-medidas.mjs` | `Ctrl`+clique, `Tab`, copiar/colar propriedades, colar dentro do frame, desagrupar frame, `Ctrl+B/I/U`, medidas com `Alt`, grade de pixels |
 | `propriedades-layout-texto.mjs` | X/Y/W/H de várias camadas, matriz 3×3, padding horizontal/vertical, MAIÚSCULAS e alinhamento vertical, cores do projeto, exportar todos os frames |
+| `salvar-pasta.mjs` | Migração do `localStorage` antigo, projeto de 8 MB no IndexedDB, Configurações (pasta), `Ctrl+S` com nome, auto-salvar na pasta, recarregar sem conflito falso, conflito com arquivo mudado por fora, Salvar como, abrir da pasta, versões, servidor fora do ar, teclado (menus, janelas, abas, `aria-*`). Usa uma pasta temporária. |
 | `desempenho.mjs` | Tempo por movimento do mouse com N camadas (`node tests/e2e/desempenho.mjs 1000`) |

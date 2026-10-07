@@ -31,13 +31,13 @@ Funciona como Figma e Penpot (frames, camadas, auto layout, componentes, protót
 ## 1. O que é e o que não é
 
 **É:**
-- Um editor de design vetorial/UI **local**: abre no navegador, salva no próprio navegador e em arquivo `.json`.
-- **JavaScript puro** (módulos ES), **sem TypeScript, sem framework, sem etapa de build, sem dependências**. O servidor incluído é opcional e tem menos de 40 linhas de código.
+- Um editor de design vetorial/UI **local**: abre no navegador e **salva sozinho numa pasta do seu computador** (arquivos `.json`, com versões antigas guardadas), além de uma cópia no próprio navegador.
+- **JavaScript puro** (módulos ES), **sem TypeScript, sem framework, sem etapa de build, sem dependências** para rodar. O servidor incluído (`server.js`, só Node.js) entrega o app e grava os projetos na pasta.
 - Uma ferramenta para **estudar e prototipar com CSS**: os campos do painel têm os nomes das propriedades (`gap`, `padding`, `justify-content`, `align-items`, `mix-blend-mode`...), então usar o editor ensina o CSS.
 
 **Não é:**
 - Um substituto completo do Figma ou do Penpot. Faltam operações booleanas, variantes de componentes, variáveis/temas, colaboração em tempo real e plugins (lista completa na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério)).
-- Uma ferramenta "pronta para equipe": o projeto fica no seu navegador e/ou em arquivo; não há nuvem.
+- Uma ferramenta "pronta para equipe": não há nuvem própria nem edição simultânea. Dá para ter cópia na nuvem apontando a pasta para dentro do Google Drive/OneDrive/Dropbox ([seção 3](#onde-meu-trabalho-fica-salvo)).
 
 ---
 
@@ -91,15 +91,24 @@ Gradientes, sombras múltiplas, `filter: blur`, **vidro fosco** (`backdrop-filte
 
 ![Efeito vidro](docs/screenshots/12-efeito-vidro.png)
 
+### Salvar numa pasta do computador (e no Google Drive)
+Em **Configurações** (engrenagem no topo ou `Ctrl+,`) você escolhe a **pasta** onde os projetos ficam. Com o projeto ligado a um arquivo, cada mudança é gravada lá sozinha; o topo mostra **Salvo na pasta**. Aponte a pasta para dentro do **Google Drive para computador** (ou OneDrive/Dropbox) e o próprio programa deles sobe os arquivos para a nuvem.
+
+![Configurações de salvamento](docs/screenshots/13-configuracoes-salvamento.png)
+
+**Arquivo → Abrir da pasta** (`Ctrl+O`) lista os projetos. Em **Versões** ficam cópias antigas de cada um (no máximo uma a cada 10 minutos), e qualquer uma pode ser aberta.
+
+![Projetos na pasta com versões antigas](docs/screenshots/14-projetos-na-pasta.png)
+
 ---
 
 ## 3. Começando em 3 minutos
 
 ### O que você precisa
-- **Node.js 18 ou mais novo** ([nodejs.org](https://nodejs.org)). Não há nada para `npm install`.
+- **Node.js 18 ou mais novo** ([nodejs.org](https://nodejs.org)). Para usar o app, não há nada para `npm install` (o `npm install` só baixa o Playwright, usado nos testes de navegador).
 - Um navegador atual (Chrome, Edge, Firefox ou Safari).
 
-> **Por que preciso de um servidor?** O app usa módulos ES (`import ... from`), e o navegador não os carrega abrindo o `index.html` direto do disco (`file://`). O `server.js` entrega os arquivos em `http://localhost` e mais nada.
+> **Por que preciso de um servidor?** Por dois motivos. (1) O app usa módulos ES (`import ... from`), e o navegador não os carrega abrindo o `index.html` direto do disco (`file://`). (2) Um site, por segurança, não pode gravar arquivos onde quiser no seu computador; o `server.js` roda **na sua máquina** e é quem grava os projetos na pasta. Ele só aceita pedidos do próprio computador (`127.0.0.1`).
 
 ### Rodando
 
@@ -119,12 +128,32 @@ Qualquer servidor de arquivos estáticos serve. Por exemplo, com Python:
 python3 -m http.server 8000     # depois abra http://localhost:8000
 ```
 
+Só que, **sem o `server.js`, não existe pasta**: o projeto fica apenas no navegador, e `Ctrl+S` baixa um arquivo `.json`. O app avisa isso em Configurações.
+
 ### Publicar como site (GitHub Pages)
-Como o app é 100% estático, dá para hospedar de graça: no GitHub, **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**. O app abre em `https://SEU-USUARIO.github.io/projetodesigner2/`.
+Como o app é estático, dá para hospedar de graça: no GitHub, **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**. O app abre em `https://SEU-USUARIO.github.io/projetodesigner2/`. Lá ele funciona como em "Sem Node": salva só no navegador e baixa `.json` (o GitHub Pages não roda o `server.js`).
 
 ### Onde meu trabalho fica salvo?
-- **Automaticamente** no `localStorage` do seu navegador (o topo mostra *Salvando… / Salvo*).
-- **Se você limpar os dados do site, trocar de navegador ou de porta, perde.** Para guardar de verdade use **Arquivo → Salvar projeto (.json)** (ou `Ctrl+S`) e **Arquivo → Abrir arquivo** para voltar.
+
+Em **dois lugares**, e o indicador ao lado do nome do projeto (topo) diz qual está em dia:
+
+| Onde | Quando | Ponto forte | Ponto fraco |
+|---|---|---|---|
+| **Pasta do computador** (arquivos `.json`) | Depois que o projeto tem um arquivo: `Ctrl+S` na 1ª vez pede o nome; daí em diante grava sozinho a cada mudança | Arquivo de verdade: copie, mande por e-mail, ponha no Google Drive. Guarda **versões antigas** | Precisa do `npm start` rodando |
+| **Navegador** (IndexedDB) | Sempre, a cada mudança, mesmo sem servidor | Automático, sem configurar nada; aguenta projetos grandes (centenas de MB) | Some se você limpar os dados do site ou trocar de navegador |
+
+| O indicador diz | Significa |
+|---|---|
+| **Salvo na pasta** (verde) | O arquivo `.json` da pasta está em dia. |
+| **Salvo no navegador** (verde) | Projeto ainda sem arquivo. Use `Ctrl+S` para criar um. |
+| **Só no navegador** (amarelo) | O projeto tem arquivo, mas a pasta não pôde ser gravada (servidor desligado, sem permissão). Quando o servidor voltar, o app põe a pasta em dia sozinho. |
+| **Conflito no arquivo** (amarelo) | O arquivo foi mudado **fora** do editor (outra aba, outro computador pelo Drive) enquanto você editava aqui. O app **parou de gravar nele** para não apagar o trabalho alheio. `Ctrl+S` pergunta se você quer substituir; senão, salve com outro nome. |
+
+- **A pasta padrão** é `projetos/` dentro da pasta do app. Troque em **Configurações** (`Ctrl+,`); aceita caminhos como `C:\Users\voce\Documents\Designer`, `/home/voce/Designer` ou `~/Designer`, e cria a pasta se não existir.
+- **Google Drive:** instale o [Google Drive para computador](https://www.google.com/drive/download/) e escolha uma pasta dentro dele (no Windows costuma ser `G:\Meu Drive\...`). O Drive sincroniza os `.json`. Funciona igual com OneDrive e Dropbox. O app **não** se conecta à sua conta Google diretamente (isso exigiria cadastrar o app no Google e fazer login).
+- **Versões antigas** ficam em `.versoes/` dentro da pasta (até 20 por projeto, configurável). Abra em **Arquivo → Abrir da pasta → Versões**. Uma versão abre "solta"; para restaurá-la, salve com o mesmo nome e confirme.
+- **Projetos antigos** (versões ≤ 0.5 salvavam no `localStorage`) são migrados sozinhos para o IndexedDB na primeira vez que você abre o app.
+- **Importar/baixar:** **Arquivo → Importar arquivo .json** e **Baixar cópia (.json)** continuam existindo, para levar um projeto de um computador a outro sem pasta compartilhada.
 
 ---
 
@@ -138,7 +167,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: **Arquivo → Exemplo: app mob
 4. **Ligue o auto layout** — selecione o frame e aperte `Shift+A`. O app deduz direção, `gap` e `padding` a partir de onde as camadas estavam. Agora arraste uma camada: ela **reordena** dentro do flexbox.
 5. **Veja o CSS** — abra a aba **Código** no painel direito.
 6. **Desfaça sem medo** — `Ctrl+Z` desfaz o gesto inteiro (um arrasto é um passo só).
-7. **Exporte** — painel Design → **Exportar**: PNG, SVG ou HTML; ou `Ctrl+S` para salvar o projeto.
+7. **Salve e exporte** — `Ctrl+S` dá um nome ao projeto e o grava na pasta (daí em diante salva sozinho). Painel Design → **Exportar** gera PNG, SVG ou HTML.
 
 ---
 
@@ -214,10 +243,13 @@ Gatilhos **ao clicar** e **ao passar o mouse**; ações **navegar para**, **volt
 | **PNG** | Painel → Exportar (1x a 4x); **Arquivo → Exportar todos os frames** | Usa as fontes **instaladas** no seu computador e pode não mostrar `backdrop-filter`. |
 | **SVG** | Painel → Exportar | Vetorial de verdade (formas, textos, gradientes, sombras, máscaras). Sombras internas e vidro não existem em SVG e são omitidos. |
 | **HTML** | Painel → Exportar | Página completa, um arquivo só. |
-| **Projeto (.json)** | `Ctrl+S` | Páginas, imagens e estilos. Abrir: `Ctrl+O`. |
+| **Projeto (.json)** | `Ctrl+S` (pasta) · Arquivo → **Baixar cópia** | Páginas, imagens e estilos. Abrir: `Ctrl+O` (pasta) ou Arquivo → **Importar**. |
 
 ### Conforto de uso
-Painéis **redimensionáveis** (arraste a borda; duplo clique restaura) · **modo foco** `Ctrl+\` esconde os painéis · busca de camadas · grade de pixels a partir de 800% de zoom · indicador *Salvo* · aviso amigável se algo inesperado acontecer.
+Painéis **redimensionáveis** (arraste a borda; duplo clique restaura) · **modo foco** `Ctrl+\` esconde os painéis · busca de camadas · grade de pixels a partir de 800% de zoom · indicador de salvamento (pasta / navegador / conflito) · **Configurações** (`Ctrl+,`): pasta, versões, tema, roda do mouse · aviso amigável se algo inesperado acontecer.
+
+### Acessibilidade (teclado e leitor de tela)
+Menus abrem com `Enter`/`Espaço` e navegam com `↑`/`↓`/`Home`/`End`; `Esc` fecha e devolve o foco. As janelas (Configurações, Projetos, Atalhos) prendem o foco enquanto abertas. Botões só com ícone, ferramentas e abas têm nome e estado para leitores de tela (`aria-label`, `aria-pressed`, `aria-selected`), e o foco do teclado aparece com um contorno.
 
 ---
 
@@ -258,7 +290,10 @@ No app, aperte **`?`** para ver esta lista. (No Mac, use `⌘` no lugar de `Ctrl
 | | `Ctrl+\` | Esconder/mostrar painéis |
 | **Ao arrastar** | `Shift` / `Alt` / `Ctrl` | Mantém proporção (ou trava eixo) / do centro / sem *snap* |
 | **Texto (editando)** | `Ctrl+B` / `I` / `U` | Negrito / itálico / sublinhado |
-| **Arquivo** | `Ctrl+S` / `Ctrl+O` | Salvar / abrir projeto |
+| **Arquivo** | `Ctrl+S` | Salvar na pasta (na 1ª vez, escolhe o nome) |
+| | `Ctrl+Shift+S` | Salvar como… (outro nome) |
+| | `Ctrl+O` | Abrir projeto da pasta |
+| | `Ctrl+,` | Configurações |
 | | `Ctrl+Shift+C` | Copiar CSS |
 | | `Ctrl+Alt+Enter` | Apresentar o protótipo |
 
@@ -279,6 +314,8 @@ flowchart LR
   S --> O["overlay.js<br/>seleção, alças"]
   CSS --> CODE["aba Código<br/>exportar HTML/PNG"]
   S --> EX["svg.js · export.js<br/>SVG, PNG, .json"]
+  S -->|"auto-salvar"| SV["saving.js · storage.js<br/>navegador (IndexedDB)"]
+  SV -->|"fetch /api"| SRV["server.js<br/>pasta do computador"]
 ```
 
 Os pontos que mais importam:
@@ -298,8 +335,8 @@ Para o aprofundamento (modelo de dados campo a campo, algoritmos, como estender 
 ```
 projetodesigner2/
 ├── index.html              Página única: só o "esqueleto" (o app é montado por src/main.js)
-├── server.js               Servidor estático opcional (sem dependências), só serve o app
-├── package.json            Scripts: `npm start` e `npm test`
+├── server.js               Servidor local (sem dependências): entrega o app e grava os projetos na pasta (API /api)
+├── package.json            Scripts: `npm start`, `npm test`, `npm run test:e2e`, `npm run test:all`
 ├── README.md               Este arquivo
 ├── CONTRIBUTING.md         Como contribuir e a convenção de commits
 ├── CHANGELOG.md            O que mudou em cada versão
@@ -312,7 +349,9 @@ projetodesigner2/
 │   ├── main.js             Ponto de entrada: monta o app
 │   ├── model.js            Modelo de dados e funções puras da árvore
 │   ├── css.js              Camada → CSS / HTML / SVG (puro)
-│   ├── store.js            Estado, histórico (desfazer) e salvamento
+│   ├── store.js            Estado, histórico (desfazer) e QUANDO salvar (auto-salvar)
+│   ├── saving.js           Regras de salvamento: pasta x navegador, conflito, servidor desligado
+│   ├── storage.js          COMO gravar: IndexedDB, preferências e a API da pasta
 │   ├── components.js       Componentes, instâncias e estilos (puro)
 │   ├── canvas.js           Desenha o documento em HTML; pan, zoom e geometria
 │   ├── overlay.js          Seleção, alças, guias, medidas, setas
@@ -324,12 +363,15 @@ projetodesigner2/
 │   ├── svg.js              Exportação SVG (puro)
 │   ├── export.js           PNG, SVG, HTML e arquivo de projeto
 │   ├── sample.js           Os dois projetos de exemplo
-│   ├── ui/                 Painéis: camadas, propriedades, código, recursos, protótipo, menus, ícones
+│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo), menus e janelas
+│   │                       (configurações, projetos na pasta), ícones
 │   └── styles/app.css      Todo o visual (tema claro/escuro por variáveis CSS)
 └── tests/
     ├── css.test.js         Testes unitários do gerador de CSS e do modelo
     ├── features.test.js    Testes unitários de componentes, SVG, vetores, constraints...
-    └── e2e/                Testes de navegador (opcionais, usam Playwright)
+    ├── server.test.js      Servidor: entrega os assets e bloqueia arquivos privados
+    ├── api.test.js         API de salvamento: pasta, gravar/ler, conflito, versões, segurança
+    └── e2e/                Testes de navegador (usam Playwright)
 ```
 
 ---
@@ -337,19 +379,19 @@ projetodesigner2/
 ## 9. Testes
 
 ### Testes unitários (rápidos, sem navegador)
-Cobrem a lógica pura: geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas e os exemplos.
+Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 30 testes
+npm test      # 32 testes
 ```
 
-### Testes de navegador (opcionais)
-Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimensionar com rotação, caneta, componentes, protótipo, atalhos, desempenho. Não fazem parte das dependências do projeto:
+### Testes de navegador
+Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimensionar com rotação, caneta, componentes, protótipo, atalhos, salvar na pasta (conflito, versões, servidor desligado), teclado e desempenho. Usam o Playwright (dependência só de desenvolvimento):
 
 ```bash
-npm i --no-save playwright && npx playwright install chromium
-npm start                                  # em outro terminal
-node tests/e2e/basico.mjs                  # cada arquivo imprime PASS/FAIL e "ALL PASS"
+npm install && npx playwright install chromium
+npm start                 # em outro terminal
+npm run test:e2e          # todas as suítes; sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](tests/e2e/README.md).
@@ -377,14 +419,17 @@ Este projeto cobre muita coisa de Figma e Penpot, mas **não é** um clone compl
 - **Operações booleanas** (unir, subtrair, interseccionar formas).
 - **Mais de um preenchimento ou contorno por camada.**
 - **Variantes de componente**, **variáveis** e **temas** de design.
-- **Colaboração em tempo real**, comentários e histórico de versões na nuvem.
+- **Colaboração em tempo real** e comentários. (Há versões antigas, mas na sua pasta, não num serviço na nuvem.)
 - **Plugins.**
 - **Edição de imagem** (recorte, filtros) e lápis livre.
 - Texto com **estilos misturados** na mesma caixa e listas.
 
 Detalhes que valem saber:
 
-- **O salvamento automático fica só no navegador** (`localStorage`, limite de ~5 MB). Limpar os dados do site, ou trocar de navegador/porta, perde o projeto. **Use Arquivo → Salvar projeto** como backup. Muitas imagens grandes podem estourar o limite; o app avisa.
+- **Salvar na pasta precisa do `npm start`.** Aberto por outro servidor (ou pelo GitHub Pages), o app salva só no navegador; `Ctrl+S` baixa um `.json`.
+- **Conflito é detectado, não mesclado.** Se o mesmo arquivo for editado em dois lugares, o app para de gravar e pergunta; ele não junta as duas edições.
+- **Google Drive** funciona por meio do programa do Drive no computador (pasta sincronizada), não por login direto na sua conta.
+- **Acessibilidade:** menus, janelas, abas e botões funcionam por teclado e têm rótulos; **desenhar e mover no canvas ainda dependem do mouse** (as setas movem a seleção, mas não há como desenhar formas só pelo teclado).
 - **PNG:** usa as fontes instaladas no seu computador (o navegador não carrega fontes da web dentro de uma imagem SVG) e pode não mostrar `backdrop-filter`. O **HTML** e o **SVG** exportados não têm esses limites (no SVG, sombras internas e vidro são omitidos porque não existem no formato).
 - **Instâncias de componente** não aceitam adicionar ou remover camadas internas (reverte na próxima sincronização); mudar propriedades, textos e posições funciona.
 - Frames da raiz **não "entram"** em outros ao serem arrastados (de propósito, para não aninhar sem querer).

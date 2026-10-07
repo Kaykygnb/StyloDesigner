@@ -37,7 +37,9 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `css.js` | `nodeStyle` (camada→CSS), `generateCode` (HTML+CSS), vetores SVG, máscaras | ✅ |
 | `components.js` | Instâncias com sobrescritas; estilos de cor/texto compartilhados | ✅ |
 | `svg.js` | Exportação SVG vetorial | ✅ |
-| `store.js` | Estado, `update`/`commit`, histórico, índice id→camada, salvamento, eventos | — (usa `localStorage`) |
+| `store.js` | Estado, `update`/`commit`, histórico, índice id→camada, **quando** salvar (debounce), eventos | ✅ (recebe `persist` pronto) |
+| `storage.js` | **Como** gravar: IndexedDB (com migração do `localStorage` antigo), preferências e cliente da API da pasta | — |
+| `saving.js` | **Regras** de salvamento: pasta x navegador, conflito, servidor desligado, reconciliação ao abrir | — |
 | `canvas.js` | Renderiza o documento em DOM; pan/zoom; geometria (`originOf`, `aabb`, `worldBox`) | — |
 | `overlay.js` | Seleção, alças, guias, grades, medidas, setas do protótipo | — |
 | `tools.js` | Todos os gestos do mouse e atalhos de teclado | — |
@@ -47,14 +49,18 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `present.js` | Modo Apresentar | — |
 | `export.js` | Baixar PNG/SVG/HTML/projeto | — |
 | `sample.js` | Dois projetos de exemplo | ✅ |
-| `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo, menus, ícones, componentes de formulário | — |
+| `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; menus e janelas modais (`openModal`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
+| `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
 | `main.js` | Monta tudo na ordem certa | — |
 
 **Dependências (setas = "usa")**
 
 ```mermaid
 flowchart TD
-  main --> store & canvas & overlay & commands & tools & ui
+  main --> store & canvas & overlay & commands & tools & ui & saving
+  saving --> storage & export
+  ui --> storage
+  storage -.->|"fetch /api"| server
   tools --> commands & pen & canvas & store
   commands --> canvas & store & components & css & model
   overlay --> canvas & store
@@ -204,10 +210,40 @@ pointerup   → store.commit() uma vez
 
 ## 8. Histórico e salvamento
 
+### Histórico
 - O histórico guarda até **200 fotos** JSON de `{ name, pages, styles }`; desfazer/refazer só movem um ponteiro e restauram a foto.
 - `assets` não entra na foto (só cresce), por isso a foto é pequena.
-- O salvamento agenda um `localStorage.setItem` 400 ms depois da última mudança. Se estourar o limite (~5 MB), `saveState` vira `'error'` e o app avisa.
-- Preferências de interface (largura dos painéis) ficam em outra chave, para não "sujar" o documento.
+
+### Salvamento: quem faz o quê
+```
+store.commit() ──► scheduleSave() ──(400 ms sem mudanças)──► save() ──► persist(record)   [saving.js]
+                                                                          ├─ 1. pasta: PUT /api/projects/<arquivo>   (se ligado)
+                                                                          └─ 2. navegador: IndexedDB                 (sempre)
+```
+- **`store.js`** decide *quando*: debounce de 400 ms, **uma gravação por vez** (se mudar durante a gravação, grava de novo no fim) e uma flag `dirty` para não gravar sem mudanças (gravar à toa ao fechar a aba causava "conflito" falso).
+- **`saving.js`** decide *onde*. A pasta é gravada **antes** do navegador, para a cópia do navegador já guardar a data nova do arquivo.
+- **`storage.js`** sabe *como*: IndexedDB (sem o limite de ~5 MB do `localStorage`; se o IndexedDB não existir, cai para o `localStorage`), preferências e a API.
+- Ao fechar/esconder a aba (`visibilitychange`/`pagehide`) chamamos `store.saveNow()`. O IndexedDB é assíncrono e pode não terminar dentro do `beforeunload`; por isso existe a reconciliação abaixo.
+
+### O vínculo com o arquivo (`ui.link`)
+`{ file: 'meu-app.json', modified: <mtime do disco>, synced: true|false, conflict?: true }`, gravado junto com a cópia do navegador.
+- `modified` vai no cabeçalho `X-Base-Modified`; se o arquivo do disco tiver outra data, o servidor responde **409** e nada é sobrescrito (`conflict = true`, o app para de gravar nele até você decidir com `Ctrl+S`).
+- `synced` diz se o navegador tem mudanças que ainda não foram para a pasta (servidor desligado, conflito, auto-salvar desligado).
+- Projetos novos, exemplos, importados e versões antigas abrem **sem** vínculo: nunca sobrescrevem um arquivo sem você pedir.
+
+### Reconciliação ao abrir (`saving.reconcile`)
+Compara, sem usar relógios, *"o arquivo mudou desde a última vez?"* com *"o navegador está à frente?"*:
+
+| | navegador em dia (`synced`) | navegador à frente |
+|---|---|---|
+| **arquivo igual** | nada a fazer | grava na pasta |
+| **arquivo mudou** | abre o do disco | conflito (mantém o do navegador) |
+
+### API do servidor
+`GET /api/status` · `PUT /api/config {folder, keepVersions}` · `GET /api/projects` · `GET|PUT /api/projects/<arquivo>` · `GET /api/projects/<arquivo>/versions[/<id>]`. Detalhes e proteções (Host/Origin/Content-Type, nomes de arquivo, gravação atômica, versões a cada 10 min) no cabeçalho de [`server.js`](../server.js); testes em [`tests/api.test.js`](../tests/api.test.js).
+
+### Preferências
+Largura dos painéis, auto-salvar na pasta e modo da roda do mouse ficam em outra chave do `localStorage` (`projeto-designer:prefs`), para não "sujar" o documento.
 
 ## 9. Componentes e estilos
 
@@ -276,4 +312,6 @@ Função `createXPanel({ store, ... })` em `ui/`, devolvendo `{ el, render }`; a
 - **`structural:false` é uma promessa.** Se sua `fn` inserir, remover ou reordenar camadas, **não** use — o índice ficaria desatualizado.
 - **O índice usa `Map` por id.** Camadas de instância têm ids derivados (`<inst>~<orig>`); nunca assuma que um id é "só 8 caracteres".
 - **`measureBack` escreve no modelo durante o render.** É intencional (dado derivado) e não passa por `update`; por isso não gera histórico nem eventos.
-- **Imagens grandes são reduzidas** (1600 px) antes de entrar em `assets`, para caber no `localStorage`.
+- **Imagens grandes são reduzidas** (1600 px) antes de entrar em `assets`: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagens enormes deixariam o salvamento lento.
+- **Gravação atômica na pasta.** O servidor grava num arquivo temporário e renomeia; se a energia cair no meio, o projeto antigo continua inteiro.
+- **Sem login no Google.** Integrar a API do Google Drive exigiria registrar o app no Google Cloud e fazer OAuth; apontar a pasta para dentro do Drive para computador dá o mesmo resultado sem nada disso.
