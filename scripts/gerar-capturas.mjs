@@ -105,6 +105,20 @@ await ev(() => designer.store.setTheme('dark'));
 await loadLanding(); await select('Glass card', { fitSel: true, pad: 220, maxZoom: 1.6 });
 await select('Painel vidro'); await scrollPanel('Efeitos'); await shot('12-efeito-vidro');
 
+// 16 — painel de ícones do Google (busca em português) com um ícone já inserido no app
+await loadApp(); await select('Cabeçalho', { fitSel: true, pad: 260, maxZoom: 1.4 });
+await leftTab('Ícones'); await p.waitForSelector('.gicon img');
+await p.fill('.gicon-search input', 'seta'); await p.waitForTimeout(1800);
+await shot('16-icones-google');
+await p.fill('.gicon-search input', ''); await leftTab('Camadas');
+
+// 17 — seletor de fontes do Google (categoria Manuscrita, com prévia de cada fonte)
+await loadApp(); await select('Título', { fitSel: true, pad: 260, maxZoom: 1.4 });
+await p.click('.font-field'); await p.waitForSelector('.font-picker');
+await p.locator('.font-cats .tab-chip', { hasText: 'Manuscrita' }).click(); await p.waitForTimeout(2500);
+await shot('17-google-fonts');
+await p.keyboard.press('Escape');
+
 // 13, 14 e 15 — salvamento na pasta e página inicial. Usa uma pasta TEMPORÁRIA; os projetos são salvos pelo próprio
 // app (assim as miniaturas da página inicial são as de verdade). No fim devolve a configuração original do servidor.
 const api = (path, method = 'GET', body) => ev(async ({ path, method, body }) => (await fetch('/api' + path, {

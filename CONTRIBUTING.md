@@ -67,7 +67,7 @@ Rodapé (opcional): BREAKING CHANGE, referências a issues, coautores.
 | `chore` | Manutenção que não cabe nos outros | `chore(release): 0.5.0` |
 
 ### Escopo (opcional, mas recomendado)
-Diz **onde**: `core`, `model`, `css`, `store`, `storage`, `saving`, `server`, `a11y`, `canvas`, `overlay`, `tools`, `commands`, `pen`, `rulers`, `present`, `svg`, `export`, `sample`, `ui`, `layers`, `props`, `help`, `screenshots`, `readme`...
+Diz **onde**: `core`, `model`, `css`, `store`, `storage`, `saving`, `server`, `a11y`, `svgimport`, `fonts`, `icons`, `home`, `canvas`, `overlay`, `tools`, `commands`, `pen`, `rulers`, `present`, `svg`, `export`, `sample`, `ui`, `layers`, `props`, `help`, `screenshots`, `readme`...
 
 ### Regras do resumo (primeira linha)
 - No **presente**, descrevendo o que o commit faz: `corrige`, `adiciona`, `documenta` (e não "corrigido", "adicionei").

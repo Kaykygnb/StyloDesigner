@@ -6,6 +6,20 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.8.0] — 2026-10-07 — SVG editável, ícones do Google e Google Fonts
+
+### Adicionado
+- **Importar SVG como vetores editáveis**: arrastar/abrir um `.svg` ou colar SVG como texto (Figma "Copiar como SVG", sites de ícones). Suporta `path` (M L H V C S Q T A Z, absolutos e relativos; arcos e quadráticas viram cúbicas), `rect` (cantos arredondados), `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text` simples, grupos, `transform`, `viewBox`, `<use>`, estilos herdados, `<style>` por classe/tag/id, cores com nome e gradientes. O que não é suportado é ignorado e contado num aviso.
+- **Vetores com vários contornos e furos** (`contours` + `fillRule: 'evenodd'`), desenhados no canvas, na máscara e no SVG exportado.
+- **Aba Ícones** com os **4.299 Material Symbols** do Google: busca (inglês e palavras comuns em português), estilo contorno/arredondado/reto, preenchido, cor e tamanho; insere como vetor (dentro do frame selecionado).
+- **Google Fonts**: seletor com **1.908 fontes** + as do sistema, busca, categorias, prévia de cada fonte, teclado (↑/↓/Enter/Esc). Fontes baixadas sob demanda (ao abrir o projeto e ao usar); pesos limitados aos que a fonte tem; HTML exportado leva o `<link>`.
+- `scripts/gerar-listas-google.mjs` (atualiza as listas em `src/data/`); testes `svgimport.test.js` (13), `fonts.test.js` (5) e `tests/e2e/svg-icones-fontes.mjs` (26 verificações); capturas 16 e 17.
+
+### Corrigido
+- Com 3 abas, o painel esquerdo ficava mais largo que o espaço e rolava para o lado ao focar um campo. Agora as abas são compactas e, em painéis estreitos, mostram só o texto.
+
+---
+
 ## [0.7.0] — 2026-10-07 — Página inicial e polimentos
 
 ### Adicionado

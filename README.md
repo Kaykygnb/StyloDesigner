@@ -82,6 +82,16 @@ Curvas de Bézier: clique e arraste para criar pontos suaves com alças; duplo c
 
 ![Caneta e edição de pontos](docs/screenshots/08-vetores-caneta.png)
 
+### SVG e ícones do Google viram vetores editáveis
+Arraste um arquivo **`.svg`** para o canvas (ou use o botão de imagem), ou **cole** um SVG copiado (o "Copiar como SVG" do Figma, sites de ícones): ele entra como **camadas de vetor que você edita**, não como imagem. Cada forma vira um vetor (cores, contorno, gradiente, furos), e textos simples viram texto. A aba **Ícones** do painel esquerdo tem os **4.299 Material Symbols** do Google: busque (em inglês ou com palavras comuns em português, como "casa", "carrinho", "seta"), escolha estilo (contorno, arredondado, reto), preenchido, cor e tamanho, e clique. Com um frame selecionado, o ícone entra nele.
+
+![Painel de ícones do Google](docs/screenshots/16-icones-google.png)
+
+### Google Fonts
+O campo de fonte abre um seletor com as **1.908 fontes do Google** mais as do sistema: busca, filtro por categoria (sans, serif, display, manuscrita, mono) e **prévia de cada fonte escrita nela mesma**. A fonte é baixada quando um texto passa a usá-la; a lista de pesos mostra só os que ela tem; e o **HTML exportado** já leva o `<link>` das fontes.
+
+![Seletor de fontes do Google](docs/screenshots/17-google-fonts.png)
+
 ### Medidas, réguas, guias e grades
 Segure **Alt** e passe o mouse sobre outra camada para ver as **distâncias**. Arraste das **réguas** para criar guias (o snap as enxerga). Cada frame pode ter **grades de layout** de colunas, linhas ou quadrícula.
 
@@ -190,7 +200,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Polígono / Estrela | botão da barra | Viram vetores editáveis. |
 | Caneta | `P` | Vetores com curvas de Bézier. |
 | Texto | `T` | Clique para texto livre; arraste para uma caixa de largura fixa. |
-| Imagem | botão, arrastar ou `Ctrl+V` | Cria um retângulo com preenchimento de imagem (reduzida a 1600 px para caber no armazenamento). |
+| Imagem | botão, arrastar ou `Ctrl+V` | Cria um retângulo com preenchimento de imagem (reduzida a 1600 px). Arquivos **`.svg`** e SVG colado como texto viram **vetores editáveis**. |
 | Mão | `H` ou segurar `Espaço` | Arrasta a vista. |
 
 ### Seleção e edição
@@ -230,7 +240,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Cantos | `border-radius` único ou por canto. |
 | Sombras | Várias, externas e internas (`box-shadow`); em texto vira `text-shadow`; em vetor, `drop-shadow`. |
 | Efeitos | `filter: blur`, **desfoque de fundo** (`backdrop-filter`, efeito vidro), opacidade, `mix-blend-mode` (16 modos). |
-| Texto | Fonte, peso, tamanho, `line-height`, `letter-spacing`, alinhamento, itálico, sublinhado/riscado, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa, gradiente no texto. Durante a edição: `Ctrl+B/I/U`. |
+| Texto | Fonte (**Google Fonts** + sistema, com busca e prévia), peso (só os que a fonte tem), tamanho, `line-height`, `letter-spacing`, alinhamento, itálico, sublinhado/riscado, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa, gradiente no texto. Durante a edição: `Ctrl+B/I/U`. |
 | Cores do projeto | Atalhos com as cores já usadas, e conta-gotas (onde o navegador oferece). |
 
 ### Biblioteca
@@ -239,6 +249,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Componentes | `Ctrl+Alt+K` cria o principal; **instâncias** seguem o principal mas mantêm sobrescritas (texto, cor, tamanho...). `Ctrl+Alt+B` desanexa; "Ir ao principal" navega até ele. |
 | Estilos de cor e de texto | Criados da seleção (aba Recursos ou botão **+**). Mudar o estilo muda todas as camadas ligadas. |
 | Páginas | Várias por projeto; botão direito na página: renomear, **duplicar**, excluir. |
+| Ícones | Aba **Ícones**: Material Symbols do Google (licença Apache 2.0, uso livre, inclusive comercial), inseridos como vetor. |
 
 ### Protótipo
 Gatilhos **ao clicar** e **ao passar o mouse**; ações **navegar para**, **voltar** e **abrir link**; transições **instantâneo, dissolver e deslizar** (4 direções); ponto de partida do fluxo; setas no canvas; **Apresentar** em tela cheia (`Ctrl+Alt+Enter`; `Esc` sai, `R` reinicia).
@@ -352,7 +363,8 @@ projetodesigner2/
 │   ├── ARQUITETURA.md      Funcionamento interno e guia para estender
 │   └── screenshots/        As capturas de tela usadas aqui
 ├── scripts/
-│   └── gerar-capturas.mjs  Regenera as capturas (usa Playwright)
+│   ├── gerar-capturas.mjs  Regenera as capturas (usa Playwright)
+│   └── gerar-listas-google.mjs  Atualiza as listas de fontes e ícones do Google (src/data/)
 ├── src/
 │   ├── main.js             Ponto de entrada: monta o app
 │   ├── model.js            Modelo de dados e funções puras da árvore
@@ -370,9 +382,12 @@ projetodesigner2/
 │   ├── rulers.js           Réguas e guias
 │   ├── present.js          Modo Apresentar (protótipo)
 │   ├── svg.js              Exportação SVG (puro)
+│   ├── svgimport.js        Importa SVG como vetores editáveis (arcos, curvas, transform, estilos)
+│   ├── fonts.js            Google Fonts: lista, carregamento sob demanda, prévia, link no HTML
+│   ├── data/               Listas embutidas: 1.908 fontes e 4.299 ícones do Google (geradas)
 │   ├── export.js           PNG, SVG, HTML e arquivo de projeto
 │   ├── sample.js           Os dois projetos de exemplo
-│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo), página inicial (home.js),
+│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo, ícones), seletor de fontes, página inicial (home.js),
 │   │                       menus e janelas (perguntas, configurações, projetos na pasta), ícones
 │   └── styles/app.css      Todo o visual (tema claro/escuro por variáveis CSS)
 └── tests/
@@ -380,6 +395,8 @@ projetodesigner2/
     ├── features.test.js    Testes unitários de componentes, SVG, vetores, constraints...
     ├── server.test.js      Servidor: entrega os assets e bloqueia arquivos privados
     ├── api.test.js         API: pasta, gravar/ler, conflito, versões, miniatura, renomear, segurança
+    ├── svgimport.test.js   Importador de SVG: caminhos, arcos, curvas, transformações, cores
+    ├── fonts.test.js       Google Fonts: URL, pesos, fontes usadas, <link> no HTML exportado
     └── e2e/                Testes de navegador (usam Playwright)
 ```
 
@@ -391,7 +408,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 32 testes
+npm test      # 50 testes
 ```
 
 ### Testes de navegador
@@ -439,6 +456,9 @@ Detalhes que valem saber:
 - **Conflito é detectado, não mesclado.** Se o mesmo arquivo for editado em dois lugares, o app para de gravar e pergunta; ele não junta as duas edições.
 - **Google Drive** funciona por meio do programa do Drive no computador (pasta sincronizada), não por login direto na sua conta.
 - **Acessibilidade:** menus, janelas, abas e botões funcionam por teclado e têm rótulos; **desenhar e mover no canvas ainda dependem do mouse** (as setas movem a seleção, mas não há como desenhar formas só pelo teclado).
+- **Ícones e Google Fonts precisam de internet** para buscar/baixar. Um ícone, depois de inserido, é um desenho do projeto (funciona offline); uma fonte não: sem internet, o texto aparece numa fonte de reserva.
+- **Importar SVG cobre o comum:** caminhos, formas, cores, classes CSS simples, gradientes (aproximados pela direção), grupos e transformações, furos e textos simples. **Filtros, máscaras, padrões, imagens embutidas e texto em curva são ignorados** (o app avisa quantos).
+- **Vetor com furos:** com a caneta (`Enter`/duplo clique) você edita os pontos do **contorno principal**; os contornos dos furos acompanham, mas seus pontos ainda não são editáveis.
 - **PNG:** usa as fontes instaladas no seu computador (o navegador não carrega fontes da web dentro de uma imagem SVG) e pode não mostrar `backdrop-filter`. O **HTML** e o **SVG** exportados não têm esses limites (no SVG, sombras internas e vidro são omitidos porque não existem no formato).
 - **Instâncias de componente** não aceitam adicionar ou remover camadas internas (reverte na próxima sincronização); mudar propriedades, textos e posições funciona.
 - Frames da raiz **não "entram"** em outros ao serem arrastados (de propósito, para não aninhar sem querer).

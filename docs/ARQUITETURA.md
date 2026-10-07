@@ -40,6 +40,9 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `store.js` | Estado, `update`/`commit`, histórico, índice id→camada, **quando** salvar (debounce), eventos | ✅ (recebe `persist` pronto) |
 | `storage.js` | **Como** gravar: IndexedDB (com migração do `localStorage` antigo), preferências e cliente da API da pasta | — |
 | `saving.js` | **Regras** de salvamento: pasta x navegador, conflito, servidor desligado, reconciliação ao abrir; miniaturas, renomear, duplicar | — |
+| `svgimport.js` | Importa SVG como vetores editáveis: lê `d` (M L H V C S Q T A Z), formas, `transform`, `viewBox`, estilos herdados, `<style>` simples, gradientes, `<use>` | ✅ (geometria) |
+| `fonts.js` | Google Fonts: lista embutida, carregamento sob demanda (`ensureFonts`), prévia só com as letras do nome, URL do `<link>` | ✅ (exceto carregar) |
+| `data/*.js` | Listas geradas por `scripts/gerar-listas-google.mjs`: fontes (nome, categoria, pesos) e nomes dos ícones | ✅ |
 | `thumbnail.js` | Miniatura SVG da página aberta (reaproveita `svg.js` medindo o DOM do canvas) | — |
 | `canvas.js` | Renderiza o documento em DOM; pan/zoom; geometria (`originOf`, `aabb`, `worldBox`) | — |
 | `overlay.js` | Seleção, alças, guias, grades, medidas, setas do protótipo | — |
@@ -323,4 +326,7 @@ Função `createXPanel({ store, ... })` em `ui/`, devolvendo `{ el, render }`; a
 - **Gravação atômica na pasta.** O servidor grava num arquivo temporário e renomeia; se a energia cair no meio, o projeto antigo continua inteiro.
 - **Canvas "coberto" não reage.** Com a página inicial ou uma janela aberta, `tools.js` ignora teclado/copiar/colar (`covered()`) e o `#app` fica `inert`. Antes disso, `Delete` com o foco num botão de uma janela apagava camadas escondidas.
 - **Container query no palco.** A barra de ferramentas (~480 px) e o zoom ficam no rodapé do palco; quando o **palco** fica estreito (< 900 px), o zoom sobe. A regra olha o palco e não a janela, então vale também ao alargar os painéis.
+- **Vetores com vários contornos.** Um vetor tem o contorno principal (`points`, `closed`) e, opcionalmente, `contours: [{points, closed}]` e `fillRule: 'evenodd'`. É o que permite furos (ícones, letras) vindos de SVG. `css.js → nodePathData` junta tudo num `d`; o canvas, a máscara, o SVG exportado e `normalizePath` usam essa função. A caneta edita só o contorno principal.
+- **Listas do Google embutidas, arquivos baixados na hora.** O catálogo (`fonts.google.com/metadata`) não libera acesso direto do navegador; por isso as listas ficam em `src/data/` (geradas por script) e só os ARQUIVOS são baixados: `fonts.googleapis.com` (CSS das fontes) e `fonts.gstatic.com` (SVG dos ícones), ambos com CORS liberado. Funciona até sem o servidor do app.
+- **Prévia de fonte com outro nome.** O seletor baixa só as letras do nome da fonte (`&text=`), mas injeta o CSS com a família renomeada (`Prévia X`): senão o navegador poderia usar esse arquivo "incompleto" no lugar da fonte de verdade.
 - **Sem login no Google.** Integrar a API do Google Drive exigiria registrar o app no Google Cloud e fazer OAuth; apontar a pasta para dentro do Drive para computador dá o mesmo resultado sem nada disso.
