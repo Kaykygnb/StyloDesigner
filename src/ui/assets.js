@@ -5,6 +5,7 @@
  */
 
 import { h, ico, iconButton } from './dom.js';
+import { ask, askText } from './menus.js';
 import { rgba } from '../css.js';
 import { walk, defaultFill } from '../model.js';
 
@@ -60,9 +61,9 @@ export function createAssetsPanel({ store, commands, canvas, container }) {
     }, h('span.asset-swatch', { style: { background: rgba(c.color, c.opacity) } }),
     h('span.asset-name', c.name), h('span.muted.mono', c.color),
     h('span.row-actions.show',
-      iconButton('more', 'Renomear', (e) => {
+      iconButton('more', 'Renomear', async (e) => {
         e.stopPropagation();
-        const name = prompt('Nome do estilo:', c.name);
+        const name = await askText({ title: 'Nome do estilo', label: 'Nome do estilo', value: c.name, confirm: 'Salvar' });
         if (name) { c.name = name; store.commit(); }
       }, 'small'),
       iconButton('x', 'Excluir estilo', (e) => { e.stopPropagation(); commands.removeStyle('colors', c.id); }, 'small'))));
@@ -77,23 +78,23 @@ export function createAssetsPanel({ store, commands, canvas, container }) {
     }, h('span.asset-ico', { style: { fontFamily: t.fontFamily, fontWeight: t.fontWeight, fontSize: '15px' } }, 'Aa'),
     h('span.asset-name', t.name), h('span.muted.mono', `${t.fontSize}/${t.fontWeight}`),
     h('span.row-actions.show',
-      iconButton('more', 'Renomear', (e) => {
+      iconButton('more', 'Renomear', async (e) => {
         e.stopPropagation();
-        const name = prompt('Nome do estilo:', t.name);
+        const name = await askText({ title: 'Nome do estilo', label: 'Nome do estilo', value: t.name, confirm: 'Salvar' });
         if (name) { t.name = name; store.commit(); }
       }, 'small'),
       iconButton('x', 'Excluir estilo', (e) => { e.stopPropagation(); commands.removeStyle('texts', t.id); }, 'small'))));
 
-    const addColor = iconButton('plus', 'Criar estilo de cor da seleção', () => {
+    const addColor = iconButton('plus', 'Criar estilo de cor da seleção', async () => {
       const n = sel().find((x) => x.fill?.type === 'solid');
-      if (!n) return alert('Selecione uma camada com preenchimento de cor sólida.');
-      const name = prompt('Nome do estilo de cor:', `Cor ${doc.styles.colors.length + 1}`);
+      if (!n) return ask({ title: 'Nada selecionado', message: 'Selecione uma camada com preenchimento de cor sólida.', buttons: [{ label: 'OK', value: true, primary: true }] });
+      const name = await askText({ title: 'Nome do estilo de cor', label: 'Nome do estilo de cor', value: `Cor ${doc.styles.colors.length + 1}`, confirm: 'Salvar' });
       if (name) commands.addColorStyle(n, name);
     }, 'small');
-    const addText = iconButton('plus', 'Criar estilo de texto da seleção', () => {
+    const addText = iconButton('plus', 'Criar estilo de texto da seleção', async () => {
       const n = sel().find((x) => x.type === 'text');
-      if (!n) return alert('Selecione uma camada de texto.');
-      const name = prompt('Nome do estilo de texto:', `Texto ${doc.styles.texts.length + 1}`);
+      if (!n) return ask({ title: 'Nada selecionado', message: 'Selecione uma camada de texto.', buttons: [{ label: 'OK', value: true, primary: true }] });
+      const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${doc.styles.texts.length + 1}`, confirm: 'Salvar' });
       if (name) commands.addTextStyle(n, name);
     }, 'small');
 

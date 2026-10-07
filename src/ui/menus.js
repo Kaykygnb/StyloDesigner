@@ -21,7 +21,8 @@ export function closeMenus() {
  * Mostra um menu flutuante em (x, y), mantendo-o dentro da janela. Fecha ao clicar fora ou apertar Esc.
  * @param {number} x
  * @param {number} y
- * @param {(object|'sep')[]} items  { label, hint (atalho), icon, onClick, disabled, danger, checked } ou 'sep' (separador)
+ * @param {(object|'sep')[]} items  { label, hint (atalho), icon, onClick, disabled, danger, checked, heading } ou 'sep'
+ *        (separador). `heading: true` = título de seção, só texto.
  * @param {{anchorRight?: boolean}} [opts]  true = o menu cresce para a ESQUERDA de x (menus ancorados na borda direita)
  */
 export function showMenu(x, y, items, { anchorRight = false } = {}) {
@@ -30,6 +31,8 @@ export function showMenu(x, y, items, { anchorRight = false } = {}) {
   const menu = h('div.menu', { role: 'menu' },
     items.map((it) => {
       if (it === 'sep') return h('div.menu-sep', { role: 'separator' });
+      // título de seção (ex.: "Recentes"): só texto, não é clicável nem recebe foco
+      if (it.heading) return h('div.menu-heading', { role: 'presentation' }, it.label);
       return h('button.menu-item' + (it.danger ? '.danger' : '') + (it.checked ? '.checked' : ''), {
         type: 'button', disabled: it.disabled,
         role: it.checked !== undefined ? 'menuitemcheckbox' : 'menuitem',
@@ -181,6 +184,57 @@ export function openModal({ title, body, cls = '', onClose }) {
   const list = focusables();
   (list.find((el) => el.matches('input[type=text], input:not([type])')) || list[1] || list[0])?.focus();
   return { el: modal, close };
+}
+
+/**
+ * PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões).
+ * Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+ *
+ *   const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
+ *     { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
+ *
+ * O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
+ * @param {{title: string, message: string|Node|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean}[]}} o
+ * @returns {Promise<any>}
+ */
+export function ask({ title, message, buttons }) {
+  return new Promise((resolve) => {
+    let answered = false;
+    const done = (v) => { if (answered) return; answered = true; resolve(v); };
+    const btns = buttons.map((b) => h('button.btn' + (b.primary ? '.primary' : '') + (b.danger ? '.danger' : ''), {
+      type: 'button', onclick: () => { done(b.value); modal.close(); },
+    }, b.label));
+    const body = h('div.modal-body.ask',
+      (Array.isArray(message) ? message : [message]).map((m) => (typeof m === 'string' ? h('p', m) : m)),
+      h('div.ask-buttons', btns));
+    const modal = openModal({ title, body, cls: 'ask-modal', onClose: () => done(null) });
+    // foco no botão principal (o openModal foca o 1º botão; aqui preferimos o que confirma)
+    btns[buttons.findIndex((b) => b.primary)]?.focus();
+  });
+}
+
+/**
+ * Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
+ * @param {{title: string, label: string, value?: string, confirm?: string}} o
+ * @returns {Promise<string|null>} o texto digitado, ou null se cancelou
+ */
+export function askText({ title, label, value = '', confirm = 'OK' }) {
+  return new Promise((resolve) => {
+    let answered = false;
+    const done = (v) => { if (answered) return; answered = true; resolve(v); };
+    const input = h('input.text', { type: 'text', value, 'aria-label': label, spellcheck: false });
+    const ok = () => { done(input.value); modal.close(); };
+    input.addEventListener('keydown', (e) => e.key === 'Enter' && (e.preventDefault(), ok()));
+    const body = h('div.modal-body.ask',
+      h('label.set-label', label),
+      h('div.field', input),
+      h('div.ask-buttons',
+        h('button.btn', { type: 'button', onclick: () => modal.close() }, 'Cancelar'),
+        h('button.btn.primary', { type: 'button', onclick: ok }, confirm)));
+    const modal = openModal({ title, body, cls: 'ask-modal', onClose: () => done(null) });
+    input.focus();
+    input.select();
+  });
 }
 
 /** Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora. */

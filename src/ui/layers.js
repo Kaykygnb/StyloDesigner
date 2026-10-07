@@ -7,7 +7,7 @@
 import { h, ico, iconButton } from './dom.js';
 import { nodeIcon } from './icons.js';
 import { isContainer } from '../model.js';
-import { showMenu } from './menus.js';
+import { showMenu, ask, askText } from './menus.js';
 
 /**
  * Cria o painel de CAMADAS (aba esquerda): lista de páginas + árvore de camadas.
@@ -44,12 +44,17 @@ export function createLayersPanel({ store, commands, container }) {
   function renderPages() {
     pagesBox.replaceChildren(
       ...store.state.doc.pages.map((p) => {
-        const rename = () => {
-          const name = prompt('Nome da página:', p.name);
+        const rename = async () => {
+          const name = await askText({ title: 'Renomear página', label: 'Nome da página', value: p.name, confirm: 'Renomear' });
           if (name?.trim()) { p.name = name.trim(); store.commit(); }
         };
-        const remove = () => {
-          if (!confirm(`Excluir a página "${p.name}"?`)) return;
+        const remove = async () => {
+          const sure = await ask({
+            title: 'Excluir página?',
+            message: `A página "${p.name}" e todas as camadas dela serão excluídas. Dá para desfazer com Ctrl+Z.`,
+            buttons: [{ label: 'Cancelar', value: false }, { label: 'Excluir página', value: true, danger: true, primary: true }],
+          });
+          if (!sure) return;
           const doc = store.state.doc;
           doc.pages.splice(doc.pages.indexOf(p), 1);
           store.switchPage(doc.pages[0].id);

@@ -8,6 +8,7 @@
  */
 
 import { h, ico, iconButton, numField, selectField, segmented, colorRow } from './dom.js';
+import { askText } from './menus.js';
 import {
   BLEND_MODES, FONT_FAMILIES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
   constraintsOf,
@@ -404,8 +405,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       row(
         select([['', 'Sem estilo'], ...styles.map((t) => [t.id, t.name])], () => P().textStyleId || '',
           (v) => each((n) => { if (v) n.textStyleId = v; else delete n.textStyleId; }), 'Estilo de texto'),
-        iconButton('plus', 'Criar estilo de texto a partir desta camada', () => {
-          const name = prompt('Nome do estilo de texto:', `Texto ${styles.length + 1}`);
+        iconButton('plus', 'Criar estilo de texto a partir desta camada', async () => {
+          const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addTextStyle(P(), name);
         }, 'small')),
       select(fonts, () => P().fontFamily, (v) => each((n) => { n.fontFamily = v; delete n.textStyleId; }), 'font-family'),
@@ -496,8 +497,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       body.push(row(
         select([['', 'Sem estilo de cor'], ...styles.map((c) => [c.id, c.name])], () => fill().styleId || '',
           (v) => each((n) => { if (v) n.fill.styleId = v; else delete n.fill.styleId; }), 'Estilo de cor'),
-        iconButton('plus', 'Criar estilo de cor a partir desta cor', () => {
-          const name = prompt('Nome do estilo de cor:', `Cor ${styles.length + 1}`);
+        iconButton('plus', 'Criar estilo de cor a partir desta cor', async () => {
+          const name = await askText({ title: 'Nome do estilo de cor', label: 'Nome do estilo de cor', value: `Cor ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addColorStyle(P(), name);
         }, 'small')));
     } else if (t === 'linear' || t === 'radial') {
