@@ -548,8 +548,16 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
   function resizeDrag(e) {
     const d = drag;
     const p = canvas.toWorld(e.clientX, e.clientY);
-    const dxw = p.x - d.p0.x, dyw = p.y - d.p0.y;
+    let dxw = p.x - d.p0.x, dyw = p.y - d.p0.y;
     const { hx, hy } = d;
+    // SNAP da borda que está sendo puxada (bordas/centro do frame pai, dos vizinhos e guias), como ao mover.
+    // Só sem rotação (borda girada não alinha com linhas retas) e sem Alt (aí os dois lados andam). Ctrl desliga.
+    ui.guides = [];
+    const unrotated = d.items.every((it) => !it.rot);
+    if (unrotated && !e.altKey && !(e.ctrlKey || e.metaKey)) {
+      const s = snapResize(dxw, dyw, hx, hy);
+      dxw = s.dx; dyw = s.dy; ui.guides = s.guides;
+    }
     store.update(() => {
       // ---- uma camada ----
       if (d.single) {
@@ -620,6 +628,55 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       }
     });
     store.emit('overlay');
+  }
+
+  /**
+   * SNAP do redimensionar: só a borda que a alça move (direita/esquerda, baixo/cima) procura um alvo a menos de
+   * 6px de tela — bordas e centro do frame pai e dos vizinhos, e as guias da régua. É o que deixa você fazer uma
+   * camada exatamente do tamanho do frame (ou alinhada com a de cima) sem precisar acertar o pixel.
+   * @returns {{dx:number, dy:number, guides:object[]}} deslocamento do mouse já ajustado + linhas rosa a desenhar
+   */
+  function snapResize(dx, dy, hx, hy) {
+    const b = drag.box0;
+    const thr = 6 / canvas.getView().zoom;
+    const rects = snapCandidates();
+    const xs = [], ys = [];
+    if (ui.showGuides !== false && ui.showRulers !== false) {
+      for (const g of store.page().guides || []) (g.axis === 'x' ? xs : ys).push(g.pos);
+    }
+    // ao redimensionar, só BORDAS contam (a "barreira" do frame pai e dos vizinhos); grudar em centros
+    // atrapalharia quem quer um tamanho livre
+    for (const r of rects) {
+      xs.push(r.x, r.x + r.w);
+      ys.push(r.y, r.y + r.h);
+    }
+    const nearest = (cands, v) => {
+      let best = null, min = thr;
+      for (const c of cands) if (Math.abs(c - v) < min) { min = Math.abs(c - v); best = c; }
+      return best;
+    };
+    const guides = [];
+    if (hx) {
+      const edge = (hx === 1 ? b.x + b.w : b.x) + dx;
+      const t = nearest(xs, edge);
+      if (t != null) {
+        dx += t - edge;
+        const near = rects.filter((r) => [r.x, r.x + r.w].some((c) => Math.abs(c - t) < 0.5));
+        const ys2 = [b.y, b.y + b.h, ...near.flatMap((r) => [r.y, r.y + r.h])];
+        guides.push({ axis: 'x', pos: t, from: Math.min(...ys2), to: Math.max(...ys2) });
+      }
+    }
+    if (hy) {
+      const edge = (hy === 1 ? b.y + b.h : b.y) + dy;
+      const t = nearest(ys, edge);
+      if (t != null) {
+        dy += t - edge;
+        const near = rects.filter((r) => [r.y, r.y + r.h].some((c) => Math.abs(c - t) < 0.5));
+        const xs2 = [b.x, b.x + b.w, ...near.flatMap((r) => [r.x, r.x + r.w])];
+        guides.push({ axis: 'y', pos: t, from: Math.min(...xs2), to: Math.max(...xs2) });
+      }
+    }
+    return { dx, dy, guides };
   }
 
   // ------------------------------------------------------------------ rotacionar
