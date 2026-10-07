@@ -6,6 +6,19 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.8.1] — 2026-10-07 — SVG do Figma e do Illustrator
+
+### Adicionado
+- **Sombras do Figma** (o filtro que ele exporta, inclusive várias sombras com spread) e `<feDropShadow>` viram sombras de verdade ao importar SVG.
+- **Nomes de fonte do Illustrator** ("Poppins-Bold", "OpenSans-SemiBoldItalic", "ArialMT") viram família + peso + itálico.
+- O aviso da importação diz **o que** ficou de fora ("sombra interna", "máscara", "imagem"...) em vez de só quantos.
+- `tests/fixtures/figma-export.svg` e `illustrator-export.svg` (estrutura igual à desses programas) com 8 verificações no navegador; 1 teste unitário de nomes de fonte.
+
+### Corrigido
+- `Esc` não fechava a página inicial com o foco na busca (achado e corrigido pelo Codex no teste em Windows).
+
+---
+
 ## [0.8.0] — 2026-10-07 — SVG editável, ícones do Google e Google Fonts
 
 ### Adicionado

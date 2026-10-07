@@ -408,7 +408,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 50 testes
+npm test      # 51 testes
 ```
 
 ### Testes de navegador
@@ -457,7 +457,7 @@ Detalhes que valem saber:
 - **Google Drive** funciona por meio do programa do Drive no computador (pasta sincronizada), não por login direto na sua conta.
 - **Acessibilidade:** menus, janelas, abas e botões funcionam por teclado e têm rótulos; **desenhar e mover no canvas ainda dependem do mouse** (as setas movem a seleção, mas não há como desenhar formas só pelo teclado).
 - **Ícones e Google Fonts precisam de internet** para buscar/baixar. Um ícone, depois de inserido, é um desenho do projeto (funciona offline); uma fonte não: sem internet, o texto aparece numa fonte de reserva.
-- **Importar SVG cobre o comum:** caminhos, formas, cores, classes CSS simples, gradientes (aproximados pela direção), grupos e transformações, furos e textos simples. **Filtros, máscaras, padrões, imagens embutidas e texto em curva são ignorados** (o app avisa quantos).
+- **Importar SVG cobre o comum:** caminhos, formas, cores, classes CSS simples, gradientes (aproximados pela direção), grupos e transformações, furos, textos simples, **sombras exportadas pelo Figma** e nomes de fonte do Illustrator ("Poppins-Bold" → Poppins 700). **Sombra interna, outros filtros, máscaras, padrões, imagens embutidas e texto em curva ficam de fora** — e o aviso diz exatamente o quê. Testado com arquivos no formato do Figma e do Illustrator (`tests/fixtures/`), mas não com exports reais de todas as versões desses programas.
 - **Vetor com furos:** com a caneta (`Enter`/duplo clique) você edita os pontos do **contorno principal**; os contornos dos furos acompanham, mas seus pontos ainda não são editáveis.
 - **PNG:** usa as fontes instaladas no seu computador (o navegador não carrega fontes da web dentro de uma imagem SVG) e pode não mostrar `backdrop-filter`. O **HTML** e o **SVG** exportados não têm esses limites (no SVG, sombras internas e vidro são omitidos porque não existem no formato).
 - **Instâncias de componente** não aceitam adicionar ou remover camadas internas (reverte na próxima sincronização); mudar propriedades, textos e posições funciona.
