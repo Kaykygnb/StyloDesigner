@@ -1157,7 +1157,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         el.replaceChildren(...parts);
       }
     }
-    updaters.forEach((u) => u());
+    // Um campo com problema (valor ausente num documento antigo ou estranho) não pode impedir os outros de atualizar:
+    // cada atualização roda isolada e o erro vai para o console em vez de derrubar o painel inteiro.
+    for (const u of updaters) {
+      try { u(); } catch (err) { console.error('[painel Design]', err); }
+    }
   }
 
   // atualiza quando o documento, a seleção ou o histórico (desfazer) mudam

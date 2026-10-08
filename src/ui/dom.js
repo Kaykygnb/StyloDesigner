@@ -433,7 +433,7 @@ export function colorRow({ get, set, commit, opacity, setOpacity, groups }) {
 
   /** Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam). */
   function sync() {
-    const c = get();
+    const c = get() || '#000000'; // cor ausente (documento antigo/estranho): mostra preto em vez de quebrar
     swatch.firstChild.style.background = rgba(c, opacity ? opacity() : 1);
     if (document.activeElement !== hex) hex.value = c.replace('#', '').toUpperCase();
   }
