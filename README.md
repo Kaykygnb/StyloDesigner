@@ -264,7 +264,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Posição absoluta | Marque "Posição absoluta" para um item **ignorar** o auto layout do pai (enfeites, selos). |
 | Constraints | Em frames **sem** auto layout: esquerda, direita, esquerda+direita, centro, escala (e o mesmo na vertical). Reagem ao redimensionar o frame. |
 | Grades de layout | Colunas, linhas ou quadrícula por frame (só guia visual). |
-| Réguas e guias | `Shift+R` liga/desliga; arraste da régua para criar; arraste de volta para apagar. |
+| Réguas e guias | `Ctrl+R` (ou `Shift+R`) liga/desliga; começam escondidas; arraste da régua para criar; arraste de volta para apagar. |
 
 ### Aparência
 | Recurso | Detalhe |
@@ -343,7 +343,7 @@ No app, aperte **`?`** para ver esta lista. (No Mac, use `⌘` no lugar de `Ctrl
 | | Roda · `Shift`+roda | Rolar vertical / horizontal |
 | | `Espaço`+arrastar | Pan |
 | | `Shift+1` / `Shift+2` / `Shift+0` | Ajustar tudo / seleção / 100% |
-| | `Shift+R` | Réguas |
+| | `Ctrl+R` ou `Shift+R` | Réguas |
 | | `Ctrl+\` | Esconder/mostrar painéis |
 | **Ao arrastar** | `Shift` / `Alt` / `Ctrl` | Mantém proporção (ou trava eixo) / do centro / sem *snap* |
 | **Texto (editando)** | `Ctrl+B` / `I` / `U` | Negrito / itálico / sublinhado |

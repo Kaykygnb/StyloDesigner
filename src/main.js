@@ -104,7 +104,7 @@ commands.notify = (msg) => toast(msg);
 const tools = createTools({ store, canvas, commands, viewport, toast });
 toolsRef = tools;
 createRulers({ store, canvas, stage: $('.stage'), commands });
-createResponsiveBar({ store, canvas, commands, toast, stage: $('.stage') });
+const responsive = createResponsiveBar({ store, canvas, commands, toast, stage: $('.stage') });
 
 // ---------------------------------------------------------------- painel esquerdo
 // PAINEL ESQUERDO: abas "Camadas" e "Recursos" (cada uma é um painel pronto; a aba só escolhe qual mostrar)
@@ -296,6 +296,8 @@ $('#topbar').append(
   nameInput,
   saveEl,
   h('div.spacer'),
+  responsive.topEl,
+  h('div.spacer'),
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
   settingsBtn,
@@ -412,7 +414,7 @@ const zoomLabel = h('button.zoom-pct', {
       { label: '100%', hint: '⇧ 0', onClick: () => tools.zoomTo(1) },
       { label: '200%', onClick: () => tools.zoomTo(2) },
       'sep',
-      { label: 'Réguas', hint: '⇧ R', checked: ui.showRulers, onClick: () => { ui.showRulers = !ui.showRulers; store.emit('ui'); store.emit('overlay'); } },
+      { label: 'Réguas', hint: 'Ctrl R', checked: ui.showRulers, onClick: () => store.toggleRulers() },
       { label: 'Notas', checked: ui.showNotes !== false, onClick: () => { ui.showNotes = ui.showNotes === false; store.emit('overlay'); } },
       { label: 'Guias', checked: ui.showGuides !== false, onClick: () => { ui.showGuides = ui.showGuides === false; store.emit('overlay'); } },
       { label: 'Grades de layout', checked: ui.showGrids !== false, onClick: () => { ui.showGrids = ui.showGrids === false; store.emit('overlay'); } },

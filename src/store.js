@@ -255,6 +255,14 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     emit('selection');
   };
 
+  /** Liga/desliga as réguas (Ctrl+R / Shift+R). A escolha fica lembrada no navegador. */
+  api.toggleRulers = () => {
+    state.ui.showRulers = !state.ui.showRulers;
+    try { localStorage.setItem('pd.rulers', state.ui.showRulers ? '1' : '0'); } catch { /* sem armazenamento */ }
+    emit('ui');
+    emit('overlay');
+  };
+
   /** Entra no modo responsivo (null = Desktop, 'tablet', 'mobile'). Sai de qualquer estado (hover...) em edição. */
   /** Escolhe o MODO DE COR visto no canvas (null = padrão; ou o id de um modo: escuro...). */
   api.setMode = (mode) => {

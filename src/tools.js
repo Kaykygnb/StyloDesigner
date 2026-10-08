@@ -1153,6 +1153,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
 
+    // Ctrl+R (⌘R): liga/desliga as réguas (no lugar de recarregar a página; o projeto é salvo sozinho)
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'r' && !isTyping(e.target)) { e.preventDefault(); store.toggleRulers(); return; }
+
     // Esc: termina caneta/edição de pontos/edição de texto; depois volta para Mover; depois limpa a seleção
     if (e.key === 'Escape') {
       if (ui.commentDraft && !isTyping(e.target)) { ui.commentDraft = null; store.emit('overlay'); return; }
@@ -1261,7 +1264,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (e.shiftKey && key === 'a') { e.preventDefault(); commands.toggleAutoLayout(); return; }
     if (e.shiftKey && key === 'h') { commands.flip('x'); return; }
     if (e.shiftKey && key === 'v') { commands.flip('y'); return; }
-    if (e.shiftKey && key === 'r') { ui.showRulers = !ui.showRulers; store.emit('ui'); store.emit('overlay'); return; }
+    if (e.shiftKey && key === 'r') { store.toggleRulers(); return; }
     if (!e.shiftKey && !e.altKey && /^[0-9]$/.test(e.key) && ui.selection.length) {
       const op = e.key === '0' ? 1 : Number(e.key) / 10;
       store.update(() => store.selected().forEach((n) => { n.opacity = op; }), { commit: true });

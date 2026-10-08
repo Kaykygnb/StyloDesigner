@@ -6,6 +6,17 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.13.1] — 2026-10-08 — Layout mais limpo
+
+### Alterado
+- **Réguas começam escondidas**; **Ctrl+R** (ou Shift+R) liga e desliga, sem recarregar a página, e a escolha fica lembrada.
+- **Largura da tela e modo de cor foram para a barra do topo**, em poucos ícones (só o modo ativo mostra o nome); o modo de cor é um botão único (sol/lua) com menu. No Desktop **nada flutua sobre o canvas**; em Tablet/Celular surge só uma faixa fina com o resumo e "Telas em 390px".
+- **Listas de páginas e camadas** com linhas retas, sem cantos arredondados e sem o contorno lateral colorido.
+- **Painel Design mais limpo**: títulos de seção discretos e sem caixinha de ícone, nomes do CSS em tom suave, e as seções pouco usadas (Exportar, HTML, Efeitos e Estados vazios, Grades de layout vazias) começam recolhidas.
+- Incorporada a branch `layout-polido-v0.13` (topo de 40px, informações pelo ícone **i**, Nota sob demanda); a versão da página inicial agora vem de `src/version.js`.
+
+---
+
 ## [0.13.0] — 2026-10-08 — Responsivo, modos de cor, variáveis, seletor de cor com paletas e notas visíveis
 
 ### Adicionado (responsivo)

@@ -15,8 +15,8 @@ export const RULER = 20;
  */
 export function createRulers({ store, canvas, stage, commands }) {
   const ui = store.ui;
-  // réguas e guias começam visíveis (Shift+R alterna; o menu de zoom alterna as guias)
-  ui.showRulers = true;
+  // réguas começam ESCONDIDAS (Ctrl+R ou Shift+R alternam; a escolha fica lembrada); guias aparecem quando as réguas estão ligadas
+  try { ui.showRulers = localStorage.getItem('pd.rulers') === '1'; } catch { ui.showRulers = false; }
   ui.showGuides = true;
 
   // três peças: régua de cima, régua da esquerda e o quadradinho do canto

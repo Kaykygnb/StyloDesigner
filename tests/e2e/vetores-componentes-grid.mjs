@@ -67,6 +67,7 @@ const star = await ev(() => designer.store.page().children.at(-1));
 ok('estrela = caminho fechado com 10 pontos', star.type === 'path' && star.points.length === 10 && star.closed, star.type + star.points?.length);
 
 // ---- réguas e guias
+await ev(() => { if (!designer.store.ui.showRulers) designer.store.toggleRulers(); }); // as réguas começam escondidas
 await page.locator('.ruler-left').hover();
 const rl = await page.locator('.ruler-left').boundingBox();
 await page.mouse.move(rl.x + 10, rl.y + 200); await page.mouse.down(); await page.mouse.move(X(260), Y(300), { steps: 6 }); await page.mouse.up();

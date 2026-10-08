@@ -109,7 +109,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    * Seção do painel: cabeçalho (título, informação e ações opcionais) e controles.
    * Clicar no cabeçalho recolhe/abre a seção (lembrado).
    */
-  const section = (title, body, actions, { closedByDefault = false } = {}) => {
+  // seções que quase nunca se usam começam recolhidas (a pessoa abre quando precisa; a escolha fica lembrada)
+  const CLOSED_BY_DEFAULT = new Set(['Exportar', 'HTML']);
+  const section = (title, body, actions, { closedByDefault = CLOSED_BY_DEFAULT.has(title) } = {}) => {
     const info = SECTION_INFO[title];
     // seções "fechadas por padrão" (Nota vazia) guardam o 'aberto' sob a chave "+Título"
     const key = closedByDefault ? '+' + title : title;
@@ -880,7 +882,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         }), 'transition-timing-function'))),
       capK('Cursor', 'cursor', select(CURSORS, () => P().cursor || '', (v) => each((n) => { if (v) n.cursor = v; else delete n.cursor; }), 'cursor')));
     }
-    return section('Estados', body);
+    return section('Estados', body, null, { closedByDefault: !ui.editState && !hasStates(base) });
   }
 
   /** Escala do estado (`transform: scale()`): só existe dentro de um estado. */
@@ -992,7 +994,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           reg(colorRow({ groups: colorGroups, get: () => g().color || '#FF3D3D', set: set('color'), commit, opacity: () => g().opacity ?? 0.12, setOpacity: set('opacity') })),
           iconButton('minus', 'Remover grade', () => { each((n) => n.grids.splice(i, 1)); commit(); }, 'small'))));
     });
-    return section('Grades de layout', body, add);
+    return section('Grades de layout', body, add, { closedByDefault: !n0.grids?.length });
   }
 
   /**
@@ -1383,7 +1385,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       capK('Desfoque', 'blur', num('◌', () => P().blur, (v) => each((n) => { n.blur = Math.max(0, v); }), { min: 0, decimals: 0 })),
       isText ? null : capK('Vidro (fundo)', 'backdrop-filter', num('▨', () => P().bgBlur, (v) => each((n) => { n.bgBlur = Math.max(0, v); }), { min: 0, decimals: 0 }))));
     body.push(colorFiltersBlock());
-    return section('Efeitos', body, add);
+    return section('Efeitos', body, add, { closedByDefault: !(n0.shadows.length || n0.blur > 0 || n0.bgBlur > 0 || (n0.fx && Object.keys(n0.fx).length)) });
   }
 
   /** Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso. */

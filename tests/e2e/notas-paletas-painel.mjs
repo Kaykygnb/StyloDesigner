@@ -117,6 +117,7 @@ const css0 = await ev(async () => { const { generateCode } = await import('/src/
 ok('a nota também vira comentário no CSS gerado', css0.startsWith('/* Botão principal da home. Leva ao checkout. */\n.botao-principal {'), css0.slice(0, 120));
 
 // ---------------------------------------------------------------- HTML
+await sec('HTML').locator('.section-head').click(); // a seção HTML começa recolhida
 const tagSel = sec('HTML').locator('select').first();
 await tagSel.selectOption('button');
 await page.waitForTimeout(250);

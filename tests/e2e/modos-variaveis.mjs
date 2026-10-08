@@ -39,23 +39,24 @@ const ids = await ev(async () => {
 await page.waitForTimeout(400);
 
 // ---------------------------------------------------------------- modos de cor
-ok('sem modos, a barra oferece "Modo de cor"', (await page.locator('.bp-seg.modes .bp-btn.add').innerText()).includes('Modo de cor'));
-await page.locator('.bp-seg.modes .bp-btn.add').click();
-await page.locator('.menu .menu-item', { hasText: 'Escuro automático' }).click();
+// o modo de cor é um botão só no topo (lua/sol) com menu
+const modeMenu = async (item) => { await page.locator('.mode-btn').click(); await page.locator('.menu .menu-item', { hasText: item }).click(); };
+ok('sem modos, o topo tem o botão "Modo de cor" e o menu oferece criar um modo escuro', (await page.locator('.mode-btn').getAttribute('aria-label')) === 'Modo de cor');
+await modeMenu('Novo modo escuro');
 await page.waitForTimeout(500);
 let st = await styles();
 ok('criar "Escuro automático" cria o modo e gera o valor de cada estilo', st.modes?.length === 1 && st.modes[0].name === 'Escuro' && st.modes[0].scheme === 'dark' && !!st.colors[0].modes?.[st.modes[0].id]?.color, JSON.stringify(st));
 const modeId = st.modes[0].id;
-ok('o modo já fica ativo no canvas', (await ev(() => designer.store.ui.mode)) === modeId && (await page.locator('.bp-seg.modes .bp-btn.on').innerText()) === 'Escuro');
+ok('o modo já fica ativo no canvas', (await ev(() => designer.store.ui.mode)) === modeId && (await page.locator('.mode-btn').innerText()) === 'Escuro');
 const dark = await bg(ids.f);
 ok('o fundo do frame ficou escuro no canvas (não é mais branco)', dark !== 'rgb(255, 255, 255)' && /rgb\((\d+), (\d+), (\d+)\)/.test(dark) && Number(/rgb\((\d+)/.exec(dark)[1]) < 60, dark);
 ok('o valor base do estilo continua branco', (await node(ids.f)).fill.color === '#FFFFFF' && st.colors[0].color === '#FFFFFF');
-await page.locator('.bp-seg.modes .bp-btn', { hasText: 'Padrão' }).click();
+await modeMenu('Padrão');
 await page.waitForTimeout(400);
 ok('voltar ao Padrão traz o branco de volta', (await bg(ids.f)) === 'rgb(255, 255, 255)');
 
 // editar o valor do estilo NO modo escuro, pelo painel de Recursos
-await page.locator('.bp-seg.modes .bp-btn', { hasText: 'Escuro' }).click();
+await modeMenu(/^Escuro$/);
 await page.locator('#left .tab', { hasText: 'Recursos' }).click();
 await page.waitForTimeout(300);
 await page.locator('#left .asset-row', { hasText: 'Fundo' }).locator('button.asset-swatch').click();
@@ -85,8 +86,7 @@ const out = await css();
 ok('CSS: :root claro, :root[data-theme="escuro"] e prefers-color-scheme', out.includes(':root {\n  --cor-fundo: #ffffff;') && out.includes(':root[data-theme="escuro"] {\n  --cor-fundo: #334455;') && out.includes('@media (prefers-color-scheme: dark)'), out.slice(0, 500));
 
 // renomear / excluir o modo pelo menu (botão direito)
-await page.locator('.bp-seg.modes .bp-btn', { hasText: 'Escuro' }).click({ button: 'right' });
-await page.locator('.menu .menu-item', { hasText: 'Excluir modo' }).click();
+await modeMenu('Excluir "Escuro"');
 await page.waitForTimeout(400);
 st = await styles();
 ok('excluir o modo apaga os valores dele e volta ao padrão', st.modes === undefined && st.colors[0].modes === undefined && (await ev(() => designer.store.ui.mode)) === null, JSON.stringify(st));

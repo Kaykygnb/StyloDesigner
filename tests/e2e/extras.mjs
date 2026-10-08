@@ -14,6 +14,8 @@ ok('Ctrl+Alt+G envolve em frame', w.type === 'frame' && w.kids === 1 && w.name.s
 // SVG download
 await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
 await p.waitForTimeout(200);
+// a seção Exportar começa recolhida (abre ao clicar no cabeçalho)
+await p.locator('#right .panel-section', { has: p.locator('.section-head', { hasText: 'Exportar' }) }).locator('.section-head').click();
 const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.btn:has-text("SVG")')]);
 ok('botão SVG baixa arquivo .svg', dl.suggestedFilename().endsWith('.svg'), dl.suggestedFilename());
 // busca de camadas

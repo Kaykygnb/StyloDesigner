@@ -31,7 +31,7 @@ const ids = await ev(async () => {
 await page.waitForTimeout(400);
 
 // ---------------------------------------------------------------- a barra
-ok('a barra tem Desktop, Tablet e Celular', (await page.locator('.bp-seg:not(.modes) .bp-btn').allInnerTexts()).join(',') === 'Desktop,Tablet,Celular');
+ok('a barra tem Desktop, Tablet e Celular', (await page.locator('.bp-seg .bp-btn').evaluateAll((l) => l.map((b) => b.getAttribute('aria-label')))).join(',') === 'Desktop,Tablet,Celular');
 ok('Desktop é o modo inicial', (await ev(() => designer.store.ui.bp)) === null && (await page.locator('.bp-btn.on').innerText()) === 'Desktop');
 const row0 = await box(ids.b), row0a = await box(ids.a);
 ok('no desktop os filhos ficam lado a lado (linha)', row0.x > row0a.x && row0.y === row0a.y, JSON.stringify([row0a, row0]));
@@ -97,7 +97,7 @@ ok('Delete é ignorado no modo responsivo', (await ev(() => designer.store.page(
 
 // ---------------------------------------------------------------- telas em 390px
 await ev((i) => designer.store.setSelection([i]), ids.f);
-await page.locator('.bp-info .btn', { hasText: 'Telas em 390px' }).click();
+await page.locator('.bp-strip .btn', { hasText: 'Telas em 390px' }).click();
 await page.waitForTimeout(400);
 fr = await node(ids.f);
 ok('"Telas em 390px" guarda a largura só no celular', fr.w === 900 && fr.bps?.mobile?.w === 390, JSON.stringify(fr.bps));
