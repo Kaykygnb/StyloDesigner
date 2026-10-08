@@ -308,3 +308,21 @@ test('truncar texto e espaço entre palavras sincronizam do principal para a ins
   assert.equal(inst.lines, 3);
   assert.equal(inst.wordSpacing, 2);
 });
+
+test('margem do filho é sobrescrita na instância; margem da raiz é da própria instância; filtros sincronizam', () => {
+  const main = createNode('frame', { name: 'Card', w: 200, h: 100, fx: { grayscale: 50 }, margin: [4, 4, 4, 4] });
+  const kid = createNode('rect', { name: 'Foto', margin: [2, 2, 2, 2] });
+  main.children.push(kid);
+  makeComponent(main);
+  const pages = [{ children: [main] }];
+  const inst = createInstance(main, pages);
+  assert.deepEqual(inst.fx, { grayscale: 50 });
+  // o usuário muda a margem do filho DENTRO da instância
+  inst.children[0].margin = [10, 10, 10, 10];
+  inst.margin = [99, 99, 99, 99]; // margem da raiz: lugar da instância, não vem do principal
+  main.fx = { grayscale: 80 };
+  syncInstances(pages.concat([{ children: [inst] }]));
+  assert.deepEqual(inst.fx, { grayscale: 80 }); // filtro vem do principal
+  assert.deepEqual(inst.children[0].margin, [10, 10, 10, 10]); // sobrescrita preservada
+  assert.deepEqual(inst.margin, [99, 99, 99, 99]); // margem da raiz não é sobrescrita pelo principal
+});

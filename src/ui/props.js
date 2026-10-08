@@ -42,6 +42,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   // estados de interface locais: mostrar os 4 cantos / os 4 paddings separados · escala escolhida na exportação
   let radiusExpanded = false;
   let paddingExpanded = false;
+  // margem do item: mostrar os 4 lados separados (senão horizontal/vertical)
+  let marginExpanded = false;
   // grid: espaço entre colunas e linhas separados (senão um campo só vale para os dois)
   let gapSplit = false;
   // caixa "CSS ao vivo" do auto layout: começa FECHADA (é uma curiosidade, não faz parte do trabalho); lembra a escolha
@@ -322,6 +324,12 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'background-size': ['background-size', 'background-size: cover;', 'Como a imagem se ajusta à caixa. cover = preenche cortando as sobras; contain = aparece inteira; 100% 100% = estica; tamanho próprio = uma largura em % da caixa (altura proporcional).'],
     'background-position': ['background-position', 'background-position: 50% 50%;', 'Qual parte da imagem fica visível quando ela é maior que a caixa (ou onde ela fica quando é menor). 0% = começo, 50% = centro, 100% = fim.'],
     'background-repeat': ['background-repeat', 'background-repeat: repeat;', 'Se a imagem se repete como ladrilho quando não cobre a caixa toda: nos dois sentidos, só na horizontal ou só na vertical.'],
+    margin: ['margin', 'margin: 8px 16px;', 'Espaço FORA da caixa, em volta do item, somado ao gap do pai. Só vale para itens dentro de um auto layout (flex ou grid). Com dois valores: cima/baixo e esquerda/direita.'],
+    brightness: ['brightness', 'filter: brightness(120%);', 'Clareia (acima de 100%) ou escurece (abaixo de 100%) a camada inteira. 100% = sem mudança.'],
+    contrast: ['contrast', 'filter: contrast(130%);', 'Aumenta ou diminui a diferença entre claros e escuros. 100% = sem mudança.'],
+    saturate: ['saturate', 'filter: saturate(150%);', 'Intensifica (acima de 100%) ou apaga (abaixo) as cores. 0% fica em preto e branco.'],
+    grayscale: ['grayscale', 'filter: grayscale(100%);', 'Converte em tons de cinza. 100% = totalmente cinza; 0% = sem mudança.'],
+    'hue-rotate': ['hue-rotate', 'filter: hue-rotate(90deg);', 'Gira as cores pela roda de matizes (graus). 180° troca cada cor pela complementar.'],
     'word-spacing': ['word-spacing', 'word-spacing: 4px;', 'Espaço extra entre as PALAVRAS (diferente do espaçamento entre letras). Valores negativos aproximam as palavras.'],
     'text-overflow': ['text-overflow', 'white-space: nowrap;\noverflow: hidden;\ntext-overflow: ellipsis;', 'O texto fica em UMA linha e o que não cabe vira "…". Precisa de uma largura fixa ou máxima para saber onde cortar. O alinhamento vertical não vale com isto.'],
     'line-clamp': ['line-clamp', 'display: -webkit-box;\n-webkit-line-clamp: 3;\noverflow: hidden;', 'Mostra no máximo N linhas e termina com "…". Ótimo para títulos e descrições de cards. Precisa de uma largura fixa ou máxima.'],
@@ -544,6 +552,28 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   }));
 
   /**
+   * "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores
+   * zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+   */
+  function marginBlock() {
+    const mg = () => P().margin || [0, 0, 0, 0];
+    const setSides = (idxs) => (v) => each((n) => {
+      const m = [...(n.margin || [0, 0, 0, 0])];
+      for (const i of idxs) m[i] = Math.max(0, v);
+      if (m.every((x) => !x)) delete n.margin; else n.margin = m;
+    });
+    const asym = mg()[0] !== mg()[2] || mg()[1] !== mg()[3];
+    const showAll = marginExpanded || asym;
+    const f = (i, label, t) => num(label, () => mg()[i], setSides([i]), { title: t, min: 0, decimals: 0 });
+    return capK('Margem', 'margin', ...(showAll
+      ? [row(f(0, 'T', 'margin-top'), f(1, 'R', 'margin-right')), row(f(3, 'L', 'margin-left'), f(2, 'B', 'margin-bottom'))]
+      : [row(
+        num('↔', () => mg()[1], setSides([1, 3]), { title: 'margin horizontal (esquerda e direita)', min: 0, decimals: 0 }),
+        num('↕', () => mg()[0], setSides([0, 2]), { title: 'margin vertical (topo e base)', min: 0, decimals: 0 }),
+        h('button.icon-btn.small', { type: 'button', title: 'Margem por lado', onclick: () => { marginExpanded = !marginExpanded; lastSig = null; render(); } }, ico('corners', 14)))]));
+  }
+
+  /**
    * Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
    *  - position: absolute (ignora o layout do pai);
    *  - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
@@ -563,6 +593,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       })),
     ];
     if (!P().absolute) {
+      body.push(marginBlock());
       /** Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'. */
       const selfSelect = (key, axis, list, title) => select(list,
         () => (P()[axis] === 'fill' ? 'stretch' : P()[key] || 'auto'),
@@ -1001,7 +1032,25 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       body.push(prop('backdrop-filter', num('▨', () => P().bgBlur, (v) => each((n) => { n.bgBlur = Math.max(0, v); }), { title: 'backdrop-filter: blur() — desfoca o que está ATRÁS (efeito vidro)', min: 0, decimals: 0 }),
         'Efeito vidro: desfoca o que está atrás (use com um preenchimento semitransparente)'));
     }
+    body.push(colorFiltersBlock());
     return section('Efeitos', body, add);
+  }
+
+  /** Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso. */
+  function colorFiltersBlock() {
+    const used = !!(P().fx && Object.keys(P().fx).length);
+    const fx = (label, cssKey, key, def, unit, opts = {}) => capK(label, cssKey, num(unit, () => P().fx?.[key] ?? def, (v) => each((n) => {
+      n.fx ||= {};
+      if (v == null || v === def) delete n.fx[key]; else n.fx[key] = v;
+      if (!Object.keys(n.fx).length) delete n.fx;
+    }), { decimals: 0, ...opts }));
+    return h('details.size-limits', { open: used },
+      h('summary', ico('chevron', 11), ' Filtros de cor', used ? h('span.dot-on') : null),
+      h('div.section-body',
+        row(fx('Brilho', 'brightness', 'brightness', 100, '%', { min: 0, max: 300 }), fx('Contraste', 'contrast', 'contrast', 100, '%', { min: 0, max: 300 })),
+        row(fx('Saturação', 'saturate', 'saturate', 100, '%', { min: 0, max: 300 }), fx('Tons de cinza', 'grayscale', 'grayscale', 0, '%', { min: 0, max: 100 })),
+        row(fx('Matiz', 'hue-rotate', 'hue', 0, '°', { min: -360, max: 360 }),
+          used ? h('button.btn', { type: 'button', onclick: () => { each((n) => { delete n.fx; }); commit(); } }, ico('x', 13), ' Limpar') : null)));
   }
 
   /** Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção. */
@@ -1064,6 +1113,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
       n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
+      marginExpanded, n.margin && (n.margin[0] !== n.margin[2] || n.margin[1] !== n.margin[3]), n.fx && Object.keys(n.fx).length,
       !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)

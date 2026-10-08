@@ -193,7 +193,7 @@ export function createCommands(store, canvas) {
    * "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA
    * (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
    */
-  const STYLE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'opacity', 'blend'];
+  const STYLE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'opacity', 'blend', 'fx'];
   const TEXT_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign', 'textDecoration', 'textTransform', 'truncate', 'lines', 'textStyleId'];
 
   /** Guarda a aparência da 1ª camada selecionada em ui.styleClipboard. */
@@ -201,7 +201,8 @@ export function createCommands(store, canvas) {
     const n = store.selected()[0];
     if (!n) return false;
     const keys = n.type === 'text' ? [...STYLE_KEYS, ...TEXT_KEYS] : STYLE_KEYS;
-    ui.styleClipboard = { type: n.type, props: JSON.parse(JSON.stringify(Object.fromEntries(keys.filter((k) => n[k] !== undefined).map((k) => [k, n[k]])))) };
+    // fx entra sempre ({} = sem filtros) para colar também LIMPAR os filtros do destino
+    ui.styleClipboard = { type: n.type, props: JSON.parse(JSON.stringify(Object.fromEntries(keys.filter((k) => n[k] !== undefined || k === 'fx').map((k) => [k, n[k] ?? {}])))) };
     return true;
   }
 
@@ -219,6 +220,7 @@ export function createCommands(store, canvas) {
           if (TEXT_KEYS.includes(k) && n.type !== 'text') continue;
           if (k === 'radius' && ['text', 'ellipse', 'group', 'line', 'path'].includes(n.type)) continue;
           if (k === 'fill' && n.type === 'group') continue;
+          if (k === 'fx' && !Object.keys(v).length) { delete n.fx; continue; }
           n[k] = JSON.parse(JSON.stringify(v));
         }
       }

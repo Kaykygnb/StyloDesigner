@@ -137,6 +137,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     // Sem 'fill' e sem alinhamento próprio, o item NÃO escreve justify-self/align-self: assim vale o
     // justify-items/align-items do grid pai (como no CSS de verdade — um 'start' fixo aqui anulava o do pai).
     s.position = 'relative';
+    marginCss(node, s);
     s.width = node.sizeX === 'fixed' ? px(node.w) : 'auto';
     s.height = node.sizeY === 'fixed' ? px(node.h) : 'auto';
     const js = node.sizeX === 'fill' ? 'stretch' : GRID_ALIGN[node.justifySelf];
@@ -154,6 +155,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     const mainFill = row ? node.sizeX === 'fill' : node.sizeY === 'fill';
     const crossFill = row ? node.sizeY === 'fill' : node.sizeX === 'fill';
     s.position = 'relative';
+    marginCss(node, s);
     s.flex = mainFill ? '1 1 0%' : '0 0 auto';
     if (mainFill) s[row ? 'min-width' : 'min-height'] = '0';
     if (crossFill) s['align-self'] = 'stretch';
@@ -296,6 +298,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     }
   }
   if (node.blur > 0) filters.push(`blur(${px(node.blur)})`);
+  filters.push(...colorFilters(node));
   if (filters.length) s.filter = filters.join(' ');
   if (node.bgBlur > 0) {
     s['backdrop-filter'] = `blur(${px(node.bgBlur)})`;
@@ -316,6 +319,28 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   return s;
 }
 
+
+/**
+ * Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda).
+ * Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem:
+ * a posição delas já é o left/top.
+ */
+function marginCss(node, s) {
+  const m = node.margin;
+  if (!Array.isArray(m) || !m.some(Boolean)) return;
+  s.margin = m.every((v) => v === m[0]) ? px(m[0]) : m.map((v) => px(v)).join(' ');
+}
+
+/** Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate. */
+const COLOR_FILTERS = [['brightness', 'brightness', 100, '%'], ['contrast', 'contrast', 100, '%'], ['saturate', 'saturate', 100, '%'], ['grayscale', 'grayscale', 0, '%'], ['hue', 'hue-rotate', 0, 'deg']];
+export function colorFilters(node) {
+  const out = [];
+  for (const [key, fn, def, unit] of COLOR_FILTERS) {
+    const v = node.fx?.[key];
+    if (v != null && v !== def) out.push(`${fn}(${round(v)}${unit})`);
+  }
+  return out;
+}
 
 /**
  * Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.

@@ -296,3 +296,32 @@ test('texto sem truncar não ganha overflow nem line-clamp; word-spacing só qua
   t.wordSpacing = 4;
   assert.equal(nodeStyle(t, null)['word-spacing'], '4px');
 });
+
+// ---------------------------------------------------------------- margem do item e filtros de cor
+test('margin: só em itens em fluxo (flex e grid), 1 valor quando iguais, 4 quando diferentes, nada quando zero', () => {
+  const row = createNode('frame'); row.layout.mode = 'row';
+  const grid = createNode('frame'); grid.layout.mode = 'grid';
+  const item = createNode('rect', { sizeX: 'fixed', sizeY: 'fixed' });
+  assert.equal(nodeStyle(item, row).margin, undefined);
+  item.margin = [8, 8, 8, 8];
+  assert.equal(nodeStyle(item, row).margin, '8px');
+  item.margin = [0, 8, 0, 16];
+  assert.equal(nodeStyle(item, row).margin, '0px 8px 0px 16px');
+  assert.equal(nodeStyle(item, grid).margin, '0px 8px 0px 16px');
+  item.margin = [0, 0, 0, 0];
+  assert.equal(nodeStyle(item, row).margin, undefined);
+  // camada livre ou absoluta dentro de um layout: margem ignorada (a posição é left/top)
+  item.margin = [8, 8, 8, 8];
+  assert.equal(nodeStyle(item, null).margin, undefined);
+  item.absolute = true;
+  assert.equal(nodeStyle(item, row).margin, undefined);
+});
+
+test('filtros de cor: só os que fogem do padrão, na ordem do CSS, depois do blur', () => {
+  const n = createNode('rect', { blur: 4, fx: { hue: 90, brightness: 120, saturate: 100, grayscale: 0 } });
+  assert.equal(nodeStyle(n, null).filter, 'blur(4px) brightness(120%) hue-rotate(90deg)');
+  const clean = createNode('rect', { fx: { brightness: 100 } });
+  assert.equal(nodeStyle(clean, null).filter, undefined);
+  const g = createNode('rect', { fx: { grayscale: 100, contrast: 80, saturate: 150 } });
+  assert.equal(nodeStyle(g, null).filter, 'contrast(80%) saturate(150%) grayscale(100%)');
+});

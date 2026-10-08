@@ -231,6 +231,8 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | **CSS Grid** | Colunas, linhas, `column-gap`/`row-gap`, `justify-items`/`align-items` (com `stretch`); itens podem ocupar várias células (`grid-column: span N`) e ter `justify-self`/`align-self`. |
 | Matriz 3×3 | Define `justify` e `align` de uma vez; troca de papel entre linha e coluna. |
 | Tamanho do item | **Fixo**, **Ajustar ao conteúdo** (`hug`) ou **Preencher** (`flex: 1` / `align-self: stretch`). |
+| Limites e proporção | `min-width`, `max-width`, `min-height`, `max-height` e `aspect-ratio` (1:1, 4:3, 16:9...). Em medida fixa o valor é limitado na hora; em hug/fill o navegador obedece. Texto com largura máxima quebra linha. Não valem para grupos. |
+| Margem do item | `margin` (horizontal/vertical ou por lado) em itens de um flex/grid. |
 | Posição absoluta | Marque "Posição absoluta" para um item **ignorar** o auto layout do pai (enfeites, selos). |
 | Constraints | Em frames **sem** auto layout: esquerda, direita, esquerda+direita, centro, escala (e o mesmo na vertical). Reagem ao redimensionar o frame. |
 | Grades de layout | Colunas, linhas ou quadrícula por frame (só guia visual). |
@@ -239,13 +241,15 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 ### Aparência
 | Recurso | Detalhe |
 |---|---|
-| Preenchimento | Nenhum, cor sólida, gradiente linear (com ângulo), radial, imagem (`cover`/`contain`/esticar). Várias paradas de cor. |
+| Preenchimento | Nenhum, cor sólida, gradiente linear (com ângulo), radial ou **imagem de fundo** (`background-size`: cover, contain, esticar ou tamanho próprio em %; `background-position` em % com matriz 3×3; `background-repeat`). Várias paradas de cor. |
 | Contorno | Cor, espessura, sólido/tracejado/pontilhado, dentro/centro/fora (usa `outline`, que não altera o layout). |
 | Cantos | `border-radius` único ou por canto. |
 | Sombras | Várias, externas e internas (`box-shadow`); em texto vira `text-shadow`; em vetor, `drop-shadow`. |
-| Efeitos | `filter: blur`, **desfoque de fundo** (`backdrop-filter`, efeito vidro), opacidade, `mix-blend-mode` (16 modos). |
-| Texto | Fonte (**Google Fonts** + sistema, com busca e prévia), peso (só os que a fonte tem), tamanho, `line-height`, `letter-spacing`, alinhamento, itálico, sublinhado/riscado, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa, gradiente no texto. Durante a edição: `Ctrl+B/I/U`. |
+| Efeitos | `filter: blur`, **filtros de cor** (`brightness`, `contrast`, `saturate`, `grayscale`, `hue-rotate`), **desfoque de fundo** (`backdrop-filter`, efeito vidro), opacidade, `mix-blend-mode` (16 modos). |
+| Texto | Fonte (**Google Fonts** + sistema, com busca e prévia), peso (só os que a fonte tem), tamanho, `line-height`, `letter-spacing`, alinhamento, itálico, sublinhado/riscado, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa, `word-spacing`, **truncar** (uma linha com `…` ou `line-clamp` de N linhas), gradiente no texto. Durante a edição: `Ctrl+B/I/U`. |
 | Cores do projeto | Atalhos com as cores já usadas, e conta-gotas (onde o navegador oferece). |
+
+> **Fora do SVG exportado:** filtros de cor, `backdrop-filter` e a truncagem de texto não existem no formato (o PNG e o HTML exportados mostram tudo). Posição de imagem em cobrir/conter é aproximada em 3 alinhamentos no SVG.
 
 ### Biblioteca
 | Recurso | Detalhe |
