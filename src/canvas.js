@@ -266,11 +266,13 @@ export function createCanvas(store, viewport) {
     for (const n of list) {
       const el = els.get(n.id);
       if (el && n.visible) {
-        if (n.sizeX !== 'fixed' || flow) {
+        // com limites (min/max) ou proporção, o tamanho real pode diferir do guardado mesmo em medida fixa: mede também
+        const limited = n.minW > 0 || n.maxW > 0 || n.minH > 0 || n.maxH > 0 || n.aspect > 0;
+        if (n.sizeX !== 'fixed' || flow || limited) {
           const w = el.offsetWidth;
           if (Math.abs(w - n.w) > 0.01) n.w = round(w);
         }
-        if (n.sizeY !== 'fixed' || flow) {
+        if (n.sizeY !== 'fixed' || flow || limited) {
           const h = el.offsetHeight;
           if (Math.abs(h - n.h) > 0.01) n.h = round(h);
         }

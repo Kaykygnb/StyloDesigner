@@ -15,7 +15,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { applyConstraints, createNode, hasLayout, isBoard, isFlow, nextName, round, scaleNode, uid } from './model.js';
+import { applyConstraints, createNode, hasAspect, hasLayout, hasSizeLimits, isBoard, isFlow, limitSize, nextName, round, scaleNode, uid } from './model.js';
 import { createPen } from './pen.js';
 import { RULER } from './rulers.js';
 
@@ -580,11 +580,18 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
         // com Alt, cada lado anda o dobro (o oposto anda junto, mantendo o centro)
         const k = e.altKey ? 2 : 1;
         let nw = it.w + hx * ldx * k, nh = it.h + hy * ldy * k;
-        if (e.shiftKey || n.lockRatio) {
-          const ratio = it.w / it.h;
-          if (hx && hy) { const s = Math.max(nw / it.w, nh / it.h); nw = it.w * s; nh = it.h * s; }
+        if (e.shiftKey || n.lockRatio || hasAspect(n)) {
+          const ratio = hasAspect(n) ? n.aspect : it.w / it.h; // a proporção do CSS (aspect-ratio) manda
+          if (hx && hy) { nw = Math.max(nw, nh * ratio); nh = nw / ratio; } // canto: cresce pelo eixo que mais andou
           else if (hx) nh = nw / ratio;
           else nw = nh * ratio;
+        }
+        if (hasSizeLimits(n)) {
+          [nw, nh] = limitSize(n, nw, nh); // min/max-width/height
+          if (hasAspect(n)) { // depois do corte, o outro eixo segue a proporção de novo (e é limitado outra vez)
+            if (hx || !hy) nh = nw / n.aspect; else nw = nh * n.aspect;
+            [nw, nh] = limitSize(n, nw, nh);
+          }
         }
         nw = Math.max(1, Math.round(nw));
         nh = Math.max(1, Math.round(nh));

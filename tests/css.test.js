@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode } from '../src/model.js';
+import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize } from '../src/model.js';
 import { nodeStyle, rgba, exportHtml, generateCode } from '../src/css.js';
 import { buildSample } from '../src/sample.js';
 
@@ -140,4 +140,84 @@ test('contorno por lado vira border-top/right/bottom/left (e "todos" continua se
   assert.match(nodeStyle(r, null).outline, /^2px solid/);
   const e = createNode('ellipse', { stroke: { color: '#000000', opacity: 1, width: 2, style: 'solid', position: 'inside', sides: [2, 0, 0, 0] } });
   assert.ok(nodeStyle(e, null).outline && !nodeStyle(e, null)['border-top'], 'elipse ignora lados (não faz sentido)');
+});
+
+// ---------------------------------------------------------------- limites de tamanho e proporção
+test('min/max-width/height só aparecem quando definidos', () => {
+  const n = createNode('rect', { w: 100, h: 50 });
+  const s0 = nodeStyle(n, null);
+  for (const k of ['min-width', 'max-width', 'min-height', 'max-height', 'aspect-ratio']) assert.equal(s0[k], undefined, k);
+  Object.assign(n, { minW: 80, maxW: 300, minH: 20, maxH: 200 });
+  const s = nodeStyle(n, null);
+  assert.equal(s['min-width'], '80px');
+  assert.equal(s['max-width'], '300px');
+  assert.equal(s['min-height'], '20px');
+  assert.equal(s['max-height'], '200px');
+});
+
+test('min-width do usuário substitui o min-width:0 do item "fill" de um flex', () => {
+  const parent = createNode('frame');
+  parent.layout.mode = 'row';
+  const child = createNode('rect', { sizeX: 'fill', sizeY: 'fixed', h: 40 });
+  assert.equal(nodeStyle(child, parent)['min-width'], '0');
+  child.minW = 120;
+  assert.equal(nodeStyle(child, parent)['min-width'], '120px');
+});
+
+test('aspect-ratio: só entra no CSS quando uma medida é flexível, e a fixa vira auto', () => {
+  const parent = createNode('frame');
+  parent.layout.mode = 'row';
+  const fixedBoth = createNode('rect', { w: 160, h: 90, aspect: 16 / 9 });
+  assert.equal(nodeStyle(fixedBoth, null)['aspect-ratio'], undefined); // as duas fixas: o editor mantém a proporção
+  const fillW = createNode('rect', { sizeX: 'fill', sizeY: 'fixed', h: 90, aspect: 16 / 9 });
+  const s1 = nodeStyle(fillW, parent);
+  assert.equal(s1['aspect-ratio'], '1.7778');
+  assert.equal(s1.height, 'auto');
+  const fillH = createNode('rect', { sizeX: 'fixed', sizeY: 'fill', w: 90, aspect: 1 });
+  const s2 = nodeStyle(fillH, parent);
+  assert.equal(s2['aspect-ratio'], '1');
+  assert.equal(s2.width, 'auto');
+});
+
+test('texto, grupo e linha ignoram proporção; grupo e linha ignoram limites', () => {
+  const t = createNode('text', { aspect: 2, maxW: 100 });
+  assert.equal(nodeStyle(t, null)['aspect-ratio'], undefined);
+  assert.equal(nodeStyle(t, null)['max-width'], '100px'); // texto aceita limite de largura
+  const g = createNode('group', { minW: 50, aspect: 2 });
+  assert.equal(nodeStyle(g, null)['min-width'], undefined);
+  assert.equal(nodeStyle(g, null)['aspect-ratio'], undefined);
+  const l = createNode('line', { maxW: 50 });
+  assert.equal(nodeStyle(l, null)['max-width'], undefined);
+});
+
+test('texto "hug" com largura máxima quebra linha (pre-wrap); sem ela fica em uma linha (pre)', () => {
+  const t = createNode('text'); // hug nos dois eixos por padrão
+  assert.equal(nodeStyle(t, null)['white-space'], 'pre');
+  t.maxW = 200;
+  assert.equal(nodeStyle(t, null)['white-space'], 'pre-wrap');
+});
+
+test('resizeNode: proporção do CSS manda no outro eixo e os limites vencem', () => {
+  const n = createNode('rect', { w: 100, h: 100, aspect: 2 });
+  resizeNode(n, 200, 999, 'w');
+  assert.deepEqual([n.w, n.h, n.sizeX], [200, 100, 'fixed']);
+  resizeNode(n, 999, 50, 'h');
+  assert.deepEqual([n.w, n.h], [100, 50]);
+  n.maxW = 150;
+  resizeNode(n, 400, 0, 'w'); // 400 → h 200, depois limitado: a largura fica em 150
+  assert.equal(n.w, 150);
+  assert.equal(n.h, 75); // e a altura SEGUE a proporção da largura já limitada (como o CSS faz)
+});
+
+test('limitSize: o mínimo vence o máximo quando se contradizem', () => {
+  assert.deepEqual(limitSize({ minW: 200, maxW: 100 }, 50, 10), [200, 10]);
+  assert.deepEqual(limitSize({}, 50, 10), [50, 10]);
+  assert.deepEqual(limitSize({ maxH: 30 }, 50, 99), [50, 30]);
+});
+
+test('applyLimits só corrige eixos de medida FIXA', () => {
+  const n = createNode('rect', { w: 500, h: 500, sizeX: 'fixed', sizeY: 'fill', maxW: 300, maxH: 100 });
+  applyLimits(n);
+  assert.equal(n.w, 300);
+  assert.equal(n.h, 500); // eixo fill: quem decide é o navegador
 });

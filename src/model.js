@@ -186,6 +186,9 @@ export function createNode(type, props = {}) {
     // itens de CSS Grid: quantas colunas/linhas ocupam (grid-column: span N)
     colSpan: 1, // item de grid
     rowSpan: 1,
+    // Campos OPCIONAIS (só existem quando o usuário os define; ausente = padrão do CSS):
+    //   minW, maxW, minH, maxH — limites de tamanho em px (min-width, max-width, min-height, max-height);
+    //   aspect — proporção largura/altura (CSS aspect-ratio), ex.: 1.7778 = 16:9. Veja limitSize/applyLimits/hasAspect.
     // protótipo: lista de interações da camada (ver present.js)
     interactions: [], // protótipo: [{ trigger:'click', action:'navigate'|'back'|'url', target, transition }]
   };
@@ -399,6 +402,41 @@ export function applyConstraints(frame, ow, oh) {
 }
 
 /**
+ * Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm
+ * tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
+ */
+export const hasSizeLimits = (n) => !!n && n.type !== 'group' && n.type !== 'line';
+
+/** A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam. */
+export const hasAspect = (n) => !!n && n.aspect > 0 && n.type !== 'text' && n.type !== 'group' && n.type !== 'line';
+
+/**
+ * Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem
+ * limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
+ * @returns {[number, number]} largura e altura já limitadas
+ */
+export function limitSize(n, w, h) {
+  const clampTo = (v, lo, hi) => {
+    if (hi > 0 && v > hi) v = hi;
+    if (lo > 0 && v < lo) v = lo;
+    return v;
+  };
+  return [clampTo(w, n.minW, n.maxW), clampTo(h, n.minH, n.maxH)];
+}
+
+/**
+ * Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o
+ * navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
+ */
+export function applyLimits(n) {
+  const ow = n.w, oh = n.h;
+  const [w, h] = limitSize(n, ow, oh);
+  if (n.sizeX === 'fixed') n.w = Math.max(1, round(w));
+  if (n.sizeY === 'fixed') n.h = Math.max(1, round(h));
+  if (n.w !== ow || n.h !== oh) applyConstraints(n, ow, oh);
+}
+
+/**
  * Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e
  * propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
  * @param {object} n  camada
@@ -408,14 +446,26 @@ export function applyConstraints(frame, ow, oh) {
  */
 export function resizeNode(n, nw, nh, axis = 'w') {
   const ow = n.w, oh = n.h;
-  if (n.lockRatio && ow && oh) {
+  // PROPORÇÃO do CSS (aspect-ratio): manda no outro eixo; senão vale "travar proporção" (a razão de antes)
+  const ratio = hasAspect(n) ? n.aspect : 0;
+  if (ratio) {
+    if (axis === 'w') nh = nw / ratio;
+    else nw = nh * ratio;
+  } else if (n.lockRatio && ow && oh) {
     if (axis === 'w') nh = (nw * oh) / ow;
     else nw = (nh * ow) / oh;
   }
+  // limites min/max (CSS): vencem a proporção; depois do corte, o outro eixo SEGUE a proporção de novo (como o CSS faz
+  // com a altura "auto" quando a largura bate no max-width) e é limitado mais uma vez
+  [nw, nh] = limitSize(n, nw, nh);
+  if (ratio) {
+    if (axis === 'w') nh = nw / ratio; else nw = nh * ratio;
+    [nw, nh] = limitSize(n, nw, nh);
+  }
   n.w = Math.max(1, round(nw));
   n.h = Math.max(1, round(nh));
-  if (axis === 'w' || n.lockRatio) n.sizeX = 'fixed';
-  if (axis === 'h' || n.lockRatio) n.sizeY = 'fixed';
+  if (axis === 'w' || (n.lockRatio && !ratio)) n.sizeX = 'fixed';
+  if (axis === 'h' || (n.lockRatio && !ratio)) n.sizeY = 'fixed';
   if (n.type === 'group') n.children.forEach((k) => scaleNode(k, n.w / ow, n.h / oh));
   else applyConstraints(n, ow, oh);
 }

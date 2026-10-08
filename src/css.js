@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, round, slugify } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
@@ -165,6 +165,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s.height = node.sizeY === 'hug' ? 'auto' : px(node.h);
   }
 
+  // ---- limites de tamanho e proporção (min-/max-width/height, aspect-ratio) ------------
+  sizeLimitsCss(node, s);
+
   // ---- auto layout = flexbox ou grid --------------------------------------------------
   // Aplica no PRÓPRIO frame as regras que organizam os filhos. Os nomes do modelo são os do CSS.
   if (hasLayout(node)) {
@@ -222,7 +225,8 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       s.display = 'grid';
       s['align-content'] = node.textVAlign === 'center' ? 'center' : 'end';
     }
-    s['white-space'] = node.sizeX === 'hug' ? 'pre' : 'pre-wrap';
+    // hug sem largura máxima = uma linha só ('pre'); com largura máxima o texto QUEBRA ao chegar nela ('pre-wrap')
+    s['white-space'] = node.sizeX === 'hug' && !(node.maxW > 0) ? 'pre' : 'pre-wrap';
     s['overflow-wrap'] = 'break-word';
     // Cor do texto vem do fill. Com GRADIENTE usa o truque `background-clip: text` + `color: transparent`.
     const f = node.fill;
@@ -306,6 +310,29 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   return s;
 }
 
+
+/**
+ * Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width`
+ * substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
+ *  - min-/max-width/height: só aparecem quando o usuário define (campos minW, maxW, minH, maxH).
+ *  - aspect-ratio: só quando ALGUMA medida é flexível (hug/fill). A medida fixa vira `auto` no eixo oposto para a
+ *    proporção valer (com as duas fixas o CSS ignoraria o aspect-ratio, e quem mantém a proporção é o editor).
+ */
+function sizeLimitsCss(node, s) {
+  if (!hasSizeLimits(node)) return;
+  if (node.minW > 0) s['min-width'] = px(node.minW);
+  if (node.maxW > 0) s['max-width'] = px(node.maxW);
+  if (node.minH > 0) s['min-height'] = px(node.minH);
+  if (node.maxH > 0) s['max-height'] = px(node.maxH);
+  if (hasAspect(node)) {
+    const flexX = node.sizeX !== 'fixed', flexY = node.sizeY !== 'fixed';
+    if (flexX || flexY) {
+      s['aspect-ratio'] = String(round(node.aspect, 4));
+      if (flexX && !flexY) s.height = 'auto';
+      else if (flexY && !flexX) s.width = 'auto';
+    }
+  }
+}
 
 /**
  * Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale.

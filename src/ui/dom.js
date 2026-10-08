@@ -70,11 +70,14 @@ export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
  * @param {(v:number) => void} o.set  aplica um valor (sem histórico)
  * @param {() => void} [o.commit]  fecha a edição (histórico)
  * @param {number} [o.min] [o.max] [o.step] [o.decimals] [o.unit] [o.width] [o.disabled]
+ * @param {boolean} [o.nullable]  true: campo vazio = sem valor (`set(null)`); `get` pode devolver null
+ * @param {string} [o.placeholder]  texto cinza quando vazio (ex.: "sem limite")
  * @returns {{el: HTMLElement, update: () => void, input: HTMLInputElement}} `update` relê o valor sem atrapalhar quem está digitando
  */
-export function numField({ label, title, get, set, commit, min = -Infinity, max = Infinity, step = 1, decimals = 2, unit = '', width, disabled = false }) {
+export function numField({ label, title, get, set, commit, min = -Infinity, max = Infinity, step = 1, decimals = 2, unit = '', width, disabled = false, nullable = false, placeholder = '' }) {
   // campo de texto (não type=number: queremos aceitar contas e vírgula)
   const input = h('input.num', { type: 'text', inputMode: 'decimal', spellcheck: false });
+  if (placeholder) input.placeholder = placeholder; // ex.: "sem limite" quando o campo está vazio (nullable)
   const lab = h('span.num-label', { title: title || '' }, label);
   if (disabled) input.disabled = true;
   const wrap = h('label.field.num-field' + (disabled ? '.off' : ''), { style: width ? { width } : null }, lab, input);
@@ -111,7 +114,11 @@ export function numField({ label, title, get, set, commit, min = -Infinity, max 
 
   // ao focar, seleciona tudo (digitar já substitui)
   input.addEventListener('focus', () => input.select());
-  input.addEventListener('change', () => apply(parse(input.value), true));
+  input.addEventListener('change', () => {
+    // campo "anulável" (ex.: largura máxima): apagar o texto REMOVE o valor (set(null)) em vez de ser ignorado
+    if (nullable && input.value.trim() === '') { set(null); commit?.(); input.value = fmt(get()); return; }
+    apply(parse(input.value), true);
+  });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') input.blur();
     if (e.key === 'Escape') { input.value = fmt(get()); input.blur(); }

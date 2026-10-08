@@ -12,8 +12,8 @@ import { askText } from './menus.js';
 import { fontField } from './fontpicker.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
-  BLEND_MODES, FONT_WEIGHTS, defaultFill, defaultShadow, defaultStroke, hasLayout, isFlow, resizeNode,
-  constraintsOf,
+  BLEND_MODES, FONT_WEIGHTS, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
+  constraintsOf, round,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
@@ -202,7 +202,51 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         each((n) => { resizeNode(n, w, hh, 'w'); n.h = hh; n.sizeY = 'fixed'; });
       }, 'Predefinições de tamanho'));
     }
+    if (hasSizeLimits(n0)) body.push(limitsBlock(n0));
     return section('Tamanho', body);
+  }
+
+  /** Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora). */
+  const ASPECTS = [
+    ['', 'Livre'], ['1', '1 : 1 (quadrado)'], ['1.3333', '4 : 3'], ['1.7778', '16 : 9'], ['1.5', '3 : 2'], ['2', '2 : 1'],
+    ['0.75', '3 : 4 (retrato)'], ['0.5625', '9 : 16 (story)'], ['atual', 'Usar o tamanho atual'],
+  ];
+  /**
+   * "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e
+   * aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o
+   * valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
+   */
+  function limitsBlock(n0) {
+    const used = !!(n0.minW || n0.maxW || n0.minH || n0.maxH || n0.aspect);
+    const limit = (label, cssKey, key) => capK(label, cssKey, num('px', () => P()[key] ?? null, (v) => each((n) => {
+      if (v == null || !(v > 0)) delete n[key]; else n[key] = Math.round(v);
+      applyLimits(n);
+    }), { min: 0, decimals: 0, nullable: true, placeholder: 'sem limite' }));
+    const hasRatio = n0.type !== 'text';
+    const aspectVal = () => {
+      const a = P().aspect;
+      if (!(a > 0)) return '';
+      const hit = ASPECTS.find(([v]) => v && v !== 'atual' && Math.abs(Number(v) - a) < 0.002);
+      return hit ? hit[0] : 'custom';
+    };
+    const body = [
+      row(limit('Largura mín.', 'min-width', 'minW'), limit('Largura máx.', 'max-width', 'maxW')),
+      row(limit('Altura mín.', 'min-height', 'minH'), limit('Altura máx.', 'max-height', 'maxH')),
+    ];
+    if (hasRatio) {
+      body.push(capK('Proporção', 'aspect-ratio', select([...ASPECTS, ['custom', 'Personalizada']], aspectVal, (v) => each((n) => {
+        if (v === 'custom') return;
+        if (!v) delete n.aspect;
+        else n.aspect = v === 'atual' ? round(n.w / n.h, 4) : Number(v);
+        if (n.aspect && n.sizeX === 'fixed' && n.sizeY === 'fixed') resizeNode(n, n.w, n.h, 'w'); // ajusta a altura à proporção
+        else applyLimits(n);
+      }), 'aspect-ratio')));
+      if (n0.aspect > 0 && n0.sizeX === 'fixed' && n0.sizeY === 'fixed') {
+        body.push(h('p.hint', 'Largura e altura estão fixas: o editor mantém a proporção ao redimensionar. Para o CSS aspect-ratio valer no código, deixe uma das medidas em Hug ou Fill.'));
+      }
+    }
+    return h('details.size-limits', { open: used },
+      h('summary', ico('chevron', 11), ' Limites e proporção', used ? h('span.dot-on') : null), h('div.section-body', body));
   }
 
   /**
@@ -275,6 +319,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'justify-content': ['justify-content', 'justify-content: space-between;', 'Como os itens se distribuem ao longo do eixo principal (a direção da fila): começo, centro, fim ou espalhados.'],
     'align-items': ['align-items', 'align-items: center;', 'Como os itens se alinham no eixo cruzado (o contrário da fila): no topo, no meio, embaixo ou esticados.'],
     'justify-items': ['justify-items', 'justify-items: center;', 'No grid: a posição HORIZONTAL de cada item dentro da sua célula.'],
+    'min-width': ['min-width', 'min-width: 120px;', 'A largura nunca fica MENOR que isto, mesmo que o conteúdo ou o espaço do pai peçam menos. Vazio = sem limite.'],
+    'max-width': ['max-width', 'max-width: 480px;', 'A largura nunca passa disto. Em texto com largura "hug", o texto passa a QUEBRAR LINHA ao chegar no limite. Vazio = sem limite.'],
+    'min-height': ['min-height', 'min-height: 48px;', 'A altura nunca fica MENOR que isto. Útil em cards que crescem com o conteúdo mas não devem ficar baixos demais.'],
+    'max-height': ['max-height', 'max-height: 320px;', 'A altura nunca passa disto. Combine com "cortar conteúdo" (overflow) para esconder o que sobra.'],
+    'aspect-ratio': ['aspect-ratio', 'aspect-ratio: 16 / 9;', 'Mantém a proporção entre largura e altura. Vale no CSS quando UMA das medidas é flexível (Hug ou Fill); com as duas fixas, o editor mantém a proporção ao redimensionar.'],
     'grid-template-columns': ['grid-template-columns', 'grid-template-columns: repeat(3, 1fr);', 'Quantas colunas a grade tem. "repeat(3, 1fr)" = 3 colunas de larguras iguais; "fr" é uma fração do espaço livre.'],
     'grid-template-rows': ['grid-template-rows', 'grid-template-rows: repeat(2, 1fr);', 'Quantas linhas a grade tem. Sem este valor (automático), o navegador cria linhas conforme os itens chegam.'],
   };
@@ -975,6 +1024,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.stroke?.sides ? n.stroke.sides.map((v) => (v > 0 ? 1 : 0)).join('') + (n.stroke.sidesCustom ? 'c' : '') : '',
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
+      !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)
       n.type === 'path' ? `${ui.editPathId === n.id}|${ui.editPt}|${(ui.editPts || []).join('.')}|${ui.editPathId === n.id ? tools.pen.pointType() : ''}` : '',

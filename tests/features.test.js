@@ -272,3 +272,19 @@ test('nome novo usa o MAIOR número existente + 1 (não repete quando algo virou
   assert.equal(nextName(page, 'rect'), 'Retângulo 5');
   assert.equal(nextName({ children: [] }, 'rect'), 'Retângulo 1');
 });
+
+test('limites de tamanho e proporção sincronizam do principal para a instância', () => {
+  const main = mkButton();
+  main.maxW = 240;
+  main.aspect = 3;
+  makeComponent(main);
+  const pages = [{ children: [main] }];
+  const inst = createInstance(main, pages);
+  assert.equal(inst.maxW, 240);
+  assert.equal(inst.aspect, 3);
+  main.maxW = 300;
+  delete main.aspect;
+  syncInstances(pages.concat([{ children: [inst] }]));
+  assert.equal(inst.maxW, 300);
+  assert.equal(inst.aspect, undefined);
+});

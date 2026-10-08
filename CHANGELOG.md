@@ -6,7 +6,14 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
-## [Não lançado] — Seletor de cor e contorno em ícones
+## [Não lançado] — CSS ampliado, seletor de cor e contorno em ícones
+
+### Adicionado (CSS ampliado)
+- **Limites de tamanho**: `min-width`, `max-width`, `min-height`, `max-height` (seção Tamanho → "Limites e proporção"; campo vazio = sem limite). Em medida **fixa** o valor é limitado na hora (e ao redimensionar com as alças); em **Hug/Fill** quem obedece é o navegador e o canvas mede de volta. O `min-width` do usuário substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho. Texto com largura "hug" e largura máxima passa a **quebrar linha** (`white-space: pre-wrap`) ao chegar no limite.
+- **Proporção** (`aspect-ratio`): presets (1:1, 4:3, 16:9, 3:2, 2:1, 3:4, 9:16) ou "usar o tamanho atual". Com as duas medidas fixas o editor mantém a proporção ao redimensionar; quando uma medida é Hug/Fill o CSS `aspect-ratio` entra no código e a medida fixa vira `auto` no outro eixo. Os limites vencem a proporção, e depois do corte o outro eixo segue a proporção de novo, como no CSS.
+- Não valem para grupos (a caixa deles é recalculada dos filhos); a proporção também não vale para texto e linha.
+- Os campos novos (`minW`, `maxW`, `minH`, `maxH`, `aspect`) **sincronizam do componente principal para as instâncias** e podem ser sobrescritos numa instância.
+- Campo numérico "anulável" (`nullable` em `ui/dom.js`): apagar o texto remove o valor.
 
 ### Adicionado
 - **Seletor de cor próprio** (no lugar do seletor feio do navegador): área de saturação/brilho, barra de matiz, campo HEX, conta-gotas e **grupos de cores**: "Neste projeto" (as mais usadas), "Estilos de cor" e paletas prontas (Neutros, Vivas, Suaves). Aplica ao vivo, grava o histórico ao soltar, fecha com Esc ou clicando fora e rola se a tela for baixa. Vale para preenchimento, contorno, gradiente, sombras e grades.
