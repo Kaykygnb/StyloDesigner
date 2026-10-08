@@ -6,7 +6,7 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
-## [Não lançado] — CSS ampliado, seletor de cor e contorno em ícones
+## [0.11.0] — 2026-10-08 — CSS ampliado, estados interativos, comentários e testes de navegador
 
 ### Adicionado (comentários nas camadas)
 - **Comentários**: anote o que precisa mudar direto na camada. Três jeitos: selecione **uma** camada e escreva na aba **Comentários** (ícone de balão no painel direito; o pino nasce no canto superior direito), use a ferramenta **Comentar (`C`)** e clique no **ponto exato** da camada, ou botão direito → **Comentar**. `Ctrl+Enter` envia.

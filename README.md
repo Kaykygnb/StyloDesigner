@@ -70,6 +70,15 @@ A aba **Código** mostra o CSS e o HTML da seleção (ou da página inteira). É
 
 ![Aba Código](docs/screenshots/05-codigo-css.png)
 
+### Estados, transições e variáveis de CSS
+Cada camada tem **Normal · Hover · Pressionado · Foco**: escolha um estado e edite só o que muda (cor, contorno, sombras, filtros, escala...). Isso vira `.botao:hover`, `:active` e `:focus-visible` no CSS, mais `transition` e `cursor`, e funciona no modo Apresentar. Os **estilos de cor** viram variáveis de CSS (`:root { --cor-primaria: #7c5cff; }` e `var(--cor-primaria)`) no código, no HTML e no PNG exportados.
+
+### Comentários nas camadas
+Anote o que precisa mudar direto na camada: ferramenta **Comentar** (`C`), botão direito → Comentar, ou a aba Comentários. Pinos no canvas, respostas, resolver/reabrir, selo com o número de abertos. Os comentários ficam **dentro do projeto** (entram no desfazer e nas versões).
+
+### Seções e caneta para ícones
+**Seção** (`Shift+S`) organiza o canvas como no Figma: nome em destaque, leva as telas junto ao mover, vira `<section>` no código. **Arquivo → Novo ícone (24×24)** abre um frame com grade de pixels e encaixe de 1px para desenhar o seu próprio ícone SVG com a caneta.
+
 ### Protótipo navegável
 Na aba **Protótipo**, defina "ao clicar / ao passar o mouse → navegar para um frame, voltar ou abrir um link", com transições. As **setas de fluxo** aparecem no canvas, e o botão **Apresentar** abre em tela cheia.
 
@@ -389,6 +398,7 @@ projetodesigner2/
 │   ├── storage.js          COMO gravar: IndexedDB, preferências e a API da pasta
 │   ├── thumbnail.js        Miniatura SVG da página (para a página inicial)
 │   ├── components.js       Componentes, instâncias e estilos (puro)
+│   ├── comments.js         Comentários nas camadas: criar, responder, resolver, podar (puro)
 │   ├── canvas.js           Desenha o documento em HTML; pan, zoom e geometria
 │   ├── overlay.js          Seleção, alças, guias, medidas, setas
 │   ├── tools.js            Mouse e teclado: todos os gestos e atalhos
@@ -402,7 +412,7 @@ projetodesigner2/
 │   ├── data/               Listas embutidas: 1.908 fontes e 4.299 ícones do Google (geradas)
 │   ├── export.js           PNG, SVG, HTML e arquivo de projeto
 │   ├── sample.js           Os dois projetos de exemplo
-│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo, ícones), seletor de fontes, página inicial (home.js),
+│   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo, comentários, ícones), seletor de fontes e de cor, dicas ricas (dom.js), página inicial (home.js),
 │   │                       menus e janelas (perguntas, configurações, projetos na pasta), ícones
 │   └── styles/app.css      Todo o visual (tema claro/escuro por variáveis CSS)
 └── tests/
@@ -424,7 +434,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 54 testes
+npm test      # 96 testes
 ```
 
 ### Testes de navegador
@@ -433,7 +443,7 @@ Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimen
 ```bash
 npm install && npx playwright install chromium
 npm start                 # em outro terminal
-npm run test:e2e          # todas as suítes; sai com erro se alguma falhar
+npm run test:e2e          # as 18 suítes (≈ 330 verificações); sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](tests/e2e/README.md).
@@ -463,8 +473,9 @@ Este projeto cobre bastante de Figma e Penpot para uso **individual e para prot�
 **Design**
 - **Operações booleanas** (unir, subtrair, interseccionar formas). Pesa principalmente na criação de ícones.
 - **Mais de um preenchimento ou contorno por camada.**
-- **Variantes de componente**, **variáveis** e **temas** de design.
-- **Plugins.**
+- **Variantes de componente** e **temas** de design. (As cores já viram variáveis de CSS no código; falta tema claro/escuro por variáveis no documento e variáveis de texto/espaçamento.)
+- **Unidades além de px** (`%`, `rem`, `vw`) e `calc()`. **Responsividade** (`@media`/breakpoints): um frame é uma tela de tamanho fixo.
+- **Plugins** e integração com IA por MCP.
 - **Edição de imagem** (recorte, filtros) e lápis livre.
 - Texto com **estilos misturados** na mesma caixa e listas.
 
@@ -476,7 +487,7 @@ Hoje o projeto é pensado para **uma pessoa por vez**. O que existe e o que falt
 - **Sem login nem permissões.** Quem alcançasse o servidor leria, gravaria e apagaria tudo.
 - **Sem edição simultânea.** Cada projeto é um arquivo `.json` inteiro. Se duas pessoas editam o mesmo arquivo, o app **detecta o conflito e para de gravar**, mas **não junta** as duas edições. Dividir o trabalho por projeto ou por página funciona; trabalhar juntos no mesmo projeto ao mesmo tempo, não.
 - **Sem histórico por pessoa:** as versões antigas guardam o arquivo, não "quem mudou o quê".
-- **Comentários** entre pessoas também não existem.
+- **Comentários** existem (anotações na camada, com respostas e "resolver"), mas **sem notificação, menção nem login**: o autor é só o nome definido nas Configurações. Só aparecem os comentários da página aberta, e o texto não pode ser editado depois de enviado.
 
 Detalhes que valem saber:
 
