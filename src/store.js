@@ -71,6 +71,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       hoverId: null,
       guides: [],
       dropTarget: null,
+      // estado interativo sendo editado no painel Design ('hover' | 'active' | 'focus'; null = a camada normal)
+      editState: null,
       marquee: null,
       views: {},
       clipboard: null,

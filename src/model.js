@@ -289,6 +289,68 @@ export const isFlow = (node, parent) => hasLayout(parent) && !node.absolute;
 /** Cópia profunda via JSON (suficiente: o documento só tem dados simples, sem funções nem datas). */
 export const cloneDeep = (v) => JSON.parse(JSON.stringify(v));
 
+// ---------------------------------------------------------------- estados interativos (:hover, :active, :focus)
+/**
+ * Propriedades VISUAIS que um estado pode sobrescrever (o resto — tamanho, posição, layout — não muda com o mouse).
+ * `scale` só existe nos estados (padrão 1): vira `transform: scale()`.
+ */
+export const STATE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'fx', 'opacity', 'blend', 'scale'];
+/** Estados disponíveis: [id, rótulo, pseudo-classe CSS]. */
+export const STATE_LIST = [['hover', 'Hover', ':hover'], ['active', 'Pressionado', ':active'], ['focus', 'Foco', ':focus-visible']];
+/** Valor padrão das chaves que a camada base pode não ter. */
+const STATE_DEFAULT = { scale: 1 };
+
+/** Camadas com caixa própria que aceitam estados (grupo, seção e linha não). */
+export const canHaveStates = (n) => !!n && n.type !== 'group' && n.type !== 'section' && n.type !== 'line';
+/** A camada tem algum estado com sobrescritas? (`which`: um estado específico, ou qualquer um se omitido.) */
+export const hasStates = (n, which) => !!n?.states && (which ? Object.keys(n.states[which] || {}).length > 0 : Object.values(n.states).some((o) => Object.keys(o || {}).length));
+
+/**
+ * "Visão" de uma camada num ou mais estados: uma cópia rasa dela com as sobrescritas do(s) estado(s) por cima, na
+ * ordem dada (como a cascata do CSS: ['hover', 'active'] = hover e depois pressionado por cima). Sem sobrescritas
+ * devolve a própria camada. Não altera nada.
+ * @param {object} node
+ * @param {string|string[]} states
+ */
+export function stateView(node, states) {
+  let v = node;
+  for (const s of Array.isArray(states) ? states : [states]) {
+    const ov = node.states?.[s];
+    if (!ov || !Object.keys(ov).length) continue;
+    if (v === node) v = { ...node };
+    for (const k of STATE_KEYS) if (ov[k] !== undefined) v[k] = ov[k] === null ? null : cloneDeep(ov[k]);
+  }
+  return v;
+}
+
+/**
+ * Edita UM estado de uma camada: roda `fn` num RASCUNHO com os valores visuais do estado e guarda em
+ * `node.states[estado]` SÓ o que ficou diferente da camada base (se voltar ao valor base, a sobrescrita some; sem
+ * nenhuma, o estado some). É assim que o painel Design edita um estado sem saber que está num estado.
+ * @param {object} node  camada real (é alterada)
+ * @param {string} state  'hover' | 'active' | 'focus'
+ * @param {(draft: object) => void} fn  recebe o rascunho (mexa só nas chaves de STATE_KEYS)
+ */
+export function editState(node, state, fn) {
+  const view = stateView(node, state);
+  const draft = { ...node };
+  for (const k of STATE_KEYS) {
+    const val = view[k] ?? STATE_DEFAULT[k];
+    draft[k] = val === undefined || val === null ? val : cloneDeep(val);
+  }
+  fn(draft);
+  const ov = { ...(node.states?.[state] || {}) };
+  for (const k of STATE_KEYS) {
+    let val = draft[k];
+    if (val === undefined) val = k === 'fx' ? {} : STATE_DEFAULT[k] ?? null; // "sem valor" também é um valor a sobrescrever
+    const base = node[k] ?? STATE_DEFAULT[k] ?? (k === 'fx' ? {} : null);
+    if (JSON.stringify(val) === JSON.stringify(base)) delete ov[k]; else ov[k] = val;
+  }
+  const states = { ...(node.states || {}) };
+  if (Object.keys(ov).length) states[state] = ov; else delete states[state];
+  if (Object.keys(states).length) node.states = states; else delete node.states;
+}
+
 /** Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar). */
 export function cloneNode(node) {
   const copy = cloneDeep(node);

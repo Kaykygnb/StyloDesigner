@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize } from '../src/model.js';
-import { nodeStyle, rgba, exportHtml, generateCode, fillCss } from '../src/css.js';
+import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates } from '../src/model.js';
+import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle } from '../src/css.js';
 import { toSvg } from '../src/svg.js';
 import { buildSample } from '../src/sample.js';
 
@@ -324,4 +324,104 @@ test('filtros de cor: só os que fogem do padrão, na ordem do CSS, depois do bl
   assert.equal(nodeStyle(clean, null).filter, undefined);
   const g = createNode('rect', { fx: { grayscale: 100, contrast: 80, saturate: 150 } });
   assert.equal(nodeStyle(g, null).filter, 'contrast(80%) saturate(150%) grayscale(100%)');
+});
+
+// ---------------------------------------------------------------- estados: hover, pressionado, foco, transição
+const btn = () => createNode('rect', { name: 'Botão', w: 120, h: 40, fill: defaultFill('#7C5CFF') });
+
+test('stateView aplica as sobrescritas do estado por cima da base, sem alterar a camada', () => {
+  const n = btn();
+  n.states = { hover: { fill: { ...defaultFill('#FF5CA8') }, opacity: 0.9 } };
+  const v = stateView(n, 'hover');
+  assert.equal(v.fill.color, '#FF5CA8');
+  assert.equal(v.opacity, 0.9);
+  assert.equal(n.fill.color, '#7C5CFF'); // a base não muda
+  assert.equal(stateView(n, 'active'), n); // sem sobrescritas devolve a própria camada
+  // cascata: pressionado por cima do hover
+  n.states.active = { opacity: 0.7 };
+  const both = stateView(n, ['hover', 'active']);
+  assert.equal(both.fill.color, '#FF5CA8');
+  assert.equal(both.opacity, 0.7);
+});
+
+test('editState guarda só o que difere da base e limpa quando volta ao valor base', () => {
+  const n = btn();
+  editState(n, 'hover', (d) => { d.fill.color = '#FF5CA8'; d.scale = 1.05; });
+  assert.deepEqual(Object.keys(n.states.hover).sort(), ['fill', 'scale']);
+  assert.equal(n.fill.color, '#7C5CFF');
+  assert.equal(n.states.hover.scale, 1.05);
+  // voltar ao valor da base remove a sobrescrita; sem nenhuma, o estado e o states somem
+  editState(n, 'hover', (d) => { d.fill.color = '#7C5CFF'; d.scale = 1; });
+  assert.equal(n.states, undefined);
+  // um estado pode REMOVER algo da base (ex.: o contorno) e filtros
+  n.stroke = { color: '#000000', opacity: 1, width: 2, style: 'solid', position: 'inside' };
+  n.fx = { grayscale: 50 };
+  editState(n, 'hover', (d) => { d.stroke = null; delete d.fx; });
+  assert.equal(n.states.hover.stroke, null);
+  assert.deepEqual(n.states.hover.fx, {});
+  assert.equal(stateView(n, 'hover').stroke, null);
+});
+
+test('hasStates e canHaveStates', () => {
+  const n = btn();
+  assert.equal(hasStates(n), false);
+  n.states = { hover: {} };
+  assert.equal(hasStates(n), false); // estado vazio não conta
+  n.states = { hover: { opacity: 0.5 } };
+  assert.equal(hasStates(n), true);
+  assert.equal(hasStates(n, 'hover'), true);
+  assert.equal(hasStates(n, 'active'), false);
+  assert.equal(canHaveStates(createNode('group')), false);
+  assert.equal(canHaveStates(createNode('section')), false);
+  assert.equal(canHaveStates(createNode('line')), false);
+  assert.equal(canHaveStates(createNode('frame')), true);
+});
+
+test('transition e cursor só entram no CSS quando definidos; escala só nos estados', () => {
+  const n = btn();
+  const s0 = nodeStyle(n, null);
+  assert.equal(s0.transition, undefined);
+  assert.equal(s0.cursor, undefined);
+  n.transition = { duration: 200, easing: 'ease-out' };
+  n.cursor = 'pointer';
+  const s = nodeStyle(n, null);
+  assert.equal(s.transition, 'all 200ms ease-out');
+  assert.equal(s.cursor, 'pointer');
+  n.transition = { duration: 0, easing: 'ease' };
+  assert.equal(nodeStyle(n, null).transition, undefined);
+  n.states = { hover: { scale: 1.05 } };
+  assert.equal(nodeStyle(stateView(n, 'hover'), null).transform, 'scale(1.05)');
+  assert.equal(nodeStyle(n, null).transform, undefined);
+});
+
+test('stateStyle devolve só o que muda e usa unset para o que sumiu', () => {
+  const n = btn();
+  n.shadows = [defaultShadow()];
+  n.states = { hover: { fill: { ...defaultFill('#FF5CA8') }, shadows: [], opacity: 0.8 } };
+  const d = stateStyle(n, null, {}, {}, 'hover');
+  assert.equal(d['background-color'], '#ff5ca8');
+  assert.equal(d.opacity, '0.8');
+  assert.equal(d['box-shadow'], 'unset'); // a base tinha sombra, o estado não
+  assert.equal(d.width, undefined); // o que não mudou não entra
+  assert.equal(d.position, undefined);
+});
+
+test('generateCode escreve .classe:hover/:active/:focus-visible, tabindex no foco e transition na base', () => {
+  const n = btn();
+  n.transition = { duration: 150, easing: 'ease' };
+  n.states = {
+    hover: { fill: { ...defaultFill('#FF5CA8') } },
+    active: { scale: 0.97 },
+    focus: { stroke: { color: '#7C5CFF', opacity: 1, width: 2, style: 'solid', position: 'outside' } },
+  };
+  const { html, css } = generateCode([n], null, {});
+  assert.ok(css.includes('transition: all 150ms ease;'), css);
+  assert.ok(css.includes('.botao:hover {\n  background-color: #ff5ca8;\n}'), css);
+  assert.ok(css.includes('.botao:active {\n  transform: scale(0.97);\n}'), css);
+  assert.ok(css.includes('.botao:focus-visible {'), css);
+  assert.ok(html.includes('class="botao" tabindex="0"'), html);
+  // sem estados não há regras extras nem tabindex
+  const plain = generateCode([btn()], null, {});
+  assert.doesNotMatch(plain.css, /:hover|:active|:focus/);
+  assert.doesNotMatch(plain.html, /tabindex/);
 });

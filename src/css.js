@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
@@ -306,6 +306,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   }
   if (node.opacity < 1) s.opacity = String(round(node.opacity, 3));
   if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = node.blend;
+  // transição suave entre o estado normal e hover/pressionado/foco (e entre qualquer mudança de valores visuais)
+  if (node.transition?.duration > 0) s.transition = `all ${round(node.transition.duration)}ms ${node.transition.easing || 'ease'}`;
+  if (node.cursor && node.cursor !== 'auto') s.cursor = node.cursor;
   const tf = transformOf(node);
   if (tf) s.transform = tf;
   // A camada marcada como máscara some (display:none): ela só serve para recortar o grupo via clip-path.
@@ -398,6 +401,7 @@ export function transformOf(node) {
   const parts = [];
   if (node.rotation) parts.push(`rotate(${round(node.rotation, 2)}deg)`);
   if (node.flipX || node.flipY) parts.push(`scale(${node.flipX ? -1 : 1}, ${node.flipY ? -1 : 1})`);
+  if (node.scale && node.scale !== 1) parts.push(`scale(${round(node.scale, 3)})`); // só nos estados (ver stateView)
   return parts.join(' ');
 }
 
@@ -567,6 +571,24 @@ export function cssRule(selector, style, indent = '') {
 }
 
 /**
+ * CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade
+ * que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+ * @param {object} node
+ * @param {object|null} parent
+ * @param {object} assets
+ * @param {{root?: boolean}} opts  mesmas opções do nodeStyle
+ * @param {string|string[]} states  'hover' | 'active' | 'focus' (ou lista, em ordem de cascata)
+ */
+export function stateStyle(node, parent, assets, opts, states) {
+  const base = nodeStyle(node, parent, assets, opts);
+  const st = nodeStyle(stateView(node, states), parent, assets, opts);
+  const out = {};
+  for (const [k, v] of Object.entries(st)) if (base[k] !== v) out[k] = v;
+  for (const k of Object.keys(base)) if (!(k in st)) out[k] = 'unset';
+  return out;
+}
+
+/**
  * Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada
  * com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
  */
@@ -599,17 +621,25 @@ export function generateCode(nodes, parent, assets = {}, { root = false } = {}) 
     if (!node.visible) return '';
     const cls = className(node);
     rules.push(cssRule(`.${cls}`, nodeStyle(node, par, assets, { root: isRoot })));
+    // estados: uma regra por estado com SÓ o que muda (.card:hover, .card:active, .card:focus-visible)
+    for (const [state, , pseudo] of STATE_LIST) {
+      if (!node.states?.[state] || !Object.keys(node.states[state]).length) continue;
+      const diff = stateStyle(node, par, assets, { root: isRoot }, state);
+      if (Object.keys(diff).length) rules.push(cssRule(`.${cls}${pseudo}`, diff));
+    }
     const pad = '  '.repeat(depth);
+    // elemento que tem estado de foco precisa poder receber foco pelo teclado
+    const focusable = node.states?.focus && Object.keys(node.states.focus).length ? ' tabindex="0"' : '';
     if (node.type === 'text') {
-      return `${pad}<p class="${cls}">${escapeHtml(node.text)}</p>`;
+      return `${pad}<p class="${cls}"${focusable}>${escapeHtml(node.text)}</p>`;
     }
     if (node.type === 'path') {
-      return `${pad}<div class="${cls}">\n${pad}  ${pathSvg(node, assets)}\n${pad}</div>`;
+      return `${pad}<div class="${cls}"${focusable}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</div>`;
     }
     const kids = (node.children || []).map((c) => build(c, node, depth + 1, false)).filter(Boolean);
     const tag = node.type === 'section' ? 'section' : 'div';
-    if (!kids.length) return `${pad}<${tag} class="${cls}"></${tag}>`;
-    return `${pad}<${tag} class="${cls}">\n${kids.join('\n')}\n${pad}</${tag}>`;
+    if (!kids.length) return `${pad}<${tag} class="${cls}"${focusable}></${tag}>`;
+    return `${pad}<${tag} class="${cls}"${focusable}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
   return { html, css: rules.join('\n\n') };

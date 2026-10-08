@@ -8,6 +8,13 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Não lançado] — CSS ampliado, seletor de cor e contorno em ícones
 
+### Adicionado (estados interativos)
+- **Estados** (seção "Estados" do painel Design): **Normal · Hover · Pressionado · Foco**. Escolha um estado e o painel passa a editar SÓ as sobrescritas dele — preenchimento/cor, contorno, cantos, sombras, filtros, opacidade, mesclagem e **escala** (`transform: scale()`). O canvas mostra a camada selecionada naquele estado e uma bolinha marca os estados em uso; "Limpar este estado" apaga. Só o que difere do normal é guardado (voltar ao valor normal remove a sobrescrita) e um estado pode **remover** algo da base (ex.: tirar o contorno no hover).
+- **Código gerado**: uma regra por estado só com o que muda (`.botao:hover`, `.botao:active`, `.botao:focus-visible`; o que sumiu vira `unset`) e `tabindex="0"` na camada com foco. Vale para o painel Código, copiar CSS e HTML exportado.
+- **Transição** (`transition: all 200ms ease`): duração e curva (suave, entra e sai, desacelera, acelera, constante) e **cursor** (`pointer`, `text`, `grab`, `not-allowed`...). Aparecem no código exportado e na apresentação; no editor nada anima nem muda o cursor das ferramentas.
+- **Modo Apresentar** aplica hover, pressionado (por cima do hover, como a cascata do CSS) e foco, com a transição.
+- `states`, `transition` e `cursor` sincronizam do componente principal para as instâncias. Trocar de seleção sai do modo estado. Grupo, seção e linha não têm estados.
+
 ### Alterado (polimento do painel)
 - "Efeitos" e "Item do layout" no mesmo padrão do resto: legendas em português com o nome da propriedade CSS e **dicas ricas** (`filter: blur()`, `backdrop-filter`, `position`, `grid-column`, `grid-row`, `justify-self`, `align-self`).
 - Removido código morto: o ajudante `prop()` e o CSS da matriz antiga, das linhas `prop-*` e do seletor de cor nativo.

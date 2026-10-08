@@ -11,7 +11,7 @@
  */
 
 import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { round } from './model.js';
+import { round, stateView } from './model.js';
 
 /** Limites do zoom: 2% (para ver pranchas enormes) até 6400% (para conferir pixels). */
 const MIN_ZOOM = 0.02;
@@ -223,7 +223,10 @@ export function createCanvas(store, viewport) {
     el.className = `node node-${node.type}${ui.dragIds?.has(node.id) ? ' dragging' : ''}`;
     const editing = ui.editingId === node.id;
     // CSS final = estilo calculado em css.js + extras só do editor (oculta, bloqueada, em edição de texto)
-    let css = toCssText(nodeStyle(node, parent, store.state.doc.assets));
+    // editando um ESTADO (hover...) no painel: a camada selecionada aparece com as sobrescritas desse estado
+    const view = ui.editState && ui.selection.includes(node.id) ? stateView(node, ui.editState) : node;
+    let css = toCssText(nodeStyle(view, parent, store.state.doc.assets));
+    css += ';transition:none;cursor:inherit'; // no editor nada anima nem muda o cursor das ferramentas
     if (!node.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;
     // editando: mostra o texto inteiro (sem reticências nem limite de linhas), senão o que se digita sumiria
@@ -235,7 +238,7 @@ export function createCanvas(store, viewport) {
 
     // Vetores: o desenho é um <svg> dentro do elemento; só reescreve se o markup mudou.
     if (node.type === 'path') {
-      const svg = pathSvg(node, store.state.doc.assets);
+      const svg = pathSvg(view, store.state.doc.assets);
       if (el._svg !== svg) { el.innerHTML = svg; el._svg = svg; }
       el.toggleAttribute('data-locked', node.locked);
     }

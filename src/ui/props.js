@@ -13,7 +13,7 @@ import { fontField } from './fontpicker.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
   BLEND_MODES, FONT_WEIGHTS, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
-  constraintsOf, round,
+  constraintsOf, round, STATE_LIST, canHaveStates, editState, hasStates, stateView,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
@@ -55,8 +55,12 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   // ---- ajudantes: ids/camadas selecionadas, a 1ª (P) e `each` que aplica uma mudança a todas (sem invalidar o índice do store) ----
   const ids = () => ui.selection.filter((id) => store.get(id));
   const nodes = () => ids().map((id) => store.get(id));
-  const P = () => store.get(ids()[0]);
-  const each = (fn) => store.update(() => nodes().forEach(fn), { structural: false });
+  // Em modo ESTADO (hover...), P() lê a "visão" do estado e each() escreve no estado (só o que difere do normal fica guardado)
+  const P = () => {
+    const n = store.get(ids()[0]);
+    return ui.editState && n ? stateView(n, ui.editState) : n;
+  };
+  const each = (fn) => store.update(() => nodes().forEach((n) => (ui.editState ? editState(n, ui.editState, fn) : fn(n))), { structural: false });
   /** Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar. */
   const commit = () => store.commit();
   /** Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho). */
@@ -276,8 +280,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         body.push(row(corner(3, '↙', 'border-bottom-left-radius'), corner(2, '↘', 'border-bottom-right-radius')));
       }
     }
-    if (n0.type === 'frame') body.push(check('Cortar conteúdo (overflow: hidden)', () => P().clip, (v) => each((n) => { n.clip = v; })));
-    if (n0.isMask || parent?.type === 'group') {
+    if (n0.type === 'frame' && !ui.editState) body.push(check('Cortar conteúdo (overflow: hidden)', () => P().clip, (v) => each((n) => { n.clip = v; })));
+    if (!ui.editState && (n0.isMask || parent?.type === 'group')) {
       body.push(check('Usar como máscara (clip-path)', () => !!P().isMask, (v) => each((n) => { n.isMask = v; })));
     }
     return section('Aparência', body);
@@ -327,6 +331,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'hue-rotate': ['hue-rotate', 'filter: hue-rotate(90deg);', 'Gira as cores pela roda de matizes (graus). 180° troca cada cor pela complementar.'],
     blur: ['filter: blur()', 'filter: blur(8px);', 'Desfoca a PRÓPRIA camada (e tudo que há nela). Quanto maior o valor, mais borrado.'],
     'backdrop-filter': ['backdrop-filter', 'backdrop-filter: blur(16px);', 'Efeito VIDRO: desfoca o que está ATRÁS da camada. Use junto com um preenchimento semitransparente para aparecer.'],
+    transition: ['transition', 'transition: all 200ms ease;', 'Faz a camada MUDAR SUAVEMENTE entre o estado normal e hover/pressionado/foco, em vez de pular. Duração em milissegundos (0 = sem transição).'],
+    cursor: ['cursor', 'cursor: pointer;', 'O formato do mouse quando passa por cima. "pointer" (mãozinha) diz que a camada é clicável. Aparece no código exportado e na apresentação, não no editor.'],
+    transform: ['transform', 'transform: scale(1.05);', 'Aumenta (acima de 1) ou diminui (abaixo de 1) a camada, a partir do centro. Num :hover costuma ser 1.02 a 1.08; num :active, 0.97.'],
     position: ['position', 'position: absolute;\nleft: 12px;\ntop: 8px;', 'Marcado, o item SAI do fluxo do layout e fica onde você o coloca (left/top), por cima dos outros. Bom para selos, badges e enfeites.'],
     'grid-column': ['grid-column', 'grid-column: span 2;', 'Quantas COLUNAS da grade este item ocupa. "span 2" = duas colunas de largura.'],
     'grid-row': ['grid-row', 'grid-row: span 2;', 'Quantas LINHAS da grade este item ocupa.'],
@@ -552,6 +559,62 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     title: 'Auto layout é CSS de verdade', css: 'display: flex;\ndisplay: grid;',
     text: 'Nada aqui é imitação: o que você configura vira flexbox e grid no navegador, e o mesmo código sai na exportação.',
   }));
+
+  /** Dicas dos estados. */
+  const STATE_DOC = {
+    '': { title: 'Normal', text: 'A camada como ela é, sem o mouse em cima. Seus controles de sempre.' },
+    hover: { title: ':hover', css: '.botao:hover { … }', text: 'Quando o mouse está em cima. Mude cor, sombra, escala… só o que mudar aqui vira regra :hover no CSS.' },
+    active: { title: ':active', css: '.botao:active { … }', text: 'Enquanto o botão do mouse está apertado em cima da camada (o efeito de "apertar").' },
+    focus: { title: ':focus-visible', css: '.botao:focus-visible { … }', text: 'Quando a camada recebe foco pelo teclado (Tab). Importante para acessibilidade.' },
+  };
+  const EASINGS = [['ease', 'Suave (ease)'], ['ease-in-out', 'Entra e sai (ease-in-out)'], ['ease-out', 'Desacelera (ease-out)'], ['ease-in', 'Acelera (ease-in)'], ['linear', 'Constante (linear)']];
+  const CURSORS = [['', 'Padrão'], ['pointer', 'Mãozinha (pointer)'], ['text', 'Texto (text)'], ['grab', 'Mão aberta (grab)'], ['not-allowed', 'Bloqueado (not-allowed)'], ['default', 'Seta (default)']];
+
+  /**
+   * Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as
+   * sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele
+   * estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+   */
+  function statesSection() {
+    const base = store.get(ids()[0]);
+    const cur = ui.editState || '';
+    const tabs = [['', 'Normal', ''], ...STATE_LIST];
+    const seg = h('div.segmented.wide.states', tabs.map(([k, label]) => tip(
+      h('button.seg-btn.wide' + (cur === k ? '.on' : ''), {
+        type: 'button',
+        onclick: () => { ui.editState = k || null; lastSig = null; store.emit('doc'); },
+      }, label, k && hasStates(base, k) ? h('span.dot-on') : null), STATE_DOC[k])));
+    const body = [seg];
+    if (cur) {
+      const [, label, pseudo] = STATE_LIST.find(([k]) => k === cur);
+      body.push(h('p.hint', `Editando "${label}": só o que você mudar aqui vira regra ${pseudo} no CSS. Tamanho, posição e layout não mudam com o mouse.`));
+      if (hasStates(base, cur)) {
+        body.push(h('button.btn', { type: 'button', onclick: () => {
+          store.update(() => nodes().forEach((n) => {
+            if (!n.states) return;
+            const s = { ...n.states }; delete s[cur];
+            if (Object.keys(s).length) n.states = s; else delete n.states;
+          }), { structural: false });
+          commit();
+        } }, ico('x', 13), ' Limpar este estado'));
+      }
+    } else {
+      body.push(row(
+        capK('Duração', 'transition', num('ms', () => P().transition?.duration ?? 0, (v) => each((n) => {
+          if (v > 0) n.transition = { duration: Math.round(v), easing: n.transition?.easing || 'ease' }; else delete n.transition;
+        }), { min: 0, max: 5000, step: 50, decimals: 0 })),
+        capK('Curva', 'transition', select(EASINGS, () => P().transition?.easing || 'ease', (v) => each((n) => {
+          if (n.transition) n.transition = { ...n.transition, easing: v };
+        }), 'transition-timing-function'))),
+      capK('Cursor', 'cursor', select(CURSORS, () => P().cursor || '', (v) => each((n) => { if (v) n.cursor = v; else delete n.cursor; }), 'cursor')));
+    }
+    return section('Estados', body);
+  }
+
+  /** Escala do estado (`transform: scale()`): só existe dentro de um estado. */
+  function stateScaleBlock() {
+    return section('Transformação', [capK('Escala', 'transform', num('×', () => P().scale ?? 1, (v) => each((n) => { n.scale = v; }), { min: 0.1, max: 3, step: 0.01, decimals: 2 }))]);
+  }
 
   /**
    * "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores
@@ -1113,6 +1176,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
       n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
+      ui.editState, n.states ? Object.keys(n.states).join() : '', n.transition?.duration > 0,
       marginExpanded, n.margin && (n.margin[0] !== n.margin[2] || n.margin[1] !== n.margin[3]), n.fx && Object.keys(n.fx).length,
       !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
@@ -1141,6 +1205,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         const canComp = one && ['frame', 'group', 'rect', 'ellipse'].includes(n.type);
         const isComp = !!(n.component || n.instanceOf);
         const parts = [];
+        if (ui.editState && canHaveStates(n)) {
+          // modo ESTADO: só o que um estado pode mudar (aparência, escala, preenchimento, contorno, efeitos)
+          parts.push(statesSection(), appearanceSection(), stateScaleBlock(), fillSection(), strokeSection(), effectsSection());
+          el.replaceChildren(...parts);
+          updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
+          return;
+        }
         if (canComp && isComp) parts.push(componentSection());
         parts.push(positionSection(), sizeSection());
         if (one && hasLayout(parent)) parts.push(flowItemSection());
@@ -1152,6 +1223,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
         if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
         if (n.type !== 'section') parts.push(effectsSection());
+        if (canHaveStates(n)) parts.push(statesSection());
         if (canComp && !isComp) parts.push(componentSection());
         parts.push(exportSection());
         el.replaceChildren(...parts);
@@ -1163,6 +1235,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       try { u(); } catch (err) { console.error('[painel Design]', err); }
     }
   }
+
+  // trocar de seleção SAI do modo estado (o estado em edição pertence à camada que estava selecionada)
+  let lastSelKey = '';
+  store.subscribe((reasons) => {
+    if (!reasons.has('selection')) return;
+    const key = ui.selection.join(',');
+    if (key === lastSelKey) return;
+    lastSelKey = key;
+    if (ui.editState) { ui.editState = null; lastSig = null; store.emit('doc'); }
+  });
 
   // atualiza quando o documento, a seleção ou o histórico (desfazer) mudam
   store.subscribe((reasons) => {

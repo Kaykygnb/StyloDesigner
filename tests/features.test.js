@@ -326,3 +326,15 @@ test('margem do filho é sobrescrita na instância; margem da raiz é da própri
   assert.deepEqual(inst.children[0].margin, [10, 10, 10, 10]); // sobrescrita preservada
   assert.deepEqual(inst.margin, [99, 99, 99, 99]); // margem da raiz não é sobrescrita pelo principal
 });
+
+test('estados, transição e cursor sincronizam do principal para as instâncias', () => {
+  const main = createNode('frame', { name: 'Card', w: 200, h: 100, transition: { duration: 200, easing: 'ease' }, cursor: 'pointer', states: { hover: { opacity: 0.8 } } });
+  makeComponent(main);
+  const pages = [{ children: [main] }];
+  const inst = createInstance(main, pages);
+  assert.deepEqual(inst.states, { hover: { opacity: 0.8 } });
+  assert.equal(inst.cursor, 'pointer');
+  main.states = { hover: { opacity: 0.5 } };
+  syncInstances(pages.concat([{ children: [inst] }]));
+  assert.deepEqual(inst.states, { hover: { opacity: 0.5 } });
+});

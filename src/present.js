@@ -8,7 +8,7 @@
  */
 
 import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { isBoard, walk } from './model.js';
+import { hasStates, isBoard, stateView, walk } from './model.js';
 
 /**
  * Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave`
@@ -30,6 +30,35 @@ export const TRANSITION_OPTIONS = [
 ];
 
 /**
+ * Liga os ESTADOS (hover, pressionado, foco) de uma camada ao elemento da apresentação: ao entrar/sair/pressionar,
+ * troca o estilo inline pelo da visão correspondente (o `transition` do próprio estilo anima a troca). Pressionado vale
+ * em cima do hover, como a cascata do CSS.
+ */
+function attachStates(el, node, parent, assets, isRoot) {
+  if (!hasStates(node)) return;
+  const css = (states) => toCssText(nodeStyle(stateView(node, states), parent, assets, { root: isRoot }));
+  const keep = el.style.cursor; // o cursor de "tem interação" sobrevive às trocas
+  let hover = false, down = false, focus = false;
+  const apply = () => {
+    const list = [];
+    if (hover && hasStates(node, 'hover')) list.push('hover');
+    if (focus && hasStates(node, 'focus')) list.push('focus');
+    if (down && hasStates(node, 'active')) list.push('active');
+    el.style.cssText = css(list);
+    if (keep) el.style.cursor = keep;
+  };
+  el.addEventListener('pointerenter', () => { hover = true; apply(); });
+  el.addEventListener('pointerleave', () => { hover = false; down = false; apply(); });
+  el.addEventListener('pointerdown', () => { down = true; apply(); });
+  el.addEventListener('pointerup', () => { if (down) { down = false; apply(); } });
+  if (hasStates(node, 'focus')) {
+    el.tabIndex = 0;
+    el.addEventListener('focus', () => { focus = true; apply(); });
+    el.addEventListener('blur', () => { focus = false; apply(); });
+  }
+}
+
+/**
  * Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO
  * `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão;
  * `data-id` permite achar a camada (e suas interações) no clique.
@@ -39,6 +68,7 @@ function buildDom(node, parent, assets, isRoot) {
   el.dataset.id = node.id;
   el.style.cssText = toCssText(nodeStyle(node, parent, assets, { root: isRoot }));
   if (node.interactions?.length) el.style.cursor = 'pointer';
+  attachStates(el, node, parent, assets, isRoot);
   if (node.type === 'text') el.textContent = node.text;
   else if (node.type === 'path') el.innerHTML = pathSvg(node, assets);
   else node.children?.forEach((c) => c.visible && el.append(buildDom(c, node, assets, false)));

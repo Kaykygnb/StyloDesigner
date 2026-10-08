@@ -576,6 +576,11 @@ details.size-limits > summary:hover { color: var(--text); }
 details.size-limits > summary .ico { transition: transform .15s; }
 details.size-limits[open] > summary .ico { transform: rotate(90deg); }
 .dot-on { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 2px; }
+/* seletor de estados: Normal · Hover · Pressionado · Foco */
+.segmented.wide .seg-btn.wide { white-space: nowrap; }
+.segmented.states { width: 100%; }
+.segmented.states .seg-btn.wide { flex: 1 1 auto; min-width: 0; padding: 0 6px; font-size: 11px; } /* 4 abas cabem até em painel estreito */
+.seg-btn.wide .dot-on { margin-left: 5px; }
 /* barra da caneta: encaixe na grade e atalhos, acima da barra de ferramentas */
 .pen-bar {
   position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 12px;
