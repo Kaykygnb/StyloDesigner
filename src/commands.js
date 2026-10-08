@@ -807,6 +807,11 @@ export function createCommands(store, canvas) {
     store.commit();
     return st;
   }
+  /** Cria vários estilos de cor de uma vez (ex.: a partir de uma paleta): [{ name, color }]. Um único passo de desfazer. */
+  function addColorStyles(items) {
+    for (const { name, color } of items) store.state.doc.styles.colors.push({ id: uid(), name, color, opacity: 1 });
+    store.commit();
+  }
   /** Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele. */
   function addTextStyle(node, name) {
     const st = { id: uid(), name: name || `Texto ${store.state.doc.styles.texts.length + 1}`, ...textStyleFrom(node) };
@@ -982,7 +987,7 @@ export function createCommands(store, canvas) {
     insertSvg, placeNew,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
-    localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addTextStyle, removeStyle,
+    localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle, removeStyle,
     addGuide, removeGuide, addPathFromWorld, updatePathFromWorld, newIcon, normalizePath, addShapePath, syncInstances,
     notify: null, // função de aviso (toast); main.js liga
   };

@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, tagOf } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
@@ -625,6 +625,12 @@ function makeClassNamer() {
   };
 }
 
+/** Texto da nota da camada pronto para virar comentário (uma linha, sem "--" que fecharia o comentário); '' se não vai ao código. */
+export const noteComment = (node) => {
+  if (!node.note || node.noteInCode === false) return '';
+  return String(node.note).trim().replace(/\s*\n\s*/g, ' ').replace(/-{2,}/g, '–');
+};
+
 /** Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado. */
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -667,16 +673,27 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     const pad = '  '.repeat(depth);
     // elemento que tem estado de foco precisa poder receber foco pelo teclado
     const focusable = node.states?.focus && Object.keys(node.states.focus).length ? ' tabindex="0"' : '';
+    // etiqueta escolhida no painel (HTML) e seus atributos: link, tipo de botão, descrição para leitor de tela
+    const tag = tagOf(node);
+    const hasKids = node.type !== 'text' && node.type !== 'path' && (node.children || []).length > 0;
+    const attrs = ` class="${cls}"`
+      + (tag === 'a' ? ` href="${escapeHtml(node.href || '#')}"` : '')
+      + (tag === 'button' ? ' type="button"' : '')
+      + (node.alt ? ` aria-label="${escapeHtml(node.alt)}"` : '')
+      + (node.alt && node.type !== 'text' && !hasKids ? ' role="img"' : '')
+      + focusable;
+    // a NOTA da camada vira comentário no código (a menos que a pessoa tenha desligado)
+    const note = noteComment(node);
+    const noteHtml = note ? `${pad}<!-- ${note} -->\n` : '';
     if (node.type === 'text') {
-      return `${pad}<p class="${cls}"${focusable}>${escapeHtml(node.text)}</p>`;
+      return `${noteHtml}${pad}<${tag}${attrs}>${escapeHtml(node.text)}</${tag}>`;
     }
     if (node.type === 'path') {
-      return `${pad}<div class="${cls}"${focusable}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</div>`;
+      return `${noteHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
     }
     const kids = (node.children || []).map((c) => build(c, node, depth + 1, false)).filter(Boolean);
-    const tag = node.type === 'section' ? 'section' : 'div';
-    if (!kids.length) return `${pad}<${tag} class="${cls}"${focusable}></${tag}>`;
-    return `${pad}<${tag} class="${cls}"${focusable}>\n${kids.join('\n')}\n${pad}</${tag}>`;
+    if (!kids.length) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
+    return `${noteHtml}${pad}<${tag}${attrs}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
   return { html, css: rules.join('\n\n'), tokens: [...tokens] };

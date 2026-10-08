@@ -124,7 +124,7 @@ try {
   ok('painel Ícones lista milhares de ícones', (await p.locator('.gicon-panel .hint').first().innerText()).includes('4'));
   await p.fill('.gicon-search input', 'carrinho');
   await p.waitForTimeout(300);
-  ok('busca em português ("carrinho") encontra shopping_cart', (await p.locator('.gicon').first().getAttribute('title')) === 'shopping cart');
+  ok('busca em português ("carrinho") encontra shopping_cart', (await p.locator('.gicon').first().getAttribute('data-tip-title')) === 'shopping cart');
   await p.locator('.icon-color').evaluate((el) => { el.value = '#ff0066'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await p.fill('.gicon-options input[type=number]', '64');
   await p.locator('.gicon-options input[type=number]').dispatchEvent('change');
@@ -154,7 +154,7 @@ try {
   const t = await ev(() => { const s = designer.store.selected()[0]; return { f: s.fontFamily, w: s.fontWeight }; });
   ok('Enter aplica a fonte e ajusta o peso para um que ela tem (700 → 400)', t.f === 'Lobster' && t.w === 400, JSON.stringify(t));
   ok('fonte baixada do Google e pronta', await ev(() => document.fonts.check("32px 'Lobster'")));
-  ok('lista de pesos mostra só os da fonte', (await p.locator('#right select[title="font-weight"] option').allInnerTexts()).join() === 'Regular (400)');
+  ok('lista de pesos mostra só os da fonte', (await p.locator('#right select[aria-label="font-weight"] option').allInnerTexts()).join() === 'Regular (400)');
   ok('canvas desenha o texto em Lobster', await ev(() => getComputedStyle(designer.canvas.els.get(designer.store.selected()[0].id)).fontFamily.includes('Lobster')));
   const html = await ev(async () => { const { exportHtml } = await import('/src/css.js'); return exportHtml(designer.store.selected()[0], {}); });
   ok('HTML exportado leva o <link> do Google Fonts', html.includes('https://fonts.googleapis.com/css2?family=Lobster'));

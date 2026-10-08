@@ -910,13 +910,21 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); fon
 
 /* ============================================================ dicas ricas (título + CSS + explicação) */
 .rich-tip {
-  position: fixed; z-index: 1000; max-width: 270px; padding: 12px 14px; border-radius: 12px; pointer-events: none;
-  background: var(--panel-3); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .15);
-  opacity: 0; transform: translateY(3px) scale(.98); transition: opacity .14s, transform .14s;
+  position: fixed; z-index: 1000; max-width: 280px; min-width: 120px; padding: 11px 14px 12px; border-radius: 12px; pointer-events: none;
+  background: var(--panel-3); border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .38), 0 2px 6px rgba(0, 0, 0, .2);
+  opacity: 0; transform: translateY(4px) scale(.97); transition: opacity .15s, transform .15s;
+  overflow: hidden;
 }
+.rich-tip::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--accent), var(--accent-2)); }
 .rich-tip.show { opacity: 1; transform: none; }
-.tip-title { font-weight: 700; font-size: 12.5px; color: var(--text); margin-bottom: 8px; }
+.tip-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 650; font-size: 12.5px; line-height: 1.3; color: var(--text); }
+.tip-title + .tip-code-label, .tip-title + .tip-text { margin-top: 8px; }
+.tip-key {
+  flex: none; font: 600 10.5px var(--mono); padding: 2px 6px; border-radius: 6px; color: var(--muted);
+  background: color-mix(in srgb, var(--text) 8%, transparent); border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+}
+.tip-code-label { font: 700 9px var(--mono); letter-spacing: .12em; color: var(--accent); opacity: .8; margin: 0 0 4px 2px; }
 .tip-code {
   font: 500 11px/1.6 var(--mono); padding: 8px 10px; margin-bottom: 8px; border-radius: 8px; white-space: pre-wrap;
   background: color-mix(in srgb, #000 28%, var(--panel)); color: var(--text);
@@ -1011,3 +1019,64 @@ button.al-code-head:hover { color: var(--text); }
 .notice > div span { font-size: 11px; }
 /* Indicador de salvo no topo: pílula discreta */
 .save-state { border-radius: 99px; padding: 5px 11px; background: color-mix(in srgb, var(--panel-2) 60%, transparent); }
+
+/* ============================================================ painel Design: cabeçalho da seleção, seções recolhíveis, explicações, nota */
+.design-panel .sel-head { padding: 14px 16px 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); display: flex; flex-direction: column; gap: 10px; }
+.sel-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sel-ico {
+  flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 14%, transparent));
+}
+.sel-info { flex: 1; min-width: 0; }
+.sel-name { font-weight: 650; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-sub { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.sel-tag { font: 600 10.5px var(--mono); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 1px 6px; border-radius: 6px; cursor: help; }
+.sel-actions { display: flex; gap: 2px; flex: none; }
+.explain-btn {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px 5px 9px; border-radius: 99px; cursor: pointer;
+  font: 600 11px var(--font, inherit); color: var(--muted); background: transparent; border: 1px dashed color-mix(in srgb, var(--muted) 45%, transparent);
+  transition: all .15s;
+}
+.explain-btn:hover { color: var(--text); border-color: var(--accent); }
+.explain-btn.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* seção: cabeçalho clicável (recolhe/abre), ícone, explicação opcional */
+.design-panel .section-head { cursor: pointer; user-select: none; border-radius: 8px; margin: -4px -6px 8px; padding: 4px 6px; transition: background .12s; }
+.design-panel .section-head:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.sh-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.sh-ico { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); flex: none; }
+.sh-right { display: inline-flex; align-items: center; gap: 4px; }
+.sh-chev { display: inline-grid; place-items: center; color: var(--muted); transition: transform .18s; transform: rotate(90deg); }
+.panel-section.collapsed .sh-chev { transform: none; }
+.panel-section.collapsed .section-body, .panel-section.collapsed .section-help { display: none; }
+.panel-section.collapsed { padding-bottom: 8px; }
+.panel-section.collapsed .section-head { margin-bottom: 0; }
+.section-help { display: none; margin: 0 0 12px; padding: 8px 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted); border-radius: 8px; background: color-mix(in srgb, var(--accent) 7%, transparent); border-left: 2px solid var(--accent); }
+.design-panel.explain .section-help { display: block; }
+.note-input {
+  width: 100%; resize: vertical; min-height: 64px; padding: 9px 11px; font: 12.5px/1.5 inherit; color: var(--text); border-radius: 10px;
+  background: var(--panel-2); border: 1px solid transparent; outline: none; box-sizing: border-box;
+}
+.note-input:focus { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--panel-2)); }
+.layer-note { display: inline-flex; align-items: center; margin-left: 6px; color: var(--accent-2, var(--accent)); opacity: .9; flex: none; cursor: help; }
+
+/* paletas próprias: no seletor de cor e na aba Recursos */
+.cp-group-title { display: flex; align-items: center; justify-content: space-between; }
+.cp-add { width: 20px; height: 20px; border-radius: 6px; border: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); background: transparent; color: var(--muted); font: 600 13px/1 inherit; cursor: pointer; padding: 0; }
+.cp-add:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.cp-empty { font-size: 11px; color: var(--muted); padding: 2px 0 4px; }
+.cp-newpal { width: 100%; margin: 4px 0 8px; padding: 7px 10px; border-radius: 9px; cursor: pointer; font: 600 11.5px inherit; color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.cp-newpal:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.pal-card { padding: 10px 10px 11px; border-radius: 12px; background: var(--panel-2); display: flex; flex-direction: column; gap: 9px; }
+.pal-head { display: flex; align-items: center; gap: 6px; }
+.pal-name { flex: 1; min-width: 0; font-weight: 650; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-count { font: 500 10.5px var(--mono); color: var(--muted); }
+.pal-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pal-chip { position: relative; width: 24px; height: 24px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); cursor: pointer; padding: 0; transition: transform .1s; }
+.pal-chip:hover { transform: scale(1.12); z-index: 1; }
+.pal-chip .pal-x { display: none; position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%; place-items: center; background: var(--panel-3); color: var(--text); border: 1px solid var(--border); font-size: 9px; line-height: 1; }
+.pal-chip:hover .pal-x { display: grid; }
+.pal-add-chip { width: 24px; height: 24px; border-radius: 8px; border: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); background: transparent; color: var(--muted); cursor: pointer; padding: 0; display: grid; place-items: center; }
+.pal-add-chip:hover { color: var(--accent); border-color: var(--accent); }
+.pal-bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; }
+.pal-bar i { flex: 1; }

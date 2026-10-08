@@ -63,6 +63,19 @@ export const BLEND_MODES = [
 ];
 
 /**
+ * Etiquetas HTML que a camada pode virar no código exportado (campo opcional `tag`). A lista é FECHADA de propósito:
+ * o valor vai para o HTML gerado, então só entram nomes conhecidos e seguros.
+ */
+export const TEXT_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'a', 'label', 'li', 'button'];
+export const BOX_TAGS = ['div', 'section', 'header', 'footer', 'nav', 'main', 'aside', 'article', 'ul', 'ol', 'li', 'button', 'a', 'form'];
+/** Etiqueta HTML efetiva da camada: a escolhida (se válida) ou a padrão (p para texto, section para seção, div para o resto). */
+export function tagOf(node) {
+  const list = node.type === 'text' ? TEXT_TAGS : BOX_TAGS;
+  if (list.includes(node.tag)) return node.tag;
+  return node.type === 'text' ? 'p' : node.type === 'section' ? 'section' : 'div';
+}
+
+/**
  * Nome padrão (em português) de cada tipo de camada. Usado para nomear camadas novas
  * ("Retângulo 3") e como fallback na lista de camadas.
  */

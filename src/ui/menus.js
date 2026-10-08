@@ -107,6 +107,14 @@ export function contextMenuItems({ store, commands, tools }) {
         store.emit('overlay');
       },
     },
+    {
+      label: n?.note ? 'Editar nota' : 'Adicionar nota', icon: 'file', disabled: sel.length !== 1,
+      onClick: () => {
+        store.ui.focusNote = true;
+        store.ui.setRightTab?.('design');
+        store.emit('selection');
+      },
+    },
     'sep',
     { label: 'Agrupar', hint: `${mod}+G`, icon: 'group', disabled: !has, onClick: () => commands.group() },
     { label: 'Desagrupar', hint: `${mod}+⇧+G`, disabled: !sel.some((s) => s.type === 'group'), onClick: () => commands.ungroup() },

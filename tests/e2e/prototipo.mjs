@@ -24,7 +24,7 @@ const ids = await ev(async () => {
   return { a: a.id, b: b.id, btn: btn.id, back: back.id };
 });
 await page.click('.tab:has-text("Protótipo")');
-await page.click('button[title="Adicionar interação"]');
+await page.click('button[aria-label="Adicionar interação"]');
 await page.waitForTimeout(150);
 const selects = page.locator('.proto-panel select');
 ok('painel mostra selects da interação', (await selects.count()) >= 4, String(await selects.count()));

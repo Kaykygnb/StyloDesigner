@@ -9,6 +9,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
+import { getPalettes, onPalettes, changePalette, createPalette, addColor as addToPalette } from '../palettes.js';
 import { icon } from './icons.js';
 import { rgba, hexToRgb } from '../css.js';
 
@@ -210,9 +211,10 @@ function showTip(target) {
   if (!tipBox) { tipBox = h('div.rich-tip', { role: 'tooltip' }); document.body.append(tipBox); }
   const d = target.dataset;
   const parts = [];
-  if (d.tipTitle) parts.push(h('div.tip-title', d.tipTitle));
+  if (d.tipTitle) parts.push(h('div.tip-title', h('span', d.tipTitle), d.tipKey ? h('kbd.tip-key', d.tipKey) : null));
   if (d.tipCss) {
     // cada linha "prop: valor;" vira "prop" colorida + valor, como num editor de código
+    parts.push(h('div.tip-code-label', 'CSS'));
     parts.push(h('div.tip-code', d.tipCss.split('\n').map((line) => {
       const i = line.indexOf(':');
       return i < 0 ? h('div', line) : h('div', h('span.tip-prop', line.slice(0, i)), ':', h('span.tip-val', line.slice(i + 1)));
@@ -225,11 +227,21 @@ function showTip(target) {
   tipBox.classList.add('show');
   const r = target.getBoundingClientRect();
   const w = tipBox.offsetWidth, hh = tipBox.offsetHeight, gap = 12, m = 8;
-  let x = r.left - w - gap;
-  let below = false;
-  if (x < m) x = r.right + gap; // sem espaço à esquerda: tenta à direita
-  if (x + w > innerWidth - m) { x = Math.max(m, Math.min(r.left, innerWidth - w - m)); below = true; } // nenhum: embaixo
-  let y = below ? r.bottom + gap : r.top + r.height / 2 - hh / 2;
+  // lado preferido: painel direito → à esquerda; painel esquerdo → à direita; barra de ferramentas → em cima; resto → embaixo
+  const side = target.closest('#right') ? 'left' : target.closest('#left') ? 'right' : target.closest('#toolbar') ? 'top' : 'bottom';
+  let x, y;
+  if (side === 'left' || side === 'right') {
+    x = side === 'left' ? r.left - w - gap : r.right + gap;
+    if (x < m) x = r.right + gap;
+    if (x + w > innerWidth - m) x = r.left - w - gap;
+    y = r.top + r.height / 2 - hh / 2;
+  } else {
+    x = r.left + r.width / 2 - w / 2;
+    y = side === 'top' ? r.top - hh - gap : r.bottom + gap;
+    if (side === 'top' && y < m) y = r.bottom + gap;
+    if (side === 'bottom' && y + hh > innerHeight - m) y = r.top - hh - gap;
+  }
+  x = Math.max(m, Math.min(x, innerWidth - w - m));
   y = Math.max(m, Math.min(y, innerHeight - hh - m));
   tipBox.style.left = `${Math.round(x)}px`;
   tipBox.style.top = `${Math.round(y)}px`;
@@ -261,7 +273,7 @@ function installTips() {
  * @param {{title: string, css?: string, text?: string}} doc  título, CSS (uma declaração por linha) e explicação
  * @returns {HTMLElement} o próprio `el` (para usar inline)
  */
-export function tip(el, { title, css = '', text = '' }) {
+export function tip(el, { title, css = '', text = '', key = '' }) {
   installTips();
   // o title nativo some (a dica rica o substitui), mas o texto vira aria-label: leitor de tela e seletores não o perdem
   const strip = (c) => {
@@ -271,9 +283,41 @@ export function tip(el, { title, css = '', text = '' }) {
   strip(el);
   el.querySelectorAll('[title]').forEach(strip);
   el.dataset.tipTitle = title;
+  if (key) el.dataset.tipKey = key; else delete el.dataset.tipKey;
   if (css) el.dataset.tipCss = css; else delete el.dataset.tipCss;
   if (text) el.dataset.tipText = text; else delete el.dataset.tipText;
   return el;
+}
+
+/**
+ * Dicas bonitas em TUDO: todo elemento com `title` (já existente ou criado depois) vira uma dica rica, no mesmo estilo,
+ * em vez da bolha cinza do navegador. "Nome (Ctrl+Z)" mostra o atalho como tecla. Elementos que já têm dica rica
+ * (data-tip-title) ficam como estão.
+ */
+const SHORTCUT = /^(.*?)\s*\(((?:(?:Ctrl|Shift|Alt|Cmd)\s*\+\s*)+[^()]+|[A-Z0-9?[\]\/.,;'=-]|Esc|Enter|Delete|Tab|Espaço)\)$/;
+export function installAutoTips(root = document.body) {
+  const convert = (el) => {
+    const t = el.getAttribute?.('title');
+    if (!t || el.dataset.tipTitle) return;
+    const m = SHORTCUT.exec(t);
+    tip(el, m ? { title: m[1], key: m[2] } : { title: t });
+  };
+  const scan = (node) => {
+    if (node.nodeType !== 1) return;
+    convert(node);
+    node.querySelectorAll?.('[title]').forEach(convert);
+  };
+  scan(root);
+  new MutationObserver((list) => {
+    for (const m of list) {
+      if (m.type === 'attributes') {
+        // título novo num elemento que já tinha dica: atualiza o texto da dica
+        const el = m.target, t = el.getAttribute('title');
+        if (t && el.dataset.tipTitle) delete el.dataset.tipTitle;
+        convert(el);
+      } else m.addedNodes.forEach(scan);
+    }
+  }).observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
 }
 
 /** Botão só com ícone. `cls` opcional ('small', 'on'...). */
@@ -363,8 +407,22 @@ function openColorPicker({ anchor, get, set, commit, groups }) {
   /** Escolhe uma cor pronta (chip): atualiza HSV, aplica e grava. */
   const pick = (c) => { hsv = rgb2hsv(hexToRgb(c)); apply(); commit?.(); };
   const chip = (c) => h('button.chip', { type: 'button', title: c, 'aria-label': c, style: { background: c }, onclick: () => pick(c) });
-  const all = [...(groups?.() || []), ...PALETTES.map(([title, colors]) => ({ title, colors }))].filter((g) => g.colors.length);
-  chipBox.append(...all.map((g) => h('div.cp-group', h('div.cp-group-title', g.title), h('div.color-chips', g.colors.map(chip)))));
+  // grupos: as do projeto, as paletas PRÓPRIAS (com "+" para guardar a cor atual) e as paletas prontas
+  const current = () => toHex(hsv2rgb(hsv));
+  const renderGroups = () => {
+    const mine = getPalettes();
+    const parts = (groups?.() || []).filter((g) => g.colors.length)
+      .map((g) => h('div.cp-group', h('div.cp-group-title', g.title), h('div.color-chips', g.colors.map(chip))));
+    parts.push(...mine.map((p) => h('div.cp-group.mine',
+      h('div.cp-group-title', h('span', p.name),
+        h('button.cp-add', { type: 'button', title: 'Guardar a cor atual nesta paleta', 'aria-label': `Guardar a cor atual em ${p.name}`, onclick: () => changePalette(p.id, (x) => addToPalette(x, current())) }, '+')),
+      p.colors.length ? h('div.color-chips', p.colors.map(chip)) : h('div.cp-empty', 'Vazia: use o + para guardar a cor atual'))));
+    parts.push(h('button.cp-newpal', { type: 'button', onclick: () => createPalette(`Paleta ${mine.length + 1}`, [current()]) }, '+ Nova paleta com esta cor'));
+    parts.push(...PALETTES.map(([title, colors]) => h('div.cp-group', h('div.cp-group-title', title), h('div.color-chips', colors.map(chip)))));
+    chipBox.replaceChildren(...parts);
+  };
+  renderGroups();
+  const offPalettes = onPalettes(renderGroups);
 
   hex.addEventListener('input', () => {
     const v = '#' + hex.value.replace('#', '').trim();
@@ -397,6 +455,7 @@ function openColorPicker({ anchor, get, set, commit, groups }) {
   const watch = setInterval(() => { if (!anchor.isConnected) close(); }, 250);
   function close() {
     clearInterval(watch);
+    offPalettes();
     window.removeEventListener('pointerdown', off, true);
     window.removeEventListener('keydown', esc, true);
     pop.remove();

@@ -27,7 +27,7 @@ import { createIconsPanel } from './ui/googleicons.js';
 import { ensureFonts, usedFonts } from './fonts.js';
 import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
-import { h, ico, iconButton, tip } from './ui/dom.js';
+import { h, ico, iconButton, tip, installAutoTips } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleApp } from './sample.js';
 import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
@@ -56,6 +56,7 @@ function toast(msg) {
 // ---------------------------------------------------------------- salvamento + store
 // PREFERÊNCIAS DE INTERFACE (largura dos painéis, auto-salvar na pasta, roda do mouse), guardadas à parte do
 // projeto: mudar o layout não "suja" o documento
+installAutoTips(); // todo title="..." vira dica rica (mesmo estilo em tudo)
 const prefs = loadPrefs();
 /** Grava as preferências (falhas silenciosas: é só conveniência). */
 const savePrefs = () => writePrefs(prefs);
@@ -110,7 +111,7 @@ const assetsBox = h('div.left-body');
 const iconsBox = h('div.left-body');
 // o painel de ícones só é montado na 1ª vez que a aba abre (são milhares de nomes; não precisa no início)
 let iconsPanel = null;
-const assets = createAssetsPanel({ store, commands, canvas, container: assetsBox });
+const assets = createAssetsPanel({ store, commands, canvas, container: assetsBox, toast });
 createLayersPanel({ store, commands, container: layersBox });
 const ltLayers = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('layers') }, ico('layers', 14), ' Camadas');
 const ltAssets = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('assets') }, ico('component', 14), ' Recursos');

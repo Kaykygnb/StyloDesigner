@@ -43,8 +43,8 @@ ok('padding horizontal define esquerda e direita', lay[1] === 30 && lay[3] === 3
 // ---- texto: transform e alinhamento vertical
 await ev(async () => { const m = await import('/src/model.js'); const s = designer.store; s.newDoc(); const t = m.createNode('text', { x: 50, y: 50, text: 'olá mundo', sizeX: 'fixed', sizeY: 'fixed', w: 200, h: 100 }); s.update((pg) => pg.children.push(t), { commit: true }); s.setSelection([t.id]); });
 await p.waitForTimeout(200);
-await p.locator('select[title="text-transform"]').selectOption('uppercase');
-await p.click('.seg-btn[title="Centralizar na vertical"]');
+await p.locator('select[aria-label="text-transform"]').selectOption('uppercase');
+await p.click('.seg-btn[aria-label="Centralizar na vertical"]');
 const tcss = await ev(() => { const el = designer.canvas.els.get(designer.store.page().children[0].id); const cs = getComputedStyle(el); return [cs.textTransform, cs.display, cs.alignContent]; });
 ok('texto: uppercase + centralizado na vertical (grid)', tcss[0] === 'uppercase' && tcss[1] === 'grid' && tcss[2] === 'center', JSON.stringify(tcss));
 

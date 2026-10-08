@@ -73,6 +73,15 @@ A aba **Código** mostra o CSS e o HTML da seleção (ou da página inteira). É
 ### Estados, transições e variáveis de CSS
 Cada camada tem **Normal · Hover · Pressionado · Foco**: escolha um estado e edite só o que muda (cor, contorno, sombras, filtros, escala...). Isso vira `.botao:hover`, `:active` e `:focus-visible` no CSS, mais `transition` e `cursor`, e funciona no modo Apresentar. Os **estilos de cor** viram variáveis de CSS (`:root { --cor-primaria: #7c5cff; }` e `var(--cor-primaria)`) no código, no HTML e no PNG exportados.
 
+### Painel Design que explica o CSS
+Cada seção tem **ícone, título que recolhe/abre** e uma **explicação em português simples** (botão **Explicações** no topo liga e desliga). O cabeçalho mostra qual camada está selecionada e **a etiqueta HTML** que ela vira. Todo campo mostra o **nome do CSS** ao lado da legenda (`opacity`, `border-radius`, `left · top`...) e, ao passar o mouse, uma **dica rica**: título, o CSS de exemplo e o que ele faz. A mesma dica bonita vale para **todos os botões do app** (os atalhos aparecem como teclas).
+
+### Notas e HTML semântico
+**Nota** = uma anotação sua sobre *para que serve* a camada ("Botão principal da home, leva ao checkout"). Botão direito → **Adicionar nota** (ou a seção Nota no painel). A camada ganha um selo na lista e a nota sai como **comentário no HTML gerado** (dá para desligar). É diferente do **Comentário**, que é uma conversa entre pessoas com "resolver". A seção **HTML** escolhe a etiqueta (`button`, `a`, `h1`, `header`, `nav`...), o endereço do link e a descrição para leitor de tela (`aria-label`).
+
+### Paletas de cor próprias
+Na aba **Recursos → Paletas**: crie paletas (vazias, das cores da seleção, das cores do projeto ou colando uma lista), clique numa cor para pintar (Shift+clique pinta o contorno), copie como **variáveis CSS** ou transforme em **estilos de cor** do projeto. Ficam salvas no navegador e aparecem no **seletor de cor** de qualquer projeto, com um **+** para guardar a cor atual.
+
 ### Comentários nas camadas
 Anote o que precisa mudar direto na camada: ferramenta **Comentar** (`C`), botão direito → Comentar, ou a aba Comentários. Pinos no canvas, respostas, resolver/reabrir, selo com o número de abertos. Os comentários ficam **dentro do projeto** (entram no desfazer e nas versões).
 
@@ -399,6 +408,7 @@ projetodesigner2/
 │   ├── thumbnail.js        Miniatura SVG da página (para a página inicial)
 │   ├── components.js       Componentes, instâncias e estilos (puro)
 │   ├── comments.js         Comentários nas camadas: criar, responder, resolver, podar (puro)
+│   ├── palettes.js         Paletas de cor próprias: criar, ler cores de um texto, cores do projeto, CSS (puro + localStorage)
 │   ├── canvas.js           Desenha o documento em HTML; pan, zoom e geometria
 │   ├── overlay.js          Seleção, alças, guias, medidas, setas
 │   ├── tools.js            Mouse e teclado: todos os gestos e atalhos
@@ -434,7 +444,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 96 testes
+npm test      # 110 testes
 ```
 
 ### Testes de navegador
@@ -443,7 +453,7 @@ Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimen
 ```bash
 npm install && npx playwright install chromium
 npm start                 # em outro terminal
-npm run test:e2e          # as 18 suítes (≈ 330 verificações); sai com erro se alguma falhar
+npm run test:e2e          # as 19 suítes (≈ 370 verificações); sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](tests/e2e/README.md).

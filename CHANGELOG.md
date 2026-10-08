@@ -6,6 +6,23 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.12.0] — 2026-10-08 — Painel Design explicativo, notas, HTML semântico e paletas
+
+### Adicionado
+- **Painel Design que explica**: cada seção ganhou ícone, cabeçalho clicável que **recolhe/abre** (lembrado) e uma explicação curta em português simples; o botão **Explicações** (topo do painel) liga/desliga esses textos. Novo **cabeçalho da seleção** com ícone, nome, tipo, a etiqueta HTML (`<div>`) e atalhos para ocultar/travar.
+- **Todos os campos com legenda + nome do CSS + dica rica**: posição (`left · top`), dimensões, modo de largura/altura (fixo/hug/fill), rotação, restrições, opacidade, mesclagem, cantos, fonte, peso, tamanho, altura da linha, espaçamento, alinhamento e caixa do texto, tipo de preenchimento, contorno (espessura, estilo, posição, extremidade, quina, lados) e sombras (deslocamento X/Y, desfoque, espalhar).
+- **Empilhamento** (`z-index`): botões trazer para frente / avançar / recuar / enviar para trás na seção Posição.
+- **Dicas bonitas em tudo**: todo `title` do app vira a mesma dica rica (barra de destaque, atalho como tecla, posição inteligente: à esquerda no painel direito, à direita no esquerdo, em cima na barra de ferramentas).
+- **Nota na camada** (`node.note`): seção **Nota** (recolhida enquanto vazia), menu de contexto **Adicionar/Editar nota**, selo na lista de camadas (com a nota na dica) e **comentário `<!-- ... -->` no HTML gerado** (opção "Incluir no código"). Não é herdada por instâncias.
+- **Seção HTML**: etiqueta da camada (`div`, `section`, `header`, `nav`, `button`, `a`, `h1`–`h6`, `p`, `ul`, `li`...; lista fechada e validada), `href` para links e descrição (`aria-label`, com `role="img"` em camadas sem filhos). Sincroniza com componentes (`tag`, `href`, `alt`).
+- **Paletas de cor próprias** (`palettes.js`): aba Recursos → Paletas (criar vazia/da seleção/do projeto/colando cores, renomear, duplicar, excluir, aplicar com clique ou Shift+clique no contorno, **copiar como variáveis CSS**, **adicionar ao projeto como estilos de cor**) e grupo "paleta própria" no **seletor de cor** com **+** para guardar a cor atual e "Nova paleta com esta cor". Salvas no navegador, valem em todos os projetos, sincronizam entre abas.
+- Testes: `palettes.test.js`, `html-nota.test.js` e a suíte de navegador `notas-paletas-painel.mjs`.
+
+### Alterado
+- Os testes de navegador que buscavam `[title=...]` passam a usar `aria-label` (o `title` nativo foi trocado pela dica rica).
+
+---
+
 ## [0.11.0] — 2026-10-08 — CSS ampliado, estados interativos, comentários e testes de navegador
 
 ### Adicionado (comentários nas camadas)

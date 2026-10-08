@@ -10,10 +10,11 @@
 import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip, textField } from './dom.js';
 import { askText } from './menus.js';
 import { fontField } from './fontpicker.js';
+import { nodeIcon } from './icons.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
   BLEND_MODES, FONT_WEIGHTS, OVERFLOWS, overflowOf, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
-  constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView,
+  constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView, TEXT_TAGS, BOX_TAGS, tagOf, TYPE_LABEL,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
@@ -67,9 +68,60 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   const reg = (ctl) => { updaters.push(ctl.update); return ctl.el; };
   /** Linha horizontal de campos. */
   const row = (...c) => h('div.row', ...c);
-  /** Seção do painel: título + (ações opcionais à direita, ex.: botão +) + corpo. */
-  const section = (title, body, actions) =>
-    h('section.panel-section', h('header.section-head', h('span', title), actions || null), h('div.section-body', body));
+  /**
+   * Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do
+   * CSS por trás. A explicação aparece abaixo do título quando "Explicações" está ligado (botão ? no topo do painel).
+   */
+  const SECTION_INFO = {
+    'Posição': ['move', 'Onde a camada fica. X e Y são a distância da borda esquerda e do topo do pai (em CSS: left e top).'],
+    'Tamanho': ['fit', 'O tamanho da caixa (width e height). Fixo = um valor em pixels; Hug = encolhe até caber o conteúdo; Fill = ocupa o espaço que sobrar.'],
+    'Aparência': ['sun', 'Como a camada se mistura com o fundo e como ela termina: transparência (opacity), mistura de cores e cantos arredondados (border-radius).'],
+    'Preenchimento': ['rect', 'O que enche a caixa por dentro: uma cor, um degradê ou uma imagem (CSS: background).'],
+    'Cor do texto': ['text', 'A cor das letras (CSS: color).'],
+    'Contorno': ['frame', 'A linha em volta da caixa (CSS: border). Dá para escolher só alguns lados.'],
+    'Efeitos': ['shadow', 'Sombras (box-shadow) e desfoques (filter e backdrop-filter) que dão profundidade.'],
+    'Texto': ['text', 'Fonte, tamanho, espaçamentos e alinhamento — as mesmas propriedades font-* e text-* do CSS.'],
+    'Auto layout': ['row', 'Faz a caixa organizar os filhos sozinha, em fila ou em grade (CSS flexbox e grid), sem você posicionar cada um na mão.'],
+    'Item do layout': ['layers', 'Como ESTA camada se comporta dentro do auto layout do pai: quanto espaço ocupa, sua margem e seu alinhamento.'],
+    'Grades de layout': ['grid', 'Colunas e linhas de guia desenhadas por cima do frame, só para alinhar. Não saem no código.'],
+    'Estados': ['play', 'Como a camada muda quando o mouse passa por cima, quando é clicada ou recebe foco (CSS: :hover, :active, :focus-visible).'],
+    'Transformação': ['rotate', 'Aumenta ou diminui a camada neste estado (CSS: transform: scale).'],
+    'Vetor': ['pen', 'Os pontos e as curvas do desenho. Edite com a caneta ou com duplo clique na forma.'],
+    'Componente': ['component', 'Um modelo reutilizável: mudou o principal, mudam todas as cópias (instâncias).'],
+    'Nota': ['file', 'Uma anotação sua sobre esta camada: para que ela serve. Não aparece no design; vai como comentário no código gerado.'],
+    'HTML': ['code', 'A etiqueta (tag) que esta camada vira no código exportado. Escolher a certa ajuda a acessibilidade e o Google.'],
+    'Exportar': ['download', 'Baixa esta camada como imagem (PNG), vetor (SVG) ou página (HTML).'],
+  };
+  // seções recolhidas e "Explicações" ligado/desligado: lembrados entre sessões
+  const loadSet = (key) => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); } };
+  const saveSet = (key, set) => { try { localStorage.setItem(key, JSON.stringify([...set])); } catch { /* sem armazenamento */ } };
+  const collapsed = loadSet('pd.collapsed');
+  let explain = true;
+  try { explain = localStorage.getItem('pd.explain') !== '0'; } catch { /* ligado */ }
+  /**
+   * Seção do painel: cabeçalho (ícone + título + ações opcionais à direita, ex.: botão +) + explicação + corpo.
+   * Clicar no cabeçalho recolhe/abre a seção (lembrado).
+   */
+  const section = (title, body, actions, { closedByDefault = false } = {}) => {
+    const info = SECTION_INFO[title];
+    // seções "fechadas por padrão" (Nota vazia) guardam o 'aberto' sob a chave "+Título"
+    const key = closedByDefault ? '+' + title : title;
+    const closed = closedByDefault ? !collapsed.has(key) : collapsed.has(key);
+    const sec = h('section.panel-section' + (closed ? '.collapsed' : ''),
+      h('header.section-head',
+        h('span.sh-title', info ? h('span.sh-ico', ico(info[0], 14)) : null, h('span', title)),
+        h('span.sh-right', actions || null, h('span.sh-chev', ico('chevron', 11)))),
+      info ? h('p.section-help', info[1]) : null,
+      h('div.section-body', body));
+    sec.firstChild.addEventListener('click', (e) => {
+      if (e.target.closest('button, select, input')) return; // os botões do cabeçalho têm a própria ação
+      sec.classList.toggle('collapsed');
+      const nowClosed = sec.classList.contains('collapsed');
+      if (nowClosed !== closedByDefault) collapsed.add(key); else collapsed.delete(key);
+      saveSet('pd.collapsed', collapsed);
+    });
+    return sec;
+  };
 
   /** Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...). */
   const cap = (label, ...c) => h('div.cap-group', h('div.cap', label), ...c);
@@ -151,19 +203,109 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         posRow.classList.add('disabled');
         posRow.title = 'Posição controlada pelo auto layout do pai';
       }
-      body.push(cap('Posição', posRow));
+      body.push(capK('Posição', 'left-top', posRow));
       if (parent?.type === 'frame' && !hasLayout(parent) && !n0.absolute) {
-        body.push(cap('Restrições', row(
+        body.push(capK('Restrições', 'constraints', row(
           select(H_CONS, () => constraintsOf(P()).h, (v) => each((n) => { n.constraints = { ...constraintsOf(n), h: v }; }), 'Constraint horizontal: como reage quando o frame muda de largura', '↔'),
           select(V_CONS, () => constraintsOf(P()).v, (v) => each((n) => { n.constraints = { ...constraintsOf(n), v: v }; }), 'Constraint vertical: como reage quando o frame muda de altura', '↕'))));
       }
     }
-    body.push(cap('Rotação', row(
+    body.push(capK('Rotação', 'rotate', row(
       num('↻', () => P().rotation, (v) => each((n) => { n.rotation = v; }), { title: 'rotação (transform: rotate)', decimals: 1, min: -360, max: 360, unit: '°' }),
       h('div.btn-group',
         h('button.icon-btn.small' + (n0.flipX ? '.on' : ''), { type: 'button', title: 'Espelhar na horizontal (Shift+H)', onclick: () => commands.flip('x') }, ico('flipH', 14)),
         h('button.icon-btn.small' + (n0.flipY ? '.on' : ''), { type: 'button', title: 'Espelhar na vertical (Shift+V)', onclick: () => commands.flip('y') }, ico('flipV', 14))))));
+    // ordem de empilhamento (z-index): quem fica na frente de quem
+    if (!ui.editState) {
+      const stack = (icon, title, mode) => h('button.icon-btn.small', { type: 'button', title, onclick: () => commands.reorder(mode) }, ico(icon, 14));
+      body.push(capK('Empilhamento', 'z-index', h('div.btn-group',
+        stack('front', 'Trazer para frente (Ctrl+Shift+])', 'front'), stack('front', 'Avançar um nível (Ctrl+])', 'forward'),
+        stack('back', 'Recuar um nível (Ctrl+[)', 'backward'), stack('back', 'Enviar para trás (Ctrl+Shift+[)', 'back'))));
+    }
     return section('Posição', body);
+  }
+
+  /**
+   * Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e o
+   * botão "Explicações" (liga/desliga o texto de ajuda de cada seção).
+   */
+  function headerBlock() {
+    const ns = nodes();
+    const n = ns[0];
+    const one = ns.length === 1;
+    const flip = (key) => { store.update(() => ns.forEach((x) => { x[key] = !x[key]; }), { commit: true }); };
+    const eyeBtn = h('button.icon-btn.small' + (!n.visible ? '.on' : ''), { type: 'button', title: n.visible ? 'Ocultar (display: none)' : 'Mostrar', onclick: () => flip('visible') }, ico(n.visible ? 'eye' : 'eyeOff', 14));
+    const lockBtn = h('button.icon-btn.small' + (n.locked ? '.on' : ''), { type: 'button', title: n.locked ? 'Destravar' : 'Travar: não dá para clicar nela no canvas', onclick: () => flip('locked') }, ico(n.locked ? 'lock' : 'unlock', 14));
+    const help = h('button.explain-btn' + (explain ? '.on' : ''), {
+      type: 'button', 'aria-pressed': String(explain),
+      title: 'Explicações: mostra, em cada seção, para que ela serve e qual é a propriedade do CSS por trás',
+      onclick: () => {
+        explain = !explain;
+        try { localStorage.setItem('pd.explain', explain ? '1' : '0'); } catch { /* sem armazenamento */ }
+        el.classList.toggle('explain', explain);
+        help.classList.toggle('on', explain);
+        help.setAttribute('aria-pressed', String(explain));
+      },
+    }, ico('help', 13), h('span', 'Explicações'));
+    const sub = one
+      ? [TYPE_LABEL[n.type] || n.type, ' · ', tip(h('code.sel-tag', `<${tagOf(n)}>`), { title: 'Etiqueta HTML', text: 'É assim que esta camada aparece no código exportado. Para mudar, use a seção "HTML" mais abaixo.' })]
+      : ['Edição em grupo: valores da 1ª camada'];
+    return h('div.sel-head',
+      h('div.sel-top',
+        h('span.sel-ico', ico(one ? nodeIcon(n.type) : 'layers', 18)),
+        h('div.sel-info', h('div.sel-name', one ? n.name : `${ns.length} camadas`), h('div.sel-sub', ...sub)),
+        h('div.sel-actions', eyeBtn, lockBtn)),
+      help);
+  }
+
+  // campo de texto da Nota (guardado para o foco pedido pelo menu "Adicionar nota")
+  let noteInput = null;
+  /**
+   * Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto,
+   * aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
+   */
+  function noteSection() {
+    if (ids().length !== 1 || ui.editState) return null;
+    const ta = h('textarea.note-input', { rows: 3, spellcheck: true, 'aria-label': 'Nota da camada', placeholder: 'Para que serve esta camada?\nEx.: Botão principal da tela inicial. Leva ao checkout.' });
+    noteInput = ta;
+    const dot = h('span.dot-on', { title: 'Esta camada tem nota' });
+    const nd = () => store.get(ids()[0]);
+    updaters.push(() => {
+      if (document.activeElement !== ta) ta.value = nd()?.note || '';
+      dot.style.display = nd()?.note ? '' : 'none';
+    });
+    ta.addEventListener('input', () => {
+      const v = ta.value;
+      store.update(() => { const n = nd(); if (!n) return; if (v.trim()) n.note = v; else delete n.note; }, { structural: false });
+    });
+    ta.addEventListener('change', commit); // grava no histórico ao sair do campo
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') ta.blur(); e.stopPropagation(); });
+    return section('Nota', [
+      ta,
+      check('Incluir no código (como comentário)', () => nd()?.noteInCode !== false, (v) => store.update(() => { const n = nd(); if (!n) return; if (v) delete n.noteInCode; else n.noteInCode = false; }, { structural: false })),
+    ], dot, { closedByDefault: !store.get(ids()[0])?.note });
+  }
+
+  /**
+   * Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para
+   * leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
+   */
+  function htmlSection() {
+    if (ids().length !== 1 || ui.editState) return null;
+    const n0 = P();
+    if (n0.type === 'line') return null;
+    const isText = n0.type === 'text';
+    const names = { p: 'p — parágrafo', h1: 'h1 — título principal', h2: 'h2 — título', h3: 'h3 — subtítulo', h4: 'h4', h5: 'h5', h6: 'h6', span: 'span — trecho de texto', a: 'a — link', label: 'label — rótulo de campo', li: 'li — item de lista', button: 'button — botão',
+      div: 'div — caixa genérica', section: 'section — seção', header: 'header — cabeçalho', footer: 'footer — rodapé', nav: 'nav — navegação', main: 'main — conteúdo principal', aside: 'aside — lateral', article: 'article — artigo', ul: 'ul — lista', ol: 'ol — lista numerada', form: 'form — formulário' };
+    const tags = (isText ? TEXT_TAGS : BOX_TAGS).map((t) => [t, names[t] || t]);
+    const body = [
+      capK('Etiqueta', 'html-tag', select(tags, () => tagOf(P()), (v) => each((n) => { delete n.tag; if (v !== tagOf(n)) n.tag = v; }), 'Etiqueta HTML')),
+    ];
+    if (tagOf(n0) === 'a') {
+      body.push(capK('Endereço do link', 'href', reg(textField({ get: () => P().href || '', set: (v) => each((n) => { if (v.trim()) n.href = v.trim(); else delete n.href; }), commit, placeholder: 'https://… ou #secao' }))));
+    }
+    body.push(capK(isText ? 'Descrição (opcional)' : 'Descrição / texto alternativo', 'aria-label', reg(textField({ get: () => P().alt || '', set: (v) => each((n) => { if (v.trim()) n.alt = v; else delete n.alt; }), commit, placeholder: isText ? 'Só se o texto não bastar' : 'Ex.: Foto da equipe sorrindo' }))));
+    return section('HTML', body);
   }
 
   /**
@@ -178,11 +320,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const body = [];
     if (!single) {
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
-      body.push(cap('Dimensões', row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
+      body.push(capK('Dimensões', 'width-height', row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
         num('H', () => box().h, (v) => commands.setSelectionBox({ h: v }), { min: 1, decimals: 1 }))));
       return section('Tamanho', body);
     }
-    body.push(cap('Dimensões', row(
+    body.push(capK('Dimensões', 'width-height', row(
       num('W', () => P().w, (v) => each((n) => resizeNode(n, v, n.h, 'w')), { min: 1, title: 'width', decimals: 1 }),
       num('H', () => P().h, (v) => each((n) => resizeNode(n, n.w, v, 'h')), { min: 1, title: 'height', decimals: 1, disabled: n0.type === 'line' }),
       h('button.icon-btn.small' + (n0.lockRatio ? '.on' : ''), {
@@ -198,8 +340,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     };
     if (sizeOpts().length > 1) {
       body.push(row(
-        select(sizeOpts(), () => P().sizeX, (v) => each((n) => { n.sizeX = v; }), 'Largura: fixo (px) · hug (do tamanho do conteúdo) · fill (preenche o espaço do pai)', 'W'),
-        select(sizeOpts(), () => P().sizeY, (v) => each((n) => { n.sizeY = v; }), 'Altura: fixo (px) · hug (do tamanho do conteúdo) · fill (preenche o espaço do pai)', 'H')));
+        capK('Largura', 'width-mode', select(sizeOpts(), () => P().sizeX, (v) => each((n) => { n.sizeX = v; }), 'Largura', 'W')),
+        capK('Altura', 'height-mode', select(sizeOpts(), () => P().sizeY, (v) => each((n) => { n.sizeY = v; }), 'Altura', 'H'))));
     }
     if (n0.type === 'frame' && !parent) {
       body.push(select(PRESETS, () => '', (v) => {
@@ -272,11 +414,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const n0 = P();
     const parent = store.parentOf(n0.id);
     const body = [row(
-      cap('Opacidade', num('%', () => P().opacity * 100, (v) => each((n) => { n.opacity = v / 100; }), { min: 0, max: 100, decimals: 0, title: 'opacity' })),
-      cap('Mesclagem', select(BLEND_MODES.map((m) => [m, m]), () => P().blend, (v) => each((n) => { n.blend = v; }), 'mix-blend-mode (mistura com o que está atrás)', '◐')))];
+      capK('Opacidade', 'opacity', num('%', () => P().opacity * 100, (v) => each((n) => { n.opacity = v / 100; }), { min: 0, max: 100, decimals: 0, title: 'opacity' })),
+      capK('Mesclagem', 'mix-blend-mode', select(BLEND_MODES.map((m) => [m, m]), () => P().blend, (v) => each((n) => { n.blend = v; }), 'mix-blend-mode (mistura com o que está atrás)', '◐')))];
     const canRound = !NO_RADIUS.includes(n0.type);
     if (canRound) {
-      body.push(cap('Raio dos cantos', row(
+      body.push(capK('Raio dos cantos', 'border-radius', row(
         num('◜', () => P().radius[0], (v) => each((n) => { n.radius = [v, v, v, v].map((x) => Math.max(0, x)); }),
           { title: 'border-radius (cantos arredondados)', min: 0, decimals: 1 }),
         h('button.icon-btn.small' + (radiusExpanded ? '.on' : ''), {
@@ -366,12 +508,47 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'aspect-ratio': ['aspect-ratio', 'aspect-ratio: 16 / 9;', 'Mantém a proporção entre largura e altura. Vale no CSS quando UMA das medidas é flexível (Hug ou Fill); com as duas fixas, o editor mantém a proporção ao redimensionar.'],
     'grid-template-columns': ['grid-template-columns', 'grid-template-columns: repeat(3, 1fr);', 'Quantas colunas a grade tem. "repeat(3, 1fr)" = 3 colunas de larguras iguais; "fr" é uma fração do espaço livre.'],
     'grid-template-rows': ['grid-template-rows', 'grid-template-rows: repeat(2, 1fr);', 'Quantas linhas a grade tem. Sem este valor (automático), o navegador cria linhas conforme os itens chegam.'],
+    // ---- posição, tamanho e aparência
+    'left-top': ['Posição (X e Y)', 'position: absolute;\nleft: 100px;\ntop: 100px;', 'A distância da camada até a borda ESQUERDA (X) e até o TOPO (Y) do pai. Dentro de um auto layout quem posiciona é o navegador, por isso os campos ficam apagados.', 'left · top'],
+    constraints: ['Restrições', 'left: 16px;\nright: 16px;', 'Como a camada reage quando o frame do pai muda de tamanho: gruda numa borda, nas duas (e estica), fica no centro ou escala junto. É o que mantém um layout bom em telas de tamanhos diferentes.', 'left · right · top · bottom'],
+    rotate: ['Rotação', 'transform: rotate(15deg);', 'Gira a camada em torno do próprio centro, em graus. Positivo gira para a direita (horário).', 'transform'],
+    'width-height': ['Largura e altura', 'width: 200px;\nheight: 100px;', 'O tamanho da caixa em pixels. O cadeado trava a proporção: mudar uma medida muda a outra junto.', 'width · height'],
+    'width-mode': ['Modo da largura', 'width: 200px;     /* fixo */\nwidth: fit-content; /* hug */\nflex: 1 1 0%;      /* fill */', 'FIXO = um valor em pixels. HUG = encolhe até caber o conteúdo. FILL = ocupa o espaço que sobrar no pai (só dentro de um auto layout).', 'width'],
+    'height-mode': ['Modo da altura', 'height: 100px;     /* fixo */\nheight: fit-content; /* hug */\nflex: 1 1 0%;      /* fill */', 'FIXO = um valor em pixels. HUG = encolhe até caber o conteúdo. FILL = ocupa o espaço que sobrar no pai (só dentro de um auto layout).', 'height'],
+    'z-index': ['Ordem de empilhamento', 'z-index: 2;', 'Quem fica por cima de quem quando duas camadas se sobrepõem. No design é a ordem da lista de camadas: a de cima da lista fica na frente.'],
+    opacity: ['Opacidade', 'opacity: 0.8;', 'Deixa a camada inteira (com tudo que há dentro) mais transparente. 100% = sólida; 0% = invisível.'],
+    'mix-blend-mode': ['Mesclagem', 'mix-blend-mode: multiply;', 'Como as cores desta camada se misturam com o que está ATRÁS dela. "multiply" escurece, "screen" clareia, "overlay" aumenta o contraste. "normal" = sem mistura.'],
+    'border-radius': ['Cantos arredondados', 'border-radius: 12px;', 'Arredonda os cantos da caixa. Um valor grande demais vira uma pílula (ou um círculo, se a caixa for quadrada). O botão ao lado deixa cada canto diferente.'],
+    // ---- texto
+    'font-family': ['Fonte', "font-family: 'Inter', sans-serif;", 'O desenho das letras. As fontes do Google são baixadas sozinhas e já saem no código exportado.'],
+    'font-weight': ['Peso da fonte', 'font-weight: 600;', 'A espessura das letras: 400 = normal, 700 = negrito. Só aparecem os pesos que a fonte escolhida realmente tem.'],
+    'font-size': ['Tamanho da fonte', 'font-size: 16px;', 'A altura das letras, em pixels. 16px é o tamanho padrão de texto de leitura na web.'],
+    'line-height': ['Altura da linha', 'line-height: 1.5;', 'O espaço vertical de cada linha, como MULTIPLICADOR do tamanho da fonte. 1.5 = respiro confortável para parágrafos; 1.1 a 1.2 = títulos.'],
+    'text-align': ['Alinhamento e estilo do texto', 'text-align: center;\nfont-style: italic;\ntext-decoration: underline;', 'Alinha as linhas do texto (esquerda, centro, direita) e liga itálico, sublinhado ou riscado.', 'text-align · font-style'],
+    'text-transform': ['Caixa das letras', 'text-transform: uppercase;', 'Muda as letras para MAIÚSCULAS, minúsculas ou Cada Palavra Com Inicial Grande, sem reescrever o texto.'],
+    'vertical-align': ['Alinhamento vertical', 'display: flex;\nalign-content: center;', 'Onde o texto fica dentro da caixa quando ela é mais alta que ele: no topo, no meio ou embaixo. Só vale com altura fixa.', 'align-content'],
+    'letter-spacing': ['Espaço entre letras', 'letter-spacing: 0.5px;', 'Abre (positivo) ou fecha (negativo) o espaço entre as LETRAS. Um pouquinho de espaço fica elegante em textos MAIÚSCULOS.'],
+    // ---- preenchimento, contorno, sombras
+    background: ['Tipo de preenchimento', 'background-color: #7c5cff;\nbackground-image: linear-gradient(...);', 'O que enche a caixa: nada, uma cor sólida, um degradê (linear, radial ou cônico) ou uma imagem.'],
+    'border-width': ['Espessura do contorno', 'border: 2px solid #000;', 'A grossura da linha, em pixels. Com 0 a linha some.', 'border-width'],
+    'border-style': ['Estilo da linha', 'border-style: dashed;', 'Sólida (contínua), tracejada (traços) ou pontilhada (bolinhas).'],
+    'stroke-position': ['Onde fica o contorno', 'box-sizing: border-box;\noutline-offset: -2px;', 'DENTRO: a linha fica por dentro da caixa (o tamanho não muda). CENTRO: metade dentro, metade fora. FORA: toda por fora, como um halo.', 'outline-offset'],
+    'stroke-linecap': ['Ponta do traço', 'stroke-linecap: round;', 'O formato das PONTAS de uma linha aberta: redondas, retas ou quadradas (que passam um pouco do fim).'],
+    'stroke-linejoin': ['Quina do traço', 'stroke-linejoin: round;', 'O formato das CURVAS e QUINAS onde o traço muda de direção: arredondada, pontuda ou chanfrada.'],
+    'border-sides': ['Lados do contorno', 'border-top: 1px solid;\nborder-bottom: 1px solid;', 'Escolha quais lados da caixa têm linha: só embaixo (como um sublinhado de campo), só em cima, nas laterais... Clique nos lados para ligar e desligar.', 'border-top · right · bottom · left'],
+    'html-tag': ['Etiqueta HTML', '<button class="botao">Comprar</button>', 'A etiqueta diz ao navegador, ao leitor de tela e ao Google O QUE a camada é: botão, título, link, cabeçalho... Escolher a certa não muda o visual, mas muda a acessibilidade e o SEO.', 'tag'],
+    href: ['Endereço do link', '<a href="https://exemplo.com">', 'Para onde o clique leva. Pode ser um site (https://…), uma âncora dentro da página (#contato) ou um e-mail (mailto:oi@exemplo.com).', 'href'],
+    'aria-label': ['Descrição (texto alternativo)', '<div role="img" aria-label="Foto da equipe">', 'Uma frase que descreve a camada para quem não a enxerga (leitor de tela) e para o Google. Para imagens e ícones, é o "alt".', 'aria-label'],
+    'shadow-x': ['Sombra: deslocamento horizontal', 'box-shadow: 4px 0 8px rgba(0,0,0,.25);', 'Quanto a sombra se desloca para a direita (positivo) ou para a esquerda (negativo).', 'box-shadow'],
+    'shadow-y': ['Sombra: deslocamento vertical', 'box-shadow: 0 4px 8px rgba(0,0,0,.25);', 'Quanto a sombra desce (positivo) ou sobe (negativo). Sombras suaves de card costumam ter Y maior que X.', 'box-shadow'],
+    'shadow-blur': ['Sombra: desfoque', 'box-shadow: 0 4px 16px rgba(0,0,0,.25);', 'O quanto a borda da sombra é esfumada. 0 = borda dura; valores altos = sombra suave e espalhada.', 'box-shadow'],
+    'shadow-spread': ['Sombra: espalhar', 'box-shadow: 0 0 0 4px rgba(0,0,0,.25);', 'Aumenta (positivo) ou diminui (negativo) o TAMANHO da sombra antes do desfoque. Com blur 0 vira um contorno grosso.', 'box-shadow'],
   };
   /** Monta o objeto de dica de uma propriedade do CSS_DOC. */
   const cssTip = (key) => ({ title: CSS_DOC[key][0], css: CSS_DOC[key][1], text: CSS_DOC[key][2] });
   /** Grupo com legenda em português + nome da propriedade CSS (mono) e dica rica ao passar o mouse na legenda e no controle. */
   const capK = (label, key, ...children) => {
-    const g = h('div.cap-group', h('div.cap.has-tip', label, h('span.cap-css', key)), ...children);
+    const g = h('div.cap-group', h('div.cap.has-tip', label, h('span.cap-css', CSS_DOC[key][3] || key)), ...children);
     return tip(g, cssTip(key));
   };
 
@@ -824,18 +1001,18 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addTextStyle(P(), name);
         }, 'small')),
-      cap('Fonte', reg(fontField({
+      capK('Fonte', 'font-family', reg(fontField({
         get: () => P().fontFamily,
         // ao trocar a fonte: começa a baixar (Google Fonts) e ajusta o peso para o mais próximo que ela tem
         set: (v) => { ensureFonts([v]); each((n) => { n.fontFamily = v; n.fontWeight = nearestWeight(v, n.fontWeight); delete n.textStyleId; }); commit(); },
       }))),
       row(
-        cap('Peso', select((weights.length ? weights : FONT_WEIGHTS).map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight')),
-        cap('Tamanho', num('Aa', () => P().fontSize, (v) => each((n) => { n.fontSize = Math.max(1, v); delete n.textStyleId; }), { title: 'font-size', min: 1, decimals: 1 }))),
+        capK('Peso', 'font-weight', select((weights.length ? weights : FONT_WEIGHTS).map(([w, l]) => [w, `${l} (${w})`]), () => P().fontWeight, (v) => each((n) => { n.fontWeight = Number(v); delete n.textStyleId; }), 'font-weight')),
+        capK('Tamanho', 'font-size', num('Aa', () => P().fontSize, (v) => each((n) => { n.fontSize = Math.max(1, v); delete n.textStyleId; }), { title: 'font-size', min: 1, decimals: 1 }))),
       row(
-        cap('Altura da linha', num('↕', () => P().lineHeight, (v) => each((n) => { n.lineHeight = v; delete n.textStyleId; }), { title: 'line-height (multiplicador)', min: 0, step: 0.05, decimals: 2 })),
-        cap('Espaçamento', num('↔', () => P().letterSpacing, (v) => each((n) => { n.letterSpacing = v; delete n.textStyleId; }), { title: 'letter-spacing (px)', step: 0.1, decimals: 2 }))),
-      row(
+        capK('Altura da linha', 'line-height', num('↕', () => P().lineHeight, (v) => each((n) => { n.lineHeight = v; delete n.textStyleId; }), { title: 'line-height (multiplicador)', min: 0, step: 0.05, decimals: 2 })),
+        capK('Espaçamento', 'letter-spacing', num('↔', () => P().letterSpacing, (v) => each((n) => { n.letterSpacing = v; delete n.textStyleId; }), { title: 'letter-spacing (px)', step: 0.1, decimals: 2 }))),
+      capK('Alinhamento e estilo', 'text-align', row(
         reg(segmented({
           options: [['left', 'alignTextL', 'Esquerda'], ['center', 'alignTextC', 'Centro'], ['right', 'alignTextR', 'Direita']],
           get: () => P().textAlign, set: (v) => each((n) => { n.textAlign = v; }), commit,
@@ -849,15 +1026,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           options: [['underline', 'underline', 'Sublinhado'], ['line-through', 'strike', 'Riscado']],
           get: () => P().textDecoration,
           set: (v) => each((n) => { n.textDecoration = n.textDecoration === v ? 'none' : v; }), commit,
-        }))),
+        })))),
       row(
-        select([['none', 'Normal'], ['uppercase', 'MAIÚSCULAS'], ['lowercase', 'minúsculas'], ['capitalize', 'Cada Palavra']],
-          () => P().textTransform || 'none', (v) => each((n) => { n.textTransform = v; }), 'text-transform'),
+        capK('Caixa das letras', 'text-transform', select([['none', 'Normal'], ['uppercase', 'MAIÚSCULAS'], ['lowercase', 'minúsculas'], ['capitalize', 'Cada Palavra']],
+          () => P().textTransform || 'none', (v) => each((n) => { n.textTransform = v; }), 'text-transform')),
         P().sizeY === 'fixed'
-          ? reg(segmented({
+          ? capK('Alinhamento vertical', 'vertical-align', reg(segmented({
             options: [['top', 'alignT', 'Alinhar ao topo da caixa'], ['center', 'alignCV', 'Centralizar na vertical'], ['bottom', 'alignB', 'Alinhar embaixo']],
             get: () => P().textVAlign || 'top', set: (v) => each((n) => { n.textVAlign = v; }), commit,
-          }))
+          })))
           : null),
       row(
         capK('Espaço entre palavras', 'word-spacing', num('␣', () => P().wordSpacing ?? 0, (v) => each((n) => { if (v) n.wordSpacing = v; else delete n.wordSpacing; delete n.textStyleId; }), { step: 0.5, decimals: 1, title: 'word-spacing (px)' })),
@@ -917,7 +1094,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const isText = n0.type === 'text';
     const fill = () => P().fill;
     const body = [
-      cap('Tipo', select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['conic', 'Gradiente cônico'], ['image', 'Imagem']],
+      capK('Tipo', 'background', select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['conic', 'Gradiente cônico'], ['image', 'Imagem']],
         () => fill().type, (v) => {
           each((n) => { n.fill.type = v; });
           if (v === 'image' && !fill().assetId) {
@@ -1011,7 +1188,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           get: () => st().color, set: (v) => each((n) => { if (n.stroke) n.stroke.color = v; }), commit,
           opacity: () => st().opacity, setOpacity: (v) => each((n) => { if (n.stroke) n.stroke.opacity = v; }),
         })),
-        row(cap('Espessura', num('▭', () => st().width, (v) => each((n) => {
+        row(capK('Espessura', 'border-width', num('▭', () => st().width, (v) => each((n) => {
           if (!n.stroke) return;
           n.stroke.width = Math.max(0, v);
           // com lados ativos, a espessura vale para todos os lados ligados
@@ -1019,15 +1196,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         }), { title: 'espessura', min: 0, step: 0.5, decimals: 1 })),
           n0.type === 'text'
             ? null
-            : cap('Estilo', select([['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']], () => st().style, (v) => each((n) => { if (n.stroke) n.stroke.style = v; }), 'outline-style'))),
+            : capK('Estilo', 'border-style', select([['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']], () => st().style, (v) => each((n) => { if (n.stroke) n.stroke.style = v; }), 'outline-style'))),
         n0.type === 'text' || sidesOn()
           ? null
-          : cap('Posição', select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno')));
+          : capK('Posição', 'stroke-position', select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno')));
       // vetores: extremidade (stroke-linecap) e quina (stroke-linejoin) do traço, essenciais para desenhar ícones
       if (n0.type === 'path') {
         body.push(row(
-          cap('Extremidade', select([['round', 'Redonda'], ['butt', 'Reta'], ['square', 'Quadrada']], () => st().cap || 'round', (v) => each((n) => { if (n.stroke) n.stroke.cap = v; }), 'stroke-linecap')),
-          cap('Quina', select([['round', 'Redonda'], ['miter', 'Pontuda'], ['bevel', 'Chanfrada']], () => st().join || 'round', (v) => each((n) => { if (n.stroke) n.stroke.join = v; }), 'stroke-linejoin'))));
+          capK('Extremidade', 'stroke-linecap', select([['round', 'Redonda'], ['butt', 'Reta'], ['square', 'Quadrada']], () => st().cap || 'round', (v) => each((n) => { if (n.stroke) n.stroke.cap = v; }), 'stroke-linecap')),
+          capK('Quina', 'stroke-linejoin', select([['round', 'Redonda'], ['miter', 'Pontuda'], ['bevel', 'Chanfrada']], () => st().join || 'round', (v) => each((n) => { if (n.stroke) n.stroke.join = v; }), 'stroke-linejoin'))));
       }
       // LADOS (só retângulo e frame): todos (outline) ou só alguns (border-top/right/bottom/left do CSS)
       if (['rect', 'frame'].includes(n0.type)) body.push(...strokeSidesRows(st));
@@ -1094,7 +1271,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         () => toggleSide(i), () => sidesOn() && litSides()[i])),
       sideBtn('sideCustom', 'Espessura por lado', { title: 'Espessura por lado', css: 'border-top-width: 1px;\nborder-right-width: 3px;', text: 'Dá uma espessura diferente a cada lado.' },
         () => apply(current() === 'custom' ? 'all' : 'custom'), () => current() === 'custom'));
-    const rows = [cap('Lados do contorno', sideIcons)];
+    const rows = [capK('Lados do contorno', 'border-sides', sideIcons)];
     if (current() === 'custom') {
       const side = (i, label, title) => num(label, () => st().sides?.[i] ?? 0, (v) => each((n) => { if (n.stroke?.sides) n.stroke.sides[i] = Math.max(0, v); }), { title, min: 0, step: 0.5, decimals: 1 });
       rows.push(row(side(0, '↑', 'border-top (px)'), side(1, '→', 'border-right (px)')),
@@ -1113,9 +1290,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       const sh = () => P().shadows[i] || defaultShadow();
       const set = (k) => (v) => each((n) => { if (n.shadows[i]) n.shadows[i][k] = v; });
       body.push(h('div.effect-card',
-        row(num('X', () => sh().x, set('x'), { decimals: 0 }), num('Y', () => sh().y, set('y'), { decimals: 0 })),
-        row(num('B', () => sh().blur, (v) => set('blur')(Math.max(0, v)), { title: 'blur', min: 0, decimals: 0 }),
-          isText ? null : num('S', () => sh().spread, set('spread'), { title: 'spread', decimals: 0 })),
+        row(capK('Horizontal', 'shadow-x', num('X', () => sh().x, set('x'), { decimals: 0 })), capK('Vertical', 'shadow-y', num('Y', () => sh().y, set('y'), { decimals: 0 }))),
+        row(capK('Desfoque', 'shadow-blur', num('B', () => sh().blur, (v) => set('blur')(Math.max(0, v)), { min: 0, decimals: 0 })),
+          isText ? null : capK('Espalhar', 'shadow-spread', num('S', () => sh().spread, set('spread'), { decimals: 0 }))),
         h('div.effect-foot',
           reg(colorRow({ groups: colorGroups, get: () => sh().color, set: set('color'), commit, opacity: () => sh().opacity, setOpacity: set('opacity') })),
           isText ? null : check('Interna', () => sh().inset, set('inset')),
@@ -1202,7 +1379,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       // contorno por lado: quais lados e se é "personalizado" mudam os campos mostrados
       n.stroke?.sides ? n.stroke.sides.map((v) => (v > 0 ? 1 : 0)).join('') + (n.stroke.sidesCustom ? 'c' : '') : '',
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
-      n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
+      n.visible, n.locked, tagOf(n), store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
       n.type === 'frame' ? overflowOf(n) : '',
       n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
@@ -1220,6 +1397,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
   /** Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos. */
   function render() {
+    el.classList.toggle('explain', explain);
     const sig = signature();
     if (sig !== lastSig) {
       lastSig = sig;
@@ -1242,6 +1420,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
           return;
         }
+        parts.push(headerBlock(), noteSection());
         if (canComp && isComp) parts.push(componentSection());
         parts.push(positionSection(), sizeSection());
         if (one && hasLayout(parent)) parts.push(flowItemSection());
@@ -1255,14 +1434,25 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (n.type !== 'section') parts.push(effectsSection());
         if (canHaveStates(n)) parts.push(statesSection());
         if (canComp && !isComp) parts.push(componentSection());
-        parts.push(exportSection());
-        el.replaceChildren(...parts);
+        parts.push(htmlSection(), exportSection());
+        el.replaceChildren(...parts.filter(Boolean));
       }
     }
     // Um campo com problema (valor ausente num documento antigo ou estranho) não pode impedir os outros de atualizar:
     // cada atualização roda isolada e o erro vai para o console em vez de derrubar o painel inteiro.
     for (const u of updaters) {
       try { u(); } catch (err) { console.error('[painel Design]', err); }
+    }
+    // pedido do menu "Adicionar nota": abre a seção Nota e coloca o cursor no campo
+    if (ui.focusNote && noteInput?.isConnected) {
+      ui.focusNote = false;
+      const sec = noteInput.closest('.panel-section');
+      sec?.classList.remove('collapsed');
+      collapsed.delete('Nota');
+      collapsed.add('+Nota');
+      saveSet('pd.collapsed', collapsed);
+      noteInput.focus();
+      noteInput.scrollIntoView({ block: 'center' });
     }
   }
 
