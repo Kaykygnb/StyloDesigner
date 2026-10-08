@@ -262,3 +262,37 @@ test('SVG exportado: posição aproximada em cover e posição/tamanho exatos em
   const fallback = toSvg(mk(imgFill({ fit: 'size', size: 50 })), { assets: { a1: IMG } });
   assert.match(fallback, /slice/);
 });
+
+// ---------------------------------------------------------------- texto: truncar e espaço entre palavras
+test('texto "Uma linha com …": nowrap + overflow + ellipsis, e o alinhamento vertical por grid é desligado', () => {
+  const t = createNode('text', { sizeX: 'fixed', sizeY: 'fixed', w: 120, h: 40, textVAlign: 'center', truncate: 'ellipsis' });
+  const s = nodeStyle(t, null);
+  assert.equal(s['white-space'], 'nowrap');
+  assert.equal(s.overflow, 'hidden');
+  assert.equal(s['text-overflow'], 'ellipsis');
+  assert.equal(s.display, undefined);
+  assert.equal(s['align-content'], undefined);
+});
+
+test('texto "Limitar linhas": -webkit-line-clamp (padrão 2 linhas) e display -webkit-box', () => {
+  const t = createNode('text', { sizeX: 'fixed', w: 200, truncate: 'clamp' });
+  let s = nodeStyle(t, null);
+  assert.equal(s.display, '-webkit-box');
+  assert.equal(s['-webkit-box-orient'], 'vertical');
+  assert.equal(s['-webkit-line-clamp'], '2');
+  assert.equal(s['line-clamp'], '2');
+  assert.equal(s.overflow, 'hidden');
+  assert.equal(s['white-space'], 'pre-wrap');
+  t.lines = 3;
+  s = nodeStyle(t, null);
+  assert.equal(s['-webkit-line-clamp'], '3');
+});
+
+test('texto sem truncar não ganha overflow nem line-clamp; word-spacing só quando definido', () => {
+  const t = createNode('text', { sizeX: 'fixed', w: 200 });
+  const s = nodeStyle(t, null);
+  for (const k of ['text-overflow', '-webkit-line-clamp', 'line-clamp', 'word-spacing']) assert.equal(s[k], undefined, k);
+  assert.equal(s.overflow, undefined);
+  t.wordSpacing = 4;
+  assert.equal(nodeStyle(t, null)['word-spacing'], '4px');
+});

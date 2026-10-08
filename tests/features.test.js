@@ -288,3 +288,23 @@ test('limites de tamanho e proporção sincronizam do principal para a instânci
   assert.equal(inst.maxW, 300);
   assert.equal(inst.aspect, undefined);
 });
+
+test('estilo de texto compartilhado também controla o espaço entre palavras', () => {
+  const t = createNode('text', { textStyleId: 't1' });
+  const doc = {
+    pages: [{ children: [t] }],
+    styles: { colors: [], texts: [{ id: 't1', name: 'Corpo', fontFamily: 'Inter', fontSize: 16, fontWeight: 400, fontStyle: 'normal', lineHeight: 1.5, letterSpacing: 0, wordSpacing: 3 }] },
+  };
+  syncStyles(doc);
+  assert.equal(t.wordSpacing, 3);
+});
+
+test('truncar texto e espaço entre palavras sincronizam do principal para a instância', () => {
+  const main = createNode('text', { name: 'Título', truncate: 'clamp', lines: 3, wordSpacing: 2, sizeX: 'fixed', w: 200 });
+  makeComponent(main);
+  const pages = [{ children: [main] }];
+  const inst = createInstance(main, pages);
+  assert.equal(inst.truncate, 'clamp');
+  assert.equal(inst.lines, 3);
+  assert.equal(inst.wordSpacing, 2);
+});

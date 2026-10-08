@@ -226,7 +226,8 @@ export function createCanvas(store, viewport) {
     let css = toCssText(nodeStyle(node, parent, store.state.doc.assets));
     if (!node.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;
-    if (editing) css += ';user-select:text;cursor:text';
+    // editando: mostra o texto inteiro (sem reticências nem limite de linhas), senão o que se digita sumiria
+    if (editing) css += ';user-select:text;cursor:text;display:block;overflow:visible;text-overflow:clip;white-space:pre-wrap';
     if (el._css !== css) {
       el.style.cssText = css;
       el._css = css;

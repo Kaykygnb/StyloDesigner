@@ -221,6 +221,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if (node.fontStyle !== 'normal') s['font-style'] = node.fontStyle;
     s['line-height'] = node.lineHeight ? String(round(node.lineHeight, 3)) : 'normal';
     if (node.letterSpacing) s['letter-spacing'] = px(node.letterSpacing);
+    if (node.wordSpacing) s['word-spacing'] = px(node.wordSpacing);
     s['text-align'] = node.textAlign;
     if (node.textDecoration !== 'none') s['text-decoration'] = node.textDecoration;
     if (node.textTransform && node.textTransform !== 'none') s['text-transform'] = node.textTransform;
@@ -232,6 +233,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     // hug sem largura máxima = uma linha só ('pre'); com largura máxima o texto QUEBRA ao chegar nela ('pre-wrap')
     s['white-space'] = node.sizeX === 'hug' && !(node.maxW > 0) ? 'pre' : 'pre-wrap';
     s['overflow-wrap'] = 'break-word';
+    truncateCss(node, s);
     // Cor do texto vem do fill. Com GRADIENTE usa o truque `background-clip: text` + `color: transparent`.
     const f = node.fill;
     if (!f || f.type === 'none') s.color = 'transparent';
@@ -314,6 +316,31 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   return s;
 }
 
+
+/**
+ * Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
+ *  - 'ellipsis': uma linha só, o que não cabe vira "…"  → white-space:nowrap + overflow:hidden + text-overflow:ellipsis
+ *  - 'clamp': no máximo `lines` linhas, com "…" no fim → display:-webkit-box + -webkit-line-clamp (e line-clamp)
+ * Os dois precisam de uma LARGURA (fixa ou máxima) para saber onde cortar. O alinhamento vertical por grid
+ * (centro/fim) é desligado, porque o grid e o -webkit-box/ellipsis não funcionam juntos.
+ */
+function truncateCss(node, s) {
+  if (node.truncate !== 'ellipsis' && node.truncate !== 'clamp') return;
+  delete s['align-content'];
+  s.overflow = 'hidden';
+  if (node.truncate === 'ellipsis') {
+    delete s.display;
+    s['white-space'] = 'nowrap';
+    s['text-overflow'] = 'ellipsis';
+    return;
+  }
+  const lines = Math.max(1, Math.round(node.lines || 2));
+  s['white-space'] = 'pre-wrap';
+  s.display = '-webkit-box';
+  s['-webkit-box-orient'] = 'vertical';
+  s['-webkit-line-clamp'] = String(lines);
+  s['line-clamp'] = String(lines);
+}
 
 /**
  * Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width`

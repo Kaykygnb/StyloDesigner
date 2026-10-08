@@ -29,7 +29,7 @@ export const OVERRIDE_PROPS = [
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign',
   'textDecoration', 'fill', 'stroke', 'opacity', 'visible', 'radius', 'shadows', 'blur', 'bgBlur', 'blend',
   'x', 'y', 'w', 'h', 'sizeX', 'sizeY', 'rotation', 'flipX', 'flipY', 'clip', 'layout', 'points', 'vw', 'vh', 'closed',
-  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect',
+  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'wordSpacing', 'truncate', 'lines',
 ];
 /**
  * Propriedades da RAIZ da instância que vêm do principal. `x` e `y` ficam de fora: cada instância tem a sua
@@ -187,7 +187,7 @@ export function detachInstance(inst) {
 
 // ------------------------------------------------------------------ estilos compartilhados
 /** Campos de tipografia que um ESTILO DE TEXTO controla. */
-const TEXT_STYLE_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing'];
+const TEXT_STYLE_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing'];
 
 /** Extrai de uma camada de texto os campos de tipografia (para criar um estilo de texto a partir dela). */
 export const textStyleFrom = (node) => pick(node, TEXT_STYLE_KEYS);

@@ -322,6 +322,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'background-size': ['background-size', 'background-size: cover;', 'Como a imagem se ajusta à caixa. cover = preenche cortando as sobras; contain = aparece inteira; 100% 100% = estica; tamanho próprio = uma largura em % da caixa (altura proporcional).'],
     'background-position': ['background-position', 'background-position: 50% 50%;', 'Qual parte da imagem fica visível quando ela é maior que a caixa (ou onde ela fica quando é menor). 0% = começo, 50% = centro, 100% = fim.'],
     'background-repeat': ['background-repeat', 'background-repeat: repeat;', 'Se a imagem se repete como ladrilho quando não cobre a caixa toda: nos dois sentidos, só na horizontal ou só na vertical.'],
+    'word-spacing': ['word-spacing', 'word-spacing: 4px;', 'Espaço extra entre as PALAVRAS (diferente do espaçamento entre letras). Valores negativos aproximam as palavras.'],
+    'text-overflow': ['text-overflow', 'white-space: nowrap;\noverflow: hidden;\ntext-overflow: ellipsis;', 'O texto fica em UMA linha e o que não cabe vira "…". Precisa de uma largura fixa ou máxima para saber onde cortar. O alinhamento vertical não vale com isto.'],
+    'line-clamp': ['line-clamp', 'display: -webkit-box;\n-webkit-line-clamp: 3;\noverflow: hidden;', 'Mostra no máximo N linhas e termina com "…". Ótimo para títulos e descrições de cards. Precisa de uma largura fixa ou máxima.'],
     'min-width': ['min-width', 'min-width: 120px;', 'A largura nunca fica MENOR que isto, mesmo que o conteúdo ou o espaço do pai peçam menos. Vazio = sem limite.'],
     'max-width': ['max-width', 'max-width: 480px;', 'A largura nunca passa disto. Em texto com largura "hug", o texto passa a QUEBRAR LINHA ao chegar no limite. Vazio = sem limite.'],
     'min-height': ['min-height', 'min-height: 48px;', 'A altura nunca fica MENOR que isto. Útil em cards que crescem com o conteúdo mas não devem ficar baixos demais.'],
@@ -731,6 +734,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             get: () => P().textVAlign || 'top', set: (v) => each((n) => { n.textVAlign = v; }), commit,
           }))
           : null),
+      row(
+        capK('Espaço entre palavras', 'word-spacing', num('␣', () => P().wordSpacing ?? 0, (v) => each((n) => { if (v) n.wordSpacing = v; else delete n.wordSpacing; delete n.textStyleId; }), { step: 0.5, decimals: 1, title: 'word-spacing (px)' })),
+        capK('Quando não cabe', P().truncate === 'clamp' ? 'line-clamp' : 'text-overflow', select([['', 'Quebrar linha'], ['ellipsis', 'Uma linha com …'], ['clamp', 'Limitar linhas']],
+          () => P().truncate || '', (v) => each((n) => { if (v) n.truncate = v; else { delete n.truncate; delete n.lines; } }), 'Quando o texto não cabe'))),
+      P().truncate === 'clamp'
+        ? row(capK('Máximo de linhas', 'line-clamp', num('#', () => P().lines ?? 2, (v) => each((n) => { n.lines = Math.max(1, Math.round(v)); }), { min: 1, decimals: 0, title: 'Número máximo de linhas' })))
+        : null,
+      P().truncate && P().sizeX === 'hug' && !(P().maxW > 0)
+        ? h('p.hint', 'Para cortar o texto, defina uma largura fixa ou uma largura máxima (em Tamanho → Limites). Com a largura "hug" sem limite, o texto nunca passa da própria largura.')
+        : null,
     ]);
   }
 
@@ -1050,6 +1063,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
+      n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
       !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)

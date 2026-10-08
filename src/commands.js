@@ -194,7 +194,7 @@ export function createCommands(store, canvas) {
    * (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
    */
   const STYLE_KEYS = ['fill', 'stroke', 'radius', 'shadows', 'blur', 'bgBlur', 'opacity', 'blend'];
-  const TEXT_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign', 'textDecoration', 'textTransform', 'textStyleId'];
+  const TEXT_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign', 'textDecoration', 'textTransform', 'truncate', 'lines', 'textStyleId'];
 
   /** Guarda a aparência da 1ª camada selecionada em ui.styleClipboard. */
   function copyStyle() {

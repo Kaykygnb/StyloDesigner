@@ -121,7 +121,7 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     const tt = { uppercase: (x) => x.toUpperCase(), lowercase: (x) => x.toLowerCase(), capitalize: (x) => x.replace(/\b\p{L}/gu, (c) => c.toUpperCase()) }[node.textTransform];
     const lines = (tt ? tt(String(node.text)) : String(node.text)).split('\n');
     const tspans = lines.map((l, i) => `<tspan x="${n2(x)}" y="${n2(dy + i * lh + lh / 2)}">${esc(l) || ' '}</tspan>`).join('');
-    const extra = `${node.fontStyle === 'italic' ? ' font-style="italic"' : ''}${node.textDecoration !== 'none' ? ` text-decoration="${node.textDecoration}"` : ''}${node.letterSpacing ? ` letter-spacing="${node.letterSpacing}"` : ''}`;
+    const extra = `${node.fontStyle === 'italic' ? ' font-style="italic"' : ''}${node.textDecoration !== 'none' ? ` text-decoration="${node.textDecoration}"` : ''}${node.letterSpacing ? ` letter-spacing="${node.letterSpacing}"` : ''}${node.wordSpacing ? ` word-spacing="${node.wordSpacing}"` : ''}`;
     return `<text ${fillAttr} font-family="${esc(node.fontFamily)}, sans-serif" font-size="${fs}" font-weight="${node.fontWeight}" text-anchor="${anchor}" dominant-baseline="central" style="white-space:pre"${extra}>${tspans}</text>`;
   }
 

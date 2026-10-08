@@ -192,6 +192,8 @@ export function createNode(type, props = {}) {
     // Campos OPCIONAIS (só existem quando o usuário os define; ausente = padrão do CSS):
     //   minW, maxW, minH, maxH — limites de tamanho em px (min-width, max-width, min-height, max-height);
     //   aspect — proporção largura/altura (CSS aspect-ratio), ex.: 1.7778 = 16:9. Veja limitSize/applyLimits/hasAspect.
+    //   (texto) wordSpacing — espaço extra entre palavras em px; truncate — 'ellipsis' (uma linha com …) ou 'clamp'
+    //   (limita a `lines` linhas, padrão 2): CSS text-overflow / line-clamp. Veja css.js → truncateCss.
     // protótipo: lista de interações da camada (ver present.js)
     interactions: [], // protótipo: [{ trigger:'click', action:'navigate'|'back'|'url', target, transition }]
   };
