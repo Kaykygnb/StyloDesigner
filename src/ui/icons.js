@@ -93,6 +93,9 @@ const P = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   play: '<path d="M7 4.5v15l12-7.5z"/>',
   eyedropper: '<path d="M14 6l4 4M5 19l1-4 9-9 3 3-9 9zM16 4l1-1a2 2 0 013 3l-1 1"/>',
+  sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
+  inspect: '<path d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/><path d="M10 10l7 3-3 1-1 3z"/>',
+  send: '<path d="M4 12l16-8-6 16-2.5-5.5z"/><path d="M11.5 14.5L20 4"/>',
   front: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 14V6a2 2 0 012-2h8"/>',
   back: '<rect x="4" y="4" width="12" height="12" rx="2"/><path d="M20 10v8a2 2 0 01-2 2h-8"/>',
 };

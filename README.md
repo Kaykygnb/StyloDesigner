@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.14.1` · JavaScript puro (módulos ES) · sem dependências para rodar · 152 testes unitários + 27 suítes de navegador
+`v0.15.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 159 testes unitários + 28 suítes de navegador
 
 ---
 
@@ -63,6 +63,11 @@ O app abre com a **Vitrine completa**: uma landing page responsiva (a fictícia 
 - Painel **Código** (HTML + CSS), copiar CSS, exportar **HTML** completo, **SVG** e **PNG**.
 - **HTML semântico**: escolha a etiqueta, o link (`href`) e a descrição de acessibilidade (`aria-label`) de cada camada.
 
+**IA e inspeção**
+- **Assistente de IA** dentro do editor: peça "deixa este botão com cantos de 12px" ou "revisa o CSS deste card". Usa a **sua** chave da OpenAI (ou uma IA gratuita no seu PC, via Ollama) e **toda alteração pede a sua permissão** antes (e sai com `Ctrl+Z`).
+- **MCP**: o Claude Code, o Codex ou o Claude Desktop leem e alteram o design aberto, sem limite de chamadas (é tudo local).
+- **Inspecionar** (`I`), como o F12 do navegador: passe o mouse e veja a etiqueta HTML, a classe, o tamanho e o *box model* (margem, padding e conteúdo coloridos).
+
 **Reaproveitar e apresentar**
 - **Componentes** com instâncias (sobrescritas de texto, cor e tamanho), ícones do Material Symbols e **protótipo** clicável com transições, apresentado em tela cheia (`Ctrl+Alt+Enter`).
 - **Notas** e **comentários** nas camadas.
@@ -94,9 +99,26 @@ Abra **http://localhost:5173**. O app abre com a Vitrine completa: clique em uma
 | `Ctrl+R` | Réguas |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Desfazer / refazer |
 | `C` | Comentar |
+| `I` | Inspecionar (como o F12) |
 | `Ctrl+Alt+K` | Criar componente |
 | `Ctrl+Alt+Enter` | Apresentar o protótipo |
 | `?` | Todos os atalhos |
+
+---
+
+## IA: Assistente e MCP
+
+**Assistente** (botão ✦ no topo): abra **Configurações → Assistente de IA e MCP**, cole a sua chave da OpenAI (`platform.openai.com/api-keys`) e escolha o modelo. A chave fica só no seu computador, no arquivo de configuração do servidor; nunca vai para o projeto nem volta ao navegador. Para usar uma IA de graça no PC, instale o [Ollama](https://ollama.com) e use o endereço `http://localhost:11434/v1` (sem chave).
+
+**MCP** (com `npm start` rodando e o editor aberto no navegador):
+
+| Programa | Como ligar |
+|---|---|
+| Claude Code | `claude mcp add --transport http designer http://localhost:5173/mcp` |
+| Codex | em `~/.codex/config.toml`: `[mcp_servers.designer]` com `command = "node"` e `args = ["/caminho/do/projeto/scripts/mcp.mjs"]` |
+| Claude Desktop | Configurações → Desenvolvedor → Editar configuração → em `mcpServers`: `"designer": { "command": "node", "args": ["/caminho/do/projeto/scripts/mcp.mjs"] }` |
+
+A IA tem 11 ferramentas: ler o projeto, uma camada, o código (HTML/CSS), a seleção, procurar camadas, selecionar, e alterar/criar/apagar/mover camadas e desfazer. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta.
 
 ---
 
@@ -110,8 +132,8 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **152 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
-- **27 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
+- **159 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
+- **28 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 
 ---
@@ -123,7 +145,7 @@ Sem enrolação, para você decidir se serve:
 - **Edição em equipe:** um projeto é um arquivo; duas pessoas não editam juntas, e não há login (o app detecta conflito e para de gravar, mas não junta edições).
 - **Variantes de componente**, operações booleanas em formas, mais de um preenchimento/contorno por camada e unidades além de `px` (`%`, `rem`, `calc()`).
 - **Responsivo** com dois breakpoints fixos (1024 e 640px) e a mesma estrutura de camadas em todas as larguras.
-- **Plugins** e integração com IA.
+- **Plugins** (a IA já entra pelo MCP e pelo Assistente; extensões próprias, não).
 
 A lista completa, com os detalhes, está na [seção de limitações do guia](docs/GUIA-COMPLETO.md#11-limitações-leia-antes-de-usar-em-trabalho-sério). É uma base sólida para **uso individual**, prototipar, estudar CSS e entregar sites simples; para trabalho de cliente com várias pessoas ou ilustração complexa, o [Penpot](https://penpot.app) é a melhor escolha.
 

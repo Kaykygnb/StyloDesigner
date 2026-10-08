@@ -8,6 +8,8 @@
  *   2. API /api/...: grava e lê projetos (.json) numa PASTA que você escolhe em Configurações (padrão:
  *      ./projetos). Guarda também VERSÕES antigas de cada projeto (no máximo 1 a cada 10 minutos).
  *      Dica: aponte a pasta para dentro do Google Drive/OneDrive/Dropbox para ter cópia na nuvem.
+ *   3. IA: o endereço /mcp (programas como Claude Code e Codex usam o editor aberto) e /api/agent/... (o Assistente
+ *      fala com a OpenAI usando a chave guardada só aqui). Quem executa as ferramentas é o EDITOR (ver agentApi).
  *
  *  Uso:  npm start   →   http://localhost:5173
  *  Variáveis: PORT (porta), DESIGNER_CONFIG (arquivo de configuração; padrão ./designer.config.json).
@@ -28,6 +30,8 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleMcp } from './server/mcp.js';
+import { VERSION } from './src/version.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -87,6 +91,9 @@ async function useFolder(input) {
   await rm(probe, { force: true });
   return folder;
 }
+
+/** O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador). */
+const publicConfig = () => ({ folder: config.folder, keepVersions: config.keepVersions });
 
 // ---------------------------------------------------------------- utilidades HTTP
 /** Erro com status HTTP e mensagem que pode ir para a tela do usuário. */
@@ -186,7 +193,7 @@ async function api(req, res, path) {
   }
   const parts = path.split('/').filter(Boolean).slice(1); // ['projects', 'nome.json', 'versions', ...]
 
-  if (parts[0] === 'status' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, { ok: true, ...config });
+  if (parts[0] === 'status' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, { ok: true, ...publicConfig() });
 
   if (parts[0] === 'config' && parts.length === 1 && req.method === 'PUT') {
     const body = JSON.parse((await readBody(req)) || '{}');
@@ -195,8 +202,10 @@ async function api(req, res, path) {
     if (body.keepVersions !== undefined) next.keepVersions = Math.max(0, Math.min(200, Math.round(Number(body.keepVersions) || 0)));
     await writeFile(configFile, JSON.stringify(next, null, 2));
     config = next;
-    return sendJson(res, 200, { ok: true, ...config });
+    return sendJson(res, 200, { ok: true, ...publicConfig() });
   }
+
+  if (parts[0] === 'agent') return agentApi(req, res, parts.slice(1));
 
   if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') {
     await mkdir(config.folder, { recursive: true });
@@ -278,6 +287,131 @@ async function api(req, res, path) {
   throw httpError(404, 'Rota não encontrada.');
 }
 
+// ---------------------------------------------------------------- IA: ponte com o editor, MCP e agente interno
+/**
+ * PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo,
+ * com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma
+ * conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a
+ * resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+ */
+const editors = new Set();
+/** Pedidos esperando resposta do editor: id → { resolve, timer }. */
+const pending = new Map();
+let callSeq = 0;
+/** Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão). */
+const EDITOR_TIMEOUT_MS = 3 * 60 * 1000;
+
+/** Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor). */
+function callEditor(tool, args, client) {
+  const editor = [...editors].pop();
+  if (!editor) return Promise.reject(new Error(`O editor não está aberto. Abra http://localhost:${port} no navegador (com o npm start rodando) e tente de novo.`));
+  const id = String(++callSeq);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error('O editor não respondeu a tempo (a pessoa não decidiu na janela de permissão em 3 minutos).')); }, EDITOR_TIMEOUT_MS);
+    pending.set(id, { resolve, timer });
+    editor.write(`event: call\ndata: ${JSON.stringify({ id, tool, args, client })}\n\n`);
+  });
+}
+
+/** Nome do programa de IA conectado pelo MCP (vem no "initialize"), mostrado na janela de permissão. */
+const mcpSession = {};
+
+/**
+ * MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples).
+ * POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+ */
+async function mcpRoute(req, res) {
+  if (!localHost(req.headers.host) || !localOrigin(req.headers.origin)) throw httpError(403, 'Acesso negado.');
+  if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }).end(); return; }
+  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'Envie JSON.');
+  const body = JSON.parse((await readBody(req)) || 'null');
+  const one = (m) => handleMcp(m, { callTool: callEditor, version: VERSION, session: mcpSession });
+  const out = Array.isArray(body) ? (await Promise.all(body.map(one))).filter(Boolean) : await one(body);
+  if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202).end(); return; } // só avisos: nada a responder
+  sendJson(res, 200, out);
+}
+
+/** Endereço padrão da API da OpenAI (dá para trocar por um servidor compatível no seu PC, como Ollama ou LM Studio). */
+const OPENAI_URL = 'https://api.openai.com/v1';
+/** Modelo padrão do agente interno (troque em Configurações pelo nome de um modelo disponível na sua conta). */
+const DEFAULT_MODEL = 'gpt-4.1-mini';
+/** Configuração do agente interno: URL da API, modelo e chave (a chave também pode vir da variável OPENAI_API_KEY). */
+const agentConfig = () => ({
+  baseUrl: (config.agent?.baseUrl || OPENAI_URL).replace(/\/+$/, ''),
+  model: config.agent?.model || DEFAULT_MODEL,
+  apiKey: config.agent?.apiKey || process.env.OPENAI_API_KEY || '',
+});
+
+/**
+ * Rotas da IA:
+ *   GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
+ *   POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
+ *   GET  /api/agent/config   → { baseUrl, model, hasKey, editors } (a chave NUNCA é devolvida)
+ *   PUT  /api/agent/config   { apiKey?, model?, baseUrl? } → grava (apiKey "" apaga a chave)
+ *   POST /api/agent/chat     { messages, tools } → repassa à API de chat (OpenAI ou compatível) com a SUA chave
+ */
+async function agentApi(req, res, parts) {
+  const [what] = parts;
+  if (what === 'events' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+    res.write(': conectado\n\n');
+    editors.add(res);
+    // "batimento" a cada 25 s: sem tráfego, alguns navegadores/antivírus derrubam a conexão parada
+    const beat = setInterval(() => res.write(': ping\n\n'), 25000);
+    req.on('close', () => { clearInterval(beat); editors.delete(res); });
+    return;
+  }
+  if (what === 'reply' && req.method === 'POST') {
+    const { id, result } = JSON.parse((await readBody(req)) || '{}');
+    const p = pending.get(String(id));
+    if (p) { clearTimeout(p.timer); pending.delete(String(id)); p.resolve(result ?? {}); }
+    return sendJson(res, 200, { ok: !!p });
+  }
+  if (what === 'config' && req.method === 'GET') {
+    const a = agentConfig();
+    // caminho do script stdio e endereço HTTP do MCP: a janela de Configurações mostra os comandos prontos para copiar
+    return sendJson(res, 200, { baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs') });
+  }
+  if (what === 'config' && req.method === 'PUT') {
+    const body = JSON.parse((await readBody(req)) || '{}');
+    const next = { ...(config.agent || {}) };
+    if (body.apiKey !== undefined) { const k = String(body.apiKey).trim(); if (k) next.apiKey = k; else delete next.apiKey; }
+    if (body.model !== undefined) { const m = String(body.model).trim(); if (m) next.model = m.slice(0, 100); else delete next.model; }
+    if (body.baseUrl !== undefined) {
+      const u = String(body.baseUrl).trim();
+      if (u && !/^https?:\/\/[^\s]+$/i.test(u)) throw httpError(400, 'Endereço inválido: use algo como https://api.openai.com/v1 ou http://localhost:11434/v1.');
+      if (u) next.baseUrl = u; else delete next.baseUrl;
+    }
+    config = { ...config, agent: next };
+    await writeFile(configFile, JSON.stringify(config, null, 2));
+    const a = agentConfig();
+    return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey });
+  }
+  if (what === 'chat' && req.method === 'POST') {
+    const { messages, tools } = JSON.parse((await readBody(req)) || '{}');
+    if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
+    const a = agentConfig();
+    if (!a.apiKey && a.baseUrl === OPENAI_URL) throw httpError(400, 'Configure a chave da OpenAI em Configurações → Assistente de IA.');
+    let r;
+    try {
+      r = await fetch(`${a.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {}) },
+        body: JSON.stringify({ model: a.model, messages, ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
+        signal: AbortSignal.timeout(120000),
+      });
+    } catch (err) {
+      throw httpError(502, `Não consegui falar com ${a.baseUrl} (${err.name === 'TimeoutError' ? 'demorou demais' : err.cause?.code || err.message}). Confira a internet e o endereço em Configurações.`);
+    }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${data.error?.message || r.status}${r.status === 401 ? ' (chave inválida?)' : ''}`);
+    const message = data.choices?.[0]?.message;
+    if (!message) throw httpError(502, 'A API respondeu sem mensagem.');
+    return sendJson(res, 200, { message, usage: data.usage || null });
+  }
+  throw httpError(404, 'Rota não encontrada.');
+}
+
 // ---------------------------------------------------------------- servidor
 /**
  * Para cada pedido: /api/... vai para a API; o resto é arquivo estático. No estático, resolve o caminho, confere a
@@ -285,10 +419,11 @@ async function api(req, res, path) {
  * `Cache-Control: no-cache` para você ver as mudanças do código ao recarregar a página.
  */
 createServer(async (req, res) => {
-  const isApi = /^\/api(\/|$)/.test(req.url);
+  const isApi = /^\/(api(\/|$)|mcp\b)/.test(req.url);
   try {
     // pega só o caminho da URL (sem ?query) e decodifica %xx; "/" vira index.html
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (path === '/mcp') return await mcpRoute(req, res);
     if (isApi) return await api(req, res, path);
     if (path === '/') path = '/index.html';
     // caminho absoluto no disco; `rel` = caminho relativo à pasta do projeto

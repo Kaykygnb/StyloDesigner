@@ -7,7 +7,8 @@
  *   1. Pasta de projetos  — caminho no computador (o SERVIDOR grava lá), auto-salvar e nº de versões.
  *      Explica como usar Google Drive/OneDrive/Dropbox: escolher uma pasta sincronizada por eles.
  *   2. Cópia no navegador — sempre ligada (IndexedDB); mostra o espaço e pede proteção contra limpeza.
- *   3. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
+ *   3. Assistente de IA e MCP — chave/modelo/endereço da API (OpenAI ou compatível) e como ligar o Claude Code/Codex.
+ *   4. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
@@ -44,7 +45,8 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
     const server = await saving.refresh();
     const usage = await browserUsage();
     const persisted = await navigator.storage?.persisted?.().catch(() => false);
-    body.replaceChildren(folderSection(server), browserSection(usage, persisted), lookSection());
+    const ai = server ? await fetch('/api/agent/config').then((r) => r.json()).catch(() => null) : null;
+    body.replaceChildren(folderSection(server), browserSection(usage, persisted), aiSection(ai), lookSection());
   }
 
   // ---------------------------------------------------------------- 1. pasta
@@ -128,7 +130,53 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
       h('div.set-row', protect));
   }
 
-  // ---------------------------------------------------------------- 3. aparência
+  // ---------------------------------------------------------------- 3. assistente de IA e MCP
+  function aiSection(ai) {
+    if (!ai) {
+      return h('section.set-section',
+        h('h3', ico('sparkle', 15), ' Assistente de IA e MCP'),
+        h('p.muted', 'Precisa do servidor do app (', h('code', 'npm start'), '): é ele que guarda a chave e conversa com a IA.'));
+    }
+    const msg = h('p.set-msg', { role: 'status' });
+    const key = h('input.text.mono', { type: 'password', placeholder: ai.hasKey ? '•••••••• (chave salva)' : 'sk-...', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave da API' });
+    const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo' });
+    const base = h('input.text.mono', { type: 'text', value: ai.baseUrl, spellcheck: false, 'aria-label': 'Endereço da API' });
+    /** Grava no servidor (a chave só vai se você digitou uma nova). */
+    const save = async (patch) => {
+      try {
+        const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        toast('Assistente configurado.');
+        render();
+      } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui salvar.'; }
+    };
+    const saveBtn = h('button.btn.primary', { type: 'button', onclick: () => save({ model: model.value, baseUrl: base.value, ...(key.value.trim() ? { apiKey: key.value.trim() } : {}) }) }, 'Salvar');
+    const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }) }, 'Apagar chave') : null;
+    const copy = (text) => h('button.btn.small', { type: 'button', onclick: () => navigator.clipboard?.writeText(text).then(() => toast('Copiado.')) }, 'Copiar');
+    const cmd = (label, text) => h('div.set-cmd', h('span.set-label', label), h('code', text), copy(text));
+    return h('section.set-section',
+      h('h3', ico('sparkle', 15), ' Assistente de IA e MCP'),
+      h('p', 'O ', h('strong', 'Assistente'), ' (botão ', ico('sparkle', 12), ' no topo) conversa com a IA usando a ', h('strong', 'sua'),
+        ' chave. Ela fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto.'),
+      h('div.set-row', h('span.set-label', 'Chave da API'), h('div.field.grow', key), forget),
+      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model)),
+      h('div.set-row', h('span.set-label', 'Endereço da API'), h('div.field.grow', base)),
+      h('div.set-row', saveBtn),
+      msg,
+      h('p.muted.small', 'Chave em ', h('code', 'platform.openai.com/api-keys'), ' (o uso é cobrado pela OpenAI). O modelo é o nome de um modelo da sua conta. ',
+        'Para usar uma IA de graça no seu PC, instale o Ollama e use o endereço ', h('code', 'http://localhost:11434/v1'), ' (sem chave) e o nome do modelo baixado.'),
+      h('div.set-tip',
+        h('strong', 'MCP: ligar o Claude Code, o Codex ou o Claude Desktop'),
+        h('p', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design (cada alteração passa pela sua permissão aqui). ',
+          ai.editors ? h('span.set-status.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`) : h('span.set-status.off', '● nenhum editor conectado')),
+        cmd('Claude Code', `claude mcp add --transport http designer ${ai.mcpUrl}`),
+        cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
+        h('p.muted.small', 'No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
+          h('code', `args = ["${ai.mcpScript.replace(/\\/g, '\\\\')}"]`), '. No Claude Desktop: Configurações → Desenvolvedor → Editar configuração, em ', h('code', 'mcpServers'), '.')));
+  }
+
+  // ---------------------------------------------------------------- 4. aparência
   function lookSection() {
     const opt = (group, value, label, current, onPick) =>
       h('label.set-radio', h('input', { type: 'radio', name: group, value, checked: current === value, onchange: () => onPick(value) }), h('span', label));

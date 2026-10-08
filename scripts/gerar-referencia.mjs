@@ -99,7 +99,7 @@ function parseFile(path) {
   const lines = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').split('\n');
   let title = '', about = '', i = 0;
   // cabeçalho do arquivo: o primeiro bloco /** no topo (antes de qualquer import/código)
-  while (i < lines.length && !lines[i].trim()) i++;
+  while (i < lines.length && (!lines[i].trim() || lines[i].startsWith('#!'))) i++; // pula linhas vazias e o "#!/usr/bin/env node"
   if (lines[i]?.trim().startsWith('/**')) {
     const start = i;
     while (i < lines.length && !lines[i].includes('*/')) i++;
@@ -156,7 +156,7 @@ function renderItem(it, file) {
 }
 
 /** Títulos dos cabeçalhos vêm EM MAIÚSCULAS; no índice viram frase normal, mantendo as siglas (CSS, SVG...). */
-const ACRONYMS = ['HTML', 'CSS', 'SVG', 'PNG', 'JSON', 'DOM', 'API', 'IndexedDB', 'Google', 'Material Symbols', 'Fonts'];
+const ACRONYMS = ['HTML', 'CSS', 'SVG', 'PNG', 'JSON', 'DOM', 'API', 'IndexedDB', 'Google', 'Material Symbols', 'Fonts', 'MCP', 'IA', 'F12', 'OpenAI', 'Claude', 'Codex', 'Desktop'];
 function sentence(t) {
   if (!t) return '';
   let s = (t.charAt(0) + t.slice(1).toLowerCase()).replace(/\s{2,}/g, ' ');
@@ -166,7 +166,7 @@ function sentence(t) {
 
 /** Monta o Markdown inteiro. */
 function build() {
-  const files = [...listJs(join(ROOT, 'src')), join(ROOT, 'server.js')];
+  const files = [...listJs(join(ROOT, 'src')), join(ROOT, 'server.js'), ...listJs(join(ROOT, 'server')), join(ROOT, 'scripts', 'mcp.mjs')];
   const parsed = files.map((p) => ({ file: rel(p), ...parseFile(p) }));
   // mesma regra do GitHub para âncoras de título: minúsculas, sem pontuação ("src/ui/dom.js" → "srcuidomjs")
   const anchor = (f) => f.toLowerCase().replace(/[^a-z0-9 _-]/g, '').replace(/ /g, '-');

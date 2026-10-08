@@ -6,6 +6,23 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.15.0] — 2026-10-08 — IA no editor: Assistente, MCP e Inspecionar
+
+Versão de fechamento antes de estudar o código: as três últimas peças pedidas.
+
+### Adicionado
+- **Assistente de IA** (botão ✦ no topo): conversa dentro do editor que lê o design e faz alterações. Usa a **sua** chave da OpenAI, guardada só no servidor local (Configurações → Assistente de IA e MCP), ou qualquer servidor compatível (Ollama, LM Studio, de graça no seu PC). Mostra cada passo ("✓ Alterou “Botão”: radius") e tem "Parar".
+- **MCP**: `http://localhost:5173/mcp` (Claude Code: `claude mcp add --transport http designer http://localhost:5173/mcp`) e `scripts/mcp.mjs` para quem usa stdio (Codex, Claude Desktop). Sem limite de chamadas: é tudo local. Protocolo implementado sem dependências em `server/mcp.js`.
+- **11 ferramentas** para a IA (`src/agent/schema.js`): ler projeto, camada, código, seleção, procurar, selecionar; alterar, criar, apagar, mover e desfazer. A mesma lista vale para o Assistente e para o MCP.
+- **Permissão antes de cada alteração** feita por IA: janela com quem pede e o quê ("Claude Code quer alterar “Card”: layout.gap"), com Permitir / Permitir tudo nesta sessão (por programa) / Recusar. Cada alteração é um passo do Ctrl+Z, e só propriedades conhecidas são aceitas.
+- **Inspecionar** (tecla `I` ou o botão na barra): como o F12 do navegador. Passe o mouse para ver a etiqueta HTML e a classe do código exportado, o tamanho, o CSS aplicado (display, gap, padding, margem, fonte, cor) e o *box model* colorido (margem laranja, padding verde, conteúdo azul). Clique seleciona o elemento exato.
+- Testes: `tests/agente.test.js` (protocolo MCP e regras de alteração) e a suíte `tests/e2e/agente-mcp.mjs` (inspetor, MCP por HTTP e stdio, permissão, Ctrl+Z, chave protegida e o Assistente com uma OpenAI falsa).
+
+### Segurança
+- A chave da API nunca é devolvida por nenhuma rota (`/api/status` deixou de devolver a configuração inteira). O `/mcp` segue as regras da API: só `localhost`, sem pedidos vindos de outros sites.
+
+---
+
 ## [0.14.1] — 2026-10-08 — HTML exportado igual ao editor
 
 Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava (os itens saíam de dentro dos cards e os do plano Pro ficavam invisíveis), embora o editor mostrasse tudo certo.

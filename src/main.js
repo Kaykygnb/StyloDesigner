@@ -39,6 +39,9 @@ import { createHome } from './ui/home.js';
 import { closeInformation } from './ui/info.js';
 import { pageThumbnail } from './thumbnail.js';
 import { folder } from './storage.js';
+import { createRunner } from './agent/runner.js';
+import { createApprover, connectMcpBridge } from './agent/bridge.js';
+import { createAssistant } from './ui/assistant.js';
 
 /** Atalho: primeiro elemento que casa com o seletor CSS. */
 const $ = (sel) => document.querySelector(sel);
@@ -284,6 +287,8 @@ async function confirmReplace(question) {
   return choice === 'go';
 }
 
+// botão do Assistente de IA (o painel é criado mais abaixo, junto com o MCP)
+const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Assistente de IA: peça mudanças e revisões do design (com a sua permissão)' }, ico('sparkle', 15), h('span.tab-label', ' Assistente'));
 // monta a barra superior
 $('#topbar').append(
   h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', onclick: () => home.open() },
@@ -297,6 +302,7 @@ $('#topbar').append(
   h('div.spacer'),
   responsive.topEl,
   h('div.spacer'),
+  aiBtn,
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
   settingsBtn,
@@ -346,6 +352,7 @@ const TOOLS = [
   ['pen', 'pen', 'Caneta / vetor (P)'],
   ['text', 'text', 'Texto (T)'],
   ['comment', 'comment', 'Comentar (C)'],
+  ['inspect', 'inspect', 'Inspecionar (I): passe o mouse para ver o HTML e o CSS, como o F12'],
   ['hand', 'hand', 'Mão (H)'],
 ];
 const toolBtns = TOOLS.map(([id, ic, title]) =>
@@ -364,6 +371,7 @@ $('#toolbar').append(
   h('span.tool-sep'),
   toolBtns[9],
   toolBtns[10],
+  toolBtns[11],
   imgInput,
 );
 $('#toolbar').setAttribute('role', 'toolbar');
@@ -492,8 +500,18 @@ requestAnimationFrame(() => {
   syncTopbar(); syncTools(); syncZoom(); syncCommentBadge();
 });
 
+// ---------------------------------------------------------------- IA: assistente interno e MCP
+// As duas portas de entrada de uma IA usam o MESMO executor (agent/runner.js) e a MESMA janela de permissão:
+// o Assistente (painel flutuante, com a sua chave da OpenAI) e programas externos via MCP (Claude Code, Codex...).
+const approve = createApprover();
+const runner = createRunner({ store, commands, approve });
+const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage') });
+aiBtn.addEventListener('click', () => assistant.toggle());
+// o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
+if (ui.server) connectMcpBridge({ runner, toast });
+
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
-window.designer = { store, canvas, commands, tools };
+window.designer = { store, canvas, commands, tools, agent: { runner, approve, assistant } };
 
 // ---------------------------------------------------------------- fontes do Google
 // Baixa as fontes do Google que os textos do projeto usam: ao abrir e depois de cada mudança gravada no histórico

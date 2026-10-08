@@ -22,7 +22,7 @@ import { RULER } from './rulers.js';
 /** Ferramentas em que clicar/arrastar no canvas CRIA uma camada nova. */
 const DRAW_TOOLS = ['frame', 'section', 'rect', 'ellipse', 'text', 'line', 'polygon', 'star'];
 /** Atalho de teclado → ferramenta (V mover, F/B frame, R retângulo, E elipse, T texto, H mão, P caneta, L linha). */
-const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line', c: 'comment' };
+const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line', c: 'comment', i: 'inspect' };
 /** Quantos px de tela o mouse precisa andar para um clique virar ARRASTO (evita mover sem querer ao clicar). */
 const THRESHOLD = 3; // px de tela antes de considerar que é um arrasto
 /** Cópia profunda via JSON (usada para guardar o estado inicial de um gesto). */
@@ -279,6 +279,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
     // ferramenta COMENTAR: o clique numa camada cria um rascunho de comentário NAQUELE ponto
     if (tool === 'comment') { startComment(e, hitId); return; }
+    // INSPECIONAR (como o F12 do navegador): o clique seleciona a camada MAIS FUNDA sob o mouse (o elemento exato,
+    // não o grupo/frame de fora) e continua inspecionando; nada é movido nem alterado
+    if (tool === 'inspect') { store.setSelection(hitId ? [hitId] : []); return; }
     // modo RESPONSIVO (Tablet/Celular): o canvas só seleciona; os ajustes vão pelo painel Design (assim valem só nesta largura)
     if (ui.bp) {
       const label = t.dataset.label || null;
@@ -989,9 +992,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (!drag) {
       if (pen.isDrawing()) pen.move(e);
       else if (pen.isEditing()) pen.hover(e);
-      if (ui.tool === 'move' && !ui.editingId) {
+      if ((ui.tool === 'move' || ui.tool === 'inspect') && !ui.editingId) {
         const id = e.target.dataset?.label || nodeAt(e.target);
-        const next = id ? (e.target.dataset?.label ? id : pickSelectable(id)) : null;
+        // inspecionar mira o elemento exato sob o mouse (como o DevTools); mover mira o que um clique selecionaria
+        const next = id ? (e.target.dataset?.label || ui.tool === 'inspect' ? id : pickSelectable(id)) : null;
         if (next !== ui.hoverId) {
           ui.hoverId = next;
           store.emit('hover');

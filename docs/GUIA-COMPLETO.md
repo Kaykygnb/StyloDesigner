@@ -211,6 +211,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: a **Vitrine completa**, o proj
 | Caneta | `P` | Vetores com curvas de Bézier. |
 | Texto | `T` | Clique para texto livre; arraste para uma caixa de largura fixa. |
 | Comentar | `C` | Clique numa camada, no ponto exato, e escreva o comentário na aba Comentários. |
+| Inspecionar | `I` | Como o F12 do navegador: passe o mouse e veja etiqueta HTML, classe do código, tamanho e o *box model* (margem laranja, padding verde, conteúdo azul) com o CSS que o navegador está aplicando. Clique seleciona o elemento exato; `Esc` volta para Mover. |
 | Imagem | botão, arrastar ou `Ctrl+V` | Cria um retângulo com preenchimento de imagem (reduzida a 1600 px). Arquivos **`.svg`** e SVG colado como texto viram **vetores editáveis**. |
 | Mão | `H` ou segurar `Espaço` | Arrasta a vista. |
 
@@ -295,7 +296,7 @@ No app, aperte **`?`** para ver esta lista. (No Mac, use `⌘` no lugar de `Ctrl
 
 | Área | Atalho | Ação |
 |---|---|---|
-| **Ferramentas** | `V` · `F`/`B` · `R` · `E` · `L` · `P` · `T` · `H` | Mover · Frame · Retângulo · Elipse · Linha · Caneta · Texto · Mão |
+| **Ferramentas** | `V` · `F`/`B` · `R` · `E` · `L` · `P` · `T` · `C` · `I` · `H` | Mover · Frame · Retângulo · Elipse · Linha · Caneta · Texto · Comentar · Inspecionar · Mão |
 | **Edição** | `Ctrl+Z` / `Ctrl+Shift+Z` | Desfazer / Refazer |
 | | `Ctrl+D` · `Alt`+arrastar | Duplicar |
 | | `Ctrl+C` / `X` / `V` | Copiar / Recortar / Colar |
@@ -434,7 +435,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 152 testes
+npm test      # 159 testes
 ```
 
 ### Testes de navegador
@@ -476,7 +477,7 @@ Este projeto cobre bastante de Figma e Penpot para uso **individual e para prot�
 - **Variantes de componente** (botão primário/secundário/desabilitado numa peça só).
 - **Unidades além de px** (`%`, `rem`, `vw`) e `calc()`. A responsividade existe (Tablet e Celular com `@media`), mas as larguras dos breakpoints são fixas (1024 e 640px), só há dois além do Desktop, e a estrutura (quais camadas existem) é a mesma em todas as larguras.
 - **Variáveis de cor e tamanho:** não há variáveis de texto (família de fonte) nem de modo por variável de tamanho.
-- **Plugins** e integração com IA por MCP.
+- **Plugins** próprios (a IA entra pelo MCP e pelo Assistente, veja o README). O Assistente não lembra conversas depois de recarregar a página, e o ChatGPT do site não conecta pelo MCP (só aceita servidores na internet).
 - **Edição de imagem** (recorte, filtros) e lápis livre.
 - Texto com **estilos misturados** na mesma caixa e listas.
 

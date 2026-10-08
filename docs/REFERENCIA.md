@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-43 arquivos · 693 funções e constantes documentadas.
+49 arquivos · 750 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -38,7 +38,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/thumbnail.js`](#srcthumbnailjs) | Miniatura do projeto (SVG) para a página inicial |
 | [`src/tools.js`](#srctoolsjs) | Interação: mouse e teclado no canvas |
 | [`src/version.js`](#srcversionjs) |  |
+| [`src/agent/bridge.js`](#srcagentbridgejs) | Permissão e ponte com o MCP (lado do navegador) |
+| [`src/agent/runner.js`](#srcagentrunnerjs) | Executa as ferramentas do agente no editor aberto |
+| [`src/agent/schema.js`](#srcagentschemajs) | As ferramentas que uma IA pode usar no editor (lista única, sem DOM) |
 | [`src/ui/assets.js`](#srcuiassetsjs) | Aba "recursos" (componentes e estilos) |
+| [`src/ui/assistant.js`](#srcuiassistantjs) | Painel "assistente" (agente de IA dentro do editor) |
 | [`src/ui/code.js`](#srcuicodejs) | Aba "código" (CSS e HTML da seleção) |
 | [`src/ui/colorpicker.js`](#srcuicolorpickerjs) | Seletor de cor (popover) com gerenciador de paletas |
 | [`src/ui/comments.js`](#srcuicommentsjs) | Painel "comentários" (aba do painel direito) |
@@ -53,9 +57,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/projects.js`](#srcuiprojectsjs) | Janela "projetos na pasta" (salvar com nome, abrir, versões antigas) |
 | [`src/ui/props.js`](#srcuipropsjs) | Painel "design" (propriedades da seleção) |
 | [`src/ui/proto.js`](#srcuiprotojs) | Aba "protótipo" (interações entre telas) |
-| [`src/ui/responsive.js`](#srcuiresponsivejs) | Largura da tela (desktop · tablet · celular) e modo de cor |
+| [`src/ui/responsive.js`](#srcuiresponsivejs) | Largura da tela (Desktop · tablet · celular) e modo de cor |
 | [`src/ui/settings.js`](#srcuisettingsjs) | Janela "configurações" (onde salvar, versões, cópia no navegador, aparência) |
 | [`server.js`](#serverjs) | Servidor local: entrega o app e salva os projetos numa pasta do seu computador |
+| [`server/mcp.js`](#servermcpjs) | O protocolo MCP (model context protocol), sem dependências |
+| [`scripts/mcp.mjs`](#scriptsmcpmjs) | Servidor MCP por "stdio" (para Claude Desktop, Codex e outros) |
 
 ---
 
@@ -514,31 +520,31 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`toast(msg)`** <sub>do módulo</sub> · [L50](../src/main.js#L50) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L64](../src/main.js#L64) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L89](../src/main.js#L89) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L92](../src/main.js#L92) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L124](../src/main.js#L124) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L156](../src/main.js#L156) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L268](../src/main.js#L268) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`toast(msg)`** <sub>do módulo</sub> · [L53](../src/main.js#L53) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L67](../src/main.js#L67) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings()`** <sub>do módulo</sub> · [L92](../src/main.js#L92) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
+- **`quickSave()`** <sub>do módulo</sub> · [L95](../src/main.js#L95) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L127](../src/main.js#L127) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L159](../src/main.js#L159) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L271](../src/main.js#L271) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L308](../src/main.js#L308) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L325](../src/main.js#L325) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L314](../src/main.js#L314) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L331](../src/main.js#L331) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L337](../src/main.js#L337) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L396](../src/main.js#L396) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L432](../src/main.js#L432) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L478](../src/main.js#L478) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L552](../src/main.js#L552) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L606](../src/main.js#L606) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L614](../src/main.js#L614) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L343](../src/main.js#L343) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L404](../src/main.js#L404) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L440](../src/main.js#L440) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L486](../src/main.js#L486) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L570](../src/main.js#L570) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L624](../src/main.js#L624) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L632](../src/main.js#L632) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -752,7 +758,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     falsy → só a borda · 'plain' → 8 alças · 'full' → 8 alças + 4 zonas de rotação · 'line' → só as 2 pontas (linhas)
   Alças de borda somem quando a caixa é minúscula (<24px), para não cobrirem o objeto.
 - **`render()`** <sub>interna</sub> · [L166](../src/overlay.js#L166) — Redesenha o overlay inteiro (barato graças ao pool). Camadas, de baixo para cima: nomes dos frames → hover → alvo de soltura → seleção → guias de snap → grades de layout → guias manuais → grade de pixels → medidas (Alt) → caneta → setas do protótipo → marquee.
-- **`pill(aabb, text)`** <sub>interna</sub> · [L497](../src/overlay.js#L497) — Etiqueta azul "L × A" logo abaixo da seleção.
+- **`docVersion`** <sub>interna</sub> · [L501](../src/overlay.js#L501) — Muda a cada alteração do documento: invalida o "mapa de classes" do inspetor.
+- **`classCache`** <sub>interna</sub> · [L503](../src/overlay.js#L503) — Cache do mapa id → { tag, cls } da tela inspecionada (gerar o HTML da tela inteira a cada movimento seria caro).
+- **`exportedName(id)`** <sub>interna</sub> · [L508](../src/overlay.js#L508) — Etiqueta HTML e classe CSS que a camada recebe NO CÓDIGO EXPORTADO. As classes dependem da tela inteira (nomes repetidos ganham -2, -3...), então gera o código da tela onde a camada está (uma vez por versão do documento).
+- **`drawInspect(id)`** <sub>interna</sub> · [L527](../src/overlay.js#L527) — Desenha o "box model" da camada como o DevTools: margem (laranja), padding (verde) e conteúdo (azul), medidos no próprio elemento do canvas (getComputedStyle = o CSS que o navegador está aplicando de verdade), e a etiqueta com etiqueta HTML, classe, tamanho e as propriedades principais.
+- **`pill(aabb, text)`** <sub>interna</sub> · [L584](../src/overlay.js#L584) — Etiqueta azul "L × A" logo abaixo da seleção.
 
 ---
 
@@ -1257,48 +1267,141 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`startEdit(id)`** <sub>interna</sub> · [L165](../src/tools.js#L165) — Entra no modo de edição de texto da camada (o canvas dá foco e seleciona tudo; ver canvas.js → render).
 - **`finishEdit()`** <sub>interna</sub> · [L174](../src/tools.js#L174) — Sai da edição de texto. Texto vazio apaga a camada (sem sobrar caixa invisível); senão grava no histórico.
 - **`startPan(e)`** <sub>interna</sub> · [L202](../src/tools.js#L202) — Começa a arrastar a vista (botão do meio, Espaço+arrastar ou ferramenta Mão).
-- **`startComment(e, hitId)`** <sub>interna</sub> · [L355](../src/tools.js#L355) — Clique da ferramenta Comentar: guarda um RASCUNHO (camada + ponto relativo à caixa dela) e abre o painel Comentários com a caixa de texto já focada. Quem cria o comentário é o painel, quando você envia.
-- **`startMove(e, { collapseTo })`** <sub>interna</sub> · [L371](../src/tools.js#L371) — Prepara o arrasto de mover as camadas selecionadas. `collapseTo`: se for só um clique (sem arrastar) numa seleção múltipla, reduz a seleção a essa camada.
-- **`rebase(nodes)`** <sub>interna</sub> · [L386](../src/tools.js#L386) — Guarda o ponto de partida dos itens em coordenadas de MUNDO (origem + caixa). A posição final é sempre "origem inicial + deslocamento do ponteiro − origem do pai atual", então continua certa mesmo que o pai mude no meio do arrasto (quando a camada passa por cima de outro frame).
-- **`snapCandidates()`** <sub>interna</sub> · [L396](../src/tools.js#L396) — Retângulos com os quais o item que se move pode "grudar" (snap): os irmãos e o pai. Calculado uma vez por arrasto (cache em drag.snapRects) porque os vizinhos não mudam enquanto você arrasta.
-- **`snapMove(dx, dy)`** <sub>interna</sub> · [L414](../src/tools.js#L414) — SNAP: ajusta o deslocamento (dx, dy) para que bordas e centros do item alinhem com os dos vizinhos e com as guias de régua, quando estiverem a menos de 6px de TELA (6/zoom no mundo). Devolve também as linhas-guia rosa a desenhar onde houve alinhamento exato. Ctrl desliga o snap (no chamador).
+- **`startComment(e, hitId)`** <sub>interna</sub> · [L358](../src/tools.js#L358) — Clique da ferramenta Comentar: guarda um RASCUNHO (camada + ponto relativo à caixa dela) e abre o painel Comentários com a caixa de texto já focada. Quem cria o comentário é o painel, quando você envia.
+- **`startMove(e, { collapseTo })`** <sub>interna</sub> · [L374](../src/tools.js#L374) — Prepara o arrasto de mover as camadas selecionadas. `collapseTo`: se for só um clique (sem arrastar) numa seleção múltipla, reduz a seleção a essa camada.
+- **`rebase(nodes)`** <sub>interna</sub> · [L389](../src/tools.js#L389) — Guarda o ponto de partida dos itens em coordenadas de MUNDO (origem + caixa). A posição final é sempre "origem inicial + deslocamento do ponteiro − origem do pai atual", então continua certa mesmo que o pai mude no meio do arrasto (quando a camada passa por cima de outro frame).
+- **`snapCandidates()`** <sub>interna</sub> · [L399](../src/tools.js#L399) — Retângulos com os quais o item que se move pode "grudar" (snap): os irmãos e o pai. Calculado uma vez por arrasto (cache em drag.snapRects) porque os vizinhos não mudam enquanto você arrasta.
+- **`snapMove(dx, dy)`** <sub>interna</sub> · [L417](../src/tools.js#L417) — SNAP: ajusta o deslocamento (dx, dy) para que bordas e centros do item alinhem com os dos vizinhos e com as guias de régua, quando estiverem a menos de 6px de TELA (6/zoom no mundo). Devolve também as linhas-guia rosa a desenhar onde houve alinhamento exato. Ctrl desliga o snap (no chamador).
   - ↩︎ `{dx:number, dy:number, guides:object[]` }
-- **`flowReorder(node, p, parent = store.parentOf(node.id))`** <sub>interna</sub> · [L455](../src/tools.js#L455) — Dentro de um auto layout o item NÃO tem posição livre; arrastar significa REORDENAR. Acha o irmão cujo centro está mais perto do ponteiro e põe o item antes ou depois dele (conforme o ponteiro esteja antes/depois do centro dele no eixo principal). Funciona também com flex-wrap, porque usa distância 2D.
-- **`moveDrag(e)`** <sub>interna</sub> · [L485](../src/tools.js#L485) — Cada movimento do mouse durante o gesto "mover". Passos: 1. passou do limiar? Se Alt estava pressionado, duplica e passa a arrastar as cópias 2. se o ponteiro entrou noutro frame, troca o pai da camada (mantendo a posição visual) 3. calcula o deslocamento (Shift trava o eixo), aplica snap (Ctrl desliga) 4. aplica: camadas livres recebem x/y; camadas em auto layout são reordenadas 5. camadas em auto layout ganham um "fantasma" (CSS `translate`) que segue o ponteiro
-- **`startResize(e, handle)`** <sub>interna</sub> · [L577](../src/tools.js#L577) — Prepara o redimensionar. `hx`/`hy` dizem qual lado a alça move: hx=+1 direita, −1 esquerda; hy=+1 baixo, −1 cima (0 = não mexe nesse eixo; alça 'e' é hx=1,hy=0; canto 'nw' é hx=−1,hy=−1). Guarda o estado inicial para recalcular tudo a partir dele a cada movimento (evita acumular erro de arredondamento).
-- **`resizeDrag(e)`** <sub>interna</sub> · [L603](../src/tools.js#L603) — Cada movimento do mouse ao redimensionar.
+- **`flowReorder(node, p, parent = store.parentOf(node.id))`** <sub>interna</sub> · [L458](../src/tools.js#L458) — Dentro de um auto layout o item NÃO tem posição livre; arrastar significa REORDENAR. Acha o irmão cujo centro está mais perto do ponteiro e põe o item antes ou depois dele (conforme o ponteiro esteja antes/depois do centro dele no eixo principal). Funciona também com flex-wrap, porque usa distância 2D.
+- **`moveDrag(e)`** <sub>interna</sub> · [L488](../src/tools.js#L488) — Cada movimento do mouse durante o gesto "mover". Passos: 1. passou do limiar? Se Alt estava pressionado, duplica e passa a arrastar as cópias 2. se o ponteiro entrou noutro frame, troca o pai da camada (mantendo a posição visual) 3. calcula o deslocamento (Shift trava o eixo), aplica snap (Ctrl desliga) 4. aplica: camadas livres recebem x/y; camadas em auto layout são reordenadas 5. camadas em auto layout ganham um "fantasma" (CSS `translate`) que segue o ponteiro
+- **`startResize(e, handle)`** <sub>interna</sub> · [L580](../src/tools.js#L580) — Prepara o redimensionar. `hx`/`hy` dizem qual lado a alça move: hx=+1 direita, −1 esquerda; hy=+1 baixo, −1 cima (0 = não mexe nesse eixo; alça 'e' é hx=1,hy=0; canto 'nw' é hx=−1,hy=−1). Guarda o estado inicial para recalcular tudo a partir dele a cada movimento (evita acumular erro de arredondamento).
+- **`resizeDrag(e)`** <sub>interna</sub> · [L606](../src/tools.js#L606) — Cada movimento do mouse ao redimensionar.
 
    - UMA camada: converte o deslocamento do mouse para os eixos LOCAIS da camada (desfazendo a rotação), muda w/h e
      recalcula x/y para que o lado OPOSTO (a âncora) fique parado no mundo — funciona com a camada girada.
      Shift mantém a proporção; Alt redimensiona a partir do centro.
    - VÁRIAS camadas: escala o conjunto pela caixa envolvente.
    - Grupos escalam os filhos; frames reaplicam as constraints dos filhos a partir do tamanho original.
-- **`snapResize(dx, dy, hx, hy)`** <sub>interna</sub> · [L701](../src/tools.js#L701) — SNAP do redimensionar: só a borda que a alça move (direita/esquerda, baixo/cima) procura um alvo a menos de 6px de tela — bordas e centro do frame pai e dos vizinhos, e as guias da régua. É o que deixa você fazer uma camada exatamente do tamanho do frame (ou alinhada com a de cima) sem precisar acertar o pixel.
+- **`snapResize(dx, dy, hx, hy)`** <sub>interna</sub> · [L704](../src/tools.js#L704) — SNAP do redimensionar: só a borda que a alça move (direita/esquerda, baixo/cima) procura um alvo a menos de 6px de tela — bordas e centro do frame pai e dos vizinhos, e as guias da régua. É o que deixa você fazer uma camada exatamente do tamanho do frame (ou alinhada com a de cima) sem precisar acertar o pixel.
   - ↩︎ `{dx:number, dy:number, guides:object[]` } deslocamento do mouse já ajustado + linhas rosa a desenhar
-- **`startRotate(e)`** <sub>interna</sub> · [L746](../src/tools.js#L746) — Prepara a rotação: guarda o centro da camada (em px de tela), a rotação inicial e o ângulo do mouse em relação ao centro.
-- **`rotateDrag(e)`** <sub>interna</sub> · [L762](../src/tools.js#L762) — Rotação = rotação inicial + (ângulo atual do mouse − ângulo inicial). Shift prende em múltiplos de 15°. Resultado em −180..180.
-- **`startDraw(e, tool)`** <sub>interna</sub> · [L777](../src/tools.js#L777) — Começa a desenhar com a ferramenta ativa. O frame sob o cursor vira o PAI da camada nova (posição relativa a ele). Retângulo/elipse/frame/linha já nascem no documento (tamanho 1) e crescem durante o arrasto, para você ver ao vivo. Texto, polígono e estrela só são criados ao soltar.
-- **`drawDrag(e)`** <sub>interna</sub> · [L817](../src/tools.js#L817) — Durante o desenho: ajusta a camada ao retângulo arrastado (Shift = quadrado/ângulos de 15°; Alt = a partir do centro). A linha é um segmento girado; polígono/estrela mostram só o retângulo-guia (marquee) até soltar.
-- **`finishDraw(d, e)`** <sub>interna</sub> · [L861](../src/tools.js#L861) — Ao soltar o mouse com uma ferramenta de desenho. Um clique SEM arrastar cria o tamanho padrão (frame 320×240, retângulo/elipse 100×100, linha 100px, polígono/estrela 100×100). Texto entra direto em edição. A ferramenta volta para Mover (como no Figma).
-- **`adoptIntoSection(sec)`** <sub>interna</sub> · [L907](../src/tools.js#L907) — Seção recém-desenhada "adota" as telas da raiz que ficaram TOTALMENTE dentro dela: elas passam a ser filhas da seção (e andam junto com ela), mantendo a posição visual e a ordem entre si. Telas só parcialmente dentro ficam de fora.
-- **`enterFlow(node)`** <sub>interna</sub> · [L922](../src/tools.js#L922) — Forma recém-desenhada dentro de um auto layout (estava "solta" durante o arrasto): entra na fila na posição mais próxima de onde foi desenhada — entre os dois itens em volta do centro dela (flowReorder).
-- **`guideDrag(e)`** <sub>interna</sub> · [L932](../src/tools.js#L932) — Arrasta uma guia de régua já existente (atualiza a posição ao vivo; soltar sobre a régua apaga — ver endDrag).
-- **`startMarquee(e, scope, clickId)`** <sub>interna</sub> · [L946](../src/tools.js#L946) — Começa o retângulo de seleção por arrasto. `scope` = id do frame raiz onde o arrasto começou (seleciona só filhos dele) ou null (seleciona camadas da raiz). `clickId` = camada a selecionar se foi só um clique.
-- **`marqueeDrag(e)`** <sub>interna</sub> · [L957](../src/tools.js#L957) — Atualiza o marquee e a seleção. Regra do Figma: frames da raiz só entram se estiverem TOTALMENTE dentro do retângulo; as demais camadas entram ao serem tocadas. Shift soma à seleção anterior.
-- **`endDrag(e)`** <sub>interna</sub> · [L1032](../src/tools.js#L1032) — POINTER UP / CANCEL: encerra o gesto. Cada tipo faz sua limpeza e quase todos terminam com UM `store.commit()` — por isso um Ctrl+Z desfaz o arrasto/redimensionamento INTEIRO, não pixel a pixel. Também limpa guias, marquee e destaque temporários do overlay.
-- **`isTyping(t)`** <sub>interna</sub> · [L1136](../src/tools.js#L1136) — O foco está num campo onde o usuário DIGITA (input, select, texto editável)? Então os atalhos do canvas não devem agir.
-- **`covered()`** <sub>interna</sub> · [L1142](../src/tools.js#L1142) — O canvas está "coberto"? (página inicial aberta ou uma janela modal: Configurações, Projetos, pergunta...) Então NENHUM atalho do canvas pode agir — senão um Delete com o foco num botão da janela apagaria camadas escondidas atrás dela.
-- **`MARKER`** <sub>interna</sub> · [L1330](../src/tools.js#L1330) — COPIAR/COLAR com a área de transferência do sistema. Camadas copiadas ficam na memória do app (ui.clipboard); no sistema colocamos só este texto-marcador, para o "colar" saber que é para colar CAMADAS e não texto.
-- **`toggleProp(prop)`** <sub>interna</sub> · [L1357](../src/tools.js#L1357) — Alterna 'locked' ou 'visible' nas camadas selecionadas: se alguma não está no estado alvo, aplica a todas; senão desfaz em todas.
-- **`copyCss()`** <sub>interna</sub> · [L1365](../src/tools.js#L1365) — Ctrl+Shift+C: copia o CSS das camadas selecionadas para a área de transferência do sistema.
-- **`zoomTo(z)`** <sub>interna</sub> · [L1377](../src/tools.js#L1377) — Define o zoom (1 = 100%) ancorado no centro da vista.
-- **`applyTool()`** <sub>interna</sub> · [L1383](../src/tools.js#L1383) — Reflete a ferramenta ativa no DOM (muda o cursor por CSS: [data-tool=…]).
+- **`startRotate(e)`** <sub>interna</sub> · [L749](../src/tools.js#L749) — Prepara a rotação: guarda o centro da camada (em px de tela), a rotação inicial e o ângulo do mouse em relação ao centro.
+- **`rotateDrag(e)`** <sub>interna</sub> · [L765](../src/tools.js#L765) — Rotação = rotação inicial + (ângulo atual do mouse − ângulo inicial). Shift prende em múltiplos de 15°. Resultado em −180..180.
+- **`startDraw(e, tool)`** <sub>interna</sub> · [L780](../src/tools.js#L780) — Começa a desenhar com a ferramenta ativa. O frame sob o cursor vira o PAI da camada nova (posição relativa a ele). Retângulo/elipse/frame/linha já nascem no documento (tamanho 1) e crescem durante o arrasto, para você ver ao vivo. Texto, polígono e estrela só são criados ao soltar.
+- **`drawDrag(e)`** <sub>interna</sub> · [L820](../src/tools.js#L820) — Durante o desenho: ajusta a camada ao retângulo arrastado (Shift = quadrado/ângulos de 15°; Alt = a partir do centro). A linha é um segmento girado; polígono/estrela mostram só o retângulo-guia (marquee) até soltar.
+- **`finishDraw(d, e)`** <sub>interna</sub> · [L864](../src/tools.js#L864) — Ao soltar o mouse com uma ferramenta de desenho. Um clique SEM arrastar cria o tamanho padrão (frame 320×240, retângulo/elipse 100×100, linha 100px, polígono/estrela 100×100). Texto entra direto em edição. A ferramenta volta para Mover (como no Figma).
+- **`adoptIntoSection(sec)`** <sub>interna</sub> · [L910](../src/tools.js#L910) — Seção recém-desenhada "adota" as telas da raiz que ficaram TOTALMENTE dentro dela: elas passam a ser filhas da seção (e andam junto com ela), mantendo a posição visual e a ordem entre si. Telas só parcialmente dentro ficam de fora.
+- **`enterFlow(node)`** <sub>interna</sub> · [L925](../src/tools.js#L925) — Forma recém-desenhada dentro de um auto layout (estava "solta" durante o arrasto): entra na fila na posição mais próxima de onde foi desenhada — entre os dois itens em volta do centro dela (flowReorder).
+- **`guideDrag(e)`** <sub>interna</sub> · [L935](../src/tools.js#L935) — Arrasta uma guia de régua já existente (atualiza a posição ao vivo; soltar sobre a régua apaga — ver endDrag).
+- **`startMarquee(e, scope, clickId)`** <sub>interna</sub> · [L949](../src/tools.js#L949) — Começa o retângulo de seleção por arrasto. `scope` = id do frame raiz onde o arrasto começou (seleciona só filhos dele) ou null (seleciona camadas da raiz). `clickId` = camada a selecionar se foi só um clique.
+- **`marqueeDrag(e)`** <sub>interna</sub> · [L960](../src/tools.js#L960) — Atualiza o marquee e a seleção. Regra do Figma: frames da raiz só entram se estiverem TOTALMENTE dentro do retângulo; as demais camadas entram ao serem tocadas. Shift soma à seleção anterior.
+- **`endDrag(e)`** <sub>interna</sub> · [L1036](../src/tools.js#L1036) — POINTER UP / CANCEL: encerra o gesto. Cada tipo faz sua limpeza e quase todos terminam com UM `store.commit()` — por isso um Ctrl+Z desfaz o arrasto/redimensionamento INTEIRO, não pixel a pixel. Também limpa guias, marquee e destaque temporários do overlay.
+- **`isTyping(t)`** <sub>interna</sub> · [L1140](../src/tools.js#L1140) — O foco está num campo onde o usuário DIGITA (input, select, texto editável)? Então os atalhos do canvas não devem agir.
+- **`covered()`** <sub>interna</sub> · [L1146](../src/tools.js#L1146) — O canvas está "coberto"? (página inicial aberta ou uma janela modal: Configurações, Projetos, pergunta...) Então NENHUM atalho do canvas pode agir — senão um Delete com o foco num botão da janela apagaria camadas escondidas atrás dela.
+- **`MARKER`** <sub>interna</sub> · [L1334](../src/tools.js#L1334) — COPIAR/COLAR com a área de transferência do sistema. Camadas copiadas ficam na memória do app (ui.clipboard); no sistema colocamos só este texto-marcador, para o "colar" saber que é para colar CAMADAS e não texto.
+- **`toggleProp(prop)`** <sub>interna</sub> · [L1361](../src/tools.js#L1361) — Alterna 'locked' ou 'visible' nas camadas selecionadas: se alguma não está no estado alvo, aplica a todas; senão desfaz em todas.
+- **`copyCss()`** <sub>interna</sub> · [L1369](../src/tools.js#L1369) — Ctrl+Shift+C: copia o CSS das camadas selecionadas para a área de transferência do sistema.
+- **`zoomTo(z)`** <sub>interna</sub> · [L1381](../src/tools.js#L1381) — Define o zoom (1 = 100%) ancorado no centro da vista.
+- **`applyTool()`** <sub>interna</sub> · [L1387](../src/tools.js#L1387) — Reflete a ferramenta ativa no DOM (muda o cursor por CSS: [data-tool=…]).
 
 ---
 
 ## src/version.js
 
 - **`VERSION`** · [L2](../src/version.js#L2) — Versão do app mostrada na página inicial. Mantida igual à do package.json (tests/versao.test.js confere).
+
+---
+
+## src/agent/bridge.js
+
+**PERMISSÃO E PONTE COM O MCP (lado do navegador)** · [abrir o código](../src/agent/bridge.js)
+
+```text
+ createApprover: a janela "A IA quer alterar o design" que aparece antes de CADA alteração feita por uma IA
+ (o agente interno ou um programa via MCP). Respostas: Permitir · Permitir tudo nesta sessão · Recusar.
+ "Sessão" = até recarregar a página, e vale só para aquele programa (permitir o Assistente não libera o Claude).
+ Os pedidos fazem fila: duas IAs ao mesmo tempo não abrem duas janelas uma em cima da outra.
+
+ connectMcpBridge: deixa o editor "ouvindo" o servidor (GET /api/agent/events). Quando um programa de IA chama
+ uma ferramenta pelo MCP, o servidor repassa para cá, o runner executa (pedindo permissão se for alteração) e
+ o resultado volta pelo POST /api/agent/reply. Se o servidor cair, o EventSource reconecta sozinho.
+```
+
+- **`createApprover()`** · [L23](../src/agent/bridge.js#L23) — Cria a função de permissão.
+  - ↩︎ `(req: {client: string, tool: string, summary: string` ) => Promise<boolean>}
+- **`allowed`** <sub>interna</sub> · [L25](../src/agent/bridge.js#L25) — Programas liberados até recarregar a página ("Permitir tudo nesta sessão").
+- **`queue`** <sub>interna</sub> · [L27](../src/agent/bridge.js#L27) — Fila: cada pergunta espera a anterior terminar.
+- **`connectMcpBridge({ runner, toast })`** · [L60](../src/agent/bridge.js#L60) — Liga o editor à ponte do servidor (MCP).
+  - `deps` <sub>object</sub> — 
+  - `deps.toast` <sub>(m: string) => void</sub> — 
+  - ↩︎ `{ close: () => void ` }
+- **`greeted`** <sub>interna</sub> · [L64](../src/agent/bridge.js#L64) — Avisa (uma vez por programa) que uma IA externa começou a usar o editor.
+
+---
+
+## src/agent/runner.js
+
+**EXECUTA AS FERRAMENTAS DO AGENTE NO EDITOR ABERTO** · [abrir o código](../src/agent/runner.js)
+
+```text
+ Recebe "use a ferramenta X com estes argumentos" (do agente interno ou do MCP, ver agent/schema.js) e faz
+ com o store e os comandos do editor, como se você tivesse clicado. Regras de segurança:
+   - ferramentas de LEITURA rodam direto;
+   - ferramentas que ALTERAM o projeto chamam `approve(...)` antes: a pessoa vê o que vai mudar e decide
+     (Permitir / Permitir tudo nesta sessão / Recusar). Recusado = nada muda;
+   - cada alteração aprovada termina com UM `store.commit()`: um Ctrl+Z desfaz a alteração inteira;
+   - só as propriedades conhecidas são aceitas (veja PROPS): a IA não consegue gravar lixo no projeto.
+ Erros viram mensagens em português devolvidas à IA (ela lê e corrige), nunca quebram o editor.
+```
+
+- **`SIMPLE`** <sub>do módulo</sub> · [L21](../src/agent/runner.js#L21) — Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada.
+- **`SPECIAL`** <sub>do módulo</sub> · [L29](../src/agent/runner.js#L29) — Campos com tratamento próprio (ver applyProps).
+- **`PROPS`** · [L31](../src/agent/runner.js#L31) — Tudo que update_layer / create_layer aceitam.
+- **`ENUMS`** <sub>do módulo</sub> · [L33](../src/agent/runner.js#L33) — Valores válidos de alguns campos (o resto é conferido pelo tipo).
+- **`hex(v)`** <sub>do módulo</sub> · [L41](../src/agent/runner.js#L41) — "#abc" / "#AABBCC" → "#AABBCC"; outra coisa → null.
+- **`four(v, what)`** <sub>do módulo</sub> · [L48](../src/agent/runner.js#L48) — Número ou lista de 4 → lista de 4 (padding, margin, radius).
+- **`applyProps(node, props, ctx = {})`** · [L61](../src/agent/runner.js#L61) — Aplica `props` numa camada (dentro de um store.update). Lança Error com mensagem clara se algo não vale.
+  - `node` <sub>object</sub> — 
+  - `props` <sub>object</sub> — 
+- **`summarize(n, depth = 0)`** · [L129](../src/agent/runner.js#L129) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
+- **`describeCall(tool, args, store)`** · [L153](../src/agent/runner.js#L153) — Descrição em português de uma alteração, para a janela de permissão.
+- **`createRunner({ store, commands, approve })`** · [L177](../src/agent/runner.js#L177) — Cria o executor.
+  - `deps` <sub>object</sub> — 
+  - `deps.store` <sub>object</sub> — 
+  - `deps.commands` <sub>object</sub> — 
+  - ↩︎ `{ run: (tool: string, args: object, client?: string) => Promise<object> ` }
+- **`need(id)`** <sub>interna</sub> · [L179](../src/agent/runner.js#L179) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
+- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L185](../src/agent/runner.js#L185) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
+- **`run(tool, args = {}, client = 'Assistente')`** <sub>interna</sub> · [L284](../src/agent/runner.js#L284) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
+  - `tool` <sub>string</sub> — 
+  - `args` <sub>object</sub> — 
+  - `[client]` <sub>string</sub> — quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
+- **`restoreDoc(json)`** <sub>interna</sub> · [L310](../src/agent/runner.js#L310) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
+
+---
+
+## src/agent/schema.js
+
+**AS FERRAMENTAS QUE UMA IA PODE USAR NO EDITOR (lista única, sem DOM)** · [abrir o código](../src/agent/schema.js)
+
+```text
+ Uma IA (o agente interno, com a sua chave da OpenAI, ou um programa externo via MCP, como o Claude Code)
+ não mexe no projeto "por fora": ela pede para usar uma destas ferramentas, e quem executa é o EDITOR aberto
+ (agent/runner.js), com os mesmos comandos que você usa clicando. Assim:
+   - o canvas e os painéis atualizam na hora, e cada alteração é UM passo do Ctrl+Z;
+   - toda alteração passa pela sua permissão antes (veja runner.js → approve);
+   - o servidor MCP (server.js) e o agente interno usam EXATAMENTE a mesma lista: o que um faz, o outro faz.
+
+ Este arquivo é só dados (nome, descrição e parâmetros em JSON Schema, o formato que a OpenAI e o MCP usam),
+ por isso o servidor (Node) e o navegador importam o mesmo arquivo.
+```
+
+- **`PROP_HELP`** · [L18](../src/agent/schema.js#L18) — Propriedades que as ferramentas de criar/alterar aceitam (o resto é recusado com uma mensagem clara).
+- **`AGENT_TOOLS`** · [L31](../src/agent/schema.js#L31) — As ferramentas. `write: true` = altera o projeto (pede permissão e vira um passo do Ctrl+Z). `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
+- **`toolByName(name)`** · [L130](../src/agent/schema.js#L130) — Procura uma ferramenta pelo nome.
+- **`openAiTools()`** · [L133](../src/agent/schema.js#L133) — As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`).
+- **`mcpTools()`** · [L139](../src/agent/schema.js#L139) — As ferramentas no formato do MCP (`tools/list`).
+- **`AGENT_INSTRUCTIONS`** · [L150](../src/agent/schema.js#L150) — Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o que a ferramenta é e as regras de trabalho, para a IA agir do jeito certo desde a primeira mensagem.
 
 ---
 
@@ -1318,6 +1421,43 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`render()`** <sub>interna</sub> · [L42](../src/ui/assets.js#L42) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
 - **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L154](../src/ui/assets.js#L154) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
 - **`askColors(title)`** <sub>interna</sub> · [L168](../src/ui/assets.js#L168) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
+
+---
+
+## src/ui/assistant.js
+
+**PAINEL "ASSISTENTE" (agente de IA dentro do editor)** · [abrir o código](../src/ui/assistant.js)
+
+```text
+ Uma conversa flutuante no canto do canvas. Você escreve ("deixa o botão com cantos de 12px", "esse card
+ precisa de mais respiro"), a IA lê o design com as ferramentas de agent/schema.js e propõe alterações, que
+ passam pela janela de permissão antes de valer (e saem com Ctrl+Z).
+
+ COMO FUNCIONA (o "laço do agente"):
+   1. manda a conversa + a lista de ferramentas para POST /api/agent/chat (o servidor usa a SUA chave da OpenAI,
+      que fica só no seu computador, e repassa para a API — ou para um servidor compatível, como o Ollama);
+   2. se a resposta pede ferramentas (tool_calls), o runner executa cada uma no editor e devolve o resultado;
+   3. repete até a IA responder só com texto (no máximo MAX_STEPS rodadas por mensagem).
+ A conversa vive só na memória (some ao recarregar) e não entra no arquivo do projeto.
+```
+
+- **`MAX_STEPS`** <sub>do módulo</sub> · [L22](../src/ui/assistant.js#L22) — Máximo de rodadas "IA pede ferramenta → editor responde" por mensagem (evita laço infinito e gasto à toa).
+- **`MAX_RESULT`** <sub>do módulo</sub> · [L24](../src/ui/assistant.js#L24) — Resultados de ferramenta maiores que isso são cortados antes de voltar à IA (economiza tokens).
+- **`TOOL_LABEL`** <sub>do módulo</sub> · [L26](../src/ui/assistant.js#L26) — Nome amigável de cada ferramenta na conversa.
+- **`createAssistant({ store, runner, openSettings, stage })`** · [L41](../src/ui/assistant.js#L41) — Cria o painel.
+  - `deps` <sub>object</sub> — 
+  - `deps.store` <sub>object</sub> — 
+  - `deps.openSettings` <sub>() => void</sub> — abre as Configurações (para pôr a chave)
+  - `deps.stage` <sub>HTMLElement</sub> — onde o painel flutua
+  - ↩︎ `{ el: HTMLElement, toggle: () => void, open: () => void, close: () => void, isOpen: () => boolean ` }
+- **`messages`** <sub>interna</sub> · [L43](../src/ui/assistant.js#L43) — Conversa no formato da API (sem a mensagem de sistema, que é montada a cada envio).
+- **`add(node)`** <sub>interna</sub> · [L70](../src/ui/assistant.js#L70) — Acrescenta uma linha na conversa e rola até ela.
+- **`rich(text)`** <sub>interna</sub> · [L72](../src/ui/assistant.js#L72) — Texto da IA → parágrafos, com `código` destacado (sem HTML vindo da IA: tudo vira texto).
+- **`refreshConfig()`** <sub>interna</sub> · [L76](../src/ui/assistant.js#L76) — Mostra a configuração atual (modelo) e, sem chave, o convite para configurar.
+- **`reset()`** <sub>interna</sub> · [L96](../src/ui/assistant.js#L96) — Começa do zero (esquece a conversa).
+- **`context()`** <sub>interna</sub> · [L106](../src/ui/assistant.js#L106) — Contexto do editor anexado a cada pedido (onde a pessoa está e o que selecionou), sem aparecer na conversa.
+- **`submit()`** <sub>interna</sub> · [L113](../src/ui/assistant.js#L113) — Envia a mensagem digitada e roda o laço do agente.
+- **`stepLine(name, args, result)`** <sub>interna</sub> · [L162](../src/ui/assistant.js#L162) — Linha discreta mostrando o que a IA fez com cada ferramenta (✓ feito, ✗ erro, ⊘ recusado).
 
 ---
 
@@ -1550,10 +1690,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **ÍCONES SVG (inline, sem dependências)** · [abrir o código](../src/ui/icons.js)
 
 - **`P`** <sub>do módulo</sub> · [L11](../src/ui/icons.js#L11) — Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto). Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
-- **`icon(name, size = 16)`** · [L105](../src/ui/icons.js#L105) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+- **`icon(name, size = 16)`** · [L108](../src/ui/icons.js#L108) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
   - `name` <sub>string</sub> — 
   - `[size=16]` <sub>number</sub> — px
-- **`nodeIcon(type)`** · [L109](../src/ui/icons.js#L109) — Ícone usado na lista de camadas para cada tipo de camada.
+- **`nodeIcon(type)`** · [L112](../src/ui/icons.js#L112) — Ícone usado na lista de camadas para cada tipo de camada.
 
 ---
 
@@ -1783,19 +1923,21 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   1. Pasta de projetos  — caminho no computador (o SERVIDOR grava lá), auto-salvar e nº de versões.
      Explica como usar Google Drive/OneDrive/Dropbox: escolher uma pasta sincronizada por eles.
   2. Cópia no navegador — sempre ligada (IndexedDB); mostra o espaço e pede proteção contra limpeza.
-  3. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
+  3. Assistente de IA e MCP — chave/modelo/endereço da API (OpenAI ou compatível) e como ligar o Claude Code/Codex.
+  4. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
 ```
 
-- **`formatBytes(b)`** · [L19](../src/ui/settings.js#L19) — "12345678" bytes → "11,8 MB".
-- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L23](../src/ui/settings.js#L23) — Caixa de seleção no estilo do app (a mesma de props.js).
-- **`openSettings({ store, saving, prefs, savePrefs, toast })`** · [L37](../src/ui/settings.js#L37) — Abre a janela de Configurações.
+- **`formatBytes(b)`** · [L20](../src/ui/settings.js#L20) — "12345678" bytes → "11,8 MB".
+- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L24](../src/ui/settings.js#L24) — Caixa de seleção no estilo do app (a mesma de props.js).
+- **`openSettings({ store, saving, prefs, savePrefs, toast })`** · [L38](../src/ui/settings.js#L38) — Abre a janela de Configurações.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.saving` <sub>object</sub> — ver saving.js (refresh, server)
   - `deps.prefs` <sub>object</sub> — preferências (autoFolder, wheelMode)
   - `deps.savePrefs` <sub>() => void</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
-- **`render()`** <sub>interna</sub> · [L43](../src/ui/settings.js#L43) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
+- **`render()`** <sub>interna</sub> · [L44](../src/ui/settings.js#L44) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
+- **`save(patch)`** <sub>interna</sub> · [L145](../src/ui/settings.js#L145) — Grava no servidor (a chave só vai se você digitou uma nova).
 
 ---
 
@@ -1824,32 +1966,33 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     escapar da pasta com "../" nem sobrescrever outros tipos de arquivo.
 ```
 
-- **`root`** <sub>do módulo</sub> · [L33](../server.js#L33) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
-- **`port`** <sub>do módulo</sub> · [L35](../server.js#L35) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
-- **`allowed`** <sub>do módulo</sub> · [L37](../server.js#L37) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
-- **`configFile`** <sub>do módulo</sub> · [L39](../server.js#L39) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
-- **`DEFAULTS`** <sub>do módulo</sub> · [L41](../server.js#L41) — Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto.
-- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L43](../server.js#L43) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
-- **`MAX_BODY`** <sub>do módulo</sub> · [L45](../server.js#L45) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
-- **`FILE_RE`** <sub>do módulo</sub> · [L47](../server.js#L47) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
-- **`types`** <sub>do módulo</sub> · [L50](../server.js#L50) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
-- **`loadConfig()`** <sub>do módulo</sub> · [L62](../server.js#L62) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
-- **`config`** <sub>do módulo</sub> · [L71](../server.js#L71) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
-- **`expandHome(p)`** <sub>do módulo</sub> · [L74](../server.js#L74) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
-- **`useFolder(input)`** <sub>do módulo</sub> · [L80](../server.js#L80) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
-- **`httpError(status, message)`** <sub>do módulo</sub> · [L93](../server.js#L93) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L97](../server.js#L97) — Responde JSON.
-- **`readBody(req)`** <sub>do módulo</sub> · [L102](../server.js#L102) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L113](../server.js#L113) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L115](../server.js#L115) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L118](../server.js#L118) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L120](../server.js#L120) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L122](../server.js#L122) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L124](../server.js#L124) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L126](../server.js#L126) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L132](../server.js#L132) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L148](../server.js#L148) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L180](../server.js#L180) — Rotas da API (todas respondem JSON):
+- **`root`** <sub>do módulo</sub> · [L35](../server.js#L35) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
+- **`port`** <sub>do módulo</sub> · [L37](../server.js#L37) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
+- **`allowed`** <sub>do módulo</sub> · [L39](../server.js#L39) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
+- **`configFile`** <sub>do módulo</sub> · [L41](../server.js#L41) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
+- **`DEFAULTS`** <sub>do módulo</sub> · [L43](../server.js#L43) — Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto.
+- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L45](../server.js#L45) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
+- **`MAX_BODY`** <sub>do módulo</sub> · [L47](../server.js#L47) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
+- **`FILE_RE`** <sub>do módulo</sub> · [L49](../server.js#L49) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
+- **`types`** <sub>do módulo</sub> · [L52](../server.js#L52) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
+- **`loadConfig()`** <sub>do módulo</sub> · [L64](../server.js#L64) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
+- **`config`** <sub>do módulo</sub> · [L73](../server.js#L73) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
+- **`expandHome(p)`** <sub>do módulo</sub> · [L76](../server.js#L76) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`useFolder(input)`** <sub>do módulo</sub> · [L82](../server.js#L82) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
+- **`publicConfig()`** <sub>do módulo</sub> · [L94](../server.js#L94) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
+- **`httpError(status, message)`** <sub>do módulo</sub> · [L98](../server.js#L98) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
+- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L102](../server.js#L102) — Responde JSON.
+- **`readBody(req)`** <sub>do módulo</sub> · [L107](../server.js#L107) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L118](../server.js#L118) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L120](../server.js#L120) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L123](../server.js#L123) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L125](../server.js#L125) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L127](../server.js#L127) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L129](../server.js#L129) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L131](../server.js#L131) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L137](../server.js#L137) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L153](../server.js#L153) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L185](../server.js#L185) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
@@ -1864,3 +2007,71 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
+- **`editors`** <sub>do módulo</sub> · [L295](../server.js#L295) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L297](../server.js#L297) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L300](../server.js#L300) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L303](../server.js#L303) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`mcpSession`** <sub>do módulo</sub> · [L315](../server.js#L315) — Nome do programa de IA conectado pelo MCP (vem no "initialize"), mostrado na janela de permissão.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L321](../server.js#L321) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`OPENAI_URL`** <sub>do módulo</sub> · [L333](../server.js#L333) — Endereço padrão da API da OpenAI (dá para trocar por um servidor compatível no seu PC, como Ollama ou LM Studio).
+- **`DEFAULT_MODEL`** <sub>do módulo</sub> · [L335](../server.js#L335) — Modelo padrão do agente interno (troque em Configurações pelo nome de um modelo disponível na sua conta).
+- **`agentConfig()`** <sub>do módulo</sub> · [L337](../server.js#L337) — Configuração do agente interno: URL da API, modelo e chave (a chave também pode vir da variável OPENAI_API_KEY).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L351](../server.js#L351) — Rotas da IA:
+
+    GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
+    POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
+    GET  /api/agent/config   → { baseUrl, model, hasKey, editors } (a chave NUNCA é devolvida)
+    PUT  /api/agent/config   { apiKey?, model?, baseUrl? } → grava (apiKey "" apaga a chave)
+    POST /api/agent/chat     { messages, tools } → repassa à API de chat (OpenAI ou compatível) com a SUA chave
+
+---
+
+## server/mcp.js
+
+**O PROTOCOLO MCP (Model Context Protocol), SEM DEPENDÊNCIAS** · [abrir o código](../server/mcp.js)
+
+```text
+ MCP é o "padrão de tomada" que programas de IA (Claude Code, Claude Desktop, Codex, Cursor...) usam para
+ conversar com ferramentas externas. Por baixo é JSON-RPC 2.0: a IA manda { id, method, params } e recebe
+ { id, result } ou { id, error }. Só precisamos de quatro métodos:
+   initialize   → "oi, eu sou o Projeto Designer e sei usar ferramentas"
+   tools/list   → a lista de agent/schema.js
+   tools/call   → executa uma ferramenta (quem executa de verdade é o EDITOR aberto no navegador; ver server.js)
+   ping         → "estou vivo"
+ Mensagens sem `id` são avisos (notifications) e não têm resposta.
+
+ Este arquivo só traduz o protocolo; não sabe nada de HTTP nem de navegador (`callTool` vem de fora). Assim ele
+ é testado direto no Node (tests/mcp.test.js) e usado tanto pelo endereço http://localhost:5173/mcp quanto pelo
+ scripts/mcp.mjs (para programas que só falam MCP pela entrada/saída padrão, o "stdio").
+```
+
+- **`PROTOCOL_VERSIONS`** · [L23](../server/mcp.js#L23) — Versões do protocolo MCP que este servidor entende (a mais nova primeiro).
+- **`rpcError(id, code, message)`** <sub>do módulo</sub> · [L26](../server/mcp.js#L26) — Resposta de erro do JSON-RPC (códigos padrão: -32601 método inexistente, -32602 parâmetro inválido...).
+- **`handleMcp(msg, { callTool, version = '0.0.0', session = {} })`** · [L37](../server/mcp.js#L37) — Responde UMA mensagem JSON-RPC do MCP.
+  - `msg` <sub>object</sub> — a mensagem já lida (objeto)
+  - `deps` <sub>object</sub> — 
+  - `deps.callTool` <sub>(name: string, args: object, client: string) => Promise<object></sub> — executa a ferramenta (no editor)
+  - `deps.version` <sub>string</sub> — versão do app (aparece para a IA)
+  - ↩︎ `Promise<object\|null>` a resposta, ou null quando a mensagem é um aviso (sem id)
+
+---
+
+## scripts/mcp.mjs
+
+**SERVIDOR MCP POR "STDIO" (para Claude Desktop, Codex e outros)** · [abrir o código](../scripts/mcp.mjs)
+
+```text
+ Alguns programas de IA só sabem ligar um servidor MCP como um programa de terminal: eles escrevem os pedidos
+ (uma mensagem JSON por linha) na ENTRADA dele e leem as respostas na SAÍDA. Este script é só um "repassador":
+ cada linha que chega vai para o endereço http://localhost:5173/mcp do servidor do app (npm start), e a resposta
+ volta como uma linha. Toda a lógica fica no servidor (server/mcp.js) e no editor aberto no navegador.
+
+ Precisa: `npm start` rodando e o editor aberto no navegador.
+ Variável opcional: DESIGNER_URL (padrão http://localhost:5173).
+
+ Exemplos de configuração (veja o README para todos):
+   Claude Code:  claude mcp add designer -- node /caminho/do/projeto/scripts/mcp.mjs
+   Codex:        ~/.codex/config.toml → [mcp_servers.designer] command = "node", args = ["/caminho/scripts/mcp.mjs"]
+```
+
+- **`send(obj)`** <sub>do módulo</sub> · [L24](../scripts/mcp.mjs#L24) — Escreve uma resposta (uma linha JSON) na saída. NADA além disso pode ir para a saída: quebraria o protocolo.

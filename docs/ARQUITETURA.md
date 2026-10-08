@@ -55,6 +55,12 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `sample.js` | Dois projetos de exemplo | ✅ |
 | `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; **página inicial** (`home.js`); menus e janelas modais (`openModal`, `ask`, `askText`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
 | `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
+| `agent/schema.js` | As 11 ferramentas que uma IA pode usar (nome, descrição, parâmetros em JSON Schema) e as instruções da IA; uma lista só para o MCP e para a OpenAI | ✅ |
+| `agent/runner.js` | Executa as ferramentas no editor aberto: leitura direta; alteração só com permissão (`approve`), um `commit` por alteração (Ctrl+Z), lista fechada de propriedades (`applyProps`) | ✅ (recebe store/commands) |
+| `agent/bridge.js` | Janela de permissão (fila, "permitir tudo nesta sessão" por programa) e a ponte do MCP (o editor ouve `/api/agent/events`) | — |
+| `ui/assistant.js` | Painel do Assistente: o laço "IA pede ferramenta → editor executa → resultado volta" via `/api/agent/chat` | — |
+| `server/mcp.js` (raiz) | O protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping), sem dependências | Node.js |
+| `scripts/mcp.mjs` (raiz) | MCP por stdio: repassa cada linha para `http://localhost:5173/mcp` (Claude Desktop, Codex) | Node.js |
 | `main.js` | Monta tudo na ordem certa | — |
 
 **Dependências (setas = "usa")**
@@ -285,6 +291,23 @@ Se o principal sumiu (ou há ciclo), a instância vira uma camada comum.
 | **PNG** | Monta o HTML+CSS, embrulha num SVG com `<foreignObject>`, carrega como imagem e desenha num `<canvas>` na escala pedida. Limitação: fontes da web não carregam dentro de imagem SVG. |
 | **SVG** | `svg.js` **reescreve** a árvore como SVG (formas, `<text>`, gradientes, filtros, `clipPath`). A posição dos filhos vem de um callback (`boxOf`) que mede o DOM para respeitar flex/grid. |
 | **Projeto** | `JSON.stringify(doc)` em `.designer.json`. |
+
+## 10b. IA: Assistente, MCP e permissão
+
+```text
+Claude Code / Codex ──MCP──► server.js /mcp ──(SSE /api/agent/events)──┐
+                                                                      ▼
+Assistente (painel) ──/api/agent/chat──► OpenAI (sua chave)    editor aberto: runner.run(tool, args)
+        ▲                                     │                       │  leitura → responde direto
+        └────────── tool_calls ◄──────────────┘                       │  alteração → approve() → store.update + commit
+                                                                      └──(POST /api/agent/reply)──► volta para quem pediu
+```
+
+- **Quem executa é sempre o editor aberto**, não o servidor: é lá que o projeto está vivo (canvas, desfazer, janela de permissão). Sem editor aberto, o MCP responde "abra o editor".
+- **Uma lista de ferramentas só** (`agent/schema.js`), convertida para o formato de cada lado (`mcpTools`, `openAiTools`).
+- **A chave da API** fica em `designer.config.json` (fora do git), dentro de `agent.apiKey`, ou na variável `OPENAI_API_KEY`. `/api/status` e `/api/agent/config` nunca a devolvem; quem fala com a OpenAI é o servidor.
+- **Segurança do `/mcp`**: mesmas regras da API (só `localhost`, `Origin` local ou ausente, JSON). Um site aberto em outra aba não consegue mandar a IA alterar nada.
+- **Endereço compatível**: o agente usa a API *Chat Completions*; qualquer servidor compatível serve (Ollama, LM Studio) trocando o "Endereço da API".
 
 ## 11. Desempenho
 

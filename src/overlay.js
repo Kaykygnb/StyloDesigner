@@ -12,7 +12,7 @@
  */
 
 import { round, walk } from './model.js';
-import { rgba } from './css.js';
+import { rgba, generateCode } from './css.js';
 
 /**
  * As 8 alças de redimensionar. Valor = posição relativa dentro da caixa (0..1): [0,0] canto superior esquerdo,
@@ -234,6 +234,9 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       const box = screenBox(ui.hoverId);
       if (box) drawBox('hover', box, 'sel-box hover');
     }
+
+    // ---- INSPECIONAR (como o F12): margem, padding e conteúdo coloridos + etiqueta com o CSS de verdade
+    if (ui.tool === 'inspect' && ui.hoverId && store.get(ui.hoverId)) drawInspect(ui.hoverId);
 
     // ---- frame de destino destacado enquanto você arrasta algo para dentro dele
     if (ui.dropTarget) {
@@ -493,6 +496,90 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     }
   }
 
+  // ------------------------------------------------------------------ inspecionar (F12)
+  /** Muda a cada alteração do documento: invalida o "mapa de classes" do inspetor. */
+  let docVersion = 0;
+  /** Cache do mapa id → { tag, cls } da tela inspecionada (gerar o HTML da tela inteira a cada movimento seria caro). */
+  let classCache = { key: '', map: new Map() };
+  /**
+   * Etiqueta HTML e classe CSS que a camada recebe NO CÓDIGO EXPORTADO. As classes dependem da tela inteira (nomes
+   * repetidos ganham -2, -3...), então gera o código da tela onde a camada está (uma vez por versão do documento).
+   */
+  function exportedName(id) {
+    let screen = store.get(id);
+    for (let p = store.parentOf(screen.id); p && p.type !== 'section'; p = store.parentOf(p.id)) screen = p;
+    const key = `${screen.id}:${docVersion}`;
+    if (classCache.key !== key) {
+      const doc = store.state.doc;
+      const { html } = generateCode([screen], null, doc.assets, { root: true, styles: doc.styles, ids: true });
+      const map = new Map();
+      for (const m of html.matchAll(/<([a-z0-9]+) class="([^"]*)"[^>]*? data-node-id="([^"]*)"/g)) map.set(m[3], { tag: m[1], cls: m[2] });
+      classCache = { key, map };
+    }
+    return classCache.map.get(id) || null;
+  }
+
+  /**
+   * Desenha o "box model" da camada como o DevTools: margem (laranja), padding (verde) e conteúdo (azul), medidos
+   * no próprio elemento do canvas (getComputedStyle = o CSS que o navegador está aplicando de verdade), e a etiqueta
+   * com etiqueta HTML, classe, tamanho e as propriedades principais.
+   */
+  function drawInspect(id) {
+    const el = canvas.els.get(id);
+    if (!el || !el.isConnected) return;
+    const z = canvas.getView().zoom;
+    const vp = viewport.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const px = (v) => parseFloat(v) || 0;
+    const side = (prop) => ['Top', 'Right', 'Bottom', 'Left'].map((s) => px(cs[`${prop}${s}`]));
+    const m = side('margin'), pd = side('padding');
+    const bw = ['Top', 'Right', 'Bottom', 'Left'].map((s) => px(cs[`border${s}Width`]));
+    const x = r.left - vp.left, y = r.top - vp.top;
+    // margem: a caixa de fora (só quando existe)
+    if (m.some(Boolean)) place(get('insp:m', 'insp-margin'), x - m[3] * z, y - m[0] * z, r.width + (m[1] + m[3]) * z, r.height + (m[0] + m[2]) * z);
+    // a caixa do elemento (fundo verde = padding) e, por cima, a área do conteúdo (azul)
+    place(get('insp:b', 'insp-box'), x, y, r.width, r.height);
+    const cx = x + (bw[3] + pd[3]) * z, cy = y + (bw[0] + pd[0]) * z;
+    place(get('insp:c', 'insp-content'), cx, cy, Math.max(0, r.width - (bw[1] + bw[3] + pd[1] + pd[3]) * z), Math.max(0, r.height - (bw[0] + bw[2] + pd[0] + pd[2]) * z));
+
+    // etiqueta: <tag>.classe  L × A  + o CSS que importa
+    const node = store.get(id);
+    const name = exportedName(id);
+    const fmt = (arr) => (arr.every((v) => v === arr[0]) ? `${Math.round(arr[0])}` : arr.map((v) => Math.round(v)).join(' '));
+    const rows = [];
+    const display = cs.display === 'flex' ? `flex · ${cs.flexDirection}` : cs.display;
+    rows.push(['display', display]);
+    if (cs.display === 'flex' || cs.display === 'grid') {
+      if (px(cs.rowGap) || px(cs.columnGap)) rows.push(['gap', cs.rowGap === cs.columnGap ? cs.rowGap : `${cs.rowGap} ${cs.columnGap}`]);
+      // no grid o que alinha cada item na célula é justify-items; no flex, justify-content
+      if (cs.display === 'grid') {
+        rows.push(['justify / align', `${cs.justifyItems} / ${cs.alignItems}`]);
+        const cols = cs.gridTemplateColumns.split(' ').map((v) => `${Math.round(parseFloat(v))}px`);
+        rows.push(['colunas', `${cols.length} (${cols.length > 6 ? `${cols.slice(0, 6).join(' ')} …` : cols.join(' ')})`]);
+      } else rows.push(['justify / align', `${cs.justifyContent} / ${cs.alignItems}`]);
+    }
+    if (pd.some(Boolean)) rows.push(['padding', fmt(pd)]);
+    if (m.some(Boolean)) rows.push(['margin', fmt(m)]);
+    rows.push(['position', cs.position]);
+    if (node.type === 'text') {
+      rows.push(['font', `${cs.fontSize} / ${cs.fontWeight} · ${cs.fontFamily.split(',')[0].replace(/["']/g, '')}`]);
+      rows.push(['color', cs.color]);
+    } else if (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)') rows.push(['background', cs.backgroundColor]);
+    if (cs.borderRadius && cs.borderRadius !== '0px') rows.push(['border-radius', cs.borderRadius]);
+    const tip = get('insp:tip', 'insp-tip');
+    const head = `<b>${name ? name.tag : 'div'}</b><i>.${name ? name.cls : ''}</i><span>${Math.round(r.width / z)} × ${Math.round(r.height / z)}</span>`;
+    const body = rows.map(([k, v]) => `<div><em>${k}</em>${String(v).replace(/</g, '&lt;')}</div>`).join('');
+    const htmlTip = `<header>${head}</header>${body}`;
+    if (tip.innerHTML !== htmlTip) tip.innerHTML = htmlTip;
+    // abaixo da caixa; se não couber, acima; sempre dentro da tela
+    const tw = tip.offsetWidth || 240, th = tip.offsetHeight || 120;
+    let ty = y + r.height + 8;
+    if (ty + th > vp.height - 8) ty = Math.max(8, y - th - 8);
+    tip.style.left = `${Math.max(8, Math.min(vp.width - tw - 8, x))}px`;
+    tip.style.top = `${ty}px`;
+  }
+
   /** Etiqueta azul "L × A" logo abaixo da seleção. */
   function pill(aabb, text) {
     if (!aabb) return;
@@ -505,7 +592,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
 
   // o overlay precisa estar sempre em dia com o canvas: redesenha de forma síncrona nesses eventos
   store.subscribeSync((reason) => {
-    if (['doc', 'selection', 'view', 'overlay', 'hover', 'bp'].includes(reason)) render();
+    if (reason === 'doc' || reason === 'history' || reason === 'bp') docVersion++;
+    if (['doc', 'selection', 'view', 'overlay', 'hover', 'bp', 'tool'].includes(reason)) render();
   });
   render();
 
