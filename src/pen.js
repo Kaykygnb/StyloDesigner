@@ -182,6 +182,11 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   function up() {
     const was = drag;
     drag = null;
+    if (was?.collapseTo != null && !was.moved) {
+      setSel([was.collapseTo], was.collapseTo);
+      store.emit('overlay');
+      store.emit('selection');
+    }
     if (was && was.kind !== 'pen' && was.kind !== 'cont') {
       commands.normalizePath(store.get(ui.editPathId));
       store.commit();
@@ -248,7 +253,9 @@ export function createPen({ store, canvas, commands, frameUnder }) {
       return;
     }
     if (!cur.includes(idx)) setSel([idx], idx); else ui.editPt = idx;
-    drag = { kind, idx, origin: { x: n.points[idx].x, y: n.points[idx].y } }; // origin: para travar o eixo com Shift
+    // clicou num ponto que já fazia parte de um GRUPO: se for só um clique (sem arrastar), a seleção reduz a esse ponto
+    const collapseTo = kind === 'pt' && cur.length > 1 && cur.includes(idx) ? idx : null;
+    drag = { kind, idx, collapseTo, moved: false, origin: { x: n.points[idx].x, y: n.points[idx].y } }; // origin: para travar o eixo com Shift
     store.emit('overlay');
     store.emit('selection'); // o painel Design mostra o ponto selecionado
   }
@@ -261,6 +268,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   function moveEditHandle(world, e) {
     const n = editNode();
     if (!n || !drag) return;
+    drag.moved = true;
     // pontos encaixam na grade de pixels (alças ficam livres); com vários selecionados, o principal é quem encaixa
     let l = toLocal(n, drag.kind === 'pt' ? snapW(world, gridOrigin(n)) : world);
     const ref = drag.kind === 'pt' ? drag.origin : n.points[drag.idx];

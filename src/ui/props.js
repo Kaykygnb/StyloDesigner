@@ -378,7 +378,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       ['grid', 'grid', 'Grade', 'grid', { title: 'Grade (CSS Grid)', css: 'display: grid;\ngrid-template-columns: repeat(3, 1fr);', text: 'Uma tabela invisível de colunas e linhas. Cada item cai numa célula: ótimo para cards, galerias e painéis.' }],
     ];
     const cards = MODES.map(([v, icon, name, css, doc]) => {
-      const b = h('button.al-mode', { type: 'button', onclick: () => { store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
+      const b = h('button.al-mode', { type: 'button', dataset: { v }, onclick: () => { store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
         ico(icon, 20), h('span.al-mode-name', name), h('span.al-mode-css', css));
       updaters.push(() => b.classList.toggle('on', L().mode === v));
       return tip(b, doc);

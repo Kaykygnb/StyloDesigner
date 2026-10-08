@@ -16,6 +16,13 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - **Modo Apresentar** aplica hover, pressionado (por cima do hover, como a cascata do CSS) e foco, com a transição.
 - `states`, `transition` e `cursor` sincronizam do componente principal para as instâncias. Trocar de seleção sai do modo estado. Grupo, seção e linha não têm estados.
 
+### Alterado (caneta e acessibilidade)
+- **Caneta:** clicar, sem arrastar, num ponto que faz parte de um grupo selecionado passa a selecionar **só ele** (arrastar continua levando o grupo todo).
+- **Dicas ricas:** o texto do `title` nativo agora vira `aria-label` (antes só sumia), então leitores de tela e seletores continuam achando o controle; os `<select>` com título também ganham `aria-label`.
+
+### Testes
+- Instalado o **Playwright** (dev) e rodadas as **16 suítes de navegador: todas passam** (279 verificações). Cinco suítes foram atualizadas porque a interface mudou de propósito: modo do auto layout em cartões (`.al-mode`), matriz de alinhamento (`.al-cell`), contorno por lado em ícones, `aria-label` no lugar de `title` e o novo item "Novo ícone" no menu Arquivo.
+
 ### Alterado (polimento do painel)
 - "Efeitos" e "Item do layout" no mesmo padrão do resto: legendas em português com o nome da propriedade CSS e **dicas ricas** (`filter: blur()`, `backdrop-filter`, `position`, `grid-column`, `grid-row`, `justify-self`, `align-self`).
 - Removido código morto: o ajudante `prop()` e o CSS da matriz antiga, das linhas `prop-*` e do seletor de cor nativo.

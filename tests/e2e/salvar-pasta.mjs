@@ -175,7 +175,7 @@ try {
   await p.waitForSelector('.menu');
   ok('menu aberto pelo teclado já foca o 1º item', await p.evaluate(() => document.activeElement.classList.contains('menu-item')));
   await p.keyboard.press('ArrowDown');
-  ok('↓ vai para o próximo item', (await p.evaluate(() => document.activeElement.textContent)).includes('Novo projeto'));
+  ok('↓ vai para o próximo item', (await p.evaluate(() => document.activeElement.textContent)).includes('Novo ícone'));
   await p.keyboard.press('Escape');
   ok('Esc fecha o menu e devolve o foco ao botão Arquivo', (await p.locator('.menu').count()) === 0 && (await p.evaluate(() => document.activeElement.textContent.trim())) === 'Arquivo', await p.evaluate(() => document.activeElement.outerHTML.slice(0, 120)));
   await p.keyboard.press('?');

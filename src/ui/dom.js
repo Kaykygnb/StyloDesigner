@@ -168,7 +168,7 @@ export function textField({ get, set, commit, placeholder = '', mono = false }) 
 
 /** Lista suspensa estilizada. `options`: [[valor, rótulo], ...]. Ao escolher, aplica e já grava no histórico. */
 export function selectField({ options, get, set, commit, title, label }) {
-  const sel = h('select.select', { title: title || '' },
+  const sel = h('select.select', { title: title || '', 'aria-label': title || null },
     options.map(([v, l]) => h('option', { value: v }, l)));
   sel.addEventListener('change', () => { set(sel.value); commit?.(); });
   // `label` opcional: rótulo curto à esquerda, dentro do campo (ex.: "W" no modo de largura), como nos campos numéricos
@@ -263,8 +263,13 @@ function installTips() {
  */
 export function tip(el, { title, css = '', text = '' }) {
   installTips();
-  el.removeAttribute('title');
-  el.querySelectorAll('[title]').forEach((c) => c.removeAttribute('title'));
+  // o title nativo some (a dica rica o substitui), mas o texto vira aria-label: leitor de tela e seletores não o perdem
+  const strip = (c) => {
+    if (c.title && !c.hasAttribute('aria-label')) c.setAttribute('aria-label', c.title);
+    c.removeAttribute('title');
+  };
+  strip(el);
+  el.querySelectorAll('[title]').forEach(strip);
   el.dataset.tipTitle = title;
   if (css) el.dataset.tipCss = css; else delete el.dataset.tipCss;
   if (text) el.dataset.tipText = text; else delete el.dataset.tipText;

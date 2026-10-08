@@ -1,4 +1,4 @@
-// Seção (como no Figma): desenhar, adotar telas, mover junto, só o nome seleciona, regras de aninhamento, <section> no código.
+// Seção (como no Figma): desenhar, adotar telas, mover junto (pelo nome ou pelo corpo), regras de aninhamento, <section> no código.
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } });

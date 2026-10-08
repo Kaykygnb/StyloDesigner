@@ -73,9 +73,11 @@ try {
   const strokeSec = p.locator('#right .panel-section', { has: p.locator('.section-head', { hasText: 'Contorno' }) });
   await strokeSec.locator('.section-head .icon-btn').click(); // + adicionar contorno
   await p.waitForTimeout(150);
-  const lados = strokeSec.locator('select').filter({ has: p.locator('option[value="bottom"]') });
-  ok('seção Contorno tem a escolha de lados', (await lados.count()) === 1);
-  await lados.selectOption('bottom');
+  // lados do contorno: fileira de ÍCONES (Todos, Cima, Direita, Baixo, Esquerda, Espessura por lado)
+  const lados = strokeSec.locator('.segmented.sides');
+  const lado = (nome) => lados.locator(`[aria-label="${nome}"]`);
+  ok('seção Contorno tem a escolha de lados (6 ícones)', (await lados.count()) === 1 && (await lados.locator('button').count()) === 6);
+  await lado('Baixo').click();
   await p.waitForTimeout(150);
   let css = await ev((id) => { const el = designer.canvas.els.get(id); return { b: el.style.borderBottom, t: el.style.borderTop, o: el.style.outline }; }, id);
   ok('"Só embaixo" desenha só border-bottom (sem outline)', /1px solid/.test(css.b) && !css.t && !css.o, JSON.stringify(css));
@@ -85,7 +87,7 @@ try {
   ok('painel Código mostra border-bottom de verdade', /border-bottom: 1px solid/.test(code) && !/outline/.test(code));
   await p.click('#right .tab:has-text("Design")');
   await p.waitForTimeout(150);
-  await lados.selectOption('custom');
+  await lado('Espessura por lado').click();
   await p.waitForTimeout(150);
   ok('"Personalizado" mostra a espessura de cada lado (mesmo com espessuras iguais)', (await strokeSec.locator('[title="border-left (px)"]').count()) > 0 || (await strokeSec.locator('.num-label', { hasText: '←' }).count()) === 1);
   await ev((id) => { const s = designer.store; s.update(() => { s.get(id).stroke.sides = [0, 0, 4, 2]; }, { commit: true }); }, id);
@@ -93,7 +95,7 @@ try {
   ok('espessuras diferentes por lado (baixo 4, esquerda 2)', /^4px solid/.test(css.b) && /^2px solid/.test(css.l) && !css.t, JSON.stringify(css));
   const svg = await ev(async (id) => { const { toSvg } = await import('/src/svg.js'); return toSvg(designer.store.get(id)); }, id);
   ok('SVG exportado desenha as linhas dos lados', (svg.match(/<line /g) || []).length === 2 && /stroke-width="4"/.test(svg));
-  await lados.selectOption('all');
+  await lado('Todos os lados').click(); // de "por lado" volta ao contorno inteiro
   await p.waitForTimeout(150);
   css = await ev((id) => { const el = designer.canvas.els.get(id); return { o: el.style.outline, b: el.style.borderBottom }; }, id);
   ok('"Todos" volta ao contorno inteiro (outline)', !!css.o && !css.b, JSON.stringify(css));
@@ -116,7 +118,7 @@ try {
   ok('flex → grid troca space-between (não existe no grid) por start', gr.justify === 'flex-start', gr.justify);
   const cardX = () => ev((id) => { const el = designer.canvas.els.get(id); return el.offsetLeft; }, gr.c);
   ok('item no grid começa no início da célula', (await cardX()) === 0, String(await cardX()));
-  await p.locator('#right select[title^="justify-items"]').selectOption('center');
+  await p.locator('#right select[aria-label^="justify-items"]').selectOption('center');
   await p.waitForTimeout(150);
   // célula de 260px, card de 100px → centralizado em x = 80
   ok('justify-items: center centraliza os itens nas células', (await cardX()) === 80, String(await cardX()));
@@ -129,7 +131,7 @@ try {
   // item: justify-self: end sobrescreve o do pai e tira o "Preencher"
   await ev((id) => designer.store.setSelection([id]), gr.c);
   await p.waitForTimeout(150);
-  await p.locator('#right select[title^="justify-self"]').selectOption('flex-end');
+  await p.locator('#right select[aria-label^="justify-self"]').selectOption('flex-end');
   await p.waitForTimeout(150);
   const it = await ev((id) => { const n = designer.store.get(id), el = designer.canvas.els.get(id); return { sx: n.sizeX, x: el.offsetLeft, w: el.offsetWidth }; }, gr.c);
   ok('justify-self: end do item vence o justify-items do grid', it.sx === 'fixed' && it.x + it.w === 260, JSON.stringify(it));

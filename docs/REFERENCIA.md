@@ -640,44 +640,44 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - ↩︎ o gesto de arrasto, ou null se o caminho foi fechado
 - **`move(e)`** <sub>interna</sub> · [L162](../src/pen.js#L162) — Movimento do mouse: atualiza o "elástico" até o cursor (preview do próximo segmento) e, se está arrastando após o clique, define as alças: hout segue o mouse e hin é o ESPELHO em torno do ponto (curva suave). Só vira arrasto após 3px (cliques tremidos continuam sendo pontos de canto).
 - **`up()`** <sub>interna</sub> · [L182](../src/pen.js#L182) — Soltou o mouse: se estava editando um ponto/alça, ajusta a caixa do vetor e grava no histórico (1 desfazer).
-- **`editNode()`** <sub>interna</sub> · [L193](../src/pen.js#L193) — Vetor em edição (ou null).
-- **`toLocal(n, w)`** <sub>interna</sub> · [L199](../src/pen.js#L199) — Mundo → espaço do vetor (o "viewBox" vw×vh). Desfaz a rotação da camada (rotação inversa em torno do centro) e converte a posição na caixa para o sistema de coordenadas dos pontos.
-- **`toWorld(n, p)`** <sub>interna</sub> · [L207](../src/pen.js#L207) — Espaço do vetor → mundo (o inverso de toLocal), considerando a rotação da camada. Usado para desenhar os pontos na tela.
-- **`startEdit(id)`** <sub>interna</sub> · [L215](../src/pen.js#L215) — Entra no modo de edição de pontos de um vetor (duplo clique ou Enter).
-- **`exitEdit()`** <sub>interna</sub> · [L225](../src/pen.js#L225) — Sai da edição de pontos.
-- **`downEdit(e, kind, idx)`** <sub>interna</sub> · [L239](../src/pen.js#L239) — Clicou num ponto ou alça. `kind`: 'pt' (ponto), 'hin' ou 'hout' (alças).
+- **`editNode()`** <sub>interna</sub> · [L198](../src/pen.js#L198) — Vetor em edição (ou null).
+- **`toLocal(n, w)`** <sub>interna</sub> · [L204](../src/pen.js#L204) — Mundo → espaço do vetor (o "viewBox" vw×vh). Desfaz a rotação da camada (rotação inversa em torno do centro) e converte a posição na caixa para o sistema de coordenadas dos pontos.
+- **`toWorld(n, p)`** <sub>interna</sub> · [L212](../src/pen.js#L212) — Espaço do vetor → mundo (o inverso de toLocal), considerando a rotação da camada. Usado para desenhar os pontos na tela.
+- **`startEdit(id)`** <sub>interna</sub> · [L220](../src/pen.js#L220) — Entra no modo de edição de pontos de um vetor (duplo clique ou Enter).
+- **`exitEdit()`** <sub>interna</sub> · [L230](../src/pen.js#L230) — Sai da edição de pontos.
+- **`downEdit(e, kind, idx)`** <sub>interna</sub> · [L244](../src/pen.js#L244) — Clicou num ponto ou alça. `kind`: 'pt' (ponto), 'hin' ou 'hout' (alças).
 
    - Shift+clique num ponto: soma/tira o ponto da seleção (sem arrastar).
    - Alt+clique num ponto: converte canto ↔ suave (como a ferramenta "converter ponto" do Illustrator).
    - Clique/arrasto: seleciona o ponto (se já está num grupo selecionado, o grupo todo vai junto).
-- **`moveEditHandle(world, e)`** <sub>interna</sub> · [L261](../src/pen.js#L261) — Arrasta ponto ou alça (converte o mouse para o espaço do vetor).
+- **`moveEditHandle(world, e)`** <sub>interna</sub> · [L268](../src/pen.js#L268) — Arrasta ponto ou alça (converte o mouse para o espaço do vetor).
 
    - Ponto: leva as próprias alças junto.
    - Alça: a alça oposta é espelhada (curva suave) — segure Alt para quebrar o espelho e fazer um bico.
-- **`togglePointType(idx)`** <sub>interna</sub> · [L292](../src/pen.js#L292) — Alterna o ponto entre CANTO (sem alças) e SUAVE. Ao suavizar, cria alças opostas e proporcionais à direção entre o ponto anterior e o próximo (quarto da distância), que dá uma curva natural.
-- **`deletePoint()`** <sub>interna</sub> · [L309](../src/pen.js#L309) — Remove os pontos selecionados (o caminho mantém no mínimo 2 pontos).
-- **`addPointAt(e)`** <sub>interna</sub> · [L325](../src/pen.js#L325) — Alt+clique no traço: insere um ponto no lugar do traço mais perto do clique, MEDINDO NA CURVA (nearestOnPath) e dividindo o segmento (splitSegment): num trecho curvo o ponto novo nasce com as alças certas e o desenho não muda.
-- **`hover(e)`** <sub>interna</sub> · [L342](../src/pen.js#L342) — Com Alt pressionado, mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar).
-- **`scaleOf(n)`** <sub>interna</sub> · [L358](../src/pen.js#L358) — Escala do espaço do vetor (vw×vh) para px da camada.
-- **`pointType()`** <sub>interna</sub> · [L361](../src/pen.js#L361) — Tipo do ponto selecionado: 'corner' (sem alças), 'smooth' (alças alinhadas e iguais) ou 'free' (qualquer outra).
-- **`setPointType(type)`** <sub>interna</sub> · [L374](../src/pen.js#L374) — Define o tipo dos pontos selecionados: 'corner' tira as alças; 'smooth' deixa as duas alças iguais e opostas.
-- **`pointPos()`** <sub>interna</sub> · [L399](../src/pen.js#L399) — Posição do ponto selecionado em px, relativa ao PAI da camada (como o X/Y da camada): { x, y } ou null.
-- **`setPointPos(axis, v)`** <sub>interna</sub> · [L411](../src/pen.js#L411) — Move o ponto selecionado para X ou Y (px relativos ao pai), levando as alças junto. NÃO grava no histórico: quem chama (o campo numérico do painel) faz o commit ao terminar.
-- **`nudge(dx, dy)`** <sub>interna</sub> · [L426](../src/pen.js#L426) — Setas movem o ponto selecionado (px do pai; Shift = 10). Devolve true se tratou a tecla.
-- **`reverse(id)`** <sub>interna</sub> · [L446](../src/pen.js#L446) — Inverte a direção do caminho (o primeiro ponto vira o último). O desenho não muda; setas de preenchimento e animações de traço sim.
-- **`pathD(id)`** <sub>interna</sub> · [L462](../src/pen.js#L462) — O atributo `d` do SVG deste vetor (todos os contornos), no espaço próprio dele (viewBox 0 0 vw vh).
-- **`applyPathD(id, d)`** <sub>interna</sub> · [L472](../src/pen.js#L472) — Substitui o desenho do vetor pelo `d` de um SVG (aceita M L H V C S Q T A Z, absolutos e relativos). Só mexe na geometria: cor, contorno, nome e posição continuam. A caixa passa a ter o tamanho do desenho colado.
+- **`togglePointType(idx)`** <sub>interna</sub> · [L300](../src/pen.js#L300) — Alterna o ponto entre CANTO (sem alças) e SUAVE. Ao suavizar, cria alças opostas e proporcionais à direção entre o ponto anterior e o próximo (quarto da distância), que dá uma curva natural.
+- **`deletePoint()`** <sub>interna</sub> · [L317](../src/pen.js#L317) — Remove os pontos selecionados (o caminho mantém no mínimo 2 pontos).
+- **`addPointAt(e)`** <sub>interna</sub> · [L333](../src/pen.js#L333) — Alt+clique no traço: insere um ponto no lugar do traço mais perto do clique, MEDINDO NA CURVA (nearestOnPath) e dividindo o segmento (splitSegment): num trecho curvo o ponto novo nasce com as alças certas e o desenho não muda.
+- **`hover(e)`** <sub>interna</sub> · [L350](../src/pen.js#L350) — Com Alt pressionado, mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar).
+- **`scaleOf(n)`** <sub>interna</sub> · [L366](../src/pen.js#L366) — Escala do espaço do vetor (vw×vh) para px da camada.
+- **`pointType()`** <sub>interna</sub> · [L369](../src/pen.js#L369) — Tipo do ponto selecionado: 'corner' (sem alças), 'smooth' (alças alinhadas e iguais) ou 'free' (qualquer outra).
+- **`setPointType(type)`** <sub>interna</sub> · [L382](../src/pen.js#L382) — Define o tipo dos pontos selecionados: 'corner' tira as alças; 'smooth' deixa as duas alças iguais e opostas.
+- **`pointPos()`** <sub>interna</sub> · [L407](../src/pen.js#L407) — Posição do ponto selecionado em px, relativa ao PAI da camada (como o X/Y da camada): { x, y } ou null.
+- **`setPointPos(axis, v)`** <sub>interna</sub> · [L419](../src/pen.js#L419) — Move o ponto selecionado para X ou Y (px relativos ao pai), levando as alças junto. NÃO grava no histórico: quem chama (o campo numérico do painel) faz o commit ao terminar.
+- **`nudge(dx, dy)`** <sub>interna</sub> · [L434](../src/pen.js#L434) — Setas movem o ponto selecionado (px do pai; Shift = 10). Devolve true se tratou a tecla.
+- **`reverse(id)`** <sub>interna</sub> · [L454](../src/pen.js#L454) — Inverte a direção do caminho (o primeiro ponto vira o último). O desenho não muda; setas de preenchimento e animações de traço sim.
+- **`pathD(id)`** <sub>interna</sub> · [L470](../src/pen.js#L470) — O atributo `d` do SVG deste vetor (todos os contornos), no espaço próprio dele (viewBox 0 0 vw vh).
+- **`applyPathD(id, d)`** <sub>interna</sub> · [L480](../src/pen.js#L480) — Substitui o desenho do vetor pelo `d` de um SVG (aceita M L H V C S Q T A Z, absolutos e relativos). Só mexe na geometria: cor, contorno, nome e posição continuam. A caixa passa a ter o tamanho do desenho colado.
   - ↩︎ `boolean` false se o texto não tem nenhum caminho
-- **`continueAt(e)`** <sub>interna</sub> · [L505](../src/pen.js#L505) — Cliques da caneta na PONTA de um vetor aberto que está selecionado CONTINUAM aquele caminho: devolve um caminho em desenho (ui.pen) já com os pontos do vetor, com a ponta clicada no fim. Não vale para vetor girado ou com furos.
-- **`marqueeStart(e, onBody)`** <sub>interna</sub> · [L522](../src/pen.js#L522) — Começa um retângulo de seleção de PONTOS (arrastar no vazio durante a edição). Shift soma à seleção atual.
-- **`marqueeMove(e, d)`** <sub>interna</sub> · [L529](../src/pen.js#L529) — Atualiza o retângulo e seleciona os pontos que caem dentro dele.
-- **`marqueeEnd(d)`** <sub>interna</sub> · [L547](../src/pen.js#L547) — Soltou: sem arrastar, clicar no vazio limpa os pontos (e, fora do vetor, sai da edição e desmarca).
-- **`selectAll()`** <sub>interna</sub> · [L556](../src/pen.js#L556) — Seleciona todos os pontos do vetor em edição (Ctrl+A).
-- **`selectedCount()`** <sub>interna</sub> · [L564](../src/pen.js#L564) — Quantos pontos estão selecionados.
-- **`openAfter()`** <sub>interna</sub> · [L570](../src/pen.js#L570) — "Abrir aqui": num caminho FECHADO, corta o segmento logo DEPOIS do ponto selecionado e o caminho vira aberto (o ponto seguinte passa a ser o início). É a tesoura do Illustrator, em versão simples.
-- **`overlaySvg()`** <sub>interna</sub> · [L591](../src/pen.js#L591) — Markup SVG (em px de tela) do que a caneta mostra: o caminho em construção com o "elástico" até o cursor, os pontos (o primeiro em rosa, indica onde fechar) e as alças; ou, na edição, os pontos do vetor (e as alças do ponto selecionado). Elementos com data-edit/data-idx são clicáveis (tools.js os reconhece).
-- **`isDrawing()`** <sub>interna</sub> · [L627](../src/pen.js#L627) — Está desenhando um caminho novo?
-- **`isEditing()`** <sub>interna</sub> · [L629](../src/pen.js#L629) — Está editando os pontos de um vetor?
+- **`continueAt(e)`** <sub>interna</sub> · [L513](../src/pen.js#L513) — Cliques da caneta na PONTA de um vetor aberto que está selecionado CONTINUAM aquele caminho: devolve um caminho em desenho (ui.pen) já com os pontos do vetor, com a ponta clicada no fim. Não vale para vetor girado ou com furos.
+- **`marqueeStart(e, onBody)`** <sub>interna</sub> · [L530](../src/pen.js#L530) — Começa um retângulo de seleção de PONTOS (arrastar no vazio durante a edição). Shift soma à seleção atual.
+- **`marqueeMove(e, d)`** <sub>interna</sub> · [L537](../src/pen.js#L537) — Atualiza o retângulo e seleciona os pontos que caem dentro dele.
+- **`marqueeEnd(d)`** <sub>interna</sub> · [L555](../src/pen.js#L555) — Soltou: sem arrastar, clicar no vazio limpa os pontos (e, fora do vetor, sai da edição e desmarca).
+- **`selectAll()`** <sub>interna</sub> · [L564](../src/pen.js#L564) — Seleciona todos os pontos do vetor em edição (Ctrl+A).
+- **`selectedCount()`** <sub>interna</sub> · [L572](../src/pen.js#L572) — Quantos pontos estão selecionados.
+- **`openAfter()`** <sub>interna</sub> · [L578](../src/pen.js#L578) — "Abrir aqui": num caminho FECHADO, corta o segmento logo DEPOIS do ponto selecionado e o caminho vira aberto (o ponto seguinte passa a ser o início). É a tesoura do Illustrator, em versão simples.
+- **`overlaySvg()`** <sub>interna</sub> · [L599](../src/pen.js#L599) — Markup SVG (em px de tela) do que a caneta mostra: o caminho em construção com o "elástico" até o cursor, os pontos (o primeiro em rosa, indica onde fechar) e as alças; ou, na edição, os pontos do vetor (e as alças do ponto selecionado). Elementos com data-edit/data-idx são clicáveis (tools.js os reconhece).
+- **`isDrawing()`** <sub>interna</sub> · [L635](../src/pen.js#L635) — Está desenhando um caminho novo?
+- **`isEditing()`** <sub>interna</sub> · [L637](../src/pen.js#L637) — Está editando os pontos de um vetor?
 
 ---
 
@@ -1191,20 +1191,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`tip(el, { title, css = '', text = '' })`** · [L264](../src/ui/dom.js#L264) — Liga uma dica rica a um elemento. Remove o `title` nativo dele e dos filhos (senão as duas dicas apareceriam).
   - `el` <sub>HTMLElement</sub> — o elemento que mostra a dica ao passar o mouse
   - ↩︎ `HTMLElement` o próprio `el` (para usar inline)
-- **`iconButton(name, title, onclick, cls = '')`** · [L275](../src/ui/dom.js#L275) — Botão só com ícone. `cls` opcional ('small', 'on'...).
-- **`PALETTES`** <sub>do módulo</sub> · [L282](../src/ui/dom.js#L282) — Paletas prontas que aparecem no seletor de cor, em grupos.
-- **`toHex({ r, g, b })`** <sub>do módulo</sub> · [L288](../src/ui/dom.js#L288) — {r,g,b} (0–255) → "#RRGGBB".
-- **`rgb2hsv({ r, g, b })`** <sub>do módulo</sub> · [L290](../src/ui/dom.js#L290) — {r,g,b} (0–255) → {h: 0–360, s: 0–1, v: 0–1}.
-- **`hsv2rgb({ h: hh, s, v })`** <sub>do módulo</sub> · [L302](../src/ui/dom.js#L302) — {h,s,v} → {r,g,b} (0–255).
-- **`closeColorPicker()`** · [L312](../src/ui/dom.js#L312) — Fecha o seletor de cor aberto, se houver.
-- **`openColorPicker({ anchor, get, set, commit, groups })`** <sub>do módulo</sub> · [L320](../src/ui/dom.js#L320) — Abre o SELETOR DE COR: um popover com a área saturação/brilho, a barra de matiz, o campo HEX, o conta-gotas e grupos de cores (as do projeto, os estilos de cor e paletas prontas). Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo que o abriu some do painel.
+- **`iconButton(name, title, onclick, cls = '')`** · [L280](../src/ui/dom.js#L280) — Botão só com ícone. `cls` opcional ('small', 'on'...).
+- **`PALETTES`** <sub>do módulo</sub> · [L287](../src/ui/dom.js#L287) — Paletas prontas que aparecem no seletor de cor, em grupos.
+- **`toHex({ r, g, b })`** <sub>do módulo</sub> · [L293](../src/ui/dom.js#L293) — {r,g,b} (0–255) → "#RRGGBB".
+- **`rgb2hsv({ r, g, b })`** <sub>do módulo</sub> · [L295](../src/ui/dom.js#L295) — {r,g,b} (0–255) → {h: 0–360, s: 0–1, v: 0–1}.
+- **`hsv2rgb({ h: hh, s, v })`** <sub>do módulo</sub> · [L307](../src/ui/dom.js#L307) — {h,s,v} → {r,g,b} (0–255).
+- **`closeColorPicker()`** · [L317](../src/ui/dom.js#L317) — Fecha o seletor de cor aberto, se houver.
+- **`openColorPicker({ anchor, get, set, commit, groups })`** <sub>do módulo</sub> · [L325](../src/ui/dom.js#L325) — Abre o SELETOR DE COR: um popover com a área saturação/brilho, a barra de matiz, o campo HEX, o conta-gotas e grupos de cores (as do projeto, os estilos de cor e paletas prontas). Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo que o abriu some do painel.
   - `[]` <sub>{anchor: HTMLElement, get: () => string, set: (hex: string) => void, commit?: () => void, groups?: () => {title: string, colors: string[]</sub> — }} o
-- **`paint()`** <sub>interna</sub> · [L332](../src/ui/dom.js#L332) — Redesenha knobs, fundo da área e campo hex a partir do HSV.
-- **`apply()`** <sub>interna</sub> · [L344](../src/ui/dom.js#L344) — Aplica a cor atual do HSV ao campo (ao vivo).
-- **`drag(el, fn)`** <sub>interna</sub> · [L346](../src/ui/dom.js#L346) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava no histórico ao soltar.
-- **`pick(c)`** <sub>interna</sub> · [L359](../src/ui/dom.js#L359) — Escolhe uma cor pronta (chip): atualiza HSV, aplica e grava.
-- **`colorRow({ get, set, commit, opacity, setOpacity, groups })`** · [L410](../src/ui/dom.js#L410) — Linha de COR: amostra clicável (abre o seletor de cor próprio, com grupos de cores) + campo HEX + (opcional) opacidade em % + conta-gotas (onde o navegador oferece `EyeDropper`). Aceita hex de 3 ou 6 dígitos, com ou sem "#". `groups` (opcional): função que devolve grupos extras de cores para o seletor ([{title, colors}]).
-- **`sync()`** <sub>interna</sub> · [L435](../src/ui/dom.js#L435) — Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam).
+- **`paint()`** <sub>interna</sub> · [L337](../src/ui/dom.js#L337) — Redesenha knobs, fundo da área e campo hex a partir do HSV.
+- **`apply()`** <sub>interna</sub> · [L349](../src/ui/dom.js#L349) — Aplica a cor atual do HSV ao campo (ao vivo).
+- **`drag(el, fn)`** <sub>interna</sub> · [L351](../src/ui/dom.js#L351) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava no histórico ao soltar.
+- **`pick(c)`** <sub>interna</sub> · [L364](../src/ui/dom.js#L364) — Escolhe uma cor pronta (chip): atualiza HSV, aplica e grava.
+- **`colorRow({ get, set, commit, opacity, setOpacity, groups })`** · [L415](../src/ui/dom.js#L415) — Linha de COR: amostra clicável (abre o seletor de cor próprio, com grupos de cores) + campo HEX + (opcional) opacidade em % + conta-gotas (onde o navegador oferece `EyeDropper`). Aceita hex de 3 ou 6 dígitos, com ou sem "#". `groups` (opcional): função que devolve grupos extras de cores para o seletor ([{title, colors}]).
+- **`sync()`** <sub>interna</sub> · [L440](../src/ui/dom.js#L440) — Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam).
 
 ---
 
