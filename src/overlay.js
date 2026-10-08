@@ -541,7 +541,9 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     // a caixa do elemento (fundo verde = padding) e, por cima, a área do conteúdo (azul)
     place(get('insp:b', 'insp-box'), x, y, r.width, r.height);
     const cx = x + (bw[3] + pd[3]) * z, cy = y + (bw[0] + pd[0]) * z;
-    place(get('insp:c', 'insp-content'), cx, cy, Math.max(0, r.width - (bw[1] + bw[3] + pd[1] + pd[3]) * z), Math.max(0, r.height - (bw[0] + bw[2] + pd[0] + pd[2]) * z));
+    const cw = Math.max(0, r.width - (bw[1] + bw[3] + pd[1] + pd[3]) * z), ch = Math.max(0, r.height - (bw[0] + bw[2] + pd[0] + pd[2]) * z);
+    place(get('insp:c', 'insp-content'), cx, cy, cw, ch);
+    drawInspectInside(id, cs, { cx, cy, cw, ch, z, vp });
 
     // etiqueta: <tag>.classe  L × A  + o CSS que importa
     const node = store.get(id);
@@ -559,6 +561,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
         rows.push(['colunas', `${cols.length} (${cols.length > 6 ? `${cols.slice(0, 6).join(' ')} …` : cols.join(' ')})`]);
       } else rows.push(['justify / align', `${cs.justifyContent} / ${cs.alignItems}`]);
     }
+    if (node.children?.length) rows.push(['filhos', `${node.children.length}`]);
     if (pd.some(Boolean)) rows.push(['padding', fmt(pd)]);
     if (m.some(Boolean)) rows.push(['margin', fmt(m)]);
     rows.push(['position', cs.position]);
@@ -578,6 +581,57 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     if (ty + th > vp.height - 8) ty = Math.max(8, y - th - 8);
     tip.style.left = `${Math.max(8, Math.min(vp.width - tw - 8, x))}px`;
     tip.style.top = `${ty}px`;
+  }
+
+  /**
+   * O que está DENTRO do elemento inspecionado, como o DevTools mostra num flex/grid:
+   *  - contorno tracejado de cada filho visível (para ver onde cada item começa e termina);
+   *  - GRID: as linhas de cada coluna e linha (lidas do CSS calculado: grid-template-columns/rows já em px) e os
+   *    espaços entre elas (gap) hachurados;
+   *  - FLEX: o espaço entre itens vizinhos (gap) hachurado.
+   */
+  function drawInspectInside(id, cs, { cx, cy, cw, ch, z, vp }) {
+    const node = store.get(id);
+    const kids = (node.children || []).slice(0, 300);
+    const boxes = [];
+    kids.forEach((c, i) => {
+      const ce = canvas.els.get(c.id);
+      if (!ce || !ce.isConnected) return;
+      const cr = ce.getBoundingClientRect();
+      if (!cr.width && !cr.height) return; // escondido (display: none)
+      const b = { x: cr.left - vp.left, y: cr.top - vp.top, w: cr.width, h: cr.height };
+      boxes.push(b);
+      place(get(`insp:k:${i}`, 'insp-child'), b.x, b.y, b.w, b.h);
+    });
+    const gap = (key, x, y, w, h) => { if (w > 0.5 && h > 0.5) place(get(key, 'insp-gap'), x, y, w, h); };
+    if (cs.display === 'grid') {
+      // trilhas em px de verdade (o navegador já resolveu fr, repeat, minmax); começa no início do conteúdo
+      const tracks = (v) => v.split(' ').map(parseFloat).filter((n) => !Number.isNaN(n));
+      const cols = tracks(cs.gridTemplateColumns), rows = tracks(cs.gridTemplateRows);
+      const cg = parseFloat(cs.columnGap) || 0, rg = parseFloat(cs.rowGap) || 0;
+      let gx = cx;
+      cols.forEach((w, i) => {
+        place(get(`insp:gc:${i}a`, 'insp-line v'), gx, cy, 0, ch);
+        gx += w * z;
+        place(get(`insp:gc:${i}b`, 'insp-line v'), gx, cy, 0, ch);
+        if (i < cols.length - 1) { gap(`insp:gg:c${i}`, gx, cy, cg * z, ch); gx += cg * z; }
+      });
+      let gy = cy;
+      rows.forEach((hh, i) => {
+        place(get(`insp:gr:${i}a`, 'insp-line h'), cx, gy, cw, 0);
+        gy += hh * z;
+        place(get(`insp:gr:${i}b`, 'insp-line h'), cx, gy, cw, 0);
+        if (i < rows.length - 1) { gap(`insp:gg:r${i}`, cx, gy, cw, rg * z); gy += rg * z; }
+      });
+    } else if (cs.display === 'flex' && boxes.length > 1 && (parseFloat(cs.columnGap) || parseFloat(cs.rowGap))) {
+      // gap entre vizinhos (na ordem do DOM) no eixo principal; com quebra de linha, só entre itens da mesma linha/coluna
+      const row = cs.flexDirection.startsWith('row');
+      for (let i = 1; i < boxes.length; i++) {
+        const a = boxes[i - 1], b = boxes[i];
+        if (row && b.x > a.x + a.w) gap(`insp:fg:${i}`, a.x + a.w, cy, b.x - (a.x + a.w), ch);
+        if (!row && b.y > a.y + a.h) gap(`insp:fg:${i}`, cx, a.y + a.h, cw, b.y - (a.y + a.h));
+      }
+    }
   }
 
   /** Etiqueta azul "L × A" logo abaixo da seleção. */

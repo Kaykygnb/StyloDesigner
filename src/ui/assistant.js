@@ -7,8 +7,9 @@
  *  passam pela janela de permissão antes de valer (e saem com Ctrl+Z).
  *
  *  COMO FUNCIONA (o "laço do agente"):
- *    1. manda a conversa + a lista de ferramentas para POST /api/agent/chat (o servidor usa a SUA chave da OpenAI,
- *       que fica só no seu computador, e repassa para a API — ou para um servidor compatível, como o Ollama);
+ *    1. manda a conversa + a lista de ferramentas para POST /api/agent/chat (o servidor junta as instruções de
+ *       docs/AGENTE.md, usa a SUA chave, que fica só no seu computador, e repassa para o provedor escolhido:
+ *       OpenAI, NVIDIA NIM, Ollama ou outro compatível);
  *    2. se a resposta pede ferramentas (tool_calls), o runner executa cada uma no editor e devolve o resultado;
  *    3. repete até a IA responder só com texto (no máximo MAX_STEPS rodadas por mensagem).
  *  A conversa vive só na memória (some ao recarregar) e não entra no arquivo do projeto.
@@ -16,12 +17,29 @@
  */
 
 import { h, ico } from './dom.js';
-import { openAiTools, AGENT_INSTRUCTIONS } from '../agent/schema.js';
+import { openAiTools } from '../agent/schema.js';
 
 /** Máximo de rodadas "IA pede ferramenta → editor responde" por mensagem (evita laço infinito e gasto à toa). */
 const MAX_STEPS = 12;
 /** Resultados de ferramenta maiores que isso são cortados antes de voltar à IA (economiza tokens). */
 const MAX_RESULT = 24000;
+/**
+ * Limpa o texto da IA antes de mostrar: modelos que "pensam em voz alta" (DeepSeek-R1, Qwen e outros da NVIDIA NIM)
+ * mandam o raciocínio entre <think> e </think>; a pessoa só precisa da resposta.
+ */
+export const cleanReply = (text) => String(text || '').replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').trim();
+/**
+ * O modelo "escreveu" a chamada de ferramenta como texto em vez de usar o formato certo? (Acontece com modelos sem
+ * suporte bom a ferramentas: a documentação da NVIDIA avisa desse caso.) Aí a ferramenta não roda e avisamos.
+ */
+export const looksLikeTextToolCall = (text) => /<tool_call>|"(name|function)"\s*:\s*"(get_|update_|create_|delete_|move_|find_|select_)/.test(String(text || ''));
+/** Argumentos da chamada: texto JSON (OpenAI) ou objeto pronto (alguns servidores compatíveis). null = inválido. */
+export const parseArgs = (raw) => {
+  if (raw && typeof raw === 'object') return raw;
+  if (raw === undefined || raw === null || raw === '') return {};
+  try { const v = JSON.parse(raw); return v && typeof v === 'object' ? v : null; } catch { return null; }
+};
+
 /** Nome amigável de cada ferramenta na conversa. */
 const TOOL_LABEL = {
   get_document: 'Leu o projeto', get_layer: 'Leu uma camada', get_code: 'Leu o código', find_layers: 'Procurou camadas',
@@ -77,10 +95,12 @@ export function createAssistant({ store, runner, openSettings, stage }) {
     try {
       const c = await (await fetch('/api/agent/config')).json();
       modelEl.textContent = c.model || '';
-      const needsKey = !c.hasKey && /api\.openai\.com/.test(c.baseUrl || '');
+      modelEl.title = c.baseUrl || '';
+      const needsKey = !!c.needsKey;
+      const who = { openai: 'da OpenAI', nvidia: 'da NVIDIA (nvapi-...)' }[c.provider] || 'da API';
       if (needsKey && !log.querySelector('.ai-setup')) {
         add(h('div.ai-setup',
-          h('p', 'Para conversar, o assistente precisa da sua chave da OpenAI (ela fica só neste computador).'),
+          h('p', `Para conversar, o assistente precisa da sua chave ${who} (ela fica só neste computador).`),
           h('button.btn.primary.small', { type: 'button', onclick: () => openSettings() }, 'Configurar a chave')));
       }
       if (!needsKey) log.querySelector('.ai-setup')?.remove();
@@ -125,19 +145,25 @@ export function createAssistant({ store, runner, openSettings, stage }) {
       for (let step = 0; step < MAX_STEPS; step++) {
         const r = await fetch('/api/agent/chat', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: aborter.signal,
-          body: JSON.stringify({ messages: [{ role: 'system', content: AGENT_INSTRUCTIONS }, ...messages], tools: openAiTools() }),
+          // as instruções (docs/AGENTE.md) quem põe é o servidor
+          body: JSON.stringify({ messages, tools: openAiTools() }),
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || `Erro ${r.status}`);
         const m = data.message;
         const calls = Array.isArray(m.tool_calls) ? m.tool_calls : [];
         messages.push({ role: 'assistant', content: m.content || '', ...(calls.length ? { tool_calls: calls } : {}) });
-        if (m.content) log.insertBefore(h('div.ai-msg.bot', rich(m.content)), thinking);
-        if (!calls.length) break;
+        const reply = cleanReply(m.content);
+        if (reply) log.insertBefore(h('div.ai-msg.bot', rich(reply)), thinking);
+        if (!calls.length) {
+          if (looksLikeTextToolCall(m.content)) {
+            log.insertBefore(h('div.ai-note', `O modelo “${modelEl.textContent}” escreveu a ferramenta como texto em vez de usá-la. Troque por um modelo com suporte a ferramentas (“tool calling”) em Configurações.`), thinking);
+          }
+          break;
+        }
         for (const call of calls) {
           if (aborter.signal.aborted) throw new DOMException('parado', 'AbortError');
-          let args = null;
-          try { args = JSON.parse(call.function?.arguments || '{}'); } catch { /* argumentos quebrados */ }
+          const args = parseArgs(call.function?.arguments);
           const name = call.function?.name;
           const result = args ? await runner.run(name, args, 'Assistente') : { error: 'Os argumentos não são um JSON válido.' };
           log.insertBefore(stepLine(name, args, result), thinking);

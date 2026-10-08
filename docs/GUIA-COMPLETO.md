@@ -211,7 +211,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: a **Vitrine completa**, o proj
 | Caneta | `P` | Vetores com curvas de Bézier. |
 | Texto | `T` | Clique para texto livre; arraste para uma caixa de largura fixa. |
 | Comentar | `C` | Clique numa camada, no ponto exato, e escreva o comentário na aba Comentários. |
-| Inspecionar | `I` | Como o F12 do navegador: passe o mouse e veja etiqueta HTML, classe do código, tamanho e o *box model* (margem laranja, padding verde, conteúdo azul) com o CSS que o navegador está aplicando. Clique seleciona o elemento exato; `Esc` volta para Mover. |
+| Inspecionar | `I` | Como o F12 do navegador: passe o mouse e veja etiqueta HTML, classe do código, tamanho e o *box model* (margem laranja, padding verde, conteúdo azul) com o CSS que o navegador está aplicando. Mostra também o contorno tracejado de cada elemento de dentro, as linhas das colunas e linhas de um grid e os `gap` hachurados (grid e flex). Clique seleciona o elemento exato; `Esc` volta para Mover. |
 | Imagem | botão, arrastar ou `Ctrl+V` | Cria um retângulo com preenchimento de imagem (reduzida a 1600 px). Arquivos **`.svg`** e SVG colado como texto viram **vetores editáveis**. |
 | Mão | `H` ou segurar `Espaço` | Arrasta a vista. |
 
@@ -435,7 +435,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 159 testes
+npm test      # 162 testes
 ```
 
 ### Testes de navegador

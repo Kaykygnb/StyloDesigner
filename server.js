@@ -32,6 +32,8 @@ import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleMcp } from './server/mcp.js';
 import { VERSION } from './src/version.js';
+import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
+import { AGENT_INSTRUCTIONS } from './src/agent/schema.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -325,22 +327,35 @@ async function mcpRoute(req, res) {
   if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }).end(); return; }
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'Envie JSON.');
   const body = JSON.parse((await readBody(req)) || 'null');
-  const one = (m) => handleMcp(m, { callTool: callEditor, version: VERSION, session: mcpSession });
+  const instructions = await agentInstructions();
+  const one = (m) => handleMcp(m, { callTool: callEditor, version: VERSION, session: mcpSession, instructions });
   const out = Array.isArray(body) ? (await Promise.all(body.map(one))).filter(Boolean) : await one(body);
   if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202).end(); return; } // só avisos: nada a responder
   sendJson(res, 200, out);
 }
 
-/** Endereço padrão da API da OpenAI (dá para trocar por um servidor compatível no seu PC, como Ollama ou LM Studio). */
-const OPENAI_URL = 'https://api.openai.com/v1';
-/** Modelo padrão do agente interno (troque em Configurações pelo nome de um modelo disponível na sua conta). */
-const DEFAULT_MODEL = 'gpt-4.1-mini';
-/** Configuração do agente interno: URL da API, modelo e chave (a chave também pode vir da variável OPENAI_API_KEY). */
-const agentConfig = () => ({
-  baseUrl: (config.agent?.baseUrl || OPENAI_URL).replace(/\/+$/, ''),
-  model: config.agent?.model || DEFAULT_MODEL,
-  apiKey: config.agent?.apiKey || process.env.OPENAI_API_KEY || '',
-});
+/** Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro). */
+const DEFAULT_PROVIDER = PROVIDERS[0];
+/**
+ * Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave
+ * (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY,
+ * NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+ */
+const agentConfig = () => {
+  const baseUrl = (config.agent?.baseUrl || DEFAULT_PROVIDER.baseUrl).replace(/\/+$/, '');
+  const provider = providerOf(baseUrl);
+  const model = config.agent?.model || provider?.model || DEFAULT_PROVIDER.model;
+  const legacy = baseUrl === DEFAULT_PROVIDER.baseUrl ? config.agent?.apiKey : '';
+  const apiKey = config.agent?.keys?.[baseUrl] || legacy || (provider?.envKey && process.env[provider.envKey]) || '';
+  return { baseUrl, model, apiKey, provider };
+};
+/**
+ * Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada
+ * conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+ */
+const agentInstructions = () => readFile(join(root, 'docs', 'AGENTE.md'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
+/** Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave). */
+const authHeader = (a) => (a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {});
 
 /**
  * Rotas da IA:
@@ -348,7 +363,9 @@ const agentConfig = () => ({
  *   POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
  *   GET  /api/agent/config   → { baseUrl, model, hasKey, editors } (a chave NUNCA é devolvida)
  *   PUT  /api/agent/config   { apiKey?, model?, baseUrl? } → grava (apiKey "" apaga a chave)
- *   POST /api/agent/chat     { messages, tools } → repassa à API de chat (OpenAI ou compatível) com a SUA chave
+ *   POST /api/agent/chat     { messages, tools } → repassa à API de chat (OpenAI, NVIDIA NIM, Ollama...) com a SUA chave e as
+ *                            instruções de docs/AGENTE.md como mensagem de sistema
+ *   GET  /api/agent/models   → { models } a lista de modelos da conta (testa a chave)
  */
 async function agentApi(req, res, parts) {
   const [what] = parts;
@@ -370,41 +387,71 @@ async function agentApi(req, res, parts) {
   if (what === 'config' && req.method === 'GET') {
     const a = agentConfig();
     // caminho do script stdio e endereço HTTP do MCP: a janela de Configurações mostra os comandos prontos para copiar
-    return sendJson(res, 200, { baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs') });
+    return sendJson(res, 200, {
+      baseUrl: a.baseUrl, model: a.model, provider: a.provider?.id || 'custom', hasKey: !!a.apiKey, needsKey: !a.apiKey && !isLocalUrl(a.baseUrl),
+      editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'docs', 'AGENTE.md'),
+    });
   }
   if (what === 'config' && req.method === 'PUT') {
     const body = JSON.parse((await readBody(req)) || '{}');
-    const next = { ...(config.agent || {}) };
-    if (body.apiKey !== undefined) { const k = String(body.apiKey).trim(); if (k) next.apiKey = k; else delete next.apiKey; }
-    if (body.model !== undefined) { const m = String(body.model).trim(); if (m) next.model = m.slice(0, 100); else delete next.model; }
+    const next = { ...(config.agent || {}), keys: { ...(config.agent?.keys || {}) } };
     if (body.baseUrl !== undefined) {
-      const u = String(body.baseUrl).trim();
-      if (u && !/^https?:\/\/[^\s]+$/i.test(u)) throw httpError(400, 'Endereço inválido: use algo como https://api.openai.com/v1 ou http://localhost:11434/v1.');
+      const u = String(body.baseUrl).trim().replace(/\/+$/, '');
+      if (u && !/^https?:\/\/[^\s]+$/i.test(u)) throw httpError(400, 'Endereço inválido: use algo como https://integrate.api.nvidia.com/v1 ou http://localhost:11434/v1.');
       if (u) next.baseUrl = u; else delete next.baseUrl;
     }
+    if (body.model !== undefined) { const m = String(body.model).trim(); if (m) next.model = m.slice(0, 120); else delete next.model; }
+    // a chave vale para o endereço ESCOLHIDO (já com a troca acima): cada provedor guarda a sua
+    if (body.apiKey !== undefined) {
+      const k = String(body.apiKey).trim();
+      const url = (next.baseUrl || DEFAULT_PROVIDER.baseUrl).replace(/\/+$/, '');
+      if (k) next.keys[url] = k; else { delete next.keys[url]; if (url === DEFAULT_PROVIDER.baseUrl) delete next.apiKey; }
+    }
+    if (!Object.keys(next.keys).length) delete next.keys;
     config = { ...config, agent: next };
     await writeFile(configFile, JSON.stringify(config, null, 2));
     const a = agentConfig();
     return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey });
   }
+  if (what === 'models' && req.method === 'GET') {
+    // lista os modelos da conta (GET /models, padrão da OpenAI que a NVIDIA e o Ollama também têm): ajuda a escolher
+    // o nome certo e, de quebra, testa se a chave funciona
+    const a = agentConfig();
+    if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Salve a chave de ${a.provider?.name || 'API'} antes.`);
+    let r;
+    try { r = await fetch(`${a.baseUrl}/models`, { headers: authHeader(a), signal: AbortSignal.timeout(20000) }); } catch (err) {
+      throw httpError(502, `Não consegui falar com ${a.baseUrl} (${err.cause?.code || err.message}).`);
+    }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${data.error?.message || data.detail || r.status}${r.status === 401 ? ' (chave inválida?)' : ''}`);
+    const ids = (data.data || data.models || []).map((m) => m.id || m.name).filter(Boolean).sort();
+    return sendJson(res, 200, { models: ids });
+  }
   if (what === 'chat' && req.method === 'POST') {
     const { messages, tools } = JSON.parse((await readBody(req)) || '{}');
     if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
     const a = agentConfig();
-    if (!a.apiKey && a.baseUrl === OPENAI_URL) throw httpError(400, 'Configure a chave da OpenAI em Configurações → Assistente de IA.');
+    if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Assistente de IA.`);
+    // as instruções (docs/AGENTE.md) entram aqui, no servidor: sempre as mais novas, e o navegador não consegue trocá-las
+    const system = { role: 'system', content: await agentInstructions() };
     let r;
     try {
       r = await fetch(`${a.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {}) },
-        body: JSON.stringify({ model: a.model, messages, ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
+        headers: { 'Content-Type': 'application/json', ...authHeader(a) },
+        body: JSON.stringify({ model: a.model, messages: [system, ...messages.filter((m) => m.role !== 'system')], ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
         signal: AbortSignal.timeout(120000),
       });
     } catch (err) {
       throw httpError(502, `Não consegui falar com ${a.baseUrl} (${err.name === 'TimeoutError' ? 'demorou demais' : err.cause?.code || err.message}). Confira a internet e o endereço em Configurações.`);
     }
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${data.error?.message || r.status}${r.status === 401 ? ' (chave inválida?)' : ''}`);
+    if (!r.ok) {
+      const detail = data.error?.message || data.detail || data.title || r.status;
+      // modelo que não aceita ferramentas: diga o que fazer em vez de só repassar o erro técnico
+      const noTools = /tool|function/i.test(String(detail)) && r.status === 400;
+      throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${detail}${r.status === 401 ? ' (chave inválida?)' : ''}${noTools ? ` — o modelo "${a.model}" parece não aceitar ferramentas; escolha outro em Configurações.` : ''}`);
+    }
     const message = data.choices?.[0]?.message;
     if (!message) throw httpError(502, 'A API respondeu sem mensagem.');
     return sendJson(res, 200, { message, usage: data.usage || null });

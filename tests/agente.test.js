@@ -103,3 +103,33 @@ test('summarize e describeCall: resumo curto para a IA e frase clara para a jane
   assert.equal(describeCall('update_layer', { id: f.id, props: { radius: 8, layout: { gap: 4 } } }, store), 'Alterar “Card”: radius, layout.gap');
   assert.equal(describeCall('create_layer', { type: 'text', parent_id: f.id, props: { name: 'Sub' } }, store), 'Criar um texto “Sub” dentro de “Card”');
 });
+
+test('provedores: OpenAI, NVIDIA NIM e Ollama reconhecidos pelo endereço; locais não pedem chave', async () => {
+  const { PROVIDERS, providerOf, isLocalUrl } = await import('../src/agent/providers.js');
+  assert.deepEqual(PROVIDERS.map((p) => p.id), ['openai', 'nvidia', 'ollama']);
+  assert.equal(providerOf('https://integrate.api.nvidia.com/v1/').id, 'nvidia');
+  assert.equal(providerOf('https://exemplo.com/v1'), null);
+  assert.equal(isLocalUrl('http://localhost:11434/v1'), true);
+  assert.equal(isLocalUrl('http://127.0.0.1:1234/v1'), true);
+  assert.equal(isLocalUrl('https://integrate.api.nvidia.com/v1'), false);
+  assert.equal(isLocalUrl('https://localhost.evil.com/v1'), false);
+});
+
+test('respostas dos modelos: some o <think>, argumentos em texto ou objeto, ferramenta "escrita" como texto é detectada', async () => {
+  const { cleanReply, parseArgs, looksLikeTextToolCall } = await import('../src/ui/assistant.js');
+  assert.equal(cleanReply('<think>pensando...</think>Pronto!'), 'Pronto!');
+  assert.equal(cleanReply('<think>cortado no meio'), '');
+  assert.equal(cleanReply('Só texto'), 'Só texto');
+  assert.deepEqual(parseArgs('{"id":"a"}'), { id: 'a' });
+  assert.deepEqual(parseArgs({ id: 'a' }), { id: 'a' });
+  assert.deepEqual(parseArgs(''), {});
+  assert.equal(parseArgs('{quebrado'), null);
+  assert.equal(looksLikeTextToolCall('{"name": "update_layer", "arguments": {}}'), true);
+  assert.equal(looksLikeTextToolCall('<tool_call>{...}</tool_call>'), true);
+  assert.equal(looksLikeTextToolCall('Deixei o botão com cantos de 12px.'), false);
+});
+
+test('MCP usa as instruções recebidas (o servidor lê de docs/AGENTE.md)', async () => {
+  const r = await handleMcp(rpc('initialize', {}), { callTool: null, instructions: 'Você é um teste.' });
+  assert.match(r.result.instructions, /^Você é um teste\./);
+});

@@ -68,6 +68,13 @@ try {
   await p.waitForTimeout(200);
   const tipCard = await p.locator('.insp-tip').innerText();
   ok('frame com layout mostra flex, gap e padding', tipCard.includes('flex · column') && tipCard.includes('12px') && tipCard.includes('padding') && tipCard.includes('16'), tipCard);
+  ok('mostra o contorno de cada filho e o gap entre eles (hachurado)', (await p.locator('.insp-child').count()) === 2 && (await p.locator('.insp-gap').count()) === 1 && tipCard.includes('filhos'));
+  // grid: linhas das colunas/linhas e os gaps entre elas
+  await ev((id) => { const s = designer.store; s.update(() => { const c = s.get(id); c.layout.mode = 'grid'; c.layout.cols = 2; c.layout.colGap = 10; c.layout.rowGap = 10; }); s.emit('doc'); }, ids.card);
+  await p.mouse.move(cp.x + 1, cp.y + 1);
+  await p.waitForTimeout(250);
+  ok('grid: linhas de cada coluna/linha e os gaps', (await p.locator('.insp-line.v').count()) === 4 && (await p.locator('.insp-line.h').count()) === 2 && (await p.locator('.insp-gap').count()) === 1, `${await p.locator('.insp-line.v').count()} v, ${await p.locator('.insp-line.h').count()} h, ${await p.locator('.insp-gap').count()} gaps`);
+  await ev((id) => { const s = designer.store; s.update(() => { s.get(id).layout.mode = 'column'; }); s.emit('doc'); }, ids.card);
   await p.mouse.click(bp.x, bp.y);
   ok('clicar seleciona o elemento exato sob o mouse (o botão, não o card)', (await ev(() => designer.store.ui.selection.join())) === ids.botao);
   ok('e continua inspecionando', (await ev(() => designer.store.ui.tool)) === 'inspect');
@@ -143,12 +150,31 @@ try {
   const status = await (await fetch(url('/api/status'))).text();
   ok('a chave salva nunca volta (nem na config do agente, nem no status)', !pub.includes('sk-teste') && !status.includes('sk-teste') && JSON.parse(pub).hasKey === true);
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: '' }) });
+  // provedores: cada um guarda a sua chave (trocar de OpenAI para NVIDIA e voltar não apaga nada)
+  const put = (body) => fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
+  const getCfg = () => fetch(url('/api/agent/config')).then((r) => r.json());
+  await put({ baseUrl: 'https://integrate.api.nvidia.com/v1', model: 'meta/llama-3.3-70b-instruct' });
+  let cfg = await getCfg();
+  ok('NVIDIA NIM: provedor reconhecido e pede chave', cfg.provider === 'nvidia' && cfg.needsKey === true && cfg.model === 'meta/llama-3.3-70b-instruct', JSON.stringify(cfg));
+  await put({ apiKey: 'nvapi-teste-123' });
+  cfg = await getCfg();
+  ok('chave da NVIDIA salva (e não devolvida)', cfg.hasKey && !JSON.stringify(cfg).includes('nvapi-teste'));
+  await put({ baseUrl: 'https://api.openai.com/v1' });
+  ok('na OpenAI a chave da NVIDIA não vale', (await getCfg()).hasKey === false);
+  await put({ baseUrl: 'https://integrate.api.nvidia.com/v1' });
+  ok('voltando para a NVIDIA, a chave dela continua lá', (await getCfg()).hasKey === true);
+  await put({ apiKey: '' });
+  ok('as instruções do agente vêm de docs/AGENTE.md', /docs[\\/]AGENTE\.md$/.test(cfg.instructions || ''), cfg.instructions);
 
   // ---------------------------------------------------------------- 5. Assistente com uma "OpenAI de mentira"
   const seen = [];
   mock = createServer(async (req, res) => {
     let body = '';
     for await (const c of req) body += c;
+    if (req.url === '/v1/models') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ data: [{ id: 'nvidia/modelo-b' }, { id: 'meta/modelo-a' }] }));
+    }
     const data = JSON.parse(body);
     seen.push({ path: req.url, auth: req.headers.authorization || '', data });
     const last = data.messages[data.messages.length - 1];
@@ -156,15 +182,18 @@ try {
     const msg = last.role === 'user'
       ? { role: 'assistant', content: null, tool_calls: [
         { id: 'c1', type: 'function', function: { name: 'get_selection', arguments: '{}' } },
-        { id: 'c2', type: 'function', function: { name: 'update_layer', arguments: JSON.stringify({ id: ids.botao, props: { radius: 8 } }) } },
+        // alguns servidores compatíveis (NIM, Ollama) mandam os argumentos já como objeto, não como texto
+        { id: 'c2', type: 'function', function: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 8 } } } },
       ] }
-      : { role: 'assistant', content: 'Pronto: deixei o botão com `border-radius: 8px`.' };
+      : { role: 'assistant', content: '<think>raciocínio interno que a pessoa não precisa ver</think>Pronto: deixei o botão com `border-radius: 8px`.' };
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: msg }], usage: { total_tokens: 10 } }));
   });
   await new Promise((r) => mock.listen(0, '127.0.0.1', r));
   const mockUrl = `http://127.0.0.1:${mock.address().port}/v1`;
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseUrl: mockUrl, model: 'modelo-teste' }) });
+  const listed = await (await fetch(url('/api/agent/models'))).json();
+  ok('"Ver modelos" lista os modelos da conta (em ordem)', listed.models?.join() === 'meta/modelo-a,nvidia/modelo-b', JSON.stringify(listed));
   await ev((id) => designer.store.setSelection([id]), ids.botao);
   await p.click('.ai-btn');
   await p.waitForSelector('.ai-panel:not([hidden])');
@@ -177,9 +206,11 @@ try {
   await p.waitForSelector('.ai-msg.bot');
   const logText = await p.locator('.ai-log').innerText();
   ok('conversa mostra os passos e a resposta', logText.includes('✓ Leu a seleção') && logText.includes('✓ Alterou “Botão”: radius') && logText.includes('Pronto: deixei o botão'), logText);
+  ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
   ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 11 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Projeto Designer/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');
   ok('o "contexto" não aparece na conversa da pessoa', !logText.includes('[Contexto do editor'));

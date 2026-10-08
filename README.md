@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.15.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 159 testes unitários + 28 suítes de navegador
+`v0.15.1` · JavaScript puro (módulos ES) · sem dependências para rodar · 162 testes unitários + 28 suítes de navegador
 
 ---
 
@@ -64,9 +64,9 @@ O app abre com a **Vitrine completa**: uma landing page responsiva (a fictícia 
 - **HTML semântico**: escolha a etiqueta, o link (`href`) e a descrição de acessibilidade (`aria-label`) de cada camada.
 
 **IA e inspeção**
-- **Assistente de IA** dentro do editor: peça "deixa este botão com cantos de 12px" ou "revisa o CSS deste card". Usa a **sua** chave da OpenAI (ou uma IA gratuita no seu PC, via Ollama) e **toda alteração pede a sua permissão** antes (e sai com `Ctrl+Z`).
+- **Assistente de IA** dentro do editor: peça "deixa este botão com cantos de 12px" ou "revisa o CSS deste card". Funciona com **OpenAI, NVIDIA NIM** ou uma IA gratuita no seu PC (**Ollama**), com a **sua** chave, e **toda alteração pede a sua permissão** antes (e sai com `Ctrl+Z`). O que a IA sabe e como ela trabalha está em [`docs/AGENTE.md`](docs/AGENTE.md), que você pode editar.
 - **MCP**: o Claude Code, o Codex ou o Claude Desktop leem e alteram o design aberto, sem limite de chamadas (é tudo local).
-- **Inspecionar** (`I`), como o F12 do navegador: passe o mouse e veja a etiqueta HTML, a classe, o tamanho e o *box model* (margem, padding e conteúdo coloridos).
+- **Inspecionar** (`I`), como o F12 do navegador: passe o mouse e veja a etiqueta HTML, a classe, o tamanho, o *box model* (margem, padding e conteúdo coloridos), o contorno de cada elemento de dentro e, num grid, as linhas das colunas e linhas com os `gap` hachurados.
 
 **Reaproveitar e apresentar**
 - **Componentes** com instâncias (sobrescritas de texto, cor e tamanho), ícones do Material Symbols e **protótipo** clicável com transições, apresentado em tela cheia (`Ctrl+Alt+Enter`).
@@ -108,7 +108,16 @@ Abra **http://localhost:5173**. O app abre com a Vitrine completa: clique em uma
 
 ## IA: Assistente e MCP
 
-**Assistente** (botão ✦ no topo): abra **Configurações → Assistente de IA e MCP**, cole a sua chave da OpenAI (`platform.openai.com/api-keys`) e escolha o modelo. A chave fica só no seu computador, no arquivo de configuração do servidor; nunca vai para o projeto nem volta ao navegador. Para usar uma IA de graça no PC, instale o [Ollama](https://ollama.com) e use o endereço `http://localhost:11434/v1` (sem chave).
+**Assistente** (botão ✦ no topo): abra **Configurações → Assistente de IA e MCP**, escolha o **provedor**, cole a chave e clique em **Ver modelos** para escolher o modelo da sua conta (isso também testa a chave). Cada provedor guarda a própria chave, só no seu computador (no arquivo de configuração do servidor); ela nunca vai para o projeto nem volta ao navegador.
+
+| Provedor | Endereço | Chave |
+|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | `sk-...` em platform.openai.com/api-keys |
+| **NVIDIA NIM** | `https://integrate.api.nvidia.com/v1` | `nvapi-...` em build.nvidia.com. Escolha um modelo que aceite ferramentas (*tool calling*) |
+| Ollama (grátis, no seu PC) | `http://localhost:11434/v1` | sem chave; baixe um modelo com ferramentas (`ollama pull qwen2.5:7b`) |
+| Outro compatível | o endereço dele | a chave dele |
+
+As chaves também podem vir das variáveis de ambiente `OPENAI_API_KEY` e `NVIDIA_API_KEY`. As **instruções da IA** (quem ela é, o que pode fazer, como a ferramenta funciona, como trabalhar) ficam em [`docs/AGENTE.md`](docs/AGENTE.md): edite à vontade, vale na próxima mensagem, tanto para o Assistente quanto para o MCP.
 
 **MCP** (com `npm start` rodando e o editor aberto no navegador):
 
@@ -132,7 +141,7 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **159 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
+- **162 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
 - **28 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 
@@ -157,6 +166,7 @@ A lista completa, com os detalhes, está na [seção de limitações do guia](do
 |---|---|
 | [`docs/GUIA-COMPLETO.md`](docs/GUIA-COMPLETO.md) | Tudo que o editor faz, onde o trabalho é salvo, atalhos, estrutura, testes e limitações |
 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Como as peças se encaixam |
+| [`docs/AGENTE.md`](docs/AGENTE.md) | As instruções da IA (Assistente e MCP): edite para mudar como ela trabalha |
 | [`docs/GUIA-DO-CODIGO.md`](docs/GUIA-DO-CODIGO.md) · [`docs/REFERENCIA.md`](docs/REFERENCIA.md) | Para quem vai mexer no código |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
 | [`tests/e2e/README.md`](tests/e2e/README.md) | Como rodar os testes de navegador |

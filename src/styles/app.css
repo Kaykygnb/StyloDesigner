@@ -1332,6 +1332,12 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .insp-margin { position: absolute; background: rgba(246, 178, 107, 0.45); pointer-events: none; }
 .insp-box { position: absolute; background: rgba(147, 196, 125, 0.5); outline: 1px dashed rgba(60, 120, 40, 0.8); pointer-events: none; }
 .insp-content { position: absolute; background: rgba(111, 168, 220, 0.55); pointer-events: none; }
+.insp-child { position: absolute; outline: 1px dashed rgba(161, 138, 255, 0.95); outline-offset: -1px; pointer-events: none; }
+.insp-line { position: absolute; pointer-events: none; border-color: rgba(181, 72, 255, 0.9); border-style: dashed; border-width: 0; }
+.insp-line.v { border-left-width: 1px; }
+.insp-line.h { border-top-width: 1px; }
+/* gap: listras diagonais, como no DevTools */
+.insp-gap { position: absolute; pointer-events: none; background: repeating-linear-gradient(45deg, rgba(181, 72, 255, 0.35) 0 2px, transparent 2px 7px); }
 .insp-tip {
   position: absolute; z-index: 5; pointer-events: none; min-width: 200px; max-width: 340px;
   padding: 8px 10px; border-radius: 9px; background: #1b1c22; color: #e8e8ef; border: 1px solid #34353f;
@@ -1388,6 +1394,9 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .ai-send { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #fff; }
 .ai-send:hover:not(:disabled) { background: var(--primary); color: #fff; }
 .agent-ask-what { font-weight: 600; }
+.set-badge { font-weight: 600; font-size: 12px; }
+.set-badge.on { color: var(--ok); }
+.set-badge.off { color: var(--warn); }
 .set-cmd { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .set-cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; }
 .field.grow { flex: 1 !important; min-width: 180px; }

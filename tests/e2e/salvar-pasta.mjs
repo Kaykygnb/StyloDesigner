@@ -64,11 +64,13 @@ try {
     const d = document.querySelector('[role=dialog]');
     return d.getAttribute('aria-modal') === 'true' && document.getElementById(d.getAttribute('aria-labelledby'))?.textContent === 'Configurações';
   }));
-  ok('mostra "servidor conectado"', (await p.locator('.set-status.on').count()) === 1);
+  // a 1ª seção é a da pasta (a de IA, mais abaixo, tem o próprio indicador e a própria mensagem)
+  const pasta = p.locator('.set-section').first();
+  ok('mostra "servidor conectado"', (await pasta.locator('.set-status.on').count()) === 1 && (await pasta.innerText()).includes('Servidor conectado'));
   await p.fill('.set-path input', 'pasta/relativa');
   await p.click('text=Usar esta pasta');
   await p.waitForTimeout(400);
-  ok('caminho relativo mostra erro na própria janela', /caminho completo/i.test(await p.locator('.set-msg').innerText()));
+  ok('caminho relativo mostra erro na própria janela', /caminho completo/i.test(await pasta.locator('.set-msg').innerText()));
   await p.fill('.set-path input', dir);
   await p.click('text=Usar esta pasta');
   await p.waitForTimeout(600);

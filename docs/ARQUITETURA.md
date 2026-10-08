@@ -57,6 +57,7 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
 | `agent/schema.js` | As 11 ferramentas que uma IA pode usar (nome, descrição, parâmetros em JSON Schema) e as instruções da IA; uma lista só para o MCP e para a OpenAI | ✅ |
 | `agent/runner.js` | Executa as ferramentas no editor aberto: leitura direta; alteração só com permissão (`approve`), um `commit` por alteração (Ctrl+Z), lista fechada de propriedades (`applyProps`) | ✅ (recebe store/commands) |
+| `agent/providers.js` | Provedores do Assistente (OpenAI, NVIDIA NIM, Ollama): endereço, modelo sugerido, variável de ambiente da chave | ✅ |
 | `agent/bridge.js` | Janela de permissão (fila, "permitir tudo nesta sessão" por programa) e a ponte do MCP (o editor ouve `/api/agent/events`) | — |
 | `ui/assistant.js` | Painel do Assistente: o laço "IA pede ferramenta → editor executa → resultado volta" via `/api/agent/chat` | — |
 | `server/mcp.js` (raiz) | O protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping), sem dependências | Node.js |
@@ -307,7 +308,9 @@ Assistente (painel) ──/api/agent/chat──► OpenAI (sua chave)    editor 
 - **Uma lista de ferramentas só** (`agent/schema.js`), convertida para o formato de cada lado (`mcpTools`, `openAiTools`).
 - **A chave da API** fica em `designer.config.json` (fora do git), dentro de `agent.apiKey`, ou na variável `OPENAI_API_KEY`. `/api/status` e `/api/agent/config` nunca a devolvem; quem fala com a OpenAI é o servidor.
 - **Segurança do `/mcp`**: mesmas regras da API (só `localhost`, `Origin` local ou ausente, JSON). Um site aberto em outra aba não consegue mandar a IA alterar nada.
-- **Endereço compatível**: o agente usa a API *Chat Completions*; qualquer servidor compatível serve (Ollama, LM Studio) trocando o "Endereço da API".
+- **Endereço compatível**: o agente usa a API *Chat Completions*; qualquer servidor compatível serve (NVIDIA NIM, Ollama, LM Studio) trocando o "Endereço da API". Cada endereço guarda a sua chave (`agent.keys[endereço]`).
+- **Instruções da IA**: `docs/AGENTE.md`, lido pelo servidor a cada conversa e posto como mensagem de sistema (o navegador não manda instruções) e como `instructions` no `initialize` do MCP. Sem o arquivo, vale o texto curto de `agent/schema.js`.
+- **Respostas fora do padrão**: `ui/assistant.js` aceita argumentos já em objeto, esconde o raciocínio `<think>` e avisa quando o modelo escreveu a chamada de ferramenta como texto (modelo sem suporte a ferramentas).
 
 ## 11. Desempenho
 

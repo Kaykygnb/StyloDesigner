@@ -15,6 +15,7 @@
 import { h, ico } from './dom.js';
 import { openModal } from './menus.js';
 import { browserUsage, requestPersistence, folder } from '../storage.js';
+import { PROVIDERS } from '../agent/providers.js';
 
 /** "12345678" bytes → "11,8 MB". */
 export const formatBytes = (b) =>
@@ -138,38 +139,69 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         h('p.muted', 'Precisa do servidor do app (', h('code', 'npm start'), '): é ele que guarda a chave e conversa com a IA.'));
     }
     const msg = h('p.set-msg', { role: 'status' });
-    const key = h('input.text.mono', { type: 'password', placeholder: ai.hasKey ? '•••••••• (chave salva)' : 'sk-...', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave da API' });
-    const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo' });
-    const base = h('input.text.mono', { type: 'text', value: ai.baseUrl, spellcheck: false, 'aria-label': 'Endereço da API' });
-    /** Grava no servidor (a chave só vai se você digitou uma nova). */
-    const save = async (patch) => {
+    const prov = PROVIDERS.find((x) => x.id === ai.provider) || null;
+    /** Grava no servidor e redesenha (a chave só vai quando você digita uma nova). */
+    const save = async (patch, done = 'Assistente configurado.') => {
       try {
         const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
-        toast('Assistente configurado.');
+        toast(done);
         render();
       } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui salvar.'; }
     };
+    // PROVEDOR: escolher um já grava endereço e modelo sugerido (a chave de cada provedor fica guardada separada)
+    const provSel = h('select.select', { 'aria-label': 'Provedor de IA' },
+      ...PROVIDERS.map((x) => h('option', { value: x.id, selected: ai.provider === x.id }, x.name)),
+      h('option', { value: 'custom', selected: ai.provider === 'custom' }, 'Outro (compatível com a OpenAI)'));
+    provSel.addEventListener('change', () => {
+      const x = PROVIDERS.find((p) => p.id === provSel.value);
+      if (x) save({ baseUrl: x.baseUrl, model: x.model }, `Provedor: ${x.name}.`);
+      else { base.focus(); base.select(); }
+    });
+    const key = h('input.text.mono', { type: 'password', placeholder: ai.hasKey ? '•••••••• (chave salva)' : prov?.keyHint || 'chave da API', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave da API' });
+    const models = h('datalist', { id: 'ai-models' });
+    const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo', list: 'ai-models' });
+    const base = h('input.text.mono', { type: 'text', value: ai.baseUrl, spellcheck: false, 'aria-label': 'Endereço da API' });
     const saveBtn = h('button.btn.primary', { type: 'button', onclick: () => save({ model: model.value, baseUrl: base.value, ...(key.value.trim() ? { apiKey: key.value.trim() } : {}) }) }, 'Salvar');
-    const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }) }, 'Apagar chave') : null;
+    const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }, 'Chave apagada.') }, 'Apagar chave') : null;
+    // VER MODELOS: pergunta à API quais modelos a sua conta tem (e assim testa a chave)
+    const listBtn = h('button.btn', {
+      type: 'button',
+      onclick: async () => {
+        listBtn.disabled = true;
+        msg.className = 'set-msg';
+        msg.textContent = 'Consultando os modelos…';
+        try {
+          const r = await fetch('/api/agent/models');
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error);
+          models.replaceChildren(...data.models.map((m) => h('option', { value: m })));
+          msg.textContent = `A chave funciona: ${data.models.length} modelos. Clique no campo Modelo para escolher (ou digite parte do nome).`;
+          model.focus();
+        } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui listar os modelos.'; }
+        listBtn.disabled = false;
+      },
+    }, 'Ver modelos');
     const copy = (text) => h('button.btn.small', { type: 'button', onclick: () => navigator.clipboard?.writeText(text).then(() => toast('Copiado.')) }, 'Copiar');
     const cmd = (label, text) => h('div.set-cmd', h('span.set-label', label), h('code', text), copy(text));
     return h('section.set-section',
       h('h3', ico('sparkle', 15), ' Assistente de IA e MCP'),
       h('p', 'O ', h('strong', 'Assistente'), ' (botão ', ico('sparkle', 12), ' no topo) conversa com a IA usando a ', h('strong', 'sua'),
         ' chave. Ela fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto.'),
+      h('div.set-row', h('span.set-label', 'Provedor'), h('div.field.select-wrap', provSel, ico('chevron', 12))),
       h('div.set-row', h('span.set-label', 'Chave da API'), h('div.field.grow', key), forget),
-      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model)),
+      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model, models), listBtn),
       h('div.set-row', h('span.set-label', 'Endereço da API'), h('div.field.grow', base)),
       h('div.set-row', saveBtn),
       msg,
-      h('p.muted.small', 'Chave em ', h('code', 'platform.openai.com/api-keys'), ' (o uso é cobrado pela OpenAI). O modelo é o nome de um modelo da sua conta. ',
-        'Para usar uma IA de graça no seu PC, instale o Ollama e use o endereço ', h('code', 'http://localhost:11434/v1'), ' (sem chave) e o nome do modelo baixado.'),
+      prov ? h('p.muted.small', `Chave em ${prov.keyUrl}. ${prov.note}`) : h('p.muted.small', 'Qualquer servidor compatível com a API da OpenAI (Chat Completions com ferramentas) funciona: LM Studio, OpenRouter, Groq...'),
+      h('p.muted.small', 'O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ', h('code', ai.instructions || 'docs/AGENTE.md'),
+        '. Edite à vontade: vale na próxima mensagem.'),
       h('div.set-tip',
         h('strong', 'MCP: ligar o Claude Code, o Codex ou o Claude Desktop'),
         h('p', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design (cada alteração passa pela sua permissão aqui). ',
-          ai.editors ? h('span.set-status.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`) : h('span.set-status.off', '● nenhum editor conectado')),
+          ai.editors ? h('span.set-badge.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`) : h('span.set-badge.off', '● nenhum editor conectado')),
         cmd('Claude Code', `claude mcp add --transport http designer ${ai.mcpUrl}`),
         cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
         h('p.muted.small', 'No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',

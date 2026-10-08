@@ -32,9 +32,10 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
  * @param {(name: string, args: object, client: string) => Promise<object>} deps.callTool  executa a ferramenta (no editor)
  * @param {string} deps.version  versão do app (aparece para a IA)
  * @param {{ name?: string }} [deps.session]  guarda o nome do programa que conectou (vem no initialize)
+ * @param {string} [deps.instructions]  quem a IA é e como trabalhar (o servidor lê de docs/AGENTE.md)
  * @returns {Promise<object|null>}  a resposta, ou null quando a mensagem é um aviso (sem id)
  */
-export async function handleMcp(msg, { callTool, version = '0.0.0', session = {} }) {
+export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}, instructions = AGENT_INSTRUCTIONS }) {
   if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
     return rpcError(msg?.id ?? null, -32600, 'Pedido inválido (esperado JSON-RPC 2.0).');
   }
@@ -51,7 +52,7 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'projeto-designer', title: 'Projeto Designer', version },
-        instructions: `${AGENT_INSTRUCTIONS}\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Cada alteração aparece para a pessoa aprovar.`,
+        instructions: `${instructions}\n\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Cada alteração aparece para a pessoa aprovar.`,
       },
     };
   }

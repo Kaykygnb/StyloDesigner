@@ -6,6 +6,21 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.15.1] — 2026-10-08 — NVIDIA NIM, instruções da IA e linhas do inspetor
+
+### Adicionado
+- **Provedores no Assistente**: OpenAI, **NVIDIA NIM** (`https://integrate.api.nvidia.com/v1`, chave `nvapi-...`), Ollama (grátis, no PC) ou outro compatível. Cada provedor guarda a sua chave (trocar e voltar não apaga nada); também aceita `OPENAI_API_KEY` / `NVIDIA_API_KEY`.
+- **"Ver modelos"** em Configurações: lista os modelos da sua conta (e testa a chave), para escolher sem adivinhar o nome.
+- **`docs/AGENTE.md`**: as instruções da IA (quem ela é, como a ferramenta funciona, o que cada ferramenta faz, como trabalhar, exemplos e limites). O servidor lê a cada conversa: editar o arquivo muda o comportamento na hora, no Assistente e no MCP.
+- **Inspecionar** mostra o que está dentro: contorno tracejado de cada filho, as linhas das colunas/linhas de um grid e os `gap` hachurados (grid e flex), como o DevTools.
+
+### Corrigido
+- Respostas de modelos fora do padrão da OpenAI: argumentos de ferramenta já em objeto, raciocínio `<think>` (DeepSeek, Qwen) escondido da conversa e aviso quando o modelo "escreve" a ferramenta como texto em vez de usá-la.
+- Erro de modelo sem suporte a ferramentas agora diz o que fazer ("escolha outro em Configurações").
+- Teste `salvar-pasta.mjs` olhava a primeira mensagem da janela de Configurações, que agora tem também a seção de IA.
+
+---
+
 ## [0.15.0] — 2026-10-08 — IA no editor: Assistente, MCP e Inspecionar
 
 Versão de fechamento antes de estudar o código: as três últimas peças pedidas.
