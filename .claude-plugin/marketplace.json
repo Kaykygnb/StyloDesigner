@@ -1,0 +1,12 @@
+{
+  "name": "projeto-designer",
+  "description": "Plugins do Projeto Designer: o editor de design em que o canvas é CSS de verdade.",
+  "owner": { "name": "Kayky Gabriel" },
+  "plugins": [
+    {
+      "name": "projeto-designer",
+      "source": "./integrations/claude-code",
+      "description": "Liga o Claude Code ao editor aberto (MCP) e ensina a criar e revisar páginas com HTML/CSS de verdade."
+    }
+  ]
+}

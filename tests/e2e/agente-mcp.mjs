@@ -6,6 +6,10 @@ import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const BASE = process.env.APP_URL || 'http://localhost:5173/';
 let fails = 0;
@@ -88,7 +92,7 @@ try {
   ok('aviso (notification) recebe 202 sem corpo', note.status === 202);
   const list = await mcp('tools/list');
   const names = list.body.result.tools.map((t) => t.name);
-  ok('tools/list traz as 18 ferramentas', names.length === 18 && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
+  ok('tools/list traz as 33 ferramentas', names.length === 33 && ['get_image', 'set_responsive', 'set_state', 'create_instance', 'add_interaction', 'list_projects'].every((n) => names.includes(n)) && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
   const docOut = await callTool('get_document', {});
   ok('get_document lê o projeto aberto (camadas da página)', !docOut.isError && docOut.data.page.layers[0].name === 'Tela' && docOut.data.page.layers[0].children[0].name === 'Card', JSON.stringify(docOut.data).slice(0, 300));
   const code = await callTool('get_code', { id: ids.card });
@@ -148,6 +152,68 @@ try {
   ok('árvore inválida é recusada antes de criar qualquer coisa', badTree.isError && /type "botao" inválido/.test(badTree.data.error) && (await ev(() => designer.store.page().children.length)) === histBefore);
   const badIcon = await callTool('insert_icon', { name: 'carrinho_de_compras' });
   ok('ícone com nome errado sugere parecidos', badIcon.isError && /não existe/.test(badIcon.data.error));
+  // ---- MCP completo: ver a imagem, HTML, responsivo, estados, componentes, protótipo, comentários, páginas
+  const img = await mcp('tools/call', { name: 'get_image', arguments: { id: ids.tela } });
+  const imgPart = img.body.result.content.find((c) => c.type === 'image');
+  ok('get_image: a IA recebe a tela como IMAGEM PNG (conteúdo de imagem do MCP)', imgPart?.mimeType === 'image/png' && Buffer.from(imgPart.data, 'base64').subarray(1, 4).toString() === 'PNG' && !img.body.result.content.at(-1).text.includes('"data"'));
+  const html = await callTool('export_html', { id: ids.tela });
+  ok('export_html devolve o arquivo HTML completo', /^<!doctype html>/.test(html.data.html) && html.data.html.includes('class="card"'));
+  const respBad = await callTool('set_responsive', { id: ids.card, breakpoint: 'mobile', props: { name: 'Outro nome' } });
+  ok('set_responsive recusa o que não varia por largura', respBad.isError && /Não varia por largura: name/.test(respBad.data.error));
+  const resp = await callTool('set_responsive', { id: ids.card, breakpoint: 'mobile', props: { layout: { gap: 4 } } });
+  const cardCss = (await callTool('get_code', { id: ids.card })).data.css;
+  ok('set_responsive vira @media só no celular (Desktop igual)', resp.data.ok && /@media \(max-width: 640px\)[\s\S]*gap: 4px/.test(cardCss) && /gap: 24px/.test(cardCss), cardCss.slice(-300));
+  const st = await callTool('set_state', { id: ids.botao, state: 'hover', props: { fill: '#991b1b', scale: 1.05 } });
+  const btnCss = (await callTool('get_code', { id: ids.botao })).data.css;
+  ok('set_state cria o :hover no CSS', st.data.ok && /\.botao:hover \{[\s\S]*#991b1b/i.test(btnCss), btnCss);
+  const comp = await callTool('create_component', { id: ids.botao });
+  const inst = await callTool('create_instance', { component_id: ids.botao, parent_id: ids.card, props: { name: 'Botão 2' } });
+  ok('componente + cópia ligada dentro do card', comp.data.ok && inst.data.created?.instanceOf === ids.botao && (await ev((id) => designer.store.get(id).children.at(-1).name, ids.card)) === 'Botão 2');
+  const dup = await callTool('duplicate_layers', { ids: [ids.titulo] });
+  ok('duplicate_layers devolve a cópia', dup.data.created?.length === 1 && dup.data.created[0].id !== ids.titulo);
+  const inter = await callTool('add_interaction', { id: ids.botao, action: 'navigate', target_id: ids.tela, transition: 'slide-left' });
+  ok('add_interaction liga o protótipo', inter.data.interactions?.[0]?.target === ids.tela && inter.data.interactions[0].transition === 'slide-left');
+  const cm = await callTool('add_comment', { id: ids.card, text: 'Espaçamento apertado aqui' });
+  ok('add_comment deixa o comentário com o nome do programa', cm.data.ok && (await ev(() => designer.store.state.doc.comments.at(-1).author)) === 'Teste MCP');
+  const pg = await callTool('create_page', { name: 'Rascunho IA' });
+  const del = await callTool('delete_page', { id: pg.data.page.id });
+  ok('create_page e delete_page', pg.data.page.name === 'Rascunho IA' && del.data.ok && !(await ev(() => designer.store.state.doc.pages.some((p) => p.name === 'Rascunho IA'))));
+  const und = await callTool('undo', {});
+  const red = await callTool('redo', {});
+  ok('undo e redo', und.data.ok && red.data.ok && !(await ev(() => designer.store.state.doc.pages.some((p) => p.name === 'Rascunho IA'))));
+  await ev((id) => designer.store.switchPage(designer.store.state.doc.pages[0].id), null);
+
+  // ---- ACESSO DE ADMINISTRADOR: sem ele, projetos são recusados; com ele, a IA abre/salva e não pergunta
+  const noAdmin = await callTool('list_projects', {});
+  ok('sem acesso de administrador, ferramentas de projeto são recusadas', noAdmin.isError && /Acesso de administrador/.test(noAdmin.data.error));
+  const tmp = await mkdtemp(join(tmpdir(), 'designer-mcp-'));
+  const status0 = await (await fetch(url('/api/status'))).json();
+  await fetch(url('/api/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder: tmp }) });
+  await ev(() => designer.saving.refresh());
+  await fetch(url('/api/agent/mcp'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: true }) });
+  ok('Configurações mostram o acesso de administrador ligado', (await (await fetch(url('/api/agent/config'))).json()).mcpAdmin === true);
+  // um programa NOVO (nunca liberado nesta sessão): com administrador, altera sem janela e aparece um aviso
+  await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Claude Code' } });
+  const adm = await callTool('update_layer', { id: ids.titulo, props: { text: 'Feito pelo administrador' } });
+  await p.waitForTimeout(150);
+  ok('administrador: altera sem abrir a janela de permissão', adm.data.ok && (await p.locator('.ask-modal').count()) === 0 && (await ev((id) => designer.store.get(id).text, ids.titulo)) === 'Feito pelo administrador');
+  ok('e mostra um aviso do que foi feito', (await p.locator('.toast').innerText().catch(() => '')).includes('Claude Code: Alterar “Título”'));
+  const newBlocked = await callTool('new_project', { name: 'X' });
+  ok('não troca de projeto se o aberto só existe no navegador', newBlocked.isError && /save_project/.test(newBlocked.data.error));
+  const saved = await callTool('save_project', { name: 'site-da-ia' });
+  ok('save_project grava na pasta', saved.data.saved === 'site-da-ia.json' && existsSync(join(tmp, 'site-da-ia.json')));
+  const projList = await callTool('list_projects', {});
+  ok('list_projects mostra o arquivo e qual está aberto', projList.data.open === 'site-da-ia.json' && projList.data.projects.some((x) => x.file === 'site-da-ia.json'));
+  const nova = await callTool('new_project', { name: 'Projeto novo da IA' });
+  ok('new_project começa em branco (o anterior está salvo na pasta)', nova.data.project === 'Projeto novo da IA' && (await ev(() => designer.store.page().children.length)) === 0);
+  const back = await callTool('open_project', { file: 'site-da-ia.json' });
+  ok('open_project abre o projeto da pasta', back.data.ok && (await ev(() => designer.store.ui.link?.file)) === 'site-da-ia.json' && (await ev((id) => !!designer.store.get(id), ids.titulo)));
+  await fetch(url('/api/agent/mcp'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: false }) });
+  await fetch(url('/api/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder: status0.folder }) });
+  await ev(() => { designer.store.setLink(null); return designer.saving.refresh(); });
+  await rm(tmp, { recursive: true, force: true });
+  await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Teste MCP' } });
+
   const wrong = await callTool('update_layer', { id: ids.card, props: { corDeFundo: 'azul' } });
   ok('propriedade desconhecida é recusada com a lista das aceitas', wrong.isError && /desconhecida: corDeFundo/.test(wrong.data.error));
   const evil = await mcp('tools/list', {}, { Origin: 'https://site-malicioso.com' });
@@ -252,7 +318,7 @@ try {
   ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
-  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 18 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 33 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
   ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Projeto Designer/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');

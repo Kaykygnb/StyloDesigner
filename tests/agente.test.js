@@ -160,3 +160,34 @@ test('ferramentas de criação grande existem e estão marcadas certo (escrita �
   for (const n of ['search_icons', 'list_fonts', 'switch_page']) assert.equal(byName[n].write, false, n);
   assert.match(byName.build_layout.description, /UMA permissão/);
 });
+
+test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos internos não vazam', async () => {
+  const callTool = async () => ({ id: 'a', _image: { data: 'iVBORw0KGgo=', mimeType: 'image/png' }, _summary: 'x' });
+  const r = await handleMcp(rpc('tools/call', { name: 'get_image', arguments: {} }), { callTool });
+  assert.deepEqual(r.result.content[0], { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' });
+  assert.equal(r.result.content[1].type, 'text');
+  assert.ok(!r.result.content[1].text.includes('iVBOR') && !r.result.content[1].text.includes('_summary'));
+});
+
+test('MCP completo: 33 ferramentas; as de projeto exigem administrador; destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 33);
+  const admin = AGENT_TOOLS.filter((t) => t.admin).map((t) => t.name).sort();
+  assert.deepEqual(admin, ['list_projects', 'new_project', 'open_project', 'save_project']);
+  const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
+  assert.deepEqual(destructive, ['delete_layers', 'delete_page', 'new_project', 'open_project']);
+});
+
+test('plugin do Claude Code: arquivos válidos, nomes batendo e MCP apontando para o editor', async () => {
+  const { readFileSync, existsSync } = await import('node:fs');
+  const read = (p) => JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8'));
+  const market = read('.claude-plugin/marketplace.json');
+  const plugin = read('integrations/claude-code/.claude-plugin/plugin.json');
+  const mcpCfg = read('integrations/claude-code/.mcp.json');
+  assert.equal(market.plugins[0].name, plugin.name); // o nome do marketplace e o do plugin precisam ser iguais
+  assert.equal(market.plugins[0].source, './integrations/claude-code');
+  assert.ok(market.owner?.name && plugin.version && plugin.description);
+  assert.deepEqual(mcpCfg.mcpServers['projeto-designer'], { type: 'http', url: 'http://localhost:5173/mcp' });
+  const skill = readFileSync(new URL('../integrations/claude-code/skills/projeto-designer/SKILL.md', import.meta.url), 'utf8');
+  assert.match(skill, /^---\nname: projeto-designer\ndescription: .+\n---/);
+  assert.ok(existsSync(new URL('../integrations/codex/config.toml', import.meta.url)) && existsSync(new URL('../integrations/codex/AGENTS.md', import.meta.url)));
+});

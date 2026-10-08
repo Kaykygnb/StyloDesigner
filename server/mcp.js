@@ -69,7 +69,12 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
       return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: err.message || String(err) }], isError: true } };
     }
     const isError = !!(out && (out.error || out.refused));
-    return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }], isError } };
+    // get_image: a imagem vai como conteúdo de IMAGEM do MCP (o Claude/GPT vê o design); o resto, como texto
+    const { _image, _summary, ...rest } = out || {};
+    const content = [];
+    if (_image?.data) content.push({ type: 'image', data: _image.data, mimeType: _image.mimeType || 'image/png' });
+    content.push({ type: 'text', text: JSON.stringify(rest, null, 2) });
+    return { jsonrpc: '2.0', id, result: { content, isError } };
   }
   return rpcError(id, -32601, `Método não suportado: ${method}`);
 }

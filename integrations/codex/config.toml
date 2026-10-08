@@ -1,0 +1,10 @@
+# Projeto Designer no Codex (modelos GPT da OpenAI)
+# Copie este bloco para o arquivo ~/.codex/config.toml (no Windows: C:\Users\SEU_USUARIO\.codex\config.toml)
+# e troque o caminho pelo da pasta do projeto no seu computador.
+# Antes de usar: "npm start" na pasta do projeto e o editor aberto em http://localhost:5173.
+
+[mcp_servers.projeto-designer]
+command = "node"
+args = ["E:/trabalho/projetodesigner2/scripts/mcp.mjs"]
+# o editor pode demorar enquanto você decide na janela de permissão: dê tempo de sobra
+tool_timeout_sec = 200

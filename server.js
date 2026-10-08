@@ -311,7 +311,8 @@ function callEditor(tool, args, client) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { pending.delete(id); reject(new Error('O editor não respondeu a tempo (a pessoa não decidiu na janela de permissão em 3 minutos).')); }, EDITOR_TIMEOUT_MS);
     pending.set(id, { resolve, timer });
-    editor.write(`event: call\ndata: ${JSON.stringify({ id, tool, args, client })}\n\n`);
+    // admin: a pessoa ligou o "Acesso de administrador" do MCP → o editor executa sem a janela de permissão
+    editor.write(`event: call\ndata: ${JSON.stringify({ id, tool, args, client, admin: !!config.mcp?.admin })}\n\n`);
   });
 }
 
@@ -366,6 +367,7 @@ const authHeader = (a) => (a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : 
  *   POST /api/agent/chat     { messages, tools } → repassa à API de chat (OpenAI, NVIDIA NIM, Ollama...) com a SUA chave e as
  *                            instruções de docs/AGENTE.md como mensagem de sistema
  *   GET  /api/agent/models   → { models } a lista de modelos da conta (testa a chave)
+ *   PUT  /api/agent/mcp      { admin } → liga/desliga o "Acesso de administrador" do MCP (só programas deste computador)
  */
 async function agentApi(req, res, parts) {
   const [what] = parts;
@@ -390,6 +392,7 @@ async function agentApi(req, res, parts) {
     return sendJson(res, 200, {
       baseUrl: a.baseUrl, model: a.model, provider: a.provider?.id || 'custom', hasKey: !!a.apiKey, needsKey: !a.apiKey && !isLocalUrl(a.baseUrl),
       editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'docs', 'AGENTE.md'),
+      mcpAdmin: !!config.mcp?.admin, pluginDir: join(root, 'integrations', 'claude-code'),
     });
   }
   if (what === 'config' && req.method === 'PUT') {
@@ -412,6 +415,16 @@ async function agentApi(req, res, parts) {
     await writeFile(configFile, JSON.stringify(config, null, 2));
     const a = agentConfig();
     return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey });
+  }
+  if (what === 'mcp' && req.method === 'PUT') {
+    // { admin: boolean } — "Acesso de administrador" do MCP: programas de IA DESTE computador agem sem a janela de
+    // permissão e podem abrir/salvar/criar projetos. O /mcp continua aceitando só pedidos desta máquina.
+    const body = JSON.parse((await readBody(req)) || '{}');
+    const next = { ...(config.mcp || {}) };
+    if (body.admin !== undefined) next.admin = !!body.admin;
+    config = { ...config, mcp: next };
+    await writeFile(configFile, JSON.stringify(config, null, 2));
+    return sendJson(res, 200, { ok: true, mcpAdmin: !!next.admin });
   }
   if (what === 'models' && req.method === 'GET') {
     // lista os modelos da conta (GET /models, padrão da OpenAI que a NVIDIA e o Ollama também têm): ajuda a escolher

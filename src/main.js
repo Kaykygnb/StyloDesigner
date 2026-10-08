@@ -504,7 +504,7 @@ requestAnimationFrame(() => {
 // As duas portas de entrada de uma IA usam o MESMO executor (agent/runner.js) e a MESMA janela de permissão:
 // o Assistente (painel flutuante, com a sua chave da OpenAI) e programas externos via MCP (Claude Code, Codex...).
 const approve = createApprover();
-const runner = createRunner({ store, commands, approve });
+const runner = createRunner({ store, commands, approve, saving, folder });
 const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage'), approve, prefs, savePrefs });
 aiBtn.addEventListener('click', () => assistant.toggle());
 // o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)

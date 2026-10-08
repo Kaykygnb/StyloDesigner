@@ -26,6 +26,8 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 
 /**
  * As ferramentas. `write: true` = altera o projeto (pede permissão e vira um passo do Ctrl+Z).
+ * `admin: true` = mexe nos ARQUIVOS de projeto (abrir, salvar, criar): para programas externos (MCP), só funciona com o
+ * "Acesso de administrador" ligado em Configurações. O Assistente interno pode usar (com permissão).
  * `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
  */
 export const AGENT_TOOLS = [
@@ -191,6 +193,119 @@ ${PROP_HELP}`,
     inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
   },
   {
+    name: 'get_image',
+    write: false,
+    description: 'VÊ o design: devolve um PNG da camada (ou da tela inteira). Use para conferir o resultado depois de montar ou alterar algo. Sem id, usa a seleção ou a primeira tela da página. (No Assistente interno a imagem não chega ao modelo; no MCP, sim.)',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' }, scale: { type: 'number', description: '0.5 a 2 (padrão 1)' } } },
+  },
+  {
+    name: 'export_html',
+    write: false,
+    description: 'O arquivo HTML COMPLETO de uma tela (página independente, com o CSS no <head>, @media e variáveis) — o mesmo do "Exportar HTML".',
+    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'id da tela (frame)' } }, required: ['id'] },
+  },
+  {
+    name: 'set_responsive',
+    write: true,
+    description: 'Ajusta uma camada SÓ no Tablet (≤1024px) ou SÓ no Celular (≤640px): vira @media no CSS. O Desktop continua igual. Ex.: grid de 3 colunas vira 1 no celular: props {"layout": {"cols": 1}}; esconder no celular: {"visible": false}; texto menor: {"fontSize": 36}. Aceita: x, y, w, h, sizeX, sizeY, minW, maxW, minH, maxH, aspect, margin, grow, absolute, visible, alignSelf, justifySelf, colSpan, rowSpan, layout, rotation, overflow, fluid, fontSize, lineHeight, letterSpacing, wordSpacing, textAlign, fontWeight, textTransform, truncate, lines, radius, opacity, blend, clip, fill, stroke, shadows, blur, bgBlur.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string' }, breakpoint: { type: 'string', enum: ['tablet', 'mobile'] }, props: { type: 'object', additionalProperties: true } },
+      required: ['id', 'breakpoint', 'props'],
+    },
+  },
+  {
+    name: 'set_state',
+    write: true,
+    description: 'Define como a camada fica no :hover, :active (pressionado) ou :focus-visible (foco do teclado) — vira .classe:hover no CSS, com a transição da camada. Aceita: fill, stroke, radius, shadows, blur, bgBlur, opacity, blend, scale (ex.: 1.03). Ex.: botão escurece no hover: {"state": "hover", "props": {"fill": "#991B1B"}}.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string' }, state: { type: 'string', enum: ['hover', 'active', 'focus'] }, props: { type: 'object', additionalProperties: true } },
+      required: ['id', 'state', 'props'],
+    },
+  },
+  {
+    name: 'create_component',
+    write: true,
+    description: 'Transforma uma camada em COMPONENTE principal (as cópias, criadas com create_instance, mudam junto quando o principal muda).',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'create_instance',
+    write: true,
+    description: 'Cria uma cópia ligada (instância) de um componente, dentro de um frame (na posição index) ou na página. props sobrescreve só nesta cópia (ex.: name). Para mudar o texto de dentro, use update_layer nos filhos da instância.',
+    inputSchema: {
+      type: 'object',
+      properties: { component_id: { type: 'string' }, parent_id: { type: 'string' }, index: { type: 'integer' }, props: { type: 'object', additionalProperties: true } },
+      required: ['component_id'],
+    },
+  },
+  {
+    name: 'duplicate_layers',
+    write: true,
+    description: 'Duplica camadas (com tudo dentro). Em flex/grid, a cópia entra logo depois do original.',
+    inputSchema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' } } }, required: ['ids'] },
+  },
+  {
+    name: 'add_interaction',
+    write: true,
+    description: 'Protótipo: ao clicar na camada, "navigate" vai para outra tela (target_id), "back" volta, "url" abre um site. Aparece no modo Apresentar.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' }, action: { type: 'string', enum: ['navigate', 'back', 'url'] }, target_id: { type: 'string' }, url: { type: 'string' },
+        transition: { type: 'string', enum: ['instant', 'dissolve', 'slide-left', 'slide-right', 'slide-up', 'slide-down'] },
+      },
+      required: ['id', 'action'],
+    },
+  },
+  {
+    name: 'add_comment',
+    write: true,
+    description: 'Deixa um comentário numa camada (aparece como pino no canvas e na aba Comentários). Bom para revisões: aponte o problema sem mudar nada.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' }, text: { type: 'string' } }, required: ['id', 'text'] },
+  },
+  {
+    name: 'delete_page',
+    write: true,
+    description: 'Apaga uma página do projeto (não dá para apagar a última).',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'redo',
+    write: true,
+    description: 'Refaz o que foi desfeito (Ctrl+Shift+Z).',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_projects',
+    write: false,
+    admin: true,
+    description: 'Lista os projetos salvos na pasta do computador (arquivo, data, tamanho) e diz qual está aberto. [administrador]',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'open_project',
+    write: true,
+    admin: true,
+    description: 'Abre um projeto da pasta no editor (use list_projects). Recusa se o projeto aberto agora só existe no navegador (salve antes com save_project). [administrador]',
+    inputSchema: { type: 'object', properties: { file: { type: 'string', description: 'ex.: meu-site.json' } }, required: ['file'] },
+  },
+  {
+    name: 'save_project',
+    write: true,
+    admin: true,
+    description: 'Salva o projeto aberto na pasta. Com name, salva com esse nome (vira o arquivo do projeto); sem name, grava no arquivo atual. [administrador]',
+    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'nome do arquivo (sem .json)' } } },
+  },
+  {
+    name: 'new_project',
+    write: true,
+    admin: true,
+    description: 'Começa um projeto novo em branco (com o nome dado). Recusa se o projeto aberto só existe no navegador (salve antes). [administrador]',
+    inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+  },
+  {
     name: 'undo',
     write: true,
     description: 'Desfaz a última alteração do projeto (o mesmo que Ctrl+Z).',
@@ -212,7 +327,7 @@ export const mcpTools = () => AGENT_TOOLS.map((t) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.inputSchema,
-  annotations: { readOnlyHint: !t.write, destructiveHint: t.name === 'delete_layers' },
+  annotations: { readOnlyHint: !t.write, destructiveHint: ['delete_layers', 'delete_page', 'open_project', 'new_project'].includes(t.name) },
 }));
 
 /**

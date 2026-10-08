@@ -1,0 +1,8 @@
+{
+  "name": "projeto-designer",
+  "version": "0.17.0",
+  "description": "Use o Claude para desenhar no Projeto Designer: MCP com 33 ferramentas (ver o design como imagem, montar páginas inteiras, responsivo, componentes, protótipo, projetos) e um guia de como trabalhar com a ferramenta.",
+  "author": { "name": "Kayky Gabriel" },
+  "repository": "https://github.com/Kaykygnb/projetodesigner2",
+  "keywords": ["design", "css", "html", "mcp", "figma"]
+}

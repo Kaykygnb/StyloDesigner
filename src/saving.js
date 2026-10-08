@@ -196,6 +196,10 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
       const r = await folder.save(file, store.state.doc, { base: same ? store.ui.link.modified : undefined, overwrite });
       store.setLink({ file, modified: r.modified, synced: true });
       store.ui.folderProblem = null;
+      // acabou de ser gravado na pasta: o indicador e a troca de projeto já podem contar com isso (antes só o próximo
+      // salvamento automático marcava, e abrir outro projeto logo depois perguntava à toa)
+      store.ui.savedWhere = 'folder';
+      store.emit('ui');
       sendThumb(file, { force: true });
       toast(`Salvo em ${file}`);
       return true;

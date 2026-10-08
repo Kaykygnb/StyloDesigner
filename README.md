@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.16.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 165 testes unitários + 28 suítes de navegador
+`v0.17.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 168 testes unitários + 28 suítes de navegador
 
 ---
 
@@ -123,11 +123,12 @@ As chaves também podem vir das variáveis de ambiente `OPENAI_API_KEY` e `NVIDI
 
 | Programa | Como ligar |
 |---|---|
-| Claude Code | `claude mcp add --transport http designer http://localhost:5173/mcp` |
-| Codex | em `~/.codex/config.toml`: `[mcp_servers.designer]` com `command = "node"` e `args = ["/caminho/do/projeto/scripts/mcp.mjs"]` |
+| **Claude Code (plugin)** | `/plugin marketplace add Kaykygnb/projetodesigner2` e `/plugin install projeto-designer@projeto-designer`: MCP já configurado + o guia de trabalho (skill) |
+| Claude Code (sem plugin) | `claude mcp add --transport http designer http://localhost:5173/mcp` |
+| **Codex (GPT)** | copie [`integrations/codex/config.toml`](integrations/codex/config.toml) para `~/.codex/config.toml` e [`integrations/codex/AGENTS.md`](integrations/codex/AGENTS.md) para `~/.codex/AGENTS.md` |
 | Claude Desktop | Configurações → Desenvolvedor → Editar configuração → em `mcpServers`: `"designer": { "command": "node", "args": ["/caminho/do/projeto/scripts/mcp.mjs"] }` |
 
-A IA tem 18 ferramentas: ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; desfazer. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta.
+A IA tem 33 ferramentas (guia completo em [`docs/MCP.md`](docs/MCP.md)): ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; **ver a tela como imagem** (`get_image`); responsivo (`@media`), hover/foco, componentes, protótipo e comentários; desfazer/refazer; e, com o **Acesso de administrador**, abrir, salvar e criar projetos sem perguntar. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta: veja [`integrations/chatgpt/README.md`](integrations/chatgpt/README.md).
 
 ---
 
@@ -141,7 +142,7 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **165 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
+- **168 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
 - **28 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 
@@ -166,6 +167,7 @@ A lista completa, com os detalhes, está na [seção de limitações do guia](do
 |---|---|
 | [`docs/GUIA-COMPLETO.md`](docs/GUIA-COMPLETO.md) | Tudo que o editor faz, onde o trabalho é salvo, atalhos, estrutura, testes e limitações |
 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Como as peças se encaixam |
+| [`docs/MCP.md`](docs/MCP.md) | Ligar Claude Code (plugin), Codex/GPT, Claude Desktop; acesso de administrador; as 33 ferramentas |
 | [`docs/AGENTE.md`](docs/AGENTE.md) | As instruções da IA (Assistente e MCP): edite para mudar como ela trabalha |
 | [`docs/GUIA-DO-CODIGO.md`](docs/GUIA-DO-CODIGO.md) · [`docs/REFERENCIA.md`](docs/REFERENCIA.md) | Para quem vai mexer no código |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |

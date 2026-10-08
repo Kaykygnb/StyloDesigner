@@ -6,6 +6,21 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.17.0] — 2026-10-08 — MCP completo, acesso de administrador e plugin do Claude
+
+### Adicionado
+- **15 ferramentas novas** (33 no total): `get_image` (a IA **vê** a tela como PNG, enviado como imagem pelo MCP), `export_html`, `set_responsive` (Tablet/Celular → `@media`), `set_state` (hover/pressionado/foco), `create_component`, `create_instance`, `duplicate_layers`, `add_interaction` (protótipo), `add_comment`, `delete_page`, `redo` e, para projetos, `list_projects`, `open_project`, `save_project`, `new_project`.
+- **Acesso de administrador** (Configurações → Assistente de IA e MCP): os programas de IA **deste computador** alteram sem a janela de permissão (um aviso mostra cada alteração; Ctrl+Z desfaz) e podem abrir, salvar e criar projetos. Sem ele, as ferramentas de projeto são recusadas. O `/mcp` continua aceitando só pedidos desta máquina.
+- **Plugin do Claude Code**: o repositório é um marketplace (`.claude-plugin/marketplace.json`) com o plugin `projeto-designer` (`integrations/claude-code`): MCP configurado + skill com o ciclo de trabalho (ler → montar → olhar a imagem → corrigir → responsivo). Instalação: `/plugin marketplace add Kaykygnb/projetodesigner2` e `/plugin install projeto-designer@projeto-designer`.
+- **Codex (GPT)**: `integrations/codex/config.toml` e `AGENTS.md` prontos. **ChatGPT do site**: `integrations/chatgpt/README.md` explica por que ainda não conecta (só aceita MCP pela internet) e as alternativas.
+- **`docs/MCP.md`**: guia completo (ligar cada programa, permissão e administrador, as 33 ferramentas, exemplos, problemas comuns).
+
+### Corrigido
+- Depois de **"Salvar como"**, o app ainda achava que o projeto estava "só no navegador" até o próximo salvamento automático (abrir outro projeto logo depois perguntava à toa).
+- `exportPng` separado em `renderPng` (gera o PNG sem baixar), usado também pelo `get_image`.
+
+---
+
 ## [0.16.0] — 2026-10-08 — Um agente que faz (e sabe design)
 
 Relato do teste real com a NVIDIA (Nemotron): "conversa demais e faz pouco", "não sabe trocar fonte nem pôr ícone", "por que preciso selecionar algo?", "a cor dele é burra".

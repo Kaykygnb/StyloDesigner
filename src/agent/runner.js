@@ -13,8 +13,11 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid } from '../model.js';
-import { generateCode, joinCss } from '../css.js';
+import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid, editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates } from '../model.js';
+import { generateCode, joinCss, exportHtml } from '../css.js';
+import { makeComponent, createInstance } from '../components.js';
+import { addComment } from '../comments.js';
+import { renderPng } from '../export.js';
 import { importSvg } from '../svgimport.js';
 import { GOOGLE, SYSTEM_FONTS } from '../fonts.js';
 import { iconUrl, iconExists, searchIcons } from '../ui/googleicons.js';
@@ -178,6 +181,18 @@ export function describeCall(tool, args, store) {
     case 'insert_icon': return `Inserir o ícone “${args.name}”${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
+    case 'set_responsive': return `No ${args.breakpoint === 'mobile' ? 'Celular' : 'Tablet'}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
+    case 'set_state': return `No estado ${args.state}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
+    case 'create_component': return `Transformar ${nm(args.id)} em componente`;
+    case 'create_instance': return `Criar uma cópia do componente ${nm(args.component_id)}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
+    case 'duplicate_layers': return `Duplicar ${(args.ids || []).map(nm).join(', ')}`;
+    case 'add_interaction': return `Protótipo: clicar em ${nm(args.id)} → ${args.action === 'navigate' ? `ir para ${nm(args.target_id)}` : args.action === 'back' ? 'voltar' : `abrir ${args.url}`}`;
+    case 'add_comment': return `Comentar em ${nm(args.id)}: “${String(args.text || '').slice(0, 80)}”`;
+    case 'delete_page': return `Apagar a página “${(store.state.doc.pages.find((p) => p.id === args.id) || {}).name || args.id}”`;
+    case 'redo': return 'Refazer (Ctrl+Shift+Z)';
+    case 'open_project': return `Abrir o projeto “${args.file}” (troca o projeto aberto)`;
+    case 'save_project': return args.name ? `Salvar o projeto como “${args.name}”` : 'Salvar o projeto na pasta';
+    case 'new_project': return `Começar um projeto novo${args.name ? ` “${args.name}”` : ''} (troca o projeto aberto)`;
     default: return tool;
   }
 }
@@ -189,9 +204,10 @@ export function describeCall(tool, args, store) {
  * @param {object} deps.commands
  * @param {(req: {client: string, tool: string, args: object, summary: string}) => Promise<boolean>} deps.approve
  *        pergunta à pessoa (true = pode). Sem `approve`, alterações são recusadas.
- * @returns {{ run: (tool: string, args: object, client?: string) => Promise<object> }}
+ * @param {object} [deps.saving]  salvamento (abrir/salvar projetos da pasta) · @param {object} [deps.folder]  API da pasta (listar)
+ * @returns {{ run: (tool: string, args: object, client?: string, opts?: {external?: boolean, admin?: boolean}) => Promise<object> }}
  */
-export function createRunner({ store, commands, approve }) {
+export function createRunner({ store, commands, approve, saving = null, folder = null }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -264,6 +280,27 @@ export function createRunner({ store, commands, approve }) {
       }
       const system = SYSTEM_FONTS.filter((f) => !q || f.toLowerCase().includes(q));
       return { google: out, system, hint: 'Use o nome exato em fontFamily e um peso da lista em fontWeight.' };
+    },
+    async get_image({ id, scale = 1 } = {}) {
+      const sel = store.ui.selection.map((s) => store.get(s)).filter(Boolean);
+      const node = id ? need(id) : sel[0] || store.page().children.find((n) => n.type === 'frame');
+      if (!node) throw new Error('Nada para mostrar: a página está vazia.');
+      const s = Math.max(0.5, Math.min(2, Number(scale) || 1));
+      const doc = store.state.doc;
+      const blob = await renderPng(node, doc.assets, s, doc.styles);
+      const data = await new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = fail; fr.readAsDataURL(blob); });
+      // _image: o servidor MCP transforma em conteúdo de imagem; o Assistente interno descarta (o modelo de chat não recebe imagem)
+      return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes da web aparecem com a fonte do sistema e o efeito vidro pode não aparecer na imagem (o editor e o HTML estão certos).' };
+    },
+    export_html({ id }) {
+      const n = need(id);
+      const doc = store.state.doc;
+      return { file: `${n.name}.html`, html: exportHtml(n, doc.assets, n.name, doc.styles) };
+    },
+    async list_projects() {
+      if (!folder) throw new Error('Sem servidor (npm start): não há pasta de projetos.');
+      const list = await folder.list();
+      return { open: store.ui.link?.file || null, projects: list.map((p) => ({ file: p.file, modified: new Date(p.modified).toISOString(), size: p.size })) };
     },
     switch_page({ id }) {
       const page = store.state.doc.pages.find((p) => p.id === id);
@@ -352,6 +389,15 @@ export function createRunner({ store, commands, approve }) {
     return node;
   }
 
+  /** Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado). */
+  function guardSwitch() {
+    if (!saving) throw new Error('Sem servidor (npm start).');
+    const ui = store.ui;
+    if (!(ui.pristine || (ui.link && ui.savedWhere === 'folder' && !ui.link.conflict))) {
+      throw new Error('O projeto aberto só está salvo no navegador e seria perdido. Salve antes com save_project (name: "...").');
+    }
+  }
+
   const WRITE = {
     update_layer({ id, props }) {
       const n = need(id);
@@ -425,6 +471,99 @@ export function createRunner({ store, commands, approve }) {
       store.update(() => { page.name = String(name || page.name).trim().slice(0, 60) || page.name; });
       return { page: { id: page.id, name: page.name } };
     },
+    set_responsive({ id, breakpoint, props }) {
+      const n = need(id);
+      if (!['tablet', 'mobile'].includes(breakpoint)) throw new Error('breakpoint: "tablet" ou "mobile".');
+      const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
+      if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
+      store.update(() => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle })));
+      return { updated: n.id, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
+    },
+    set_state({ id, state, props = {} }) {
+      const n = need(id);
+      if (!['hover', 'active', 'focus'].includes(state)) throw new Error('state: "hover", "active" ou "focus".');
+      if (!canHaveStates(n)) throw new Error('Grupos, seções e linhas não têm estados.');
+      const bad = Object.keys(props).filter((k) => !STATE_KEYS.includes(k));
+      if (bad.length) throw new Error(`Estados aceitam só: ${STATE_KEYS.join(', ')}.`);
+      const { scale, ...rest } = props;
+      store.update(() => editState(n, state, (d) => { applyProps(d, rest, { colorStyle }); if (scale !== undefined) d.scale = Math.max(0.5, Math.min(2, Number(scale) || 1)); }));
+      return { updated: n.id, state };
+    },
+    create_component({ id }) {
+      const n = need(id);
+      if (n.instanceOf) throw new Error('Isto é uma cópia de componente; o principal é ' + n.instanceOf + '.');
+      store.update(() => makeComponent(n));
+      return { component: summarize(n, 0) };
+    },
+    create_instance({ component_id, parent_id, index, props = {} }) {
+      const main = need(component_id);
+      if (!main.component) throw new Error(`“${main.name}” não é componente. Use create_component antes.`);
+      const list = targetList(parent_id);
+      const inst = createInstance(main, store.state.doc.pages);
+      if (!parent_id) placeBeside(inst);
+      store.update(() => { applyProps(inst, props, { colorStyle }); insertAt(list, inst, index); });
+      store.setSelection([inst.id]);
+      return { created: summarize(inst, 1) };
+    },
+    duplicate_layers({ ids = [] }) {
+      ids.forEach(need);
+      store.setSelection(ids);
+      commands.duplicate();
+      return { created: store.ui.selection.map((s) => summarize(store.get(s), 0)) };
+    },
+    add_interaction({ id, action, target_id, url, transition = 'dissolve' }) {
+      const n = need(id);
+      if (!['navigate', 'back', 'url'].includes(action)) throw new Error('action: navigate, back ou url.');
+      if (action === 'navigate') need(target_id);
+      if (action === 'url' && !/^https?:\/\//i.test(url || '')) throw new Error('url precisa começar com http:// ou https://.');
+      store.update(() => { (n.interactions ||= []).push({ trigger: 'click', action, target: action === 'navigate' ? target_id : '', transition, ...(action === 'url' ? { url } : {}) }); });
+      return { interactions: n.interactions };
+    },
+    add_comment({ id, text }, client) {
+      need(id);
+      let c = null;
+      store.update(() => { c = addComment(store.state.doc, { nodeId: id, text, author: client }); });
+      if (!c) throw new Error('Comentário vazio.');
+      return { comment: { id: c.id, text: c.text } };
+    },
+    delete_page({ id }) {
+      const doc = store.state.doc;
+      const page = doc.pages.find((p) => p.id === id);
+      if (!page) throw new Error(`Página "${id}" não existe.`);
+      if (doc.pages.length === 1) throw new Error('É a única página; não dá para apagar.');
+      store.update(() => doc.pages.splice(doc.pages.indexOf(page), 1));
+      store.switchPage(doc.pages[0].id);
+      return { deleted: id };
+    },
+    redo() {
+      if (!store.canRedo()) throw new Error('Não há nada para refazer.');
+      store.redo();
+      return { redone: true };
+    },
+    async open_project({ file }) {
+      guardSwitch();
+      await saving.open(String(file));
+      return { opened: file, project: store.state.doc.name };
+    },
+    async save_project({ name } = {}) {
+      if (!saving || !store.ui.server) throw new Error('Sem servidor (npm start): não há pasta para salvar.');
+      if (name) {
+        // nome que já existe (e não é o arquivo aberto): recusa com mensagem, em vez de abrir a pergunta "substituir?"
+        // mesmo nome de arquivo que o storage.fileNameFor gera (sem acento, minúsculas, hífens)
+        const file = `${String(name).replace(/\.json$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'projeto'}.json`;
+        const taken = (await folder.list()).some((p) => p.file === file);
+        if (taken && store.ui.link?.file !== file) throw new Error(`Já existe "${file}" na pasta. Escolha outro nome.`);
+        if (!(await saving.saveAs(name, { overwrite: false }))) throw new Error('Não consegui salvar na pasta.');
+      }
+      else if (!(await saving.quickSave())) throw new Error('Este projeto ainda não tem arquivo: mande um name.');
+      return { saved: store.ui.link?.file || null };
+    },
+    new_project({ name } = {}) {
+      guardSwitch();
+      store.newDoc();
+      if (name) store.update(() => { store.state.doc.name = String(name).slice(0, 80); });
+      return { project: store.state.doc.name };
+    },
     undo() {
       if (!store.canUndo()) throw new Error('Não há nada para desfazer.');
       store.undo();
@@ -438,27 +577,30 @@ export function createRunner({ store, commands, approve }) {
    * @param {object} args
    * @param {string} [client]  quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
    */
-  async function run(tool, args = {}, client = 'Assistente') {
+  async function run(tool, args = {}, client = 'Assistente', { external = false, admin = false } = {}) {
     const def = toolByName(tool);
     if (!def) return { error: `Ferramenta desconhecida: ${tool}.` };
     try {
-      if (!def.write) return READ[tool](args || {});
+      // arquivos de projeto: programas externos (MCP) só com o "Acesso de administrador" ligado
+      if (def.admin && external && !admin) throw new Error('Esta ferramenta mexe nos arquivos de projeto e precisa do "Acesso de administrador" (Configurações → Assistente de IA e MCP).');
+      if (!def.write) return await READ[tool](args || {});
       // alteração: confere o pedido ANTES de perguntar (não adianta pedir permissão para algo que vai falhar)
       if (tool === 'update_layer' || tool === 'move_layer') need(args?.id);
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
       const summary = describeCall(tool, args || {}, store);
-      const ok = approve ? await approve({ client, tool, args, summary }) : false;
+      // administrador: o programa externo age sem perguntar (a pessoa ligou isso de propósito em Configurações)
+      const ok = admin || (approve ? await approve({ client, tool, args, summary }) : false);
       if (!ok) return { refused: true, message: 'A pessoa recusou esta alteração. Pergunte o que ela prefere.' };
       const before = JSON.stringify(store.state.doc);
       try {
-        const out = await WRITE[tool](args || {});
-        if (tool !== 'undo') store.commit();
-        return { ok: true, ...out };
+        const out = await WRITE[tool](args || {}, client);
+        if (!['undo', 'redo', 'open_project', 'new_project', 'save_project'].includes(tool)) store.commit();
+        return { ok: true, ...out, ...(admin ? { _summary: summary } : {}) };
       } catch (err) {
         // falhou no meio: volta o documento para como estava (nada pela metade)
-        if (tool !== 'undo' && JSON.stringify(store.state.doc) !== before) restoreDoc(before);
+        if (!['undo', 'redo', 'open_project', 'new_project'].includes(tool) && JSON.stringify(store.state.doc) !== before) restoreDoc(before);
         throw err;
       }
     } catch (err) {

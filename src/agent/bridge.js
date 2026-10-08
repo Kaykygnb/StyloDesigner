@@ -71,7 +71,10 @@ export function connectMcpBridge({ runner, toast }) {
     let msg;
     try { msg = JSON.parse(ev.data); } catch { return; }
     if (!greeted.has(msg.client)) { greeted.add(msg.client); toast(`${msg.client} está usando o editor pelo MCP.`); }
-    const result = await runner.run(msg.tool, msg.args, msg.client);
+    // external: veio de um programa de fora; admin: a pessoa ligou o "Acesso de administrador" (age sem perguntar)
+    const result = await runner.run(msg.tool, msg.args, msg.client, { external: true, admin: !!msg.admin });
+    // com acesso de administrador não há janela de permissão: avisa na tela o que mudou (transparência)
+    if (result?._summary) toast(`${msg.client}: ${result._summary}`);
     try {
       await fetch('/api/agent/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: msg.id, result }) });
     } catch { /* servidor caiu: o pedido expira do lado de lá */ }

@@ -186,7 +186,10 @@ export function createAssistant({ store, runner, openSettings, stage, approve, p
           const result = args ? await runner.run(name, args, 'Assistente') : { error: 'Os argumentos não são um JSON válido.' };
           log.insertBefore(stepLine(name, args, result), thinking);
           log.scrollTop = log.scrollHeight;
-          const json = JSON.stringify(result);
+          // imagem (get_image): o chat não recebe imagens aqui; manda só o resto e um aviso
+          const { _image, ...plain } = result || {};
+          if (_image) plain.note = 'A imagem foi gerada, mas o Assistente interno não consegue enviá-la ao modelo. Confie nos dados (get_layer/get_code).';
+          const json = JSON.stringify(plain);
           messages.push({ role: 'tool', tool_call_id: call.id, content: json.length > MAX_RESULT ? `${json.slice(0, MAX_RESULT)}… (cortado)` : json });
         }
         if (step === MAX_STEPS - 1) log.insertBefore(h('div.ai-note', 'Parei aqui para não rodar sem fim. Mande "continua" se quiser que eu siga.'), thinking);

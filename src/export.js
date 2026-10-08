@@ -67,6 +67,16 @@ export async function openProjectFile(file) {
  * @param {number} [scale=2]  1 a 4
  */
 export async function exportPng(node, assets, scale = 2, styles = null) {
+  const blob = await renderPng(node, assets, scale, styles);
+  download(`${slugify(node.name)}@${scale}x.png`, blob);
+}
+
+/**
+ * Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta
+ * get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
+ * @returns {Promise<Blob>}
+ */
+export async function renderPng(node, assets, scale = 2, styles = null) {
   const rad = ((node.rotation || 0) * Math.PI) / 180;
   const W = Math.ceil(Math.abs(node.w * Math.cos(rad)) + Math.abs(node.h * Math.sin(rad)));
   const H = Math.ceil(Math.abs(node.w * Math.sin(rad)) + Math.abs(node.h * Math.cos(rad)));
@@ -90,8 +100,7 @@ export async function exportPng(node, assets, scale = 2, styles = null) {
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
   ctx.drawImage(img, 0, 0, W, H);
-  const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
-  download(`${slugify(node.name)}@${scale}x.png`, blob);
+  return new Promise((r) => canvas.toBlob(r, 'image/png'));
 }
 
 /** Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid. */

@@ -242,9 +242,20 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         h('strong', 'MCP: ligar o Claude Code, o Codex ou o Claude Desktop'),
         h('p', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design (cada alteração passa pela sua permissão aqui). ',
           ai.editors ? h('span.set-badge.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`) : h('span.set-badge.off', '● nenhum editor conectado')),
-        cmd('Claude Code', `claude mcp add --transport http designer ${ai.mcpUrl}`),
+        // ACESSO DE ADMINISTRADOR: programas deste computador agem sem perguntar e mexem nos arquivos de projeto
+        h('div.set-row', checkbox('Acesso de administrador: o MCP altera sem perguntar e pode abrir, salvar e criar projetos', !!ai.mcpAdmin, async (v) => {
+          try {
+            const r = await fetch('/api/agent/mcp', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: v }) });
+            if (!r.ok) throw new Error((await r.json()).error);
+            toast(v ? 'MCP com acesso de administrador.' : 'MCP volta a pedir permissão a cada alteração.');
+          } catch (err) { toast(err.message || 'Não consegui salvar.'); }
+        })),
+        h('p.muted.small', 'Só vale para programas deste computador (o endereço do MCP não aceita pedidos de fora). Tudo continua saindo com Ctrl+Z, e um aviso mostra cada alteração.'),
+        cmd('Plugin do Claude Code', `/plugin marketplace add Kaykygnb/projetodesigner2`),
+        cmd('', `/plugin install projeto-designer@projeto-designer`),
+        cmd('Claude Code (sem plugin)', `claude mcp add --transport http designer ${ai.mcpUrl}`),
         cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
-        h('p.muted.small', 'No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
+        h('p.muted.small', 'Guia completo (Claude, Codex/GPT e ChatGPT): ', h('code', 'docs/MCP.md'), '. No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
           h('code', `args = ["${ai.mcpScript.replace(/\\/g, '\\\\')}"]`), '. No Claude Desktop: Configurações → Desenvolvedor → Editar configuração, em ', h('code', 'mcpServers'), '.')));
   }
 
