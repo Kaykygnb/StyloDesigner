@@ -6,6 +6,12 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [Não lançado] — Seletor de cor e contorno em ícones
+
+### Adicionado
+- **Seletor de cor próprio** (no lugar do seletor feio do navegador): área de saturação/brilho, barra de matiz, campo HEX, conta-gotas e **grupos de cores**: "Neste projeto" (as mais usadas), "Estilos de cor" e paletas prontas (Neutros, Vivas, Suaves). Aplica ao vivo, grava o histórico ao soltar, fecha com Esc ou clicando fora e rola se a tela for baixa. Vale para preenchimento, contorno, gradiente, sombras e grades.
+- **Contorno por lado em ÍCONES**: Todos · Cima · Direita · Baixo · Esquerda · Espessura por lado. Cada lado liga/desliga sozinho e dá para combinar (ex.: cima e baixo); de "Todos", o clique escolhe só aquele lado; com os quatro ligados volta a "Todos". Substitui a lista de opções, e cada ícone tem dica com o CSS (`border-top`...).
+
 ## [0.10.0] — 2026-10-07 — Seção, auto layout com cara de produto e caneta para ícones SVG
 
 ### Adicionado

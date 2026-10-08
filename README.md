@@ -36,8 +36,8 @@ Funciona como Figma e Penpot (frames, camadas, auto layout, componentes, protót
 - Uma ferramenta para **estudar e prototipar com CSS**: os campos do painel têm os nomes das propriedades (`gap`, `padding`, `justify-content`, `align-items`, `mix-blend-mode`...), então usar o editor ensina o CSS.
 
 **Não é:**
-- Um substituto completo do Figma ou do Penpot. Faltam operações booleanas, variantes de componentes, variáveis/temas, colaboração em tempo real e plugins (lista completa na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério)).
-- Uma ferramenta "pronta para equipe": não há nuvem própria nem edição simultânea. Dá para ter cópia na nuvem apontando a pasta para dentro do Google Drive/OneDrive/Dropbox ([seção 3](#onde-meu-trabalho-fica-salvo)).
+- Um serviço na nuvem, nem um substituto fiel do Figma ou do Penpot: não há cadastro, login nem "abrir o site e trabalhar". Faltam operações booleanas, variantes de componentes, variáveis/temas e plugins (lista completa na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério)).
+- Uma ferramenta de **edição simultânea**: duas pessoas não editam o mesmo projeto ao mesmo tempo. Hoje o servidor também escuta só no próprio computador (de propósito, por segurança). Usar em equipe, com o app hospedado num servidor da empresa, é uma direção possível, mas ainda não existe: veja "Equipe e servidor" na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério). Dá para ter cópia na nuvem apontando a pasta para dentro do Google Drive/OneDrive/Dropbox ([seção 3](#onde-meu-trabalho-fica-salvo)).
 
 ---
 
@@ -448,15 +448,27 @@ O ganho veio de não reconstruir a lista de camadas nem o índice interno quando
 
 ## 11. Limitações (leia antes de usar em trabalho sério)
 
-Este projeto cobre muita coisa de Figma e Penpot, mas **não é** um clone completo. **Não tem:**
+Este projeto cobre bastante de Figma e Penpot para uso **individual e para protótipos**: layout em CSS de verdade (flex e grid), componentes, protótipo, seções, caneta para ícones SVG, importar e exportar SVG/HTML/PNG. Mas **não é** um clone completo.
 
-- **Operações booleanas** (unir, subtrair, interseccionar formas).
+### O que não tem
+
+**Design**
+- **Operações booleanas** (unir, subtrair, interseccionar formas). Pesa principalmente na criação de ícones.
 - **Mais de um preenchimento ou contorno por camada.**
 - **Variantes de componente**, **variáveis** e **temas** de design.
-- **Colaboração em tempo real** e comentários. (Há versões antigas, mas na sua pasta, não num serviço na nuvem.)
 - **Plugins.**
 - **Edição de imagem** (recorte, filtros) e lápis livre.
 - Texto com **estilos misturados** na mesma caixa e listas.
+
+### Equipe e servidor
+
+Hoje o projeto é pensado para **uma pessoa por vez**. O que existe e o que falta para uma empresa pequena hospedar o app e todos usarem:
+
+- **O servidor escuta só no computador local** (`127.0.0.1`) e recusa qualquer outro `Host`. É proposital: ele grava no disco. Para uso em rede seria preciso um modo "rede" ligado de forma explícita.
+- **Sem login nem permissões.** Quem alcançasse o servidor leria, gravaria e apagaria tudo.
+- **Sem edição simultânea.** Cada projeto é um arquivo `.json` inteiro. Se duas pessoas editam o mesmo arquivo, o app **detecta o conflito e para de gravar**, mas **não junta** as duas edições. Dividir o trabalho por projeto ou por página funciona; trabalhar juntos no mesmo projeto ao mesmo tempo, não.
+- **Sem histórico por pessoa:** as versões antigas guardam o arquivo, não "quem mudou o quê".
+- **Comentários** entre pessoas também não existem.
 
 Detalhes que valem saber:
 
@@ -466,14 +478,14 @@ Detalhes que valem saber:
 - **Acessibilidade:** menus, janelas, abas e botões funcionam por teclado e têm rótulos; **desenhar e mover no canvas ainda dependem do mouse** (as setas movem a seleção, mas não há como desenhar formas só pelo teclado).
 - **Ícones e Google Fonts precisam de internet** para buscar/baixar. Um ícone, depois de inserido, é um desenho do projeto (funciona offline); uma fonte não: sem internet, o texto aparece numa fonte de reserva.
 - **Importar SVG cobre o comum:** caminhos, formas, cores, classes CSS simples, gradientes (aproximados pela direção), grupos e transformações, furos, textos simples, **sombras exportadas pelo Figma** e nomes de fonte do Illustrator ("Poppins-Bold" → Poppins 700). **Sombra interna, outros filtros, máscaras, padrões, imagens embutidas e texto em curva ficam de fora** — e o aviso diz exatamente o quê. Testado com arquivos no formato do Figma e do Illustrator (`tests/fixtures/`), mas não com exports reais de todas as versões desses programas.
-- **Vetor com furos:** com a caneta (`Enter`/duplo clique) você edita os pontos do **contorno principal**; os contornos dos furos acompanham, mas seus pontos ainda não são editáveis.
+- **Vetor com furos:** com a caneta (`Enter`/duplo clique) você edita os pontos do **contorno principal**; os contornos dos furos acompanham, mas seus pontos ainda não são editáveis. Pelo mesmo motivo, **continuar um caminho** pela ponta não vale para vetores com furos nem para vetores girados.
 - **PNG:** usa as fontes instaladas no seu computador (o navegador não carrega fontes da web dentro de uma imagem SVG) e pode não mostrar `backdrop-filter`. O **HTML** e o **SVG** exportados não têm esses limites (no SVG, sombras internas e vidro são omitidos porque não existem no formato).
 - **Instâncias de componente** não aceitam adicionar ou remover camadas internas (reverte na próxima sincronização); mudar propriedades, textos e posições funciona.
-- Frames da raiz **não "entram"** em outros ao serem arrastados (de propósito, para não aninhar sem querer).
+- Telas (frames da raiz) **não "entram"** em outros frames ao serem arrastadas (de propósito, para não aninhar sem querer). Elas só trocam entre a raiz e uma **seção**; a seção, por sua vez, só existe na raiz e só guarda frames.
 - **Grupos** redimensionam escalando os filhos; **frames** respeitam as *constraints* dos filhos.
 - Foi testado principalmente no **Chromium**; Firefox e Safari devem funcionar, mas têm menos horas de uso.
 
-> **Seja realista:** é uma base sólida e bem documentada, ótima para estudar, prototipar e evoluir. Para um trabalho de cliente com prazo, em equipe, ou que precise de ícones vetoriais complexos, use o [Penpot](https://penpot.app) (gratuito e de código aberto) ou o Figma.
+> **Seja realista:** é uma base sólida e bem documentada, ótima para **uso individual**, prototipar, criar ícones simples, estudar e evoluir. Para um trabalho de cliente com prazo, para **várias pessoas editando juntas** ou para ilustração vetorial complexa, use o [Penpot](https://penpot.app) (gratuito e de código aberto) ou o Figma.
 
 ---
 

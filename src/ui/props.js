@@ -562,7 +562,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             num('↔', () => g().gutter, (v) => set('gutter')(Math.max(0, v)), { title: 'gutter (espaço entre)', min: 0, decimals: 0 })),
           row(num('▏', () => g().margin, (v) => set('margin')(Math.max(0, v)), { title: 'margem', min: 0, decimals: 0 }))],
         h('div.effect-foot',
-          reg(colorRow({ get: () => g().color || '#FF3D3D', set: set('color'), commit, opacity: () => g().opacity ?? 0.12, setOpacity: set('opacity') })),
+          reg(colorRow({ groups: colorGroups, get: () => g().color || '#FF3D3D', set: set('color'), commit, opacity: () => g().opacity ?? 0.12, setOpacity: set('opacity') })),
           iconButton('minus', 'Remover grade', () => { each((n) => n.grids.splice(i, 1)); commit(); }, 'small'))));
     });
     return section('Grades de layout', body, add);
@@ -692,8 +692,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return bar;
   }
 
-  /** Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores. */
-  function docColorChips(apply) {
+  /** As cores mais usadas no projeto (até `max`), da mais usada para a menos. */
+  function docTopColors(max = 14) {
     const count = new Map();
     const bump = (c) => c && count.set(c.toUpperCase(), (count.get(c.toUpperCase()) || 0) + 1);
     const walk = (list) => list.forEach((n) => {
@@ -702,7 +702,17 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       if (n.children) walk(n.children);
     });
     store.state.doc.pages.forEach((pg) => walk(pg.children));
-    const top = [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([c]) => c);
+    return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([c]) => c);
+  }
+  /** Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor). */
+  const colorGroups = () => [
+    { title: 'Neste projeto', colors: docTopColors(16) },
+    { title: 'Estilos de cor', colors: store.state.doc.styles.colors.map((c) => c.color).filter(Boolean) },
+  ];
+
+  /** Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores. */
+  function docColorChips(apply) {
+    const top = docTopColors(14);
     if (top.length < 2) return null;
     return h('div.color-chips', { title: 'Cores usadas neste projeto' },
       top.map((c) => h('button.chip', { type: 'button', title: c, style: { background: c }, onclick: () => apply(c) })));
@@ -728,7 +738,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const t = n0.fill.type;
     if (t === 'solid') {
       const styles = store.state.doc.styles.colors;
-      body.push(reg(colorRow({
+      body.push(reg(colorRow({ groups: colorGroups,
         get: () => fill().color, set: (v) => each((n) => { n.fill.color = v; delete n.fill.styleId; }), commit,
         opacity: () => fill().opacity, setOpacity: (v) => each((n) => { n.fill.opacity = v; delete n.fill.styleId; }),
       })));
@@ -746,7 +756,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n0.fill.stops.forEach((_, i) => {
         body.push(h('div.stop-row',
           num('%', () => fill().stops[i]?.pos ?? 0, (v) => each((n) => { if (n.fill.stops[i]) n.fill.stops[i].pos = v; }), { min: 0, max: 100, decimals: 0, width: '70px', title: 'posição' }),
-          reg(colorRow({
+          reg(colorRow({ groups: colorGroups,
             get: () => fill().stops[i]?.color ?? '#000000',
             set: (v) => each((n) => { if (n.fill.stops[i]) n.fill.stops[i].color = v; }), commit,
             opacity: () => fill().stops[i]?.opacity ?? 1,
@@ -784,7 +794,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     if (has) {
       const st = () => P().stroke || defaultStroke();
       body.push(
-        reg(colorRow({
+        reg(colorRow({ groups: colorGroups,
           get: () => st().color, set: (v) => each((n) => { if (n.stroke) n.stroke.color = v; }), commit,
           opacity: () => st().opacity, setOpacity: (v) => each((n) => { if (n.stroke) n.stroke.opacity = v; }),
         })),
@@ -844,13 +854,34 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       else n.stroke.sides = PRESETS[key].map((v) => v * w);
       if (n.stroke.sides) n.stroke.position = 'inside'; // border-box: a borda é sempre por dentro
     });
-    const rows = [
-      h('div.sub-label', 'lados (border-top / right / bottom / left)'),
-      row(select([
-        ['all', 'Todos'], ['top', 'Só em cima'], ['bottom', 'Só embaixo'], ['left', 'Só à esquerda'], ['right', 'Só à direita'],
-        ['tb', 'Em cima e embaixo'], ['lr', 'Nas laterais'], ['custom', 'Personalizado (por lado)'],
-      ], current, apply, 'Em quais lados desenhar o contorno')),
-    ];
+    // ---- seletor em ÍCONES: Todos · Cima · Direita · Baixo · Esquerda · Por lado. Os 4 lados ligam/desligam sozinhos
+    // (o contorno vira "border-top/right/bottom/left" só nos lados ligados); "Todos" volta ao contorno completo.
+    const SIDE = [['top', 0, 'sideTop', 'Cima', 'border-top'], ['right', 1, 'sideRight', 'Direita', 'border-right'], ['bottom', 2, 'sideBottom', 'Baixo', 'border-bottom'], ['left', 3, 'sideLeft', 'Esquerda', 'border-left']];
+    const litSides = () => { const sd = st().sides; return sd ? sd.map((v) => v > 0) : [true, true, true, true]; };
+    /** Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos". */
+    const toggleSide = (i) => each((n) => {
+      if (!n.stroke) return;
+      const w = n.stroke.width || 1;
+      const sd = n.stroke.sides ? [...n.stroke.sides] : null;
+      if (!sd) { n.stroke.sides = [0, 0, 0, 0].map((_, k) => (k === i ? w : 0)); n.stroke.position = 'inside'; return; }
+      sd[i] = sd[i] > 0 ? 0 : w;
+      if (sd.every((v) => v > 0) && !n.stroke.sidesCustom) delete n.stroke.sides;
+      else if (sd.every((v) => v === 0)) delete n.stroke.sides; // nenhum lado = sem lado nenhum não faz sentido: volta a "todos"
+      else { n.stroke.sides = sd; n.stroke.position = 'inside'; }
+    });
+    const sideBtn = (ic, label, doc, onclick, isOn) => {
+      const b = h('button.seg-btn.side', { type: 'button', 'aria-label': label, onclick: () => { onclick(); commit(); } }, ico(ic, 18));
+      updaters.push(() => b.classList.toggle('on', isOn()));
+      return tip(b, doc);
+    };
+    const sideIcons = h('div.segmented.sides',
+      sideBtn('sideAll', 'Todos os lados', { title: 'Todos os lados', css: 'outline: 1px solid;', text: 'O contorno completo em volta da camada.' },
+        () => each((n) => { if (n.stroke) { delete n.stroke.sides; delete n.stroke.sidesCustom; } }), () => !sidesOn()),
+      ...SIDE.map(([, i, ic, label, css]) => sideBtn(ic, label, { title: `Lado: ${label.toLowerCase()}`, css: `${css}: 1px solid;`, text: 'Clique para ligar ou desligar este lado. Dá para combinar vários (ex.: cima e baixo).' },
+        () => toggleSide(i), () => sidesOn() && litSides()[i])),
+      sideBtn('sideCustom', 'Espessura por lado', { title: 'Espessura por lado', css: 'border-top-width: 1px;\nborder-right-width: 3px;', text: 'Dá uma espessura diferente a cada lado.' },
+        () => apply(current() === 'custom' ? 'all' : 'custom'), () => current() === 'custom'));
+    const rows = [cap('Lados do contorno', sideIcons)];
     if (current() === 'custom') {
       const side = (i, label, title) => num(label, () => st().sides?.[i] ?? 0, (v) => each((n) => { if (n.stroke?.sides) n.stroke.sides[i] = Math.max(0, v); }), { title, min: 0, step: 0.5, decimals: 1 });
       rows.push(row(side(0, '↑', 'border-top (px)'), side(1, '→', 'border-right (px)')),
@@ -873,7 +904,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         row(num('B', () => sh().blur, (v) => set('blur')(Math.max(0, v)), { title: 'blur', min: 0, decimals: 0 }),
           isText ? null : num('S', () => sh().spread, set('spread'), { title: 'spread', decimals: 0 })),
         h('div.effect-foot',
-          reg(colorRow({ get: () => sh().color, set: set('color'), commit, opacity: () => sh().opacity, setOpacity: set('opacity') })),
+          reg(colorRow({ groups: colorGroups, get: () => sh().color, set: set('color'), commit, opacity: () => sh().opacity, setOpacity: set('opacity') })),
           isText ? null : check('Interna', () => sh().inset, set('inset')),
           iconButton('minus', 'Remover sombra', () => { each((n) => n.shadows.splice(i, 1)); commit(); }, 'small'))));
     });

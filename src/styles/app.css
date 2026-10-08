@@ -547,6 +547,28 @@ button.brand:hover { background: var(--panel-2); }
 .pen-pt.sel { fill: var(--accent); }
 .pen-handle { fill: #fff; stroke: var(--accent); stroke-width: 1.5; }
 .pen-pt.hit, .pen-handle.hit { pointer-events: all; cursor: move; }
+/* seletor de contorno por lado, em ícones */
+.segmented.sides { display: flex; }
+.seg-btn.side { flex: 1; width: auto; height: 30px; }
+/* seletor de cor próprio (popover) */
+.swatch { cursor: pointer; padding: 0; }
+.swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
+.cp {
+  position: fixed; z-index: 1000; width: 244px; padding: 12px; display: flex; flex-direction: column; gap: 12px; border-radius: 16px;
+  background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--border); box-shadow: var(--shadow); animation: pop 0.12s ease-out;
+  max-height: calc(100vh - 16px); overflow-y: auto; scrollbar-width: thin; /* tela baixa: o seletor inteiro rola */
+}
+.cp-sv { position: relative; height: 150px; border-radius: 10px; cursor: crosshair; touch-action: none; }
+.cp-hue { position: relative; height: 12px; border-radius: 99px; cursor: pointer; touch-action: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+.cp-knob { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 2px 6px rgba(0, 0, 0, .4); pointer-events: none; }
+.cp-hue .cp-knob { top: 50%; }
+.cp-row { display: flex; align-items: center; gap: 8px; }
+.cp-row .text { flex: 1; min-width: 0; height: 32px; background: var(--panel-2); border-radius: 9px; }
+.cp-prev { width: 32px; height: 32px; flex: none; border-radius: 9px; border: 1px solid var(--border); }
+.cp-groups { display: flex; flex-direction: column; gap: 10px; max-height: 190px; overflow-y: auto; scrollbar-width: thin; padding-right: 2px; }
+.cp-group-title { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+.cp-groups .chip { width: 22px; height: 22px; border-radius: 7px; }
 /* barra da caneta: encaixe na grade e atalhos, acima da barra de ferramentas */
 .pen-bar {
   position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 12px;

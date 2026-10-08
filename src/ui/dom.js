@@ -270,21 +270,147 @@ export function iconButton(name, title, onclick, cls = '') {
   return h('button.icon-btn' + (cls ? '.' + cls : ''), { type: 'button', title, 'aria-label': title.replace(/\s*\(.*\)$/, ''), onclick }, ico(name));
 }
 
+// ---------------------------------------------------------------- seletor de cor (popover próprio)
+/** Paletas prontas que aparecem no seletor de cor, em grupos. */
+const PALETTES = [
+  ['Neutros', ['#000000', '#1A1A24', '#3D3D4E', '#6B6B80', '#9A9AAE', '#C8C8D6', '#E6E6EE', '#FFFFFF']],
+  ['Vivas', ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#0A84FF', '#7C5CFF', '#FF2D92']],
+  ['Suaves', ['#FFD6D6', '#FFE5C2', '#FFF4B8', '#D3F5DC', '#CBF1EE', '#CFE4FF', '#E0D8FF', '#FFD3EA']],
+];
+/** {r,g,b} (0–255) → "#RRGGBB". */
+const toHex = ({ r, g, b }) => '#' + [r, g, b].map((n) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0')).join('').toUpperCase();
+/** {r,g,b} (0–255) → {h: 0–360, s: 0–1, v: 0–1}. */
+function rgb2hsv({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let hh = 0;
+  if (d) {
+    if (max === r) hh = ((g - b) / d) % 6; else if (max === g) hh = (b - r) / d + 2; else hh = (r - g) / d + 4;
+    hh *= 60;
+    if (hh < 0) hh += 360;
+  }
+  return { h: hh, s: max ? d / max : 0, v: max };
+}
+/** {h,s,v} → {r,g,b} (0–255). */
+function hsv2rgb({ h: hh, s, v }) {
+  const c = v * s, x = c * (1 - Math.abs(((hh / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (hh < 60) [r, g, b] = [c, x, 0]; else if (hh < 120) [r, g, b] = [x, c, 0]; else if (hh < 180) [r, g, b] = [0, c, x];
+  else if (hh < 240) [r, g, b] = [0, x, c]; else if (hh < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+  return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255 };
+}
+
+let cpOpen = null; // seletor aberto agora ({ anchor, close })
+/** Fecha o seletor de cor aberto, se houver. */
+export function closeColorPicker() { cpOpen?.close(); }
+
 /**
- * Linha de COR: amostra clicável (abre o seletor de cor do sistema) + campo HEX + (opcional) opacidade em % +
- * conta-gotas (onde o navegador oferece `EyeDropper`, ex.: Chrome/Edge). Aceita hex de 3 ou 6 dígitos, com ou sem "#".
+ * Abre o SELETOR DE COR: um popover com a área saturação/brilho, a barra de matiz, o campo HEX, o conta-gotas e
+ * grupos de cores (as do projeto, os estilos de cor e paletas prontas). Aplica ao vivo (`set`) e grava o histórico
+ * (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo que o abriu some do painel.
+ * @param {{anchor: HTMLElement, get: () => string, set: (hex: string) => void, commit?: () => void, groups?: () => {title: string, colors: string[]}[]}} o
  */
-export function colorRow({ get, set, commit, opacity, setOpacity }) {
-  // o input type=color do navegador fica invisível por cima da amostra: clicar na amostra abre o seletor nativo
-  const picker = h('input.color-native', { type: 'color' });
-  const swatch = h('div.swatch', h('div.swatch-fill'), picker);
+function openColorPicker({ anchor, get, set, commit, groups }) {
+  closeColorPicker();
+  let hsv = rgb2hsv(hexToRgb(get()));
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
+  const svKnob = h('div.cp-knob'), hueKnob = h('div.cp-knob');
+  const sv = h('div.cp-sv', svKnob);
+  const hue = h('div.cp-hue', hueKnob);
+  const prev = h('div.cp-prev');
+  const hex = h('input.text.mono', { type: 'text', spellcheck: false, maxLength: 7, 'aria-label': 'Cor em hexadecimal' });
+  const chipBox = h('div.cp-groups');
+
+  /** Redesenha knobs, fundo da área e campo hex a partir do HSV. */
+  const paint = () => {
+    const base = toHex(hsv2rgb({ h: hsv.h, s: 1, v: 1 }));
+    sv.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${base})`;
+    svKnob.style.left = `${hsv.s * 100}%`;
+    svKnob.style.top = `${(1 - hsv.v) * 100}%`;
+    hueKnob.style.left = `${(hsv.h / 360) * 100}%`;
+    const c = toHex(hsv2rgb(hsv));
+    prev.style.background = c;
+    if (document.activeElement !== hex) hex.value = c.slice(1);
+    return c;
+  };
+  /** Aplica a cor atual do HSV ao campo (ao vivo). */
+  const apply = () => set(paint());
+  /** Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava no histórico ao soltar. */
+  const drag = (el, fn) => el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const mv = (ev) => { const r = el.getBoundingClientRect(); fn(clamp01((ev.clientX - r.left) / r.width), clamp01((ev.clientY - r.top) / r.height)); };
+    const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); commit?.(); };
+    el.addEventListener('pointermove', mv);
+    el.addEventListener('pointerup', up);
+    mv(e);
+  });
+  drag(sv, (x, y) => { hsv.s = x; hsv.v = 1 - y; apply(); });
+  drag(hue, (x) => { hsv.h = x * 360; apply(); });
+
+  /** Escolhe uma cor pronta (chip): atualiza HSV, aplica e grava. */
+  const pick = (c) => { hsv = rgb2hsv(hexToRgb(c)); apply(); commit?.(); };
+  const chip = (c) => h('button.chip', { type: 'button', title: c, 'aria-label': c, style: { background: c }, onclick: () => pick(c) });
+  const all = [...(groups?.() || []), ...PALETTES.map(([title, colors]) => ({ title, colors }))].filter((g) => g.colors.length);
+  chipBox.append(...all.map((g) => h('div.cp-group', h('div.cp-group-title', g.title), h('div.color-chips', g.colors.map(chip)))));
+
+  hex.addEventListener('input', () => {
+    const v = '#' + hex.value.replace('#', '').trim();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) { hsv = rgb2hsv(hexToRgb(v)); set(toHex(hsv2rgb(hsv))); paint(); }
+  });
+  hex.addEventListener('change', () => commit?.());
+  hex.addEventListener('keydown', (e) => e.key === 'Enter' && hex.blur());
+  hex.addEventListener('focus', () => hex.select());
+  const eye = globalThis.EyeDropper
+    ? h('button.icon-btn.small', {
+      type: 'button', title: 'Conta-gotas',
+      onclick: async () => { try { const { sRGBHex } = await new globalThis.EyeDropper().open(); pick(sRGBHex.toUpperCase()); } catch { /* cancelado */ } },
+    }, ico('eyedropper', 14))
+    : null;
+
+  const pop = h('div.cp', { role: 'dialog', 'aria-label': 'Seletor de cor' }, sv, hue,
+    h('div.cp-row', prev, h('span.hash', '#'), hex, eye), chipBox);
+  document.body.append(pop);
+  paint();
+  // posição: ao lado do campo (à esquerda, pois o painel fica à direita), sempre dentro da janela
+  const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, hh = pop.offsetHeight;
+  let x = r.left - w - 12;
+  if (x < 8) x = Math.min(innerWidth - w - 8, r.right + 12);
+  pop.style.left = `${Math.max(8, x)}px`;
+  pop.style.top = `${Math.max(8, Math.min(r.top - 8, innerHeight - hh - 8))}px`;
+
+  const off = (e) => { if (!pop.contains(e.target) && !anchor.contains(e.target)) close(); };
+  const esc = (e) => { if (e.key === 'Escape') close(); };
+  // se o campo que abriu sumiu (o painel foi redesenhado para outra camada), fecha
+  const watch = setInterval(() => { if (!anchor.isConnected) close(); }, 250);
+  function close() {
+    clearInterval(watch);
+    window.removeEventListener('pointerdown', off, true);
+    window.removeEventListener('keydown', esc, true);
+    pop.remove();
+    if (cpOpen?.pop === pop) cpOpen = null;
+  }
+  window.addEventListener('pointerdown', off, true);
+  window.addEventListener('keydown', esc, true);
+  cpOpen = { anchor, pop, close };
+}
+
+/**
+ * Linha de COR: amostra clicável (abre o seletor de cor próprio, com grupos de cores) + campo HEX + (opcional)
+ * opacidade em % + conta-gotas (onde o navegador oferece `EyeDropper`). Aceita hex de 3 ou 6 dígitos, com ou sem "#".
+ * `groups` (opcional): função que devolve grupos extras de cores para o seletor ([{title, colors}]).
+ */
+export function colorRow({ get, set, commit, opacity, setOpacity, groups }) {
+  const swatch = h('button.swatch', { type: 'button', title: 'Escolher cor', 'aria-label': 'Escolher cor' }, h('div.swatch-fill'));
+  swatch.addEventListener('click', () => {
+    if (cpOpen?.anchor === swatch) { closeColorPicker(); return; }
+    openColorPicker({ anchor: swatch, get, set: (v) => { set(v); sync(); }, commit, groups });
+  });
   const hex = h('input.text.mono.hex', { type: 'text', spellcheck: false, maxLength: 7 });
   const op = opacity
     ? numField({ label: '%', get: () => Math.round(opacity() * 100), set: (v) => setOpacity(v / 100), commit, min: 0, max: 100, decimals: 0, width: '62px' })
     : null;
 
-  picker.addEventListener('input', () => { set(picker.value.toUpperCase()); sync(); });
-  picker.addEventListener('change', () => commit?.());
   hex.addEventListener('change', () => {
     let v = hex.value.trim();
     if (!v.startsWith('#')) v = '#' + v;
@@ -301,7 +427,6 @@ export function colorRow({ get, set, commit, opacity, setOpacity }) {
   /** Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam). */
   function sync() {
     const c = get();
-    picker.value = c.toLowerCase();
     swatch.firstChild.style.background = rgba(c, opacity ? opacity() : 1);
     if (document.activeElement !== hex) hex.value = c.replace('#', '').toUpperCase();
   }

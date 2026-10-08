@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-34 arquivos · 537 funções e constantes documentadas.
+34 arquivos · 550 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1143,8 +1143,19 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `el` <sub>HTMLElement</sub> — o elemento que mostra a dica ao passar o mouse
   - ↩︎ `HTMLElement` o próprio `el` (para usar inline)
 - **`iconButton(name, title, onclick, cls = '')`** · [L268](../src/ui/dom.js#L268) — Botão só com ícone. `cls` opcional ('small', 'on'...).
-- **`colorRow({ get, set, commit, opacity, setOpacity })`** · [L277](../src/ui/dom.js#L277) — Linha de COR: amostra clicável (abre o seletor de cor do sistema) + campo HEX + (opcional) opacidade em % + conta-gotas (onde o navegador oferece `EyeDropper`, ex.: Chrome/Edge). Aceita hex de 3 ou 6 dígitos, com ou sem "#".
-- **`sync()`** <sub>interna</sub> · [L302](../src/ui/dom.js#L302) — Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam).
+- **`PALETTES`** <sub>do módulo</sub> · [L275](../src/ui/dom.js#L275) — Paletas prontas que aparecem no seletor de cor, em grupos.
+- **`toHex({ r, g, b })`** <sub>do módulo</sub> · [L281](../src/ui/dom.js#L281) — {r,g,b} (0–255) → "#RRGGBB".
+- **`rgb2hsv({ r, g, b })`** <sub>do módulo</sub> · [L283](../src/ui/dom.js#L283) — {r,g,b} (0–255) → {h: 0–360, s: 0–1, v: 0–1}.
+- **`hsv2rgb({ h: hh, s, v })`** <sub>do módulo</sub> · [L295](../src/ui/dom.js#L295) — {h,s,v} → {r,g,b} (0–255).
+- **`closeColorPicker()`** · [L305](../src/ui/dom.js#L305) — Fecha o seletor de cor aberto, se houver.
+- **`openColorPicker({ anchor, get, set, commit, groups })`** <sub>do módulo</sub> · [L313](../src/ui/dom.js#L313) — Abre o SELETOR DE COR: um popover com a área saturação/brilho, a barra de matiz, o campo HEX, o conta-gotas e grupos de cores (as do projeto, os estilos de cor e paletas prontas). Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo que o abriu some do painel.
+  - `[]` <sub>{anchor: HTMLElement, get: () => string, set: (hex: string) => void, commit?: () => void, groups?: () => {title: string, colors: string[]</sub> — }} o
+- **`paint()`** <sub>interna</sub> · [L325](../src/ui/dom.js#L325) — Redesenha knobs, fundo da área e campo hex a partir do HSV.
+- **`apply()`** <sub>interna</sub> · [L337](../src/ui/dom.js#L337) — Aplica a cor atual do HSV ao campo (ao vivo).
+- **`drag(el, fn)`** <sub>interna</sub> · [L339](../src/ui/dom.js#L339) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava no histórico ao soltar.
+- **`pick(c)`** <sub>interna</sub> · [L352](../src/ui/dom.js#L352) — Escolhe uma cor pronta (chip): atualiza HSV, aplica e grava.
+- **`colorRow({ get, set, commit, opacity, setOpacity, groups })`** · [L403](../src/ui/dom.js#L403) — Linha de COR: amostra clicável (abre o seletor de cor próprio, com grupos de cores) + campo HEX + (opcional) opacidade em % + conta-gotas (onde o navegador oferece `EyeDropper`). Aceita hex de 3 ou 6 dígitos, com ou sem "#". `groups` (opcional): função que devolve grupos extras de cores para o seletor ([{title, colors}]).
+- **`sync()`** <sub>interna</sub> · [L428](../src/ui/dom.js#L428) — Atualiza amostra, seletor e campo hex a partir do valor atual (sem mexer no hex enquanto digitam).
 
 ---
 
@@ -1242,10 +1253,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **ÍCONES SVG (inline, sem dependências)** · [abrir o código](../src/ui/icons.js)
 
 - **`P`** <sub>do módulo</sub> · [L11](../src/ui/icons.js#L11) — Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto). Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
-- **`icon(name, size = 16)`** · [L94](../src/ui/icons.js#L94) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+- **`icon(name, size = 16)`** · [L100](../src/ui/icons.js#L100) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
   - `name` <sub>string</sub> — 
   - `[size=16]` <sub>number</sub> — px
-- **`nodeIcon(type)`** · [L98](../src/ui/icons.js#L98) — Ícone usado na lista de camadas para cada tipo de camada.
+- **`nodeIcon(type)`** · [L104](../src/ui/icons.js#L104) — Ícone usado na lista de camadas para cada tipo de camada.
 
 ---
 
@@ -1396,17 +1407,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`vectorSection()`** <sub>interna</sub> · [L575](../src/ui/props.js#L575) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
 - **`textSection()`** <sub>interna</sub> · [L634](../src/ui/props.js#L634) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
 - **`gradientBar()`** <sub>interna</sub> · [L686](../src/ui/props.js#L686) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L696](../src/ui/props.js#L696) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`fillSection()`** <sub>interna</sub> · [L715](../src/ui/props.js#L715) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L778](../src/ui/props.js#L778) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L816](../src/ui/props.js#L816) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L822](../src/ui/props.js#L822) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L828](../src/ui/props.js#L828) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`effectsSection()`** <sub>interna</sub> · [L863](../src/ui/props.js#L863) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`exportSection()`** <sub>interna</sub> · [L890](../src/ui/props.js#L890) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L916](../src/ui/props.js#L916) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L936](../src/ui/props.js#L936) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L957](../src/ui/props.js#L957) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L696](../src/ui/props.js#L696) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L708](../src/ui/props.js#L708) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L714](../src/ui/props.js#L714) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`fillSection()`** <sub>interna</sub> · [L725](../src/ui/props.js#L725) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L788](../src/ui/props.js#L788) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L826](../src/ui/props.js#L826) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L832](../src/ui/props.js#L832) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L838](../src/ui/props.js#L838) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L862](../src/ui/props.js#L862) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L894](../src/ui/props.js#L894) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`exportSection()`** <sub>interna</sub> · [L921](../src/ui/props.js#L921) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L947](../src/ui/props.js#L947) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L967](../src/ui/props.js#L967) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L988](../src/ui/props.js#L988) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
