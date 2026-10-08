@@ -8,6 +8,12 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Não lançado] — CSS ampliado, seletor de cor e contorno em ícones
 
+### Adicionado (mais CSS útil)
+- **Gradiente cônico** (`conic-gradient(from Ndeg, ...)`): novo tipo de preenchimento, com o ângulo de início e as paradas. Em vetores e no SVG exportado vale só a cor da 1ª parada (o SVG não tem gradiente cônico).
+- **Peso do espaço** (`flex-grow`): item "Preencher" no eixo principal de um flex ganha o campo "Peso do espaço" (1 e 3 dividem em 1/4 e 3/4; os limites min/max continuam valendo por cima). Sincroniza do principal para os filhos; o peso da raiz da instância é da própria instância.
+- **Trilhas personalizadas no grid**: "Trilhas personalizadas (CSS)" para colunas e linhas (`240px 1fr 2fr`, `auto 1fr auto`, `repeat(auto-fit, minmax(200px, 1fr))`). Vazio usa os números de colunas/linhas; escolher no seletor visual ou nos números limpa as trilhas. O texto é **sanitizado** (`cleanTrackList`: sem `; { } : aspas`) para não fechar a regra no CSS exportado.
+- Blocos recolhíveis do painel (Limites e proporção, Filtros de cor, Trilhas personalizadas) **lembram se estavam abertos** (antes fechavam sozinhos ao apagar o último valor).
+
 ### Adicionado (estados interativos)
 - **Estados** (seção "Estados" do painel Design): **Normal · Hover · Pressionado · Foco**. Escolha um estado e o painel passa a editar SÓ as sobrescritas dele — preenchimento/cor, contorno, cantos, sombras, filtros, opacidade, mesclagem e **escala** (`transform: scale()`). O canvas mostra a camada selecionada naquele estado e uma bolinha marca os estados em uso; "Limpar este estado" apaga. Só o que difere do normal é guardado (voltar ao valor normal remove a sobrescrita) e um estado pode **remover** algo da base (ex.: tirar o contorno no hover).
 - **Código gerado**: uma regra por estado só com o que muda (`.botao:hover`, `.botao:active`, `.botao:focus-visible`; o que sumiu vira `unset`) e `tabindex="0"` na camada com foco. Vale para o painel Código, copiar CSS e HTML exportado.

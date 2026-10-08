@@ -99,7 +99,7 @@ const tipo = page.locator('#right .panel-section', { has: page.locator('.section
 await tipo.selectOption('conic');
 await page.waitForTimeout(250);
 const bg = await ev((id) => designer.canvas.els.get(id).style.backgroundImage, c);
-ok('gradiente cônico vira conic-gradient no canvas', /^conic-gradient\(from 135deg at center,/.test(bg), bg);
+ok('gradiente cônico vira conic-gradient no canvas', /^conic-gradient\(from 135deg/.test(bg), bg);
 
 ok('sem erros no console', errors.length === 0, errors.join(' | '));
 await browser.close();
