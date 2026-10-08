@@ -186,6 +186,28 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       el.style.maxWidth = `${Math.max(40, b.w * z)}px`;
     }
 
+    // ---- pinos de COMENTÁRIO: um por comentário aberto da página (o que está em destaque aparece mesmo resolvido) e o
+    // rascunho (ferramenta Comentar). O número é a posição do comentário na lista do painel.
+    {
+      const list = (store.state.doc.comments || []).filter((c) => store.get(c.nodeId));
+      const pin = (key, cls, text, nodeId, rx, ry, id) => {
+        const b = canvas.aabb(nodeId);
+        if (!b) return;
+        const p = canvas.toScreen(b.x + b.w * rx, b.y + b.h * ry);
+        const el = get(key, cls);
+        if (id) el.dataset.comment = id; else delete el.dataset.comment;
+        if (el.textContent !== text) el.textContent = text;
+        el.style.left = `${p.x}px`;
+        el.style.top = `${p.y}px`;
+      };
+      list.forEach((c, i) => {
+        if (c.resolved && ui.activeComment !== c.id) return;
+        pin(`cm:${c.id}`, `comment-pin${c.resolved ? ' resolved' : ''}${ui.activeComment === c.id ? ' active' : ''}`, String(i + 1), c.nodeId, c.rx, c.ry, c.id);
+      });
+      const dr = ui.commentDraft;
+      if (dr && store.get(dr.nodeId)) pin('cm:draft', 'comment-pin draft', '+', dr.nodeId, dr.rx, dr.ry, null);
+    }
+
     // ---- contorno fino da camada sob o mouse (só com a ferramenta Mover, e não durante arrastos)
     if (ui.hoverId && ui.tool === 'move' && !sel.includes(ui.hoverId) && !ui.dragIds) {
       const box = screenBox(ui.hoverId);

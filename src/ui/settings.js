@@ -137,6 +137,12 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
       h('div.set-row', { role: 'radiogroup', 'aria-label': 'Tema' }, h('span.set-label', 'Tema'),
         opt('theme', 'dark', 'Escuro', ui.theme, (v) => store.setTheme(v)),
         opt('theme', 'light', 'Claro', ui.theme, (v) => store.setTheme(v))),
+      h('div.set-row', h('span.set-label', 'Seu nome nos comentários'),
+        (() => {
+          const input = h('input.text', { type: 'text', value: prefs.author || '', placeholder: 'Eu', maxLength: 40, spellcheck: false, 'aria-label': 'Seu nome nos comentários' });
+          input.addEventListener('change', () => { prefs.author = input.value.trim().slice(0, 40); savePrefs(); toast('Nome atualizado.'); });
+          return h('div.field', { style: { maxWidth: '220px' } }, input);
+        })()),
       h('div.set-row', { role: 'radiogroup', 'aria-label': 'Ao abrir o app' }, h('span.set-label', 'Ao abrir o app'),
         opt('start', 'home', 'Mostrar a página inicial', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); }),
         opt('start', 'editor', 'Ir direto para o editor', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); })),

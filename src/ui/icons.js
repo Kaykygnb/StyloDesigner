@@ -22,6 +22,7 @@ const P = {
   sideBottom: '<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="1.5 2.5" opacity=".45"/><path d="M5.5 19h13" stroke-width="3.2"/>',
   sideLeft: '<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="1.5 2.5" opacity=".45"/><path d="M5 5.5v13" stroke-width="3.2"/>',
   sideCustom: '<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="1.5 2.5" opacity=".45"/><path d="M5.5 5h13M19 5.5v13" stroke-width="3.2"/><path d="M5 19h6" stroke-width="1.6"/>',
+  comment: '<path d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8a2.5 2.5 0 01-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 014 13.5z"/>',
   section: '<rect x="3.5" y="5.5" width="17" height="14" rx="1.5"/><path d="M3.5 5.5V4M3.5 4h6"/>',
   group: '<rect x="3.5" y="3.5" width="17" height="17" rx="2" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="1"/>',
   eye: '<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',

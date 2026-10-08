@@ -22,7 +22,7 @@ import { RULER } from './rulers.js';
 /** Ferramentas em que clicar/arrastar no canvas CRIA uma camada nova. */
 const DRAW_TOOLS = ['frame', 'section', 'rect', 'ellipse', 'text', 'line', 'polygon', 'star'];
 /** Atalho de teclado → ferramenta (V mover, F/B frame, R retângulo, E elipse, T texto, H mão, P caneta, L linha). */
-const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line' };
+const TOOL_KEYS = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line', c: 'comment' };
 /** Quantos px de tela o mouse precisa andar para um clique virar ARRASTO (evita mover sem querer ao clicar). */
 const THRESHOLD = 3; // px de tela antes de considerar que é um arrasto
 /** Cópia profunda via JSON (usada para guardar o estado inicial de um gesto). */
@@ -262,6 +262,15 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     capture(e);
 
     const t = e.target;
+    // pino de comentário (desenhado pelo overlay): abre a conversa no painel Comentários
+    if (t.dataset?.comment) {
+      ui.activeComment = t.dataset.comment;
+      ui.setRightTab?.('comments');
+      store.emit('overlay');
+      return;
+    }
+    // ferramenta COMENTAR: o clique numa camada cria um rascunho de comentário NAQUELE ponto
+    if (tool === 'comment') { startComment(e, hitId); return; }
     // 3) caneta: cada clique adiciona um ponto (clicar no primeiro ponto fecha o caminho)
     if (tool === 'pen') {
       drag = { type: 'pen' };
@@ -321,6 +330,25 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
     startMove(e, { collapseTo: inSel && !e.shiftKey && ui.selection.length > 1 ? id : null });
   });
+
+  // ------------------------------------------------------------------ comentar
+  /**
+   * Clique da ferramenta Comentar: guarda um RASCUNHO (camada + ponto relativo à caixa dela) e abre o painel
+   * Comentários com a caixa de texto já focada. Quem cria o comentário é o painel, quando você envia.
+   */
+  function startComment(e, hitId) {
+    store.setTool('move');
+    const node = hitId ? store.get(hitId) : null;
+    const b = node ? canvas.aabb(node.id) : null;
+    if (!node || !b) { toast('Clique numa camada para comentar.'); return; }
+    const w = canvas.toWorld(e.clientX, e.clientY);
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    ui.commentDraft = { nodeId: node.id, rx: clamp((w.x - b.x) / (b.w || 1)), ry: clamp((w.y - b.y) / (b.h || 1)) };
+    ui.focusComment = true;
+    store.setSelection([node.id]);
+    ui.setRightTab?.('comments');
+    store.emit('overlay');
+  }
 
   // ------------------------------------------------------------------ mover
   /** Prepara o arrasto de mover as camadas selecionadas. `collapseTo`: se for só um clique (sem arrastar) numa seleção múltipla, reduz a seleção a essa camada. */
@@ -1110,6 +1138,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
 
     // Esc: termina caneta/edição de pontos/edição de texto; depois volta para Mover; depois limpa a seleção
     if (e.key === 'Escape') {
+      if (ui.commentDraft && !isTyping(e.target)) { ui.commentDraft = null; store.emit('overlay'); return; }
       if (pen.isDrawing()) { pen.finish(false); return; }
       if (pen.isEditing()) { pen.exitEdit(); return; }
       if (ui.editingId) { document.activeElement?.blur?.(); finishEdit(); return; }

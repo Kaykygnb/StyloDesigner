@@ -353,3 +353,64 @@ test('peso e trilhas sincronizam: peso do filho vem do principal; peso da raiz �
   syncInstances(pages.concat([{ children: [inst] }]));
   assert.equal(inst.grow, 5);
 });
+
+// ---------------------------------------------------------------- comentários nas camadas
+import { addComment, addReply, setResolved, removeComment, forNode, openCount, pruneComments, timeAgo, commentsOf } from '../src/comments.js';
+
+const docWith = () => {
+  const a = createNode('rect', { name: 'A' });
+  const f = createNode('frame', { name: 'Tela' });
+  const b = createNode('rect', { name: 'B' });
+  f.children.push(b);
+  return { doc: { pages: [{ id: 'p1', children: [a, f] }], styles: { colors: [], texts: [] } }, a, f, b };
+};
+
+test('comentários: criar, responder, resolver, filtrar por camada e apagar', () => {
+  const { doc, a, b } = docWith();
+  assert.deepEqual(commentsOf(doc), []); // projeto antigo: sem lista
+  const c1 = addComment(doc, { nodeId: a.id, rx: 2, ry: -1, text: '  Trocar a cor  ', author: 'Ana' });
+  assert.equal(c1.text, 'Trocar a cor'); // aparado
+  assert.deepEqual([c1.rx, c1.ry], [1, 0]); // 0..1
+  assert.equal(c1.author, 'Ana');
+  assert.equal(c1.resolved, false);
+  assert.equal(addComment(doc, { nodeId: a.id, text: '   ' }), null); // vazio não cria
+  const c2 = addComment(doc, { nodeId: b.id, text: 'Aumentar o raio' });
+  assert.equal(c2.author, 'Eu');
+  assert.equal(openCount(doc), 2);
+  assert.equal(openCount(doc, a.id), 1);
+  assert.deepEqual(forNode(doc, b.id).map((c) => c.text), ['Aumentar o raio']);
+  const r = addReply(c1, { text: 'Feito!', author: 'Bia' });
+  assert.equal(c1.replies.length, 1);
+  assert.equal(r.author, 'Bia');
+  assert.equal(addReply(c1, { text: '' }), null);
+  setResolved(c1, true);
+  assert.equal(openCount(doc), 1);
+  setResolved(c1, false);
+  assert.equal(openCount(doc), 2);
+  assert.equal(removeComment(doc, c1.id), true);
+  assert.equal(removeComment(doc, 'nao-existe'), false);
+  assert.equal(commentsOf(doc).length, 1);
+});
+
+test('pruneComments remove só os comentários de camadas que não existem mais', () => {
+  const { doc, a, f, b } = docWith();
+  addComment(doc, { nodeId: a.id, text: 'um' });
+  addComment(doc, { nodeId: b.id, text: 'dois' }); // camada dentro do frame
+  assert.equal(pruneComments(doc), false); // nada a remover
+  f.children = []; // apagou B
+  assert.equal(pruneComments(doc), true);
+  assert.deepEqual(commentsOf(doc).map((c) => c.text), ['um']);
+  assert.equal(pruneComments({ pages: [] }), false); // documento sem lista
+});
+
+test('timeAgo em português, curto', () => {
+  const now = Date.parse('2026-10-08T12:00:00Z');
+  const ago = (ms) => timeAgo(new Date(now - ms).toISOString(), now);
+  assert.equal(ago(10 * 1000), 'agora');
+  assert.equal(ago(5 * 60 * 1000), 'há 5 min');
+  assert.equal(ago(3 * 3600 * 1000), 'há 3 h');
+  assert.equal(ago(26 * 3600 * 1000), 'ontem');
+  assert.equal(ago(3 * 86400 * 1000), 'há 3 dias');
+  assert.match(ago(30 * 86400 * 1000), /^\d\d\/\d\d$/);
+  assert.equal(timeAgo('lixo', now), '');
+});

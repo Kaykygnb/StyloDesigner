@@ -7,6 +7,7 @@
 import { h, ico, iconButton } from './dom.js';
 import { nodeIcon } from './icons.js';
 import { isBoard, isContainer } from '../model.js';
+import { openCount } from '../comments.js';
 import { showMenu, ask, askText } from './menus.js';
 
 /**
@@ -154,6 +155,9 @@ export function createLayersPanel({ store, commands, container }) {
     h('span.layer-icon' + (node.component || node.instanceOf ? '.comp' : (node.type === 'section' || isBoard(node, store.parentOf(node.id))) ? '.board' : ''),
       ico(node.component || node.instanceOf ? 'component' : nodeIcon(node.type), 14)),
     nameEl,
+    openCount(store.state.doc, node.id)
+      ? h('span.layer-cm', { title: 'Comentários abertos nesta camada' }, ico('comment', 11), String(openCount(store.state.doc, node.id)))
+      : null,
     h('span.row-actions',
       h('button.icon-btn.small' + (node.locked ? '.on' : ''), {
         type: 'button', title: node.locked ? 'Destravar' : 'Travar',
@@ -298,7 +302,7 @@ export function createLayersPanel({ store, commands, container }) {
     const parts = [ui.selection.join(','), ui.renamingId, ui.layerQuery, store.state.doc.pages.map((p) => p.id + p.name).join(','), ui.pageId];
     const walkSig = (list) => {
       for (const n of list) {
-        parts.push(n.id, n.name, n.visible ? 1 : 0, n.locked ? 1 : 0, n.component ? 'c' : n.instanceOf ? 'i' : '', String(ui.collapsed[n.id]), n.children ? n.children.length : '-');
+        parts.push(n.id, n.name, openCount(store.state.doc, n.id), n.visible ? 1 : 0, n.locked ? 1 : 0, n.component ? 'c' : n.instanceOf ? 'i' : '', String(ui.collapsed[n.id]), n.children ? n.children.length : '-');
         if (n.children) walkSig(n.children);
       }
     };

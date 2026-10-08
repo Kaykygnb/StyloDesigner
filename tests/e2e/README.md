@@ -33,5 +33,6 @@ Variáveis de ambiente: `APP_URL` (padrão `http://localhost:5173/`) e `CHROMIUM
 | `css-polimento.mjs` | Snap ao redimensionar (gruda nas bordas do frame pai, linha rosa, Ctrl desliga), contorno por lado (`border-*` no canvas, no painel Código e no SVG) e CSS Grid (alinhamento do grid vale nos itens, `stretch`, `justify-self` do item, flex → grid troca valores inválidos). |
 | `secao.mjs` | Seção (`Shift+S`): desenhar, adotar telas totalmente dentro, mover pelo nome e pelo corpo, regras de aninhamento (seção só na raiz, só frames dentro), `<section>` no código e desagrupar |
 | `css-util.mjs` | CSS ampliado pelo painel de verdade: limites (max-width) e proporção, peso no flex (1 e 3 = 1/4 e 3/4), trilhas personalizadas do grid (e limpeza de `;{}`), gradiente cônico |
+| `comentarios.mjs` | Comentários: painel e `Ctrl+Enter`, ferramenta Comentar (`C`) com ponto exato, pinos no canvas, responder/resolver/reabrir, desfazer, apagar a camada (e desfazer), menu de contexto, nome do autor e recarregar |
 | `caneta-icones.mjs` | Novo ícone 24×24 (grade, encaixe de 1px), pontos inteiros ao desenhar, continuar caminho pela ponta, vários pontos (Shift, Ctrl+A), canto/suave, excluir e abrir caminho, extremidade/quina no SVG e colar `d` |
 | `desempenho.mjs` | Tempo por movimento do mouse com N camadas (`node tests/e2e/desempenho.mjs 1000`) |

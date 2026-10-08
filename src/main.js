@@ -21,6 +21,8 @@ import { createDesignPanel } from './ui/props.js';
 import { createCodePanel } from './ui/code.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
+import { createCommentsPanel } from './ui/comments.js';
+import { openCount } from './comments.js';
 import { createIconsPanel } from './ui/googleicons.js';
 import { ensureFonts, usedFonts } from './fonts.js';
 import { createPresent } from './present.js';
@@ -137,25 +139,32 @@ const design = createDesignPanel({ store, canvas, commands, tools, toast });
 const code = createCodePanel({ store, commands, toast });
 const present = createPresent({ store, canvas });
 const proto = createProtoPanel({ store, present, toast });
+const comments = createCommentsPanel({ store, canvas, prefs, toast });
 const rightBody = h('div.right-body');
 const tabDesign = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('design') }, ico('sliders', 14), ' Design');
 const tabProto = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('proto') }, ico('play', 13), ' Protótipo');
 const tabCode = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('code') }, ico('code', 14), ' Código');
-$('#right').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel direito' }, tabDesign, tabProto, tabCode), rightBody);
-/** Troca a aba do painel direito ('design' | 'proto' | 'code') e já redesenha o painel escolhido. */
+// a aba de comentários é só o ícone (com o número de comentários abertos): 4 abas com texto não cabem no painel
+const cmBadge = h('span.cm-badge', { hidden: true });
+const tabComments = h('button.tab.tab-cm', { type: 'button', role: 'tab', title: 'Comentários', 'aria-label': 'Comentários', onclick: () => setTab('comments') }, ico('comment', 14), cmBadge);
+$('#right').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel direito' }, tabDesign, tabProto, tabCode, tabComments), rightBody);
+/** Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido. */
 function setTab(tab) {
   ui.rightTab = tab;
   tabDesign.classList.toggle('on', tab === 'design');
   tabProto.classList.toggle('on', tab === 'proto');
   tabCode.classList.toggle('on', tab === 'code');
-  [[tabDesign, 'design'], [tabProto, 'proto'], [tabCode, 'code']].forEach(([b, t]) => b.setAttribute('aria-selected', String(tab === t)));
-  rightBody.replaceChildren(tab === 'design' ? design.el : tab === 'proto' ? proto.el : code.el);
-  if (tab === 'code') code.render();
+  tabComments.classList.toggle('on', tab === 'comments');
+  [[tabDesign, 'design'], [tabProto, 'proto'], [tabCode, 'code'], [tabComments, 'comments']].forEach(([b, t]) => b.setAttribute('aria-selected', String(tab === t)));
+  rightBody.replaceChildren(tab === 'design' ? design.el : tab === 'proto' ? proto.el : tab === 'comments' ? comments.el : code.el);
+  if (tab === 'comments') comments.render();
+  else if (tab === 'code') code.render();
   else if (tab === 'proto') proto.render();
   else design.render();
   store.emit('overlay');
 }
 setTab('design');
+ui.setRightTab = setTab; // outros módulos (ferramenta Comentar, pinos no canvas, menu de contexto) abrem a aba por aqui
 
 // ---------------------------------------------------------------- barra superior
 // BARRA SUPERIOR: nome do projeto (editável), indicador de salvo, desfazer/refazer, tema, apresentar, ajuda
@@ -330,6 +339,7 @@ const TOOLS = [
   ['star', 'star', 'Estrela'],
   ['pen', 'pen', 'Caneta / vetor (P)'],
   ['text', 'text', 'Texto (T)'],
+  ['comment', 'comment', 'Comentar (C)'],
   ['hand', 'hand', 'Mão (H)'],
 ];
 const toolBtns = TOOLS.map(([id, ic, title]) =>
@@ -347,6 +357,7 @@ $('#toolbar').append(
   h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18)),
   h('span.tool-sep'),
   toolBtns[9],
+  toolBtns[10],
   imgInput,
 );
 $('#toolbar').setAttribute('role', 'toolbar');
@@ -452,7 +463,16 @@ store.subscribe((reasons) => {
   syncTools();
   syncZoom();
   if (ui.rightTab === 'design' && reasons.has('tool')) design.render();
+  // comentários: o painel (se aberto) e o número na aba acompanham o documento
+  if (ui.rightTab === 'comments' && ['doc', 'selection', 'history'].some((r) => reasons.has(r))) comments.render();
+  syncCommentBadge();
 });
+/** Número de comentários abertos no selo da aba (some quando é zero). */
+function syncCommentBadge() {
+  const open = openCount(store.state.doc);
+  cmBadge.hidden = !open;
+  if (open) cmBadge.textContent = open > 9 ? '9+' : String(open);
+}
 // zoom reage na hora; e, na primeira vez que uma página abre, "ajusta tudo" sozinho para o conteúdo aparecer
 store.subscribeSync((reason) => {
   if (reason === 'view') syncZoom();
@@ -462,7 +482,7 @@ store.subscribeSync((reason) => {
 // primeiro desenho: ajusta a vista e sincroniza os controles (precisa esperar o layout existir)
 requestAnimationFrame(() => {
   if (canvas.getView().fresh) canvas.fit(null);
-  syncTopbar(); syncTools(); syncZoom();
+  syncTopbar(); syncTools(); syncZoom(); syncCommentBadge();
 });
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)

@@ -14,6 +14,7 @@
 import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
 import { buildSample } from './sample.js';
 import { syncInstances, syncStyles } from './components.js';
+import { pruneComments } from './comments.js';
 
 
 /**
@@ -73,6 +74,10 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       dropTarget: null,
       // estado interativo sendo editado no painel Design ('hover' | 'active' | 'focus'; null = a camada normal)
       editState: null,
+      // comentários: rascunho ({ nodeId, rx, ry }) esperando o texto · comentário em destaque (id) · filtro da lista
+      commentDraft: null,
+      activeComment: null,
+      commentFilter: 'open',
       marquee: null,
       views: {},
       clipboard: null,
@@ -181,7 +186,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   // `i` aponta para a foto atual; desfazer anda para trás, refazer para frente.
   const history = { stack: [], i: -1 };
   /** Foto do documento para o histórico. Não inclui `assets` (imagens só entram, nunca saem) para ser leve. */
-  const snapshot = () => JSON.stringify({ name: state.doc.name, pages: state.doc.pages, styles: state.doc.styles });
+  // (os comentários entram na foto: criar, resolver ou apagar um comentário também se desfaz com Ctrl+Z)
+  const snapshot = () => JSON.stringify({ name: state.doc.name, pages: state.doc.pages, styles: state.doc.styles, comments: state.doc.comments || [] });
 
   /**
    * Fecha uma edição: "arruma a casa" e grava no histórico.
@@ -194,6 +200,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     fitGroups(api.page().children);
     syncInstances(state.doc.pages);
     syncStyles(state.doc);
+    pruneComments(state.doc); // camada apagada leva os comentários dela (desfazer traz de volta)
     version++;
     const snap = snapshot();
     if (snap !== history.stack[history.i]) {
@@ -214,6 +221,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     state.doc.name = data.name;
     state.doc.pages = data.pages;
     state.doc.styles = data.styles || { colors: [], texts: [] };
+    state.doc.comments = data.comments || [];
     if (!state.doc.pages.some((p) => p.id === state.ui.pageId)) state.ui.pageId = state.doc.pages[0].id;
     version++;
     api.setSelection(state.ui.selection.filter((id) => api.get(id)));
@@ -290,6 +298,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false } = {}) => {
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     doc.styles ||= { colors: [], texts: [] };
+    doc.comments ||= []; // projetos antigos não têm comentários
     state.doc = doc;
     state.ui.link = link;
     state.ui.pristine = pristine;

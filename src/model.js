@@ -410,10 +410,11 @@ export function makePage(name = 'Página 1') {
  *  { version, name,
  *    pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
  *    assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
- *    styles: { colors: [...], texts: [...] } } // estilos compartilhados de cor e texto
+ *    styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
+ *    comments: [...] }                          // comentários nas camadas (veja comments.js)
  */
 export function makeDoc() {
-  return { version: 1, name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] } };
+  return { version: 1, name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
 }
 
 /** Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página. */

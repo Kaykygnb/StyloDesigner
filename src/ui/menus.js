@@ -98,6 +98,15 @@ export function contextMenuItems({ store, commands, tools }) {
     { label: 'Copiar propriedades', hint: `${mod}+Alt+C`, disabled: !has, onClick: () => commands.copyStyle() },
     { label: 'Colar propriedades', hint: `${mod}+Alt+V`, disabled: !store.ui.styleClipboard || !has, onClick: () => commands.pasteStyle() },
     { label: 'Copiar CSS', hint: `${mod}+⇧+C`, icon: 'code', disabled: !has, onClick: () => tools.copyCss() },
+    {
+      label: 'Comentar', hint: 'C', icon: 'comment', disabled: sel.length !== 1,
+      onClick: () => {
+        store.ui.commentDraft = { nodeId: n.id, rx: 1, ry: 0 };
+        store.ui.focusComment = true;
+        store.ui.setRightTab?.('comments');
+        store.emit('overlay');
+      },
+    },
     'sep',
     { label: 'Agrupar', hint: `${mod}+G`, icon: 'group', disabled: !has, onClick: () => commands.group() },
     { label: 'Desagrupar', hint: `${mod}+⇧+G`, disabled: !sel.some((s) => s.type === 'group'), onClick: () => commands.ungroup() },
@@ -127,7 +136,7 @@ export function contextMenuItems({ store, commands, tools }) {
 
 /** Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README. */
 const SHORTCUTS = [
-  ['Ferramentas', [['V', 'Mover'], ['F / B', 'Frame'], ['⇧ S', 'Seção'], ['R', 'Retângulo'], ['E', 'Elipse'], ['L', 'Linha'], ['P', 'Caneta (vetor)'], ['T', 'Texto'], ['H', 'Mão (ou segure Espaço)']]],
+  ['Ferramentas', [['V', 'Mover'], ['F / B', 'Frame'], ['⇧ S', 'Seção'], ['R', 'Retângulo'], ['E', 'Elipse'], ['L', 'Linha'], ['P', 'Caneta (vetor)'], ['T', 'Texto'], ['C', 'Comentar'], ['H', 'Mão (ou segure Espaço)']]],
   ['Edição', [['Ctrl Z / Ctrl ⇧ Z', 'Desfazer / Refazer'], ['Ctrl D', 'Duplicar'], ['Alt + arrastar', 'Duplicar arrastando'], ['Ctrl C / X / V', 'Copiar / Recortar / Colar'],
     ['Ctrl A', 'Selecionar tudo no mesmo nível'], ['Ctrl G / Ctrl ⇧ G', 'Agrupar / Desagrupar'], ['Ctrl Alt G', 'Envolver em frame'], ['Ctrl Alt K / B', 'Criar componente / Desanexar'], ['Ctrl Alt M', 'Máscara'], ['⇧ H / ⇧ V', 'Espelhar'], ['0–9', 'Opacidade (1=10% … 0=100%)'], ['⇧ A', 'Auto layout (flexbox)'], ['Delete', 'Excluir'], ['Setas (⇧ = 10px)', 'Mover']]],
   ['Camadas', [['Ctrl ] / [', 'Avançar / Recuar'], ['Ctrl ⇧ ] / [', 'Frente / Fundo'], ['Ctrl ⇧ L', 'Travar'], ['Ctrl ⇧ H', 'Ocultar'], ['F2', 'Renomear'], ['Enter / ⇧ Enter', 'Entrar / sair do grupo']]],

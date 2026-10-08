@@ -8,6 +8,14 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Não lançado] — CSS ampliado, seletor de cor e contorno em ícones
 
+### Adicionado (comentários nas camadas)
+- **Comentários**: anote o que precisa mudar direto na camada. Três jeitos: selecione **uma** camada e escreva na aba **Comentários** (ícone de balão no painel direito; o pino nasce no canto superior direito), use a ferramenta **Comentar (`C`)** e clique no **ponto exato** da camada, ou botão direito → **Comentar**. `Ctrl+Enter` envia.
+- **Pinos no canvas** (gota com o número) acompanham a camada quando ela se move ou muda de tamanho; clicar num pino abre a conversa. Resolvidos somem do canvas (continuam na lista, filtro "Resolvidos").
+- **Conversa**: responder, **Resolver/Reabrir**, apagar; clicar no card seleciona a camada e rola até ela. A lista mostra os comentários da **página aberta**. Selo com o número de **abertos** na aba e **um balão com a contagem** em cada camada comentada na lista de camadas.
+- Ficam **dentro do projeto** (`doc.comments`, mesmo arquivo `.json`): entram no desfazer (`Ctrl+Z` desfaz criar/resolver/apagar), nas versões antigas e na pasta; apagar a camada leva os comentários dela (desfazer traz de volta). Projetos antigos abrem normalmente (sem lista).
+- **Autor**: o nome definido em Configurações → "Seu nome nos comentários" (padrão "Eu"). Sem login: o mesmo formato serve para quando houver trabalho em equipe.
+- Módulo puro `comments.js` (testado) e a suíte de navegador `comentarios.mjs`.
+
 ### Adicionado (mais CSS útil)
 - **Gradiente cônico** (`conic-gradient(from Ndeg, ...)`): novo tipo de preenchimento, com o ângulo de início e as paradas. Em vetores e no SVG exportado vale só a cor da 1ª parada (o SVG não tem gradiente cônico).
 - **Peso do espaço** (`flex-grow`): item "Preencher" no eixo principal de um flex ganha o campo "Peso do espaço" (1 e 3 dividem em 1/4 e 3/4; os limites min/max continuam valendo por cima). Sincroniza do principal para os filhos; o peso da raiz da instância é da própria instância.

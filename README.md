@@ -204,6 +204,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Polígono / Estrela | botão da barra | Viram vetores editáveis. |
 | Caneta | `P` | Vetores com curvas de Bézier. |
 | Texto | `T` | Clique para texto livre; arraste para uma caixa de largura fixa. |
+| Comentar | `C` | Clique numa camada, no ponto exato, e escreva o comentário na aba Comentários. |
 | Imagem | botão, arrastar ou `Ctrl+V` | Cria um retângulo com preenchimento de imagem (reduzida a 1600 px). Arquivos **`.svg`** e SVG colado como texto viram **vetores editáveis**. |
 | Mão | `H` ou segurar `Espaço` | Arrasta a vista. |
 
@@ -249,6 +250,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: na **página inicial**, o card
 | Texto | Fonte (**Google Fonts** + sistema, com busca e prévia), peso (só os que a fonte tem), tamanho, `line-height`, `letter-spacing`, alinhamento, itálico, sublinhado/riscado, MAIÚSCULAS/minúsculas, alinhamento vertical na caixa, `word-spacing`, **truncar** (uma linha com `…` ou `line-clamp` de N linhas), gradiente no texto. Durante a edição: `Ctrl+B/I/U`. |
 | Estados e transição | **Hover**, **Pressionado** e **Foco**: cada um sobrescreve só o que você mudar (cor, contorno, cantos, sombras, filtros, opacidade, escala) e vira `.camada:hover`, `:active`, `:focus-visible` no CSS. `transition` (duração e curva) e `cursor`. Funcionam no modo Apresentar e no HTML exportado; não existem no SVG exportado. Em **vetores**, estados de preenchimento/contorno valem no editor e na apresentação, mas ainda não no HTML exportado (a cor fica dentro do `<svg>`). |
 | Variáveis de CSS | Estilos de cor viram variáveis: `:root { --cor-primaria: #7c5cff; }` e `background-color: var(--cor-primaria)` no código gerado, no HTML e no PNG exportados. |
+| Comentários | Ferramenta **Comentar** (`C`), botão direito → Comentar, ou a aba Comentários com a camada selecionada. Pinos no canvas, respostas, resolver/reabrir, selo nas camadas e na aba. Ficam dentro do projeto (entram no desfazer e nas versões) e o autor é o nome das Configurações. |
 | Cores do projeto | Atalhos com as cores já usadas, e conta-gotas (onde o navegador oferece). |
 
 > **Fora do SVG exportado:** filtros de cor, `backdrop-filter` e a truncagem de texto não existem no formato (o PNG e o HTML exportados mostram tudo). Posição de imagem em cobrir/conter é aproximada em 3 alinhamentos no SVG.
