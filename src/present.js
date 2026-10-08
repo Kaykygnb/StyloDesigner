@@ -46,6 +46,8 @@ function attachStates(el, node, parent, assets, isRoot) {
     if (down && hasStates(node, 'active')) list.push('active');
     el.style.cssText = css(list);
     if (keep) el.style.cursor = keep;
+    // vetor: preenchimento e contorno moram DENTRO do <svg>, então o desenho precisa ser refeito para o estado
+    if (node.type === 'path') el.innerHTML = pathSvg(stateView(node, list), assets);
   };
   el.addEventListener('pointerenter', () => { hover = true; apply(); });
   el.addEventListener('pointerleave', () => { hover = false; down = false; apply(); });

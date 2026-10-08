@@ -693,28 +693,28 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`TRANSITIONS`** <sub>do módulo</sub> · [L18](../src/present.js#L18) — Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave` (da que SAI), no formato de keyframes da Web Animations API. 'instant' = null (troca seca). Os transforms são combinados com o `scale` de encaixe na tela em show().
 - **`TRANSITION_OPTIONS`** · [L27](../src/present.js#L27) — Lista [valor, rótulo] das transições, para o menu da aba Protótipo.
 - **`attachStates(el, node, parent, assets, isRoot)`** <sub>do módulo</sub> · [L37](../src/present.js#L37) — Liga os ESTADOS (hover, pressionado, foco) de uma camada ao elemento da apresentação: ao entrar/sair/pressionar, troca o estilo inline pelo da visão correspondente (o `transition` do próprio estilo anima a troca). Pressionado vale em cima do hover, como a cascata do CSS.
-- **`buildDom(node, parent, assets, isRoot)`** <sub>do módulo</sub> · [L66](../src/present.js#L66) — Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão; `data-id` permite achar a camada (e suas interações) no clique.
-- **`createPresent({ store, canvas })`** · [L85](../src/present.js#L85) — Cria o modo APRESENTAR (protótipo em tela cheia).
+- **`buildDom(node, parent, assets, isRoot)`** <sub>do módulo</sub> · [L68](../src/present.js#L68) — Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão; `data-id` permite achar a camada (e suas interações) no clique.
+- **`createPresent({ store, canvas })`** · [L87](../src/present.js#L87) — Cria o modo APRESENTAR (protótipo em tela cheia).
 
    - open(id): abre no frame da camada selecionada (ou no marcado como ponto de partida, ou no primeiro)
    - cliques/hover disparam as interações da camada (ou do ancestral mais próximo que tenha uma)
    - `stack` guarda o histórico de telas visitadas, para a ação "Voltar"
    - Esc fecha · R reinicia
-- **`frames()`** <sub>interna</sub> · [L94](../src/present.js#L94) — Todos os frames do documento (de todas as páginas) — destinos possíveis das interações.
-- **`findFrame(id)`** <sub>interna</sub> · [L100](../src/present.js#L100) — Frame pelo id.
-- **`rootOf(id)`** <sub>interna</sub> · [L102](../src/present.js#L102) — Frame da raiz que contém a camada (sobe os pais).
-- **`fit(board)`** <sub>interna</sub> · [L109](../src/present.js#L109) — Escala a tela para caber na janela (até 200%), centralizada. Devolve o fator usado.
-- **`makeBoard(frame)`** <sub>interna</sub> · [L117](../src/present.js#L117) — Cria o "quadro" de uma tela: caixa do tamanho do frame + DOM + ouvintes de clique e hover.
-- **`trigger(target, kind, related)`** <sub>interna</sub> · [L139](../src/present.js#L139) — Dispara a interação do tipo pedido ('click' | 'hover'). Sobe da camada clicada até um ancestral que tenha uma interação desse tipo (assim clicar no texto dentro de um botão aciona o botão). No hover, ignora movimentos dentro do mesmo elemento (só vale ao ENTRAR).
-- **`run(it)`** <sub>interna</sub> · [L149](../src/present.js#L149) — Executa uma interação: abrir link, voltar para a tela anterior ou navegar para outro frame (com a transição escolhida).
-- **`show(frameId, transition, isBack = false)`** <sub>interna</sub> · [L168](../src/present.js#L168) — Mostra uma tela, animando a troca. A tela antiga fica por baixo durante a transição e é removida ao final; `busy` bloqueia novos cliques nesse intervalo (330ms ≈ duração 320ms).
+- **`frames()`** <sub>interna</sub> · [L96](../src/present.js#L96) — Todos os frames do documento (de todas as páginas) — destinos possíveis das interações.
+- **`findFrame(id)`** <sub>interna</sub> · [L102](../src/present.js#L102) — Frame pelo id.
+- **`rootOf(id)`** <sub>interna</sub> · [L104](../src/present.js#L104) — Frame da raiz que contém a camada (sobe os pais).
+- **`fit(board)`** <sub>interna</sub> · [L111](../src/present.js#L111) — Escala a tela para caber na janela (até 200%), centralizada. Devolve o fator usado.
+- **`makeBoard(frame)`** <sub>interna</sub> · [L119](../src/present.js#L119) — Cria o "quadro" de uma tela: caixa do tamanho do frame + DOM + ouvintes de clique e hover.
+- **`trigger(target, kind, related)`** <sub>interna</sub> · [L141](../src/present.js#L141) — Dispara a interação do tipo pedido ('click' | 'hover'). Sobe da camada clicada até um ancestral que tenha uma interação desse tipo (assim clicar no texto dentro de um botão aciona o botão). No hover, ignora movimentos dentro do mesmo elemento (só vale ao ENTRAR).
+- **`run(it)`** <sub>interna</sub> · [L151](../src/present.js#L151) — Executa uma interação: abrir link, voltar para a tela anterior ou navegar para outro frame (com a transição escolhida).
+- **`show(frameId, transition, isBack = false)`** <sub>interna</sub> · [L170](../src/present.js#L170) — Mostra uma tela, animando a troca. A tela antiga fica por baixo durante a transição e é removida ao final; `busy` bloqueia novos cliques nesse intervalo (330ms ≈ duração 320ms).
   - `frameId` <sub>string</sub> — frame a mostrar
   - `transition` <sub>string</sub> — chave de TRANSITIONS
   - `[isBack]` <sub>boolean</sub> — true quando vem de "Voltar" (não empilha no histórico)
-- **`open(startId)`** <sub>interna</sub> · [L192](../src/present.js#L192) — Abre a apresentação. Devolve false se não há nenhum frame para apresentar.
-- **`onKey(e)`** <sub>interna</sub> · [L218](../src/present.js#L218) — Teclas na apresentação (captura antes do editor): Esc fecha, R reinicia; as outras são engolidas para não mexer no editor por trás.
-- **`onResize()`** <sub>interna</sub> · [L230](../src/present.js#L230) — Reencaixa as telas quando a janela muda de tamanho.
-- **`close()`** <sub>interna</sub> · [L235](../src/present.js#L235) — Fecha a apresentação e remove os ouvintes globais.
+- **`open(startId)`** <sub>interna</sub> · [L194](../src/present.js#L194) — Abre a apresentação. Devolve false se não há nenhum frame para apresentar.
+- **`onKey(e)`** <sub>interna</sub> · [L220](../src/present.js#L220) — Teclas na apresentação (captura antes do editor): Esc fecha, R reinicia; as outras são engolidas para não mexer no editor por trás.
+- **`onResize()`** <sub>interna</sub> · [L232](../src/present.js#L232) — Reencaixa as telas quando a janela muda de tamanho.
+- **`close()`** <sub>interna</sub> · [L237](../src/present.js#L237) — Fecha a apresentação e remove os ouvintes globais.
 
 ---
 
