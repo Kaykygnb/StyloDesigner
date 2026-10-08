@@ -9,6 +9,7 @@
 
 import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip, textField } from './dom.js';
 import { askText, showMenu } from './menus.js';
+import { informationButton } from './info.js';
 import { styleValue, setStyleColor, varsOf, modesOf } from '../modes.js';
 import { syncStyles } from '../components.js';
 import { fontField } from './fontpicker.js';
@@ -77,7 +78,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   const row = (...c) => h('div.row', ...c);
   /**
    * Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do
-   * CSS por trás. A explicação aparece abaixo do título quando "Explicações" está ligado (botão ? no topo do painel).
+   * CSS por trás. A explicação abre pelo ícone de informação ao lado do título.
    */
   const SECTION_INFO = {
     'Posição': ['move', 'Onde a camada fica. X e Y são a distância da borda esquerda e do topo do pai (em CSS: left e top).'],
@@ -99,14 +100,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'HTML': ['code', 'A etiqueta (tag) que esta camada vira no código exportado. Escolher a certa ajuda a acessibilidade e o Google.'],
     'Exportar': ['download', 'Baixa esta camada como imagem (PNG), vetor (SVG) ou página (HTML).'],
   };
-  // seções recolhidas e "Explicações" ligado/desligado: lembrados entre sessões
+  // seções recolhidas: lembradas entre sessões; a nota só ocupa espaço quando pedida
   const loadSet = (key) => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); } };
   const saveSet = (key, set) => { try { localStorage.setItem(key, JSON.stringify([...set])); } catch { /* sem armazenamento */ } };
   const collapsed = loadSet('pd.collapsed');
-  let explain = true;
-  try { explain = localStorage.getItem('pd.explain') !== '0'; } catch { /* ligado */ }
+  let noteOpen = false;
   /**
-   * Seção do painel: cabeçalho (ícone + título + ações opcionais à direita, ex.: botão +) + explicação + corpo.
+   * Seção do painel: cabeçalho (título, informação e ações opcionais) e controles.
    * Clicar no cabeçalho recolhe/abre a seção (lembrado).
    */
   const section = (title, body, actions, { closedByDefault = false } = {}) => {
@@ -117,8 +117,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const sec = h('section.panel-section' + (closed ? '.collapsed' : ''),
       h('header.section-head',
         h('span.sh-title', info ? h('span.sh-ico', ico(info[0], 14)) : null, h('span', title)),
-        h('span.sh-right', actions || null, h('span.sh-chev', ico('chevron', 11)))),
-      info ? h('p.section-help', info[1]) : null,
+        h('span.sh-right', info ? informationButton(title, info[1]) : null, actions || null, h('span.sh-chev', ico('chevron', 11)))),
       h('div.section-body', body));
     sec.firstChild.addEventListener('click', (e) => {
       if (e.target.closest('button, select, input')) return; // os botões do cabeçalho têm a própria ação
@@ -234,8 +233,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   }
 
   /**
-   * Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e o
-   * botão "Explicações" (liga/desliga o texto de ajuda de cada seção).
+   * Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira),
+   * mostrar/ocultar, travar e Nota sob demanda.
    */
   function headerBlock() {
     const ns = nodes();
@@ -244,17 +243,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const flip = (key) => { store.update(() => ns.forEach((x) => { if (ui.bp && key === 'visible') editBp(x, ui.bp, (d) => { d.visible = !d.visible; }); else x[key] = !x[key]; }), { commit: true }); };
     const eyeBtn = h('button.icon-btn.small' + (!n.visible ? '.on' : ''), { type: 'button', title: ui.bp ? (n.visible ? 'Ocultar só nesta largura (display: none)' : 'Mostrar nesta largura') : (n.visible ? 'Ocultar (display: none)' : 'Mostrar'), onclick: () => flip('visible') }, ico(n.visible ? 'eye' : 'eyeOff', 14));
     const lockBtn = h('button.icon-btn.small' + (n.locked ? '.on' : ''), { type: 'button', title: n.locked ? 'Destravar' : 'Travar: não dá para clicar nela no canvas', onclick: () => flip('locked') }, ico(n.locked ? 'lock' : 'unlock', 14));
-    const help = h('button.explain-btn' + (explain ? '.on' : ''), {
-      type: 'button', 'aria-pressed': String(explain),
-      title: 'Explicações: mostra, em cada seção, para que ela serve e qual é a propriedade do CSS por trás',
+    const note = one && !ui.bp ? h('button.icon-btn.small.note-toggle' + (n.note ? '.has-note' : ''), {
+      type: 'button', 'aria-label': 'Nota da camada', 'aria-expanded': String(noteOpen), title: 'Nota da camada',
+      onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); },
       onclick: () => {
-        explain = !explain;
-        try { localStorage.setItem('pd.explain', explain ? '1' : '0'); } catch { /* sem armazenamento */ }
-        el.classList.toggle('explain', explain);
-        help.classList.toggle('on', explain);
-        help.setAttribute('aria-pressed', String(explain));
+        noteOpen = !noteOpen; lastSig = null; render();
+        if (noteOpen) noteInput?.focus();
+        else el.querySelector('.note-toggle')?.focus();
       },
-    }, ico('help', 13), h('span', 'Explicações'));
+    }, ico('info', 14)) : null;
+    if (note) updaters.push(() => note.classList.toggle('has-note', !!P()?.note));
     const sub = one
       ? [TYPE_LABEL[n.type] || n.type, ' · ', tip(h('code.sel-tag', `<${tagOf(n)}>`), { title: 'Etiqueta HTML', text: 'É assim que esta camada aparece no código exportado. Para mudar, use a seção "HTML" mais abaixo.' })]
       : ['Edição em grupo: valores da 1ª camada'];
@@ -262,9 +260,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       h('div.sel-top',
         h('span.sel-ico', ico(one ? nodeIcon(n.type) : 'layers', 18)),
         h('div.sel-info', h('div.sel-name', one ? n.name : `${ns.length} camadas`), h('div.sel-sub', ...sub)),
-        h('div.sel-actions', eyeBtn, ui.bp ? null : lockBtn)),
-      ui.bp ? bpBanner(ns) : null,
-      help);
+        h('div.sel-actions', eyeBtn, ui.bp ? null : lockBtn, note)),
+      ui.bp ? bpBanner(ns) : null);
   }
 
   /** Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop. */
@@ -303,10 +300,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     });
     ta.addEventListener('change', commit); // grava no histórico ao sair do campo
     ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') ta.blur(); e.stopPropagation(); });
-    return section('Nota', [
+    const sec = section('Nota', [
       ta,
       check('Incluir no código (como comentário)', () => nd()?.noteInCode !== false, (v) => store.update(() => { const n = nd(); if (!n) return; if (v) delete n.noteInCode; else n.noteInCode = false; }, { structural: false })),
-    ], dot, { closedByDefault: !store.get(ids()[0])?.note });
+    ], dot);
+    sec.classList.add('note-section');
+    sec.hidden = !noteOpen;
+    sec.classList.remove('collapsed');
+    return sec;
   }
 
   /**
@@ -1476,7 +1477,6 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
   /** Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos. */
   function render() {
-    el.classList.toggle('explain', explain);
     const sig = signature();
     if (sig !== lastSig) {
       lastSig = sig;
@@ -1540,7 +1540,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     // pedido do menu "Adicionar nota": abre a seção Nota e coloca o cursor no campo
     if (ui.focusNote && noteInput?.isConnected) {
       ui.focusNote = false;
+      noteOpen = true;
       const sec = noteInput.closest('.panel-section');
+      if (sec) sec.hidden = false;
+      el.querySelector('.note-toggle')?.setAttribute('aria-expanded', 'true');
       sec?.classList.remove('collapsed');
       collapsed.delete('Nota');
       collapsed.add('+Nota');
@@ -1557,6 +1560,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const key = ui.selection.join(',');
     if (key === lastSelKey) return;
     lastSelKey = key;
+    noteOpen = false;
     if (ui.editState) { ui.editState = null; lastSig = null; store.emit('doc'); }
   });
 

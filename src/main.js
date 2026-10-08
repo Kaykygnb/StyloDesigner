@@ -36,6 +36,7 @@ import { createSaving } from './saving.js';
 import { openSettings as openSettingsDialog } from './ui/settings.js';
 import { openProjects as openProjectsDialog } from './ui/projects.js';
 import { createHome } from './ui/home.js';
+import { closeInformation } from './ui/info.js';
 import { pageThumbnail } from './thumbnail.js';
 import { folder } from './storage.js';
 
@@ -144,15 +145,16 @@ const present = createPresent({ store, canvas });
 const proto = createProtoPanel({ store, present, toast });
 const comments = createCommentsPanel({ store, canvas, prefs, toast });
 const rightBody = h('div.right-body');
-const tabDesign = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('design') }, ico('sliders', 14), ' Design');
-const tabProto = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('proto') }, ico('play', 13), ' Protótipo');
-const tabCode = h('button.tab', { type: 'button', role: 'tab', onclick: () => setTab('code') }, ico('code', 14), ' Código');
-// a aba de comentários é só o ícone (com o número de comentários abertos): 4 abas com texto não cabem no painel
+const tabDesign = h('button.tab', { type: 'button', role: 'tab', 'aria-label': 'Design', onclick: () => setTab('design') }, ico('sliders', 14), h('span.tab-label', 'Design'));
+const tabProto = h('button.tab', { type: 'button', role: 'tab', 'aria-label': 'Protótipo', onclick: () => setTab('proto') }, ico('play', 13), h('span.tab-label', 'Protótipo'));
+const tabCode = h('button.tab', { type: 'button', role: 'tab', 'aria-label': 'Código', onclick: () => setTab('code') }, ico('code', 14), h('span.tab-label', 'Código'));
+// Quatro abas com rótulos; em painéis estreitos o CSS mostra seus ícones.
 const cmBadge = h('span.cm-badge', { hidden: true });
-const tabComments = h('button.tab.tab-cm', { type: 'button', role: 'tab', title: 'Comentários', 'aria-label': 'Comentários', onclick: () => setTab('comments') }, ico('comment', 14), cmBadge);
+const tabComments = h('button.tab.tab-cm', { type: 'button', role: 'tab', title: 'Comentários', 'aria-label': 'Comentários', onclick: () => setTab('comments') }, ico('comment', 14), h('span.tab-label', 'Comentários'), cmBadge);
 $('#right').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel direito' }, tabDesign, tabProto, tabCode, tabComments), rightBody);
 /** Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido. */
 function setTab(tab) {
+  closeInformation();
   ui.rightTab = tab;
   tabDesign.classList.toggle('on', tab === 'design');
   tabProto.classList.toggle('on', tab === 'proto');
@@ -291,7 +293,6 @@ $('#topbar').append(
   fileBtn,
   h('span.sep'),
   undoBtn, redoBtn,
-  h('div.spacer'),
   nameInput,
   saveEl,
   h('div.spacer'),
@@ -310,7 +311,8 @@ function syncTopbar() {
   if (document.activeElement !== nameInput) nameInput.value = store.state.doc.name;
   const [state, text, title] = saveStatus();
   saveEl.dataset.state = state;
-  saveEl.textContent = text;
+  saveEl.replaceChildren(h('span.save-label', text));
+  saveEl.setAttribute('aria-label', `${text}. Configurações de salvamento`);
   tip(saveEl, { title: text, text: title }); // dica rica (ui/dom.js) no lugar do title nativo
 }
 /**

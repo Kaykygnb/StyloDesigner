@@ -1,4 +1,4 @@
-// Painel Design explicativo (cabeçalho, seções recolhíveis, "Explicações", dicas ricas em tudo), Nota da camada,
+// Painel Design compacto (cabeçalho, seções recolhíveis, informação sob demanda), Nota da camada,
 // seção HTML (etiqueta/link/descrição) e paletas de cor próprias (aba Recursos + seletor de cor).
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
@@ -27,13 +27,12 @@ await page.waitForTimeout(400);
 
 // ---------------------------------------------------------------- cabeçalho e explicações
 ok('cabeçalho mostra o nome e a etiqueta <div>', (await page.locator('.sel-name').innerText()) === 'Botão principal' && (await page.locator('.sel-tag').innerText()) === '<div>');
-ok('as seções têm ícone e explicação', (await page.locator('#right .panel-section .sh-ico').count()) >= 5 && (await page.locator('#right .section-help').count()) >= 5);
-const helpVisible = () => page.locator('#right .section-help').first().isVisible();
-ok('"Explicações" começa ligado e a ajuda aparece', await helpVisible());
-await page.locator('.explain-btn').click();
-ok('desligar "Explicações" esconde a ajuda', !(await helpVisible()));
-await page.locator('.explain-btn').click();
-ok('religar mostra de novo', await helpVisible());
+ok('as seções têm ícone e botão de informação', (await page.locator('#right .panel-section .sh-ico').count()) >= 5 && (await page.locator('#right .section-info').count()) >= 5);
+ok('as explicações não ocupam espaço ao selecionar', (await page.locator('.inspector-info').count()) === 0 && (await page.locator('#right .section-help').count()) === 0);
+await page.getByRole('button', { name: 'Informações sobre Posição', exact: true }).click();
+ok('clicar no i abre a explicação da seção', (await page.locator('.inspector-info').innerText()).includes('Onde a camada fica'));
+await page.keyboard.press('Escape');
+ok('Esc fecha a informação e preserva a seleção', (await page.locator('.inspector-info').count()) === 0 && (await ev(() => designer.store.ui.selection[0])) === id.a);
 
 // ---------------------------------------------------------------- seções recolhíveis (lembradas)
 const secPos = page.locator('#right .panel-section', { has: page.locator('.section-head', { hasText: 'Posição' }) });
@@ -70,7 +69,7 @@ await ev(() => designer.store.undo());
 
 // ---------------------------------------------------------------- nota
 const sec = (title) => page.locator('#right .panel-section', { has: page.locator('.section-head', { hasText: title }) });
-ok('a seção Nota começa recolhida quando vazia', await sec('Nota').evaluate((s) => s.classList.contains('collapsed')));
+ok('a Nota não ocupa espaço até ser pedida', !(await sec('Nota').isVisible()));
 const box = await ev((i) => { const b = designer.canvas.aabb(i); const s = designer.canvas.toScreen(b.x + b.w / 2, b.y + b.h / 2); const r = designer.canvas.vpRect(); return { x: r.left + s.x, y: r.top + s.y }; }, id.a);
 await page.mouse.click(box.x, box.y, { button: 'right' });
 await page.waitForSelector('.menu');
@@ -85,7 +84,9 @@ ok('a camada ganha o selo de nota na lista', (await page.locator('.layer-row .la
 await ev(() => designer.store.setSelection([]));
 await ev((i) => designer.store.setSelection([i]), id.a);
 await page.waitForTimeout(300);
-ok('a nota continua aberta e preenchida ao reselecionar', (await page.locator('.note-input').inputValue()).startsWith('Botão principal') && !(await sec('Nota').evaluate((s) => s.classList.contains('collapsed'))));
+ok('ao reselecionar, a nota fica guardada sem ocupar o painel', (await node(id.a)).note.startsWith('Botão principal') && !(await sec('Nota').isVisible()));
+await page.getByRole('button', { name: 'Nota da camada', exact: true }).click();
+ok('o ícone reabre a nota preenchida', (await page.locator('.note-input').inputValue()).startsWith('Botão principal') && await sec('Nota').isVisible());
 const code = await ev(async () => { const { generateCode } = await import('/src/css.js'); return generateCode([designer.store.get(designer.store.ui.selection[0])], null).html; });
 ok('a nota vira comentário no HTML gerado', code.includes('<!-- Botão principal da home. Leva ao checkout. -->'), code);
 await page.locator('.note-input ~ label.check, #right .panel-section:has(.note-input) label.check').first().click();
@@ -182,7 +183,7 @@ pl = await pals();
 ok('as paletas sobrevivem a recarregar o navegador', pl.length === 1 && pl[0].name === 'Marca');
 await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
 await page.waitForTimeout(300);
-ok('o estado das seções e das explicações é lembrado', (await page.locator('#right .section-help').first().isVisible()) === true);
+ok('recarregar preserva a preferência das seções e mantém as informações fechadas', !(await sec('Posição').evaluate((s) => s.classList.contains('collapsed'))) && (await page.locator('.inspector-info').count()) === 0);
 
 // excluir paleta
 await page.locator('#left .tab', { hasText: 'Recursos' }).click();

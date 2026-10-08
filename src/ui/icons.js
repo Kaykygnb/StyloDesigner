@@ -72,6 +72,7 @@ const P = {
   underline: '<path d="M7 4v7a5 5 0 0010 0V4M5 20h14"/>',
   strike: '<path d="M4 12h16M8 6.5C8.5 5 10 4 12 4c2.5 0 4 1.3 4 3M8 17c.5 1.7 2 3 4.2 3 2.5 0 4-1.2 4-3.2"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.7-1.5 1.2-1.5 2.5M12 17.5v.01"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.01"/>',
   shadow: '<rect x="5" y="5" width="12" height="12" rx="2"/><path d="M20 9v8a3 3 0 01-3 3H9"/>',
   file: '<path d="M6 3h8l4 4v14H6z"/>',
   folder: '<path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',

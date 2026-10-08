@@ -11,7 +11,7 @@
   --grad: linear-gradient(135deg, #8064ec, #9875ef);
   --primary: #7958d6;
   --radius: 10px;
-  --topbar: 56px;
+  --topbar: 40px;
   --left: 268px;
   --right: 292px;
   color-scheme: dark;
@@ -1237,11 +1237,18 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .cp-spacer { flex: 1; }
 
 /* Interface do editor: superfícies discretas deixam o documento ocupar o primeiro plano. */
-.topbar { padding: 0 16px; gap: 6px; }
-.topbar .brand { margin-right: 6px; }
-.topbar .btn { height: 32px; }
-.doc-name { max-width: 24vw; }
+.topbar { padding: 0 10px; gap: 4px; }
+.topbar .brand { margin-right: 2px; padding: 0; }
+.topbar .brand-name { display: none; }
+.topbar .logo { width: 24px; height: 24px; border-radius: 7px; }
+.topbar .btn, .topbar .icon-btn { height: 28px; }
+.topbar .icon-btn { width: 28px; }
+.doc-name { width: clamp(120px, 20vw, 240px); max-width: 24vw; text-align: left; padding: 4px 8px; font-size: 11.5px; }
 .topbar .save-state { white-space: nowrap; }
+.save-state { min-width: 24px; width: 24px; height: 28px; padding: 0; justify-content: center; background: none; }
+.save-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.save-state[data-state="warn"], .save-state[data-state="error"] { width: auto; padding: 0 8px; }
+.save-state[data-state="warn"] .save-label, .save-state[data-state="error"] .save-label { position: static; width: auto; height: auto; margin: 0; clip-path: none; }
 .tabs, .panel.left .tabs { padding: 12px 10px; border-bottom: 1px solid var(--border); }
 .tab.on { box-shadow: none; background: var(--accent-soft); color: var(--accent); }
 .panel-section { padding: 18px 16px; }
@@ -1258,6 +1265,42 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .home-top .logo { width: 32px; height: 32px; }
 .home-top .brand-name { font-size: 14px; }
 .home-search { border-radius: 8px; }
+
+/* Inspetor compacto: propriedades primeiro, informações e nota sob demanda. */
+#right .tabs { padding: 0 8px; gap: 2px; height: 40px; align-items: stretch; }
+#right .tab, #right .tab.tab-cm { flex: 1; min-width: 0; padding: 0 3px; border-radius: 0; font-size: 10.5px; background: transparent; }
+#right .tab .ico { display: none; }
+#right .tab.on { box-shadow: inset 0 -2px var(--accent); }
+#right .tab-cm .cm-badge { top: 2px; right: 0; min-width: 10px; height: 10px; padding: 0 2px; font-size: 7.5px; line-height: 10px; }
+.design-panel .sel-head { padding: 12px 14px; gap: 8px; }
+.sel-top { gap: 8px; }
+.sel-ico { width: 26px; height: 26px; border-radius: 6px; }
+.sel-name { font-size: 12px; }
+.sel-sub { font-size: 10px; }
+.sel-tag { font-size: 9px; }
+.sel-actions .icon-btn { width: 22px; height: 24px; border-radius: 5px; }
+.note-toggle.has-note { color: var(--accent); background: var(--accent-soft); }
+.note-section[hidden] { display: none; }
+.panel.right .panel-section { padding: 12px 14px; }
+.design-panel .section-head { min-height: 22px; margin: -2px -4px 8px; padding: 2px 4px; font-size: 11.5px; }
+.design-panel .sh-ico { width: 16px; height: 16px; background: none; color: var(--muted); }
+.design-panel .section-body { gap: 9px; }
+.design-panel .cap-group { gap: 4px; }
+.design-panel .cap-css { display: none; }
+.design-panel .cap.has-tip { flex-direction: row; }
+.design-panel .field { height: 30px; border-radius: 6px; }
+.design-panel .num-label { line-height: 28px; }
+.section-info { display: inline-grid; place-items: center; flex: none; width: 20px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--muted); cursor: pointer; }
+.section-info:hover, .section-info[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); }
+.inspector-info { position: fixed; z-index: 1100; width: min(272px, calc(100vw - 16px)); padding: 12px 14px; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow); outline: none; }
+.inspector-info-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.inspector-info p { margin: 8px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+.inspector-info .icon-btn { width: 20px; height: 20px; }
+
+@container (max-width: 270px) {
+  #right .tab .ico { display: inline-flex; }
+  #right .tab-label { display: none; }
+}
 
 @container (max-width: 560px) {
   .toolbar { padding: 4px; gap: 1px; }

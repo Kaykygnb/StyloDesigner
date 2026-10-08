@@ -1139,7 +1139,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    * Então NENHUM atalho do canvas pode agir — senão um Delete com o foco num botão da janela apagaria camadas
    * escondidas atrás dela.
    */
-  const covered = () => ui.homeOpen || !!document.querySelector('.modal-backdrop');
+  const covered = () => ui.homeOpen || !!document.querySelector('.modal-backdrop, .inspector-info');
 
   /**
    * TECLADO — todos os atalhos do editor. Ordem importa (do mais específico ao mais geral):
