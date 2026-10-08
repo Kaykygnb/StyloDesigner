@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-34 arquivos · 579 funções e constantes documentadas.
+34 arquivos · 581 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -206,8 +206,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`localBox(node)`** <sub>interna</sub> · [L955](../src/commands.js#L955) — Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG.
 - **`frameSelection()`** <sub>interna</sub> · [L964](../src/commands.js#L964) — Ctrl+Alt+G: envolve a seleção num frame novo, sem layout.
 - **`cssOf(nodes)`** <sub>interna</sub> · [L975](../src/commands.js#L975) — CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS".
-- **`readImage(file)`** <sub>do módulo</sub> · [L997](../src/commands.js#L997) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
-- **`pathBounds(pts, closed = false)`** · [L1030](../src/commands.js#L1030) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
+- **`readImage(file)`** <sub>do módulo</sub> · [L998](../src/commands.js#L998) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
+- **`pathBounds(pts, closed = false)`** · [L1031](../src/commands.js#L1031) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
   - `[]` <sub>{x,y,hin?,hout?</sub> — } pts
   - `[closed]` <sub>boolean</sub> — considera o segmento de volta ao primeiro ponto
 
@@ -352,11 +352,14 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
 - **`makeClassNamer()`** <sub>do módulo</sub> · [L618](../src/css.js#L618) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
 - **`escapeHtml(s)`** <sub>do módulo</sub> · [L629](../src/css.js#L629) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false } = {})`** · [L640](../src/css.js#L640) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null } = {})`** · [L640](../src/css.js#L640) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`exportHtml(node, assets, title = 'Design')`** · [L675](../src/css.js#L675) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`colorVarNames(styles)`** · [L689](../src/css.js#L689) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`joinCss(parts)`** · [L706](../src/css.js#L706) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+  - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
+- **`exportHtml(node, assets, title = 'Design', styles = null)`** · [L718](../src/css.js#L718) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -373,18 +376,18 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `filename` <sub>string</sub> — nome do arquivo
   - `data` <sub>string\|Blob</sub> — conteúdo
   - `[type]` <sub>string</sub> — tipo MIME (ignorado se `data` já for Blob)
-- **`exportHtmlFile(node, assets)`** · [L34](../src/export.js#L34) — Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html".
+- **`exportHtmlFile(node, assets, styles = null)`** · [L34](../src/export.js#L34) — Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html".
 - **`saveProject(doc)`** · [L42](../src/export.js#L42) — Baixa o PROJETO inteiro como `.designer.json` (todas as páginas, imagens e estilos). É o backup de verdade: o salvamento automático fica só no navegador. Para abrir de novo: Arquivo → Abrir.
 - **`openProjectFile(file)`** · [L51](../src/export.js#L51) — Lê um arquivo de projeto (.json) escolhido pelo usuário. Valida o mínimo (tem páginas) e completa campos que projetos antigos não tinham. Lança um erro com mensagem amigável se o arquivo não for um projeto.
   - `file` <sub>File</sub> — 
-- **`exportPng(node, assets, scale = 2)`** · [L69](../src/export.js#L69) — Exporta a camada como PNG. Técnica: monta o HTML+CSS da camada (o MESMO do painel Código), embrulha num SVG com <foreignObject>, carrega como imagem e desenha num <canvas> na escala pedida (2x = dobro de pixels, nítido em telas HiDPI). Se a camada está girada, a imagem tem o tamanho da caixa rotacionada e a camada fica centralizada nela.
+- **`exportPng(node, assets, scale = 2, styles = null)`** · [L69](../src/export.js#L69) — Exporta a camada como PNG. Técnica: monta o HTML+CSS da camada (o MESMO do painel Código), embrulha num SVG com <foreignObject>, carrega como imagem e desenha num <canvas> na escala pedida (2x = dobro de pixels, nítido em telas HiDPI). Se a camada está girada, a imagem tem o tamanho da caixa rotacionada e a camada fica centralizada nela.
 
   LIMITAÇÕES: o navegador não carrega fontes da web dentro de uma imagem SVG, então só valem as fontes INSTALADAS no
   computador; e efeitos como backdrop-filter podem não aparecer. (O HTML/SVG exportados não têm essas limitações.)
   - `node` <sub>object</sub> — camada
   - `assets` <sub>object</sub> — imagens do documento
   - `[scale=2]` <sub>number</sub> — 1 a 4
-- **`exportSvgFile(node, assets, boxOf)`** · [L96](../src/export.js#L96) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
+- **`exportSvgFile(node, assets, boxOf)`** · [L98](../src/export.js#L98) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
 
 ---
 

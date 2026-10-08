@@ -9,7 +9,7 @@
  */
 
 import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, resizeNode, round, uid } from './model.js';
-import { generateCode } from './css.js';
+import { generateCode, joinCss } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 import { importSvg } from './svgimport.js';
 
@@ -973,7 +973,8 @@ export function createCommands(store, canvas) {
   // ------------------------------------------------------------------ código
   /** CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS". */
   function cssOf(nodes) {
-    return nodes.map((n) => generateCode([n], store.parentOf(n.id), store.state.doc.assets).css).join('\n\n');
+    const doc = store.state.doc;
+    return joinCss(nodes.map((n) => generateCode([n], store.parentOf(n.id), doc.assets, { styles: doc.styles })));
   }
 
   // API pública dos comandos

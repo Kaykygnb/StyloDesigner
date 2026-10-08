@@ -7,7 +7,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { exportHtml, generateCode } from './css.js';
+import { exportHtml, generateCode, joinCss } from './css.js';
 import { toSvg } from './svg.js';
 import { slugify } from './model.js';
 
@@ -31,8 +31,8 @@ export function download(filename, data, type) {
 }
 
 /** Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html". */
-export function exportHtmlFile(node, assets) {
-  download(`${slugify(node.name)}.html`, exportHtml(node, assets, node.name), 'text/html');
+export function exportHtmlFile(node, assets, styles = null) {
+  download(`${slugify(node.name)}.html`, exportHtml(node, assets, node.name, styles), 'text/html');
 }
 
 /**
@@ -66,11 +66,13 @@ export async function openProjectFile(file) {
  * @param {object} assets  imagens do documento
  * @param {number} [scale=2]  1 a 4
  */
-export async function exportPng(node, assets, scale = 2) {
+export async function exportPng(node, assets, scale = 2, styles = null) {
   const rad = ((node.rotation || 0) * Math.PI) / 180;
   const W = Math.ceil(Math.abs(node.w * Math.cos(rad)) + Math.abs(node.h * Math.sin(rad)));
   const H = Math.ceil(Math.abs(node.w * Math.sin(rad)) + Math.abs(node.h * Math.cos(rad)));
-  const { html, css } = generateCode([node], null, assets, { root: true });
+  const gen = generateCode([node], null, assets, { root: true, styles });
+  const html = gen.html;
+  const css = joinCss([gen]);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
     `<foreignObject width="100%" height="100%">` +

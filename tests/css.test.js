@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates, cleanTrackList } from '../src/model.js';
-import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle } from '../src/css.js';
+import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle, colorVarNames, joinCss } from '../src/css.js';
 import { toSvg } from '../src/svg.js';
 import { buildSample } from '../src/sample.js';
 
@@ -507,4 +507,41 @@ test('no CANVAS (opts.editor) a rolagem vira "cortar"; frames que cortam ou most
   assert.equal(nodeStyle(f, null).overflow, 'auto'); // exportação e apresentação: rolagem de verdade
   const keep = createNode('frame', { clip: false });
   assert.equal(nodeStyle(keep, null, {}, { editor: true }).overflow, undefined);
+});
+
+// ---------------------------------------------------------------- variáveis de CSS a partir dos estilos de cor
+const STYLES = { colors: [{ id: 'c1', name: 'Primária', color: '#7C5CFF', opacity: 1 }, { id: 'c2', name: 'Primária', color: '#FF5CA8', opacity: 0.5 }], texts: [] };
+
+test('colorVarNames: --cor-nome sem acento; nomes repetidos ganham sufixo', () => {
+  const m = colorVarNames(STYLES);
+  assert.equal(m.get('c1'), '--cor-primaria');
+  assert.equal(m.get('c2'), '--cor-primaria-2');
+  assert.equal(colorVarNames(null).size, 0);
+});
+
+test('camada ligada a um estilo de cor escreve var(--cor-...) e o :root sai uma vez', () => {
+  const a = createNode('rect', { name: 'Botão', w: 100, h: 40, fill: { ...defaultFill('#7C5CFF'), styleId: 'c1' } });
+  const b = createNode('rect', { name: 'Selo', w: 40, h: 40, fill: { ...defaultFill('#FF5CA8'), opacity: 0.5, styleId: 'c2' } });
+  const solta = createNode('rect', { name: 'Solta', w: 40, h: 40, fill: defaultFill('#111111') });
+  const ga = generateCode([a], null, {}, { styles: STYLES });
+  const gb = generateCode([b, solta], null, {}, { styles: STYLES });
+  assert.ok(ga.css.includes('background-color: var(--cor-primaria);'), ga.css);
+  assert.ok(gb.css.includes('background-color: var(--cor-primaria-2);'), gb.css);
+  assert.ok(gb.css.includes('background-color: #111111;'), gb.css); // sem estilo: continua o hex
+  const css = joinCss([ga, gb]);
+  assert.equal(css.split(':root {').length - 1, 1);
+  assert.ok(css.startsWith(':root {\n  --cor-primaria: #7c5cff;\n  --cor-primaria-2: rgba(255, 92, 168, 0.5);\n}'), css);
+  // sem estilos passados, nada muda
+  const plain = generateCode([a], null, {});
+  assert.ok(plain.css.includes('background-color: #7c5cff;'));
+  assert.equal(joinCss([plain]), plain.css);
+});
+
+test('texto ligado a um estilo de cor usa var() em color; exportHtml leva o :root', () => {
+  const t = createNode('text', { name: 'Título', fill: { ...defaultFill('#7C5CFF'), styleId: 'c1' } });
+  assert.ok(generateCode([t], null, {}, { styles: STYLES }).css.includes('color: var(--cor-primaria);'));
+  const f = createNode('frame', { name: 'Tela', fill: { ...defaultFill('#7C5CFF'), styleId: 'c1' } });
+  const html = exportHtml(f, {}, 'x', STYLES);
+  assert.ok(html.includes(':root {\n  --cor-primaria: #7c5cff;\n}'), html);
+  assert.ok(html.includes('background-color: var(--cor-primaria);'));
 });

@@ -122,6 +122,19 @@ ok('na apresentação rola de verdade (overflow-y auto, conteúdo maior que a ca
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 
+// ---------------------------------------------------------------- variáveis de CSS (estilos de cor) no painel Código
+await reset();
+const tk = await mk('rect', { name: 'Botão', x: 20, y: 20, w: 120, h: 40 });
+await ev((id) => { designer.store.setSelection([id]); designer.commands.addColorStyle(designer.store.get(id), 'Marca Principal'); }, tk);
+await page.waitForTimeout(200);
+await page.click('#right .tab:has-text("Código")');
+await page.waitForTimeout(300);
+const codigo = await page.locator('#right .code-view').innerText();
+const compacto = codigo.replace(/\s+/g, ' ');
+ok('Código: bloco :root com a variável do estilo de cor', compacto.includes(':root { --cor-marca-principal: #d9d9d9; }'), compacto.slice(0, 160));
+ok('Código: a camada usa var(--cor-marca-principal)', compacto.includes('background-color: var(--cor-marca-principal);'), compacto.slice(0, 260));
+await page.click('#right .tab:has-text("Design")');
+
 ok('sem erros no console', errors.length === 0, errors.join(' | '));
 await browser.close();
 process.exit(fails ? 1 : 0);

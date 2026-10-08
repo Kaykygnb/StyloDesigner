@@ -14,6 +14,9 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - **Trilhas personalizadas no grid**: "Trilhas personalizadas (CSS)" para colunas e linhas (`240px 1fr 2fr`, `auto 1fr auto`, `repeat(auto-fit, minmax(200px, 1fr))`). Vazio usa os números de colunas/linhas; escolher no seletor visual ou nos números limpa as trilhas. O texto é **sanitizado** (`cleanTrackList`: sem `; { } : aspas`) para não fechar a regra no CSS exportado.
 - Blocos recolhíveis do painel (Limites e proporção, Filtros de cor, Trilhas personalizadas) **lembram se estavam abertos** (antes fechavam sozinhos ao apagar o último valor).
 
+### Adicionado (variáveis de CSS)
+- **Estilos de cor viram variáveis de CSS** no código gerado: camadas ligadas a um estilo escrevem `background-color: var(--cor-primaria)` (em texto, `color: var(...)`) e o CSS começa com **um** bloco `:root { --cor-primaria: #7c5cff; }` com as variáveis usadas. Vale no painel Código, em "Copiar CSS", no HTML exportado e no PNG. Nomes repetidos ganham sufixo (`-2`); vetores (cor dentro do `<svg>`) e camadas sem estilo continuam com o valor direto. Mudar o estilo no editor muda a variável, como num design system de verdade.
+
 ### Adicionado (rolagem em frames)
 - **"Conteúdo que sai"** (substitui o "Cortar conteúdo"): *Cortar*, *Mostrar*, *Rolar na vertical*, *Rolar na horizontal* ou *Rolar nos dois sentidos* (`overflow: hidden | visible | auto`, por eixo). A rolagem **funciona de verdade na apresentação e no HTML exportado** (listas, telas longas, carrosséis); no editor o conteúdo continua cortado para não aparecerem barras de rolagem no canvas. Projetos antigos continuam iguais (`clip` define cortar ou mostrar). Sincroniza com componentes.
 

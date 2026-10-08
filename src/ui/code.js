@@ -5,7 +5,7 @@
  */
 
 import { h, ico } from './dom.js';
-import { generateCode } from '../css.js';
+import { generateCode, joinCss } from '../css.js';
 
 /** Escapa & < > para exibir código dentro de <pre> sem o navegador interpretar como HTML. */
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -69,9 +69,10 @@ export function createCodePanel({ store, commands, toast }) {
     const assets = store.state.doc.assets;
     const parts = targets.map((n) => {
       const node = children ? n : { ...n, children: n.children ? [] : undefined };
-      return generateCode([node], store.parentOf(n.id), assets);
+      return generateCode([node], store.parentOf(n.id), assets, { styles: store.state.doc.styles });
     });
-    const code = parts.map((p) => (tab === 'css' ? p.css : p.html)).filter(Boolean).join(tab === 'css' ? '\n\n' : '\n');
+    // CSS: um só bloco :root com as variáveis (estilos de cor) de todas as partes; HTML: só junta
+    const code = tab === 'css' ? joinCss(parts) : parts.map((p) => p.html).filter(Boolean).join('\n');
     current = code;
     pre.innerHTML = code ? (tab === 'css' ? highlightCss(code) : highlightHtml(code)) : '<span class="muted">Nada para mostrar.</span>';
   }

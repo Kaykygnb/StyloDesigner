@@ -1154,7 +1154,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           type: 'button',
           onclick: async () => {
             try {
-              for (const n of commands.topSelection()) await exportPng(n, store.state.doc.assets, exportScale);
+              for (const n of commands.topSelection()) await exportPng(n, store.state.doc.assets, exportScale, store.state.doc.styles);
             } catch (err) { toast(err.message); }
           },
         }, 'PNG'),
@@ -1165,7 +1165,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         }, 'SVG'),
         h('button.btn', {
           type: 'button',
-          onclick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets)),
+          onclick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets, store.state.doc.styles)),
         }, 'HTML')),
       h('p.hint', 'PNG usa as fontes instaladas no seu computador.'),
     ]);

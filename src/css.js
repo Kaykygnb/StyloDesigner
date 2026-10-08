@@ -637,13 +637,27 @@ const escapeHtml = (s) =>
  * @param {object} [assets]  imagens do documento
  * @param {{root?: boolean}} [opts]  root: a 1ª camada vira o elemento raiz (position:relative)
  */
-export function generateCode(nodes, parent, assets = {}, { root = false } = {}) {
+export function generateCode(nodes, parent, assets = {}, { root = false, styles = null } = {}) {
   const className = makeClassNamer();
   const rules = [];
+  // VARIÁVEIS de CSS: camadas ligadas a um estilo de cor escrevem var(--cor-nome) em vez do hex; `tokens` guarda
+  // quais variáveis foram usadas (nome → valor) para o chamador escrever o bloco :root (veja joinCss)
+  const varNames = colorVarNames(styles);
+  const tokens = new Map();
+  const useTokens = (node, st) => {
+    const f = node.fill;
+    if (!varNames.size || !f?.styleId || f.type !== 'solid' || node.type === 'path') return;
+    const name = varNames.get(f.styleId);
+    const key = node.type === 'text' ? 'color' : 'background-color';
+    const literal = rgba(f.color, f.opacity);
+    if (name && st[key] === literal) { st[key] = `var(${name})`; tokens.set(name, literal); }
+  };
   const build = (node, par, depth, isRoot) => {
     if (!node.visible) return '';
     const cls = className(node);
-    rules.push(cssRule(`.${cls}`, nodeStyle(node, par, assets, { root: isRoot })));
+    const base = nodeStyle(node, par, assets, { root: isRoot });
+    useTokens(node, base);
+    rules.push(cssRule(`.${cls}`, base));
     // estados: uma regra por estado com SÓ o que muda (.card:hover, .card:active, .card:focus-visible)
     for (const [state, , pseudo] of STATE_LIST) {
       if (!node.states?.[state] || !Object.keys(node.states[state]).length) continue;
@@ -665,15 +679,46 @@ export function generateCode(nodes, parent, assets = {}, { root = false } = {}) 
     return `${pad}<${tag} class="${cls}"${focusable}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
-  return { html, css: rules.join('\n\n') };
+  return { html, css: rules.join('\n\n'), tokens: [...tokens] };
+}
+
+/**
+ * Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em
+ * minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+ */
+export function colorVarNames(styles) {
+  const out = new Map();
+  const used = new Map();
+  for (const st of styles?.colors || []) {
+    const base = `--cor-${slugify(st.name || 'estilo')}`;
+    const n = (used.get(base) || 0) + 1;
+    used.set(base, n);
+    out.set(st.id, n === 1 ? base : `${base}-${n}`);
+  }
+  return out;
+}
+
+/**
+ * Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as
+ * variáveis usadas por elas. Sem variáveis, devolve só as regras.
+ * @param {{css: string, tokens?: [string, string][]}[]} parts
+ */
+export function joinCss(parts) {
+  const tokens = new Map();
+  for (const p of parts) for (const [k, v] of p.tokens || []) tokens.set(k, v);
+  const rules = parts.map((p) => p.css).filter(Boolean).join('\n\n');
+  const rootBlock = tokens.size ? `:root {\n${[...tokens].map(([k, v]) => `  ${k}: ${v};`).join('\n')}\n}` : '';
+  return [rootBlock, rules].filter(Boolean).join('\n\n');
 }
 
 /**
  * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
  * Abre direto no navegador; o CSS fica num <style> no <head>.
  */
-export function exportHtml(node, assets, title = 'Design') {
-  const { html, css } = generateCode([node], null, assets, { root: true });
+export function exportHtml(node, assets, title = 'Design', styles = null) {
+  const gen = generateCode([node], null, assets, { root: true, styles });
+  const html = gen.html;
+  const css = joinCss([gen]);
   // fontes do Google usadas nos textos: o HTML exportado já leva o <link> (sem ele, cairia na fonte padrão)
   const fontsUrl = googleFontsUrl(usedFonts([node]));
   const fontLink = fontsUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fontsUrl}">\n` : '';

@@ -222,7 +222,7 @@ const fileBtn = h('button.btn.ghost', {
       'sep',
       {
         label: 'Exportar seleção como HTML', icon: 'code', disabled: !ui.selection.length,
-        onClick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets)),
+        onClick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets, store.state.doc.styles)),
       },
       {
         label: 'Exportar todos os frames da página (PNG 2x)', icon: 'image',
@@ -230,7 +230,7 @@ const fileBtn = h('button.btn.ghost', {
         onClick: async () => {
           const frames = store.page().children.filter((n) => n.type === 'frame' && n.visible);
           try {
-            for (const f of frames) { await exportPng(f, store.state.doc.assets, 2); await new Promise((r) => setTimeout(r, 250)); }
+            for (const f of frames) { await exportPng(f, store.state.doc.assets, 2, store.state.doc.styles); await new Promise((r) => setTimeout(r, 250)); }
             toast(`${frames.length} imagens exportadas.`);
           } catch (err) { toast(err.message); }
         },
