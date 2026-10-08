@@ -6,6 +6,17 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.15.2] — 2026-10-08 — Escolher o modelo da NVIDIA de verdade
+
+Relato do teste real: "não consegui selecionar os modelos da NVIDIA nas configurações".
+
+### Corrigido
+- **"Ver modelos" exigia clicar em Salvar antes**: com a chave só colada, ele reclamava que não havia chave. Agora grava sozinho o endereço e a chave digitados antes de consultar.
+- **A lista de modelos escondia quase tudo**: usava o `<datalist>` do navegador, que só mostra o que combina com o texto já escrito no campo (que vinha preenchido com o modelo sugerido). Virou uma lista de verdade, com busca ("llama", "qwen", "deepseek"); clicar escolhe e salva.
+- A lista mostrava um "null" solto quando a busca tinha resultado; e o Esc na busca não fechava a janela.
+
+---
+
 ## [0.15.1] — 2026-10-08 — NVIDIA NIM, instruções da IA e linhas do inspetor
 
 ### Adicionado

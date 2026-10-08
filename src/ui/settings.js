@@ -160,12 +160,48 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
       else { base.focus(); base.select(); }
     });
     const key = h('input.text.mono', { type: 'password', placeholder: ai.hasKey ? '•••••••• (chave salva)' : prov?.keyHint || 'chave da API', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave da API' });
-    const models = h('datalist', { id: 'ai-models' });
-    const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo', list: 'ai-models' });
+    const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo' });
     const base = h('input.text.mono', { type: 'text', value: ai.baseUrl, spellcheck: false, 'aria-label': 'Endereço da API' });
     const saveBtn = h('button.btn.primary', { type: 'button', onclick: () => save({ model: model.value, baseUrl: base.value, ...(key.value.trim() ? { apiKey: key.value.trim() } : {}) }) }, 'Salvar');
     const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }, 'Chave apagada.') }, 'Apagar chave') : null;
-    // VER MODELOS: pergunta à API quais modelos a sua conta tem (e assim testa a chave)
+    /** Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta). */
+    const putConfig = async (patch) => {
+      const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      return data;
+    };
+    // LISTA DE MODELOS (aparece depois de "Ver modelos"): busca + lista clicável. Uma lista de verdade, e não o
+    // <datalist> do navegador, que só mostra o que combina com o texto já escrito no campo (escondia quase tudo).
+    const picker = h('div.model-picker', { hidden: true });
+    function showPicker(list) {
+      const search = h('input.text', { type: 'search', placeholder: `Buscar entre ${list.length} modelos… (ex.: llama, qwen, deepseek)`, 'aria-label': 'Buscar modelo', spellcheck: false });
+      const box = h('div.model-list', { role: 'listbox', 'aria-label': 'Modelos disponíveis' });
+      const fill = () => {
+        const q = search.value.trim().toLowerCase();
+        const shown = list.filter((m) => !q || m.toLowerCase().includes(q));
+        box.replaceChildren(...shown.slice(0, 300).map((m) => h('button.model-item' + (m === model.value ? '.on' : ''), {
+          type: 'button', role: 'option', 'aria-selected': String(m === model.value),
+          onclick: async () => {
+            try {
+              await putConfig({ model: m });
+              model.value = m;
+              msg.className = 'set-msg';
+              msg.textContent = `Modelo escolhido: ${m}. Lembre: ele precisa aceitar ferramentas ("tool calling") para mexer no design.`;
+              toast('Modelo salvo.');
+              fill();
+            } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message; }
+          },
+        }, m)), ...(shown.length ? [] : [h('p.muted.small', 'Nenhum modelo com esse nome.')])); // nada de null: replaceChildren escreveria "null"
+      };
+      search.addEventListener('input', fill);
+      picker.replaceChildren(h('div.field', search), box);
+      picker.hidden = false;
+      fill();
+      search.focus();
+    }
+    // VER MODELOS: grava antes o que foi digitado (endereço e chave nova), pergunta à API quais modelos a conta tem
+    // e mostra a lista. De quebra, testa a chave.
     const listBtn = h('button.btn', {
       type: 'button',
       onclick: async () => {
@@ -173,12 +209,15 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         msg.className = 'set-msg';
         msg.textContent = 'Consultando os modelos…';
         try {
+          const typed = key.value.trim();
+          await putConfig({ baseUrl: base.value, ...(typed ? { apiKey: typed } : {}) });
+          if (typed) { key.value = ''; key.placeholder = '•••••••• (chave salva)'; }
           const r = await fetch('/api/agent/models');
           const data = await r.json();
           if (!r.ok) throw new Error(data.error);
-          models.replaceChildren(...data.models.map((m) => h('option', { value: m })));
-          msg.textContent = `A chave funciona: ${data.models.length} modelos. Clique no campo Modelo para escolher (ou digite parte do nome).`;
-          model.focus();
+          if (!data.models.length) throw new Error('A API não devolveu nenhum modelo.');
+          msg.textContent = `A chave funciona: ${data.models.length} modelos. Clique em um para escolher.`;
+          showPicker(data.models);
         } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui listar os modelos.'; }
         listBtn.disabled = false;
       },
@@ -191,7 +230,8 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         ' chave. Ela fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto.'),
       h('div.set-row', h('span.set-label', 'Provedor'), h('div.field.select-wrap', provSel, ico('chevron', 12))),
       h('div.set-row', h('span.set-label', 'Chave da API'), h('div.field.grow', key), forget),
-      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model, models), listBtn),
+      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model), listBtn),
+      picker,
       h('div.set-row', h('span.set-label', 'Endereço da API'), h('div.field.grow', base)),
       h('div.set-row', saveBtn),
       msg,

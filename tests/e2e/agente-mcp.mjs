@@ -168,10 +168,12 @@ try {
 
   // ---------------------------------------------------------------- 5. Assistente com uma "OpenAI de mentira"
   const seen = [];
+  const modelsAuth = [];
   mock = createServer(async (req, res) => {
     let body = '';
     for await (const c of req) body += c;
     if (req.url === '/v1/models') {
+      modelsAuth.push(req.headers.authorization || '');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ data: [{ id: 'nvidia/modelo-b' }, { id: 'meta/modelo-a' }] }));
     }
@@ -194,6 +196,23 @@ try {
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseUrl: mockUrl, model: 'modelo-teste' }) });
   const listed = await (await fetch(url('/api/agent/models'))).json();
   ok('"Ver modelos" lista os modelos da conta (em ordem)', listed.models?.join() === 'meta/modelo-a,nvidia/modelo-b', JSON.stringify(listed));
+  // na TELA, como uma pessoa faz: cola a chave e clica "Ver modelos" SEM clicar em Salvar antes; escolhe na lista
+  await p.keyboard.press('Control+,');
+  await p.waitForSelector('[aria-label="Chave da API"]');
+  await p.fill('[aria-label="Chave da API"]', 'chave-da-tela-123');
+  await p.locator('button', { hasText: 'Ver modelos' }).click();
+  await p.waitForSelector('.model-item');
+  ok('"Ver modelos" salva a chave digitada e mostra a lista (sem precisar de Salvar)', (await p.locator('.model-item').count()) === 2 && modelsAuth.at(-1) === 'Bearer chave-da-tela-123', `${await p.locator('.model-item').count()} itens, auth ${modelsAuth.at(-1)}`);
+  await p.fill('[aria-label="Buscar modelo"]', 'nvidia');
+  ok('a busca filtra a lista (sem texto "null" sobrando)', (await p.locator('.model-item').count()) === 1 && !(await p.locator('.model-list').innerText()).includes('null'));
+  await p.locator('.model-item', { hasText: 'nvidia/modelo-b' }).click();
+  await p.waitForTimeout(200);
+  ok('clicar escolhe e salva o modelo', (await (await fetch(url('/api/agent/config'))).json()).model === 'nvidia/modelo-b' && (await p.inputValue('[aria-label="Modelo"]')) === 'nvidia/modelo-b');
+  await p.focus('[aria-label="Buscar modelo"]');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  ok('Esc na busca de modelos fecha a janela', (await p.locator('.modal-backdrop').count()) === 0);
+  await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: '', model: 'modelo-teste' }) });
   await ev((id) => designer.store.setSelection([id]), ids.botao);
   await p.click('.ai-btn');
   await p.waitForSelector('.ai-panel:not([hidden])');

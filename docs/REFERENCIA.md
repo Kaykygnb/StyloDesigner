@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-50 arquivos · 758 funções e constantes documentadas.
+50 arquivos · 759 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1969,6 +1969,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `deps.toast` <sub>(m: string) => void</sub> — 
 - **`render()`** <sub>interna</sub> · [L45](../src/ui/settings.js#L45) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
 - **`save(patch, done = 'Assistente configurado.')`** <sub>interna</sub> · [L144](../src/ui/settings.js#L144) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
+- **`putConfig(patch)`** <sub>interna</sub> · [L168](../src/ui/settings.js#L168) — Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta).
 
 ---
 

@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.15.1` · JavaScript puro (módulos ES) · sem dependências para rodar · 162 testes unitários + 28 suítes de navegador
+`v0.15.2` · JavaScript puro (módulos ES) · sem dependências para rodar · 162 testes unitários + 28 suítes de navegador
 
 ---
 
