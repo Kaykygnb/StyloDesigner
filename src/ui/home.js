@@ -151,7 +151,8 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
     const top = h('header.home-top',
       h('div.brand',
         h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>' }),
-        h('span.brand-name', 'Projeto Designer')),
+        h('span.brand-name', 'Projeto Designer'),
+        h('span.home-version', 'v0.13')),
       h('div.spacer'),
       h('label.home-search', ico('search', 15), search, h('kbd', '/')),
       iconButton(ui.theme === 'dark' ? 'sun' : 'moon', 'Alternar tema claro/escuro', () => { store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'); renderShell(); }),
@@ -162,6 +163,7 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
 
     const hero = h('div.home-hero',
       h('div',
+        h('span.home-eyebrow', 'Seu espaço de trabalho'),
         h('h1', 'Seus projetos'),
         h('p.muted', server ? ['Salvos em ', h('span.mono', server.folder), ' · ', h('button.link', { type: 'button', onclick: () => openSettings() }, 'trocar pasta')]
           : 'Sem servidor: os projetos ficam só no navegador. Rode npm start para salvar numa pasta do computador.')),
@@ -184,23 +186,24 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
           h('strong', store.state.doc.name),
           h('span.muted', `${pages} ${pages === 1 ? 'página' : 'páginas'}`),
           h('span.home-where' + (ui.link && ui.savedWhere === 'folder' ? '.ok' : '.warn'), where),
-          h('button.btn.primary', { type: 'button', onclick: close }, 'Continuar editando'))));
+          h('button.btn.primary', { type: 'button', onclick: close }, 'Continuar editando', ico('chevron', 14)))));
 
     // ---- pasta
     const grid = h('div.home-grid', { role: 'list' });
     const sortSel = h('select.home-sort', { 'aria-label': 'Ordenar', onchange: () => { sort = sortSel.value; renderGrid(); } },
       h('option', { value: 'recent', selected: sort === 'recent' }, 'Mais recentes'),
       h('option', { value: 'name', selected: sort === 'name' }, 'Nome (A–Z)'));
-    const folderSec = h('section.home-section',
+    const folderSec = h('section.home-section.home-folder',
       h('div.home-section-head', h('h2', 'Na pasta', h('span.home-count')), server ? sortSel : null),
       server ? grid : h('div.home-empty', h('p', 'Sem servidor, não há pasta para listar.'), h('p.muted', 'Abra o app com npm start para ver aqui os projetos salvos no seu computador.')));
 
     // ---- exemplos
-    const samples = h('section.home-section',
+    const samples = h('section.home-section.home-examples',
       h('h2', 'Comece por um exemplo'),
       h('div.home-grid.samples', create.samples.map((s, i) => h('button.home-card.sample', {
         type: 'button', onclick: () => replaceWith(`Abrir o exemplo "${s.label}"?`, async () => s.load()),
-      }, h('div.home-thumb.sample-art', { dataset: { variant: String(i) } }, ico(i ? 'component' : 'layers', 34)),
+      }, h('div.home-thumb.sample-art', { dataset: { variant: String(i) } },
+        h('img', { src: `assets/example-${i ? 'mobile' : 'landing'}.png`, alt: '', loading: 'lazy', decoding: 'async' })),
       h('div.home-card-info', h('strong', s.label), h('span.muted', s.description))))));
 
     root.replaceChildren(top, h('div.home-main', hero, cont, folderSec, samples));
