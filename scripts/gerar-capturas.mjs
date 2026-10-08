@@ -1,157 +1,138 @@
 /**
- * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  scripts/gerar-capturas.mjs — GERA AS CAPTURAS DE TELA DO README (docs/screenshots/*.png)
- * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Abre o app num navegador de verdade (Playwright), monta cada cena (carrega um exemplo, seleciona uma camada,
- *  abre a aba certa, rola o painel) e tira a foto. Rode de novo sempre que o visual do app mudar.
+ * Gera as capturas de tela do README em docs/screenshots/ usando o projeto base (a Vitrine completa).
  *
- *  Como usar (precisa do Playwright, dependência de desenvolvimento):
- *    npm install && npx playwright install chromium
- *    npm start                              # em outro terminal
- *    node scripts/gerar-capturas.mjs
+ * Uso (com o servidor ligado em outro terminal: `npm start`):
+ *     node scripts/gerar-capturas.mjs
  *
- *  Variáveis opcionais: APP_URL (padrão http://localhost:5173/) e CHROMIUM_PATH (se já tiver um Chromium instalado).
- * ════════════════════════════════════════════════════════════════════════════════════════════════
+ * Variáveis opcionais: APP_URL (padrão http://localhost:5173/) e CHROMIUM_PATH (um Chromium já instalado).
+ * As imagens são 1440×900, a 2x de nitidez NÃO (para não pesar no repositório).
  */
 import { chromium } from 'playwright';
-import { fileURLToPath } from 'node:url';
-import { mkdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { buildSample, buildSampleApp } from '../tests/fixtures/amostras.js';
-import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { buildSampleShowcase } from '../src/sample-vitrine.js';
 
-const OUT = fileURLToPath(new URL('../docs/screenshots', import.meta.url));
+const OUT = 'docs/screenshots';
 mkdirSync(OUT, { recursive: true });
-const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
-const ctx = await b.newContext({ viewport: { width: 1600, height: 960 } });
-const p = await ctx.newPage();
-const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('console', m => m.type() === 'error' && errors.push(m.text()));
-await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(700);
-const ev = (f, a) => p.evaluate(f, a);
-// os documentos dos exemplos antigos (Landing e App mobile) agora vivem em tests/fixtures/amostras.js: são montados aqui no Node e entregues ao app
-const loadApp = async () => { await ev((doc) => { designer.store.setTheme('dark'); designer.store.loadDoc(doc); }, buildSampleApp()); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
-const loadLanding = async () => { await ev((doc) => { designer.store.setTheme('dark'); designer.store.loadDoc(doc); }, buildSample()); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
-const find = (name) => ev((name) => { let id; const w = (l) => l.forEach(n => { if (n.name === name && !id) id = n.id; n.children && w(n.children); }); w(designer.store.page().children); return id; }, name);
-const select = async (name, { fitSel = false, pad = 160, maxZoom = 1.2 } = {}) => { const id = await find(name); await ev(({ id, fitSel, pad, maxZoom }) => { designer.store.setSelection([id]); if (fitSel) designer.canvas.fit([id], { padding: pad, maxZoom }); }, { id, fitSel, pad, maxZoom }); await p.waitForTimeout(250); return id; };
-const rightTab = async (t) => { await p.click(`#right .tab:has-text("${t}")`); await p.waitForTimeout(200); };
-const leftTab = async (t) => { await p.click(`#left .tab:has-text("${t}")`); await p.waitForTimeout(200); };
-const scrollPanel = async (title) => { await ev((title) => { const panel = document.querySelector('#right'); const head = [...document.querySelectorAll('#right .section-head')].find(h => h.textContent.trim().startsWith(title)); if (head) { const sec = head.closest('section'); panel.scrollTop += sec.getBoundingClientRect().top - panel.getBoundingClientRect().top - 100; } }, title); await p.waitForTimeout(150); };
-const shot = async (name) => { await p.mouse.move(800, 940); await p.waitForTimeout(150); await p.screenshot({ path: `${OUT}/${name}.png` }); console.log('✓', name); };
+const URL_BASE = process.env.APP_URL || 'http://localhost:5173/';
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+await page.goto(new URL('?editor', URL_BASE).href);
+await page.waitForTimeout(900);
+const ev = (fn, arg) => page.evaluate(fn, arg);
+const wait = (ms = 450) => page.waitForTimeout(ms);
+const shot = async (name) => { await wait(); await page.screenshot({ path: `${OUT}/${name}.png` }); console.log(`${OUT}/${name}.png`); };
 
-// 01 — visão geral (app mobile, cartão de saldo selecionado)
-await loadApp(); await rightTab('Design'); await leftTab('Camadas');
-await select('Cartão de saldo'); await shot('01-visao-geral');
+/** Abre a vitrine (do jeito que está no app), no tema pedido, sem coisas flutuando por cima. */
+async function open(theme = 'light') {
+  await ev(({ doc, theme }) => {
+    localStorage.removeItem('pd.collapsed');
+    const s = designer.store;
+    s.setTheme(theme); s.setBp(null); s.setMode(null);
+    s.loadDoc(doc, { pristine: true });
+    s.ui.showNotes = false;
+    s.ui.showGrids = false; // a grade de 12 colunas do exemplo poluiria a imagem
+    s.setSelection([]);
+  }, { doc: buildSampleShowcase(), theme });
+  await wait(600);
+}
+const byName = (name) => ev((n) => { let id; const w = (l) => l.forEach((x) => { if (x.name === n && !id) id = x.id; if (x.children) w(x.children); }); w(designer.store.page().children); return id; }, name);
+/** Mostra o topo da página (cabeçalho + hero) grande, à esquerda da área de trabalho. */
+const viewTop = (zoom = 0.62) => ev((z) => {
+  const site = designer.store.page().children[0].children[0];
+  const b = designer.canvas.aabb(site.id);
+  const r = designer.canvas.vpRect();
+  designer.canvas.setView({ zoom: z, x: (r.width - b.w * z) / 2 - b.x * z, y: 60 - b.y * z });
+}, zoom);
+const select = async (name) => { const id = await byName(name); await ev((i) => designer.store.setSelection([i]), id); await wait(); return id; };
 
-// 02 — auto layout flexbox (landing, frame "Cartões")
-await loadLanding(); await select('Cartões', { fitSel: true, pad: 300, maxZoom: 1.0 }); await scrollPanel('Auto layout'); await shot('02-auto-layout-flexbox');
+// 1) visão geral: o editor com o hero selecionado (painel Design à direita)
+await open('light');
+await viewTop(0.6);
+await select('Hero');
+await shot('01-visao-geral');
 
-// 03 — CSS Grid (app, "Ações rápidas")
-await loadApp(); await select('Ações rápidas', { fitSel: true, pad: 330, maxZoom: 1.0 }); await scrollPanel('Auto layout'); await shot('03-css-grid');
+// 2) página inicial
+await ev(() => designer.home.open());
+await wait(700);
+await shot('02-pagina-inicial');
+await ev(() => designer.home.close?.());
+await page.keyboard.press('Escape');
 
-// 04 — componentes e estilos (aba Recursos + instância selecionada)
-await loadApp();
-await ev(() => { const s = designer.store; let n; const w = (l) => l.forEach(x => { if (x.name === 'Valor' && !n) n = x; x.children && w(x.children); }); w(s.page().children); });
-await select('Ação Pagar', { fitSel: true, pad: 330, maxZoom: 1.0 }); await leftTab('Recursos'); await scrollPanel('Componente'); await shot('04-componentes');
-await leftTab('Camadas');
+// 3) auto layout e CSS ao vivo: a grade de recursos selecionada
+await open('light');
+await ev(() => designer.canvas.fit(null));
+const grid = await byName('Grade de recursos');
+await ev((id) => { designer.store.setSelection([id]); designer.canvas.fit([id], { padding: 90, maxZoom: 0.9 }); }, grid);
+await wait(600);
+await shot('03-auto-layout-grade');
 
-// 05 — aba Código (CSS real do cartão de saldo)
-await loadApp(); await select('Cartão de saldo', { fitSel: true, pad: 330, maxZoom: 1.0 }); await rightTab('Código'); await shot('05-codigo-css');
-await rightTab('Design');
-
-// 06 — protótipo (interação + seta de fluxo)
-await loadApp(); await select('Ação Enviar'); await rightTab('Protótipo'); await shot('06-prototipo'); await rightTab('Design');
-
-// 07 — modo apresentar
-await loadApp(); const homeId = await find('Home'); await ev((id) => designer.store.setSelection([id]), homeId);
-await p.click('.topbar .btn.primary'); await p.waitForTimeout(500);
-await ev(() => { document.querySelector('.present-bar').style.opacity = 1; });
-await p.screenshot({ path: `${OUT}/07-apresentar.png` }); console.log('✓ 07-apresentar');
-await p.keyboard.press('Escape'); await p.waitForTimeout(200);
-
-// 08 — vetores: caneta e edição de pontos (coração com curvas de Bézier)
-await ev(async () => { const m = await import('/src/model.js'); const s = designer.store; s.newDoc(); });
-await p.waitForTimeout(250);
-await ev(async () => {
-  const m = await import('/src/model.js'); const s = designer.store; const c = designer.commands;
-  const f = m.createNode('frame', { name: 'Ilustração', x: 0, y: 0, w: 560, h: 420, fill: { ...m.defaultFill('#FFF4F8') } });
-  s.update((pg) => pg.children.push(f), { commit: true });
-  // coração: curva paramétrica clássica amostrada em 12 pontos; alças suaves (Catmull-Rom → Bézier). O ponto do "vale" (t=0) é de canto.
-  const N = 12; const raw = [];
-  for (let i = 0; i < N; i++) { const t = (2 * Math.PI * i) / N; raw.push({ x: 280 + 16 * Math.sin(t) ** 3 * 10, y: 215 - (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * 10 }); }
-  const pts = raw.map((p, i) => { const a = raw[(i - 1 + N) % N], n = raw[(i + 1) % N]; const vx = (n.x - a.x) / 6, vy = (n.y - a.y) / 6; return i === 0 ? { x: p.x, y: p.y, hin: null, hout: null } : { x: p.x, y: p.y, hin: { x: p.x - vx, y: p.y - vy }, hout: { x: p.x + vx, y: p.y + vy } }; });
-  const node = c.addPathFromWorld(pts, true, f);
-  s.update(() => { node.fill = { ...m.defaultFill('#FF4D8D') }; node.stroke = { ...m.defaultStroke(), color: '#B3124F', width: 4, position: 'center' }; node.name = 'Coração'; }, { commit: true });
-  designer.canvas.fit([f.id], { padding: 120, maxZoom: 1.4 });
-  designer.tools.pen.startEdit(node.id);
-  s.ui.editPt = 3; s.emit('overlay');
+// 4) responsivo: o mesmo site no Celular
+await open('light');
+await page.locator('#topbar .bp-btn[data-bp="mobile"]').click();
+await wait(400);
+await page.locator('.bp-strip .btn').click();
+await page.mouse.move(700, 450); // tira o mouse de cima do botão (a dica sumiria)
+await wait(3500); // espera o aviso (toast) desaparecer
+await ev(() => {
+  const site = designer.store.page().children[0].children[0];
+  const b = designer.canvas.aabb(site.id);
+  const r = designer.canvas.vpRect();
+  const z = 0.66;
+  designer.canvas.setView({ zoom: z, x: (r.width - b.w * z) / 2 - b.x * z, y: 80 - b.y * z });
 });
-await p.waitForTimeout(300); await shot('08-vetores-caneta');
-await p.keyboard.press('Escape');
+await select('Hero');
+await shot('04-responsivo-celular');
 
-// 09 — medidas com Alt: uma ação dentro do grid "Ações rápidas" → mostra as 4 margens internas
-await loadApp(); await select('Ação Pagar', { fitSel: true, pad: 330, maxZoom: 1.0 });
-await ev(() => { const s = designer.store; let id; const w = (l) => l.forEach(x => { if (x.name === 'Ações rápidas' && !id) id = x.id; x.children && w(x.children); }); w(s.page().children); s.ui.hoverId = id; s.ui.altDown = true; s.emit('overlay'); });
-await p.waitForTimeout(200); await p.screenshot({ path: `${OUT}/09-medidas-alt.png` }); console.log('✓ 09-medidas-alt');
-await ev(() => { designer.store.ui.altDown = false; designer.store.ui.hoverId = null; designer.store.emit('overlay'); });
+// 5) modo escuro
+await open('light');
+const modeId = await ev(() => designer.store.state.doc.styles.modes[0].id);
+await ev((id) => designer.store.setMode(id), modeId);
+await viewTop(0.6);
+await select('Cabeçalho');
+await shot('05-modo-escuro');
 
-// 10 — réguas, guias e grade de colunas
-await loadApp();
-await ev(() => { const s = designer.store; const home = s.page().children.find(n => n.name === 'Home'); s.update(() => { home.grids = [{ type: 'columns', count: 4, gutter: 12, margin: 20, size: 8, color: '#FF3D6E', opacity: 0.14 }]; }, { commit: true }); designer.commands.addGuide('x', 195); designer.commands.addGuide('y', 360); s.setSelection([home.id]); designer.canvas.fit([home.id], { padding: 140, maxZoom: 1.0 }); });
-await p.waitForTimeout(300); await shot('10-reguas-guias-grades');
+// 6) seletor de cor com paletas
+await open('light');
+await viewTop(0.6);
+await select('Botão do topo');
+await ev(async () => {
+  localStorage.removeItem('pd.palettes');
+  const { createPalette } = await import('/src/palettes.js');
+  createPalette('Neutros', ['#0F0D1A', '#5E5A78', '#A9A5C6', '#F7F6FC']);
+  createPalette('Lumen', ['#7C5CFF', '#FF5CA8', '#22D3EE', '#10B981', '#1B1340']);
+});
+await wait(300);
+await page.locator('#right .panel-section', { has: page.locator('.section-head', { hasText: 'Preenchimento' }) }).locator('button.swatch').click();
+await page.waitForSelector('.cp');
+await wait(500);
+await shot('06-seletor-de-cor-e-paletas');
+await page.keyboard.press('Escape');
+await ev(() => localStorage.removeItem('pd.palettes'));
 
-// 11 — tema claro
-await loadLanding(); await ev(() => designer.store.setTheme('light')); await select('Hero'); await p.waitForTimeout(200); await shot('11-tema-claro');
-await ev(() => designer.store.setTheme('dark'));
+// 7) estados (hover) no painel Design
+await open('light');
+await viewTop(0.6);
+await select('Botão do topo');
+await ev(() => { const s = designer.store; s.ui.editState = 'hover'; s.emit('doc'); });
+await wait(500);
+await shot('07-estados-hover');
+await ev(() => { designer.store.ui.editState = null; designer.store.emit('doc'); });
 
-// 12 — efeito vidro (backdrop-filter)
-await loadLanding(); await select('Glass card', { fitSel: true, pad: 220, maxZoom: 1.6 });
-await select('Painel vidro'); await scrollPanel('Efeitos'); await shot('12-efeito-vidro');
+// 8) código gerado (CSS)
+await open('light');
+await viewTop(0.6);
+await select('Hero');
+await page.locator('#right .tab', { hasText: 'Código' }).click();
+await wait(500);
+await shot('08-codigo-css');
 
-// 16 — painel de ícones do Google (busca em português) com um ícone já inserido no app
-await loadApp(); await select('Cabeçalho', { fitSel: true, pad: 260, maxZoom: 1.4 });
-await leftTab('Ícones'); await p.waitForSelector('.gicon img');
-await p.fill('.gicon-search input', 'seta'); await p.waitForTimeout(1800);
-await shot('16-icones-google');
-await p.fill('.gicon-search input', ''); await leftTab('Camadas');
+// 9) notas e comentários
+await open('light');
+await ev(() => { designer.store.ui.showNotes = true; designer.store.emit('overlay'); });
+await viewTop(0.6);
+await select('Visual do hero');
+await page.locator('#right .tab-cm').click();
+await wait(500);
+await shot('09-notas-e-comentarios');
 
-// 17 — seletor de fontes do Google (categoria Manuscrita, com prévia de cada fonte)
-await loadApp(); await select('Título', { fitSel: true, pad: 260, maxZoom: 1.4 });
-await p.click('.font-field'); await p.waitForSelector('.font-picker');
-await p.locator('.font-cats .tab-chip', { hasText: 'Manuscrita' }).click(); await p.waitForTimeout(2500);
-await shot('17-google-fonts');
-await p.keyboard.press('Escape');
-
-// 13, 14 e 15 — salvamento na pasta e página inicial. Usa uma pasta TEMPORÁRIA; os projetos são salvos pelo próprio
-// app (assim as miniaturas da página inicial são as de verdade). No fim devolve a configuração original do servidor.
-const api = (path, method = 'GET', body) => ev(async ({ path, method, body }) => (await fetch('/api' + path, {
-  method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body && JSON.stringify(body),
-})).json(), { path, method, body });
-const original = await api('/status');
-const demo = join(tmpdir(), 'Meus projetos Designer');
-rmSync(demo, { recursive: true, force: true });
-await api('/config', 'PUT', { folder: demo });
-const saveAs = async (name) => { await ev(() => designer.canvas.fit(null)); await ev((n) => designer.saving.saveAs(n), name); await p.waitForTimeout(1500); };
-await loadLanding(); await ev(() => { designer.store.state.doc.name = 'Landing Aurora'; designer.store.commit(); }); await saveAs('landing-aurora');
-await loadApp(); await ev(() => { designer.store.state.doc.name = 'Carteira (rascunho)'; designer.store.commit(); }); await saveAs('carteira-app');
-// uma edição depois de salvar: o servidor guarda a versão anterior (aparece em "Versões")
-await ev(() => { designer.store.state.doc.name = 'Carteira digital'; designer.store.commit(); }); await p.waitForTimeout(1200);
-await select('Cartão de saldo');
-await p.keyboard.press('Control+,'); await p.waitForSelector('.set-status'); await p.waitForTimeout(200);
-await shot('13-configuracoes-salvamento');
-await p.keyboard.press('Escape');
-await p.keyboard.press('Control+o'); await p.waitForSelector('.proj-row');
-await p.locator('.proj-row', { hasText: 'carteira-app' }).getByRole('button', { name: 'Versões' }).click();
-await p.waitForSelector('.proj-version'); await p.waitForTimeout(200);
-await shot('14-projetos-na-pasta');
-await p.keyboard.press('Escape');
-await ev(() => designer.store.setSelection([]));
-await ev(() => designer.home.open()); await p.waitForSelector('.home-card:not(.sample) img'); await p.waitForTimeout(600);
-await ev(() => document.activeElement?.blur());
-await shot('15-pagina-inicial');
-await ev(() => designer.home.close());
-await ev(() => designer.store.setLink(null));
-await api('/config', 'PUT', { folder: original.folder });
-rmSync(demo, { recursive: true, force: true });
-
-console.log(errors.join('\n') || 'sem erros no navegador');
-await b.close();
+await browser.close();
