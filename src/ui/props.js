@@ -303,11 +303,6 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Componente', body);
   }
 
-  /**
-   * Linha "propriedade CSS → controle": o nome da propriedade à esquerda (em fonte mono, igual ao código gerado)
-   * e o campo à direita. Assim o painel lê como CSS: quem sabe CSS reconhece; quem não sabe aprende o nome certo.
-   */
-  const prop = (name, ctl, title) => h('div.prop-row', { title: title || '' }, h('span.prop-name', name), ctl);
   /** Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start). */
   const A_START = ['flex-start', 'start'], A_CENTER = ['center', 'center'], A_END = ['flex-end', 'end'], A_STRETCH = ['stretch', 'stretch'];
 
@@ -330,6 +325,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     saturate: ['saturate', 'filter: saturate(150%);', 'Intensifica (acima de 100%) ou apaga (abaixo) as cores. 0% fica em preto e branco.'],
     grayscale: ['grayscale', 'filter: grayscale(100%);', 'Converte em tons de cinza. 100% = totalmente cinza; 0% = sem mudança.'],
     'hue-rotate': ['hue-rotate', 'filter: hue-rotate(90deg);', 'Gira as cores pela roda de matizes (graus). 180° troca cada cor pela complementar.'],
+    blur: ['filter: blur()', 'filter: blur(8px);', 'Desfoca a PRÓPRIA camada (e tudo que há nela). Quanto maior o valor, mais borrado.'],
+    'backdrop-filter': ['backdrop-filter', 'backdrop-filter: blur(16px);', 'Efeito VIDRO: desfoca o que está ATRÁS da camada. Use junto com um preenchimento semitransparente para aparecer.'],
+    position: ['position', 'position: absolute;\nleft: 12px;\ntop: 8px;', 'Marcado, o item SAI do fluxo do layout e fica onde você o coloca (left/top), por cima dos outros. Bom para selos, badges e enfeites.'],
+    'grid-column': ['grid-column', 'grid-column: span 2;', 'Quantas COLUNAS da grade este item ocupa. "span 2" = duas colunas de largura.'],
+    'grid-row': ['grid-row', 'grid-row: span 2;', 'Quantas LINHAS da grade este item ocupa.'],
+    'justify-self': ['justify-self', 'justify-self: center;', 'Posição HORIZONTAL só deste item dentro da célula (ou "stretch" para esticar). Vence o justify-items do container.'],
+    'align-self': ['align-self', 'align-self: center;', 'Alinhamento só deste item no eixo cruzado (ou "stretch" para esticar). Vence o align-items do container.'],
     'word-spacing': ['word-spacing', 'word-spacing: 4px;', 'Espaço extra entre as PALAVRAS (diferente do espaçamento entre letras). Valores negativos aproximam as palavras.'],
     'text-overflow': ['text-overflow', 'white-space: nowrap;\noverflow: hidden;\ntext-overflow: ellipsis;', 'O texto fica em UMA linha e o que não cabe vira "…". Precisa de uma largura fixa ou máxima para saber onde cortar. O alinhamento vertical não vale com isto.'],
     'line-clamp': ['line-clamp', 'display: -webkit-box;\n-webkit-line-clamp: 3;\noverflow: hidden;', 'Mostra no máximo N linhas e termina com "…". Ótimo para títulos e descrições de cards. Precisa de uma largura fixa ou máxima.'],
@@ -584,13 +586,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const parent = store.parentOf(P().id);
     const grid = parent.layout.mode === 'grid';
     const body = [
-      check('position: absolute (ignora o layout do pai)', () => P().absolute, (v) => each((n) => {
+      tip(h('div.al-check', check('Fora do fluxo (absolute)', () => P().absolute, (v) => each((n) => {
         if (v) {
           const o = commandsOrigin(n);
           n.x = o.x; n.y = o.y;
         }
         n.absolute = v;
-      })),
+      }))), cssTip('position')),
     ];
     if (!P().absolute) {
       body.push(marginBlock());
@@ -606,14 +608,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       const cross = parent.layout.mode === 'row' ? 'sizeY' : 'sizeX';
       if (grid) {
         body.push(
-          prop('grid-column', num('span', () => P().colSpan ?? 1, (v) => each((n) => { n.colSpan = Math.max(1, Math.round(v)); }),
-            { title: 'grid-column: span N — quantas colunas o item ocupa', min: 1, decimals: 0 })),
-          prop('grid-row', num('span', () => P().rowSpan ?? 1, (v) => each((n) => { n.rowSpan = Math.max(1, Math.round(v)); }),
-            { title: 'grid-row: span N — quantas linhas o item ocupa', min: 1, decimals: 0 })),
-          prop('justify-self', selfSelect('justifySelf', 'sizeX', selfOpts, 'justify-self: posição horizontal deste item na célula')),
-          prop('align-self', selfSelect('alignSelf', 'sizeY', selfOpts, 'align-self: posição vertical deste item na célula')));
+          row(
+            capK('Colunas ocupadas', 'grid-column', num('span', () => P().colSpan ?? 1, (v) => each((n) => { n.colSpan = Math.max(1, Math.round(v)); }), { min: 1, decimals: 0 })),
+            capK('Linhas ocupadas', 'grid-row', num('span', () => P().rowSpan ?? 1, (v) => each((n) => { n.rowSpan = Math.max(1, Math.round(v)); }), { min: 1, decimals: 0 }))),
+          row(
+            capK('Horizontal na célula', 'justify-self', selfSelect('justifySelf', 'sizeX', selfOpts, 'justify-self')),
+            capK('Vertical na célula', 'align-self', selfSelect('alignSelf', 'sizeY', selfOpts, 'align-self'))));
       } else {
-        body.push(prop('align-self', selfSelect('alignSelf', cross, selfOpts, 'align-self: alinhamento deste item no eixo cruzado')));
+        body.push(capK('Alinhamento deste item', 'align-self', selfSelect('alignSelf', cross, selfOpts, 'align-self')));
       }
     }
     return section('Item do layout', body);
@@ -1027,11 +1029,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           iconButton('minus', 'Remover sombra', () => { each((n) => n.shadows.splice(i, 1)); commit(); }, 'small'))));
     });
     // desfoques com o nome da propriedade CSS ao lado (antes eram só os símbolos ◌ e ▨, difíceis de entender)
-    body.push(prop('filter: blur', num('◌', () => P().blur, (v) => each((n) => { n.blur = Math.max(0, v); }), { title: 'filter: blur() — desfoca a própria camada', min: 0, decimals: 0 })));
-    if (!isText) {
-      body.push(prop('backdrop-filter', num('▨', () => P().bgBlur, (v) => each((n) => { n.bgBlur = Math.max(0, v); }), { title: 'backdrop-filter: blur() — desfoca o que está ATRÁS (efeito vidro)', min: 0, decimals: 0 }),
-        'Efeito vidro: desfoca o que está atrás (use com um preenchimento semitransparente)'));
-    }
+    body.push(row(
+      capK('Desfoque', 'blur', num('◌', () => P().blur, (v) => each((n) => { n.blur = Math.max(0, v); }), { min: 0, decimals: 0 })),
+      isText ? null : capK('Vidro (fundo)', 'backdrop-filter', num('▨', () => P().bgBlur, (v) => each((n) => { n.bgBlur = Math.max(0, v); }), { min: 0, decimals: 0 }))));
     body.push(colorFiltersBlock());
     return section('Efeitos', body, add);
   }
