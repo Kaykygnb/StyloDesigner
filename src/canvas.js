@@ -11,7 +11,8 @@
  */
 
 import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { round, stateView } from './model.js';
+import { round, stateView, bpView } from './model.js';
+import { modeView } from './modes.js';
 
 /** Limites do zoom: 2% (para ver pranchas enormes) até 6400% (para conferir pixels). */
 const MIN_ZOOM = 0.02;
@@ -224,10 +225,13 @@ export function createCanvas(store, viewport) {
     const editing = ui.editingId === node.id;
     // CSS final = estilo calculado em css.js + extras só do editor (oculta, bloqueada, em edição de texto)
     // editando um ESTADO (hover...) no painel: a camada selecionada aparece com as sobrescritas desse estado
-    const view = ui.editState && ui.selection.includes(node.id) ? stateView(node, ui.editState) : node;
+    // modo responsivo (Tablet/Celular): TODAS as camadas aparecem com as sobrescritas daquela largura
+    const bpNode0 = ui.bp ? bpView(node, ui.bp) : node;
+    const bpNode = ui.mode ? modeView(bpNode0, store.state.doc.styles, ui.mode) : bpNode0; // modo de cor (escuro...)
+    const view = ui.editState && ui.selection.includes(node.id) ? stateView(bpNode, ui.editState) : bpNode;
     let css = toCssText(nodeStyle(view, parent, store.state.doc.assets, { editor: true }));
     css += ';transition:none;cursor:inherit'; // no editor nada anima nem muda o cursor das ferramentas
-    if (!node.visible) css += ';display:none';
+    if (!bpNode.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;
     // editando: mostra o texto inteiro (sem reticências nem limite de linhas), senão o que se digita sumiria
     if (editing) css += ';user-select:text;cursor:text;display:block;overflow:visible;text-overflow:clip;white-space:pre-wrap';
@@ -257,7 +261,7 @@ export function createCanvas(store, viewport) {
     // garante a ordem dos irmãos no DOM igual à do array (ordem z = ordem de desenho)
     if (parentEl.children[index] !== el) parentEl.insertBefore(el, parentEl.children[index] || null);
 
-    if (node.children) node.children.forEach((c, i) => syncNode(c, node, el, i));
+    if (node.children) node.children.forEach((c, i) => syncNode(c, bpNode, el, i));
   }
 
   /**
@@ -300,7 +304,8 @@ export function createCanvas(store, viewport) {
         els.delete(id);
       }
     }
-    measureBack(page.children, null);
+    // (no modo responsivo os tamanhos medidos são da OUTRA largura: não podem ir parar no desenho base)
+    if (!ui.bp) measureBack(page.children, null);
 
     // entrar em modo de edição de texto: foca e seleciona tudo
     const editEl = ui.editingId && els.get(ui.editingId);
@@ -316,7 +321,7 @@ export function createCanvas(store, viewport) {
 
   // Redesenha na hora (síncrono) quando o documento ou a seleção mudam; reaplica a vista quando o doc/zoom mudam.
   store.subscribeSync((reason) => {
-    if (reason === 'doc' || reason === 'selection') render();
+    if (reason === 'doc' || reason === 'selection' || reason === 'bp') render();
     if (reason === 'doc' || reason === 'view') applyView();
   });
   applyView();

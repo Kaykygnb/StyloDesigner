@@ -29,7 +29,7 @@ export const OVERRIDE_PROPS = [
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign',
   'textDecoration', 'fill', 'stroke', 'opacity', 'visible', 'radius', 'shadows', 'blur', 'bgBlur', 'blend',
   'x', 'y', 'w', 'h', 'sizeX', 'sizeY', 'rotation', 'flipX', 'flipY', 'clip', 'layout', 'points', 'vw', 'vh', 'closed',
-  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'wordSpacing', 'truncate', 'lines', 'margin', 'fx', 'states', 'transition', 'cursor', 'grow', 'overflow', 'tag', 'href', 'alt',
+  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'wordSpacing', 'truncate', 'lines', 'margin', 'fx', 'states', 'transition', 'cursor', 'grow', 'overflow', 'tag', 'href', 'alt', 'bps', 'fluid', 'vars',
 ];
 /**
  * Propriedades da RAIZ da instância que vêm do principal. `x` e `y` ficam de fora: cada instância tem a sua

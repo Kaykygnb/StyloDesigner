@@ -36,7 +36,7 @@ Funciona como Figma e Penpot (frames, camadas, auto layout, componentes, protót
 - Uma ferramenta para **estudar e prototipar com CSS**: os campos do painel têm os nomes das propriedades (`gap`, `padding`, `justify-content`, `align-items`, `mix-blend-mode`...), então usar o editor ensina o CSS.
 
 **Não é:**
-- Um serviço na nuvem, nem um substituto fiel do Figma ou do Penpot: não há cadastro, login nem "abrir o site e trabalhar". Faltam operações booleanas, variantes de componentes, variáveis/temas e plugins (lista completa na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério)).
+- Um serviço na nuvem, nem um substituto fiel do Figma ou do Penpot: não há cadastro, login nem "abrir o site e trabalhar". Faltam operações booleanas, variantes de componentes e plugins (lista completa na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério)).
 - Uma ferramenta de **edição simultânea**: duas pessoas não editam o mesmo projeto ao mesmo tempo. Hoje o servidor também escuta só no próprio computador (de propósito, por segurança). Usar em equipe, com o app hospedado num servidor da empresa, é uma direção possível, mas ainda não existe: veja "Equipe e servidor" na [seção 11](#11-limitações-leia-antes-de-usar-em-trabalho-sério). Dá para ter cópia na nuvem apontando a pasta para dentro do Google Drive/OneDrive/Dropbox ([seção 3](#onde-meu-trabalho-fica-salvo)).
 
 ---
@@ -73,11 +73,20 @@ A aba **Código** mostra o CSS e o HTML da seleção (ou da página inteira). É
 ### Estados, transições e variáveis de CSS
 Cada camada tem **Normal · Hover · Pressionado · Foco**: escolha um estado e edite só o que muda (cor, contorno, sombras, filtros, escala...). Isso vira `.botao:hover`, `:active` e `:focus-visible` no CSS, mais `transition` e `cursor`, e funciona no modo Apresentar. Os **estilos de cor** viram variáveis de CSS (`:root { --cor-primaria: #7c5cff; }` e `var(--cor-primaria)`) no código, no HTML e no PNG exportados.
 
+### Responsivo: Desktop, Tablet e Celular
+Uma barra no topo do canvas troca a **largura que você está vendo e editando**. Em **Tablet** (até 1024px) ou **Celular** (até 640px) o design inteiro aparece como ficaria ali, e tudo o que você mudar no painel Design vale **só naquela largura** (troca de linha para coluna, padding, tamanho de fonte, esconder uma camada...). O app guarda **só a diferença** em relação ao Desktop e gera no CSS exportado um `@media (max-width: …)` de verdade, em cascata (o Celular herda do Tablet). **Telas em 390px** ajusta a largura das telas só naquele modo, **Restaurar ao Desktop** apaga os ajustes de uma camada, e marcar **Largura fluida** numa tela da raiz exporta `width: 100%; max-width: …` para o site ocupar a janela. No modo Tablet/Celular o canvas só seleciona (os ajustes vão pelo painel, para não bagunçar as outras larguras).
+
+### Modos de cor (claro/escuro) e variáveis
+Em **Modo de cor → Escuro automático** o projeto ganha um modo escuro: cada **estilo de cor** passa a ter um valor por modo (a amostra na aba Recursos **edita o valor do modo ativo**, e o painel Design também, enquanto o modo estiver ligado). O CSS sai com `:root { --cor-fundo: #fff }`, `:root[data-theme="escuro"] { … }` e `@media (prefers-color-scheme: dark)`. **Variáveis de tamanho** (aba Recursos → Variáveis): crie "Espaço M = 16" e ligue com o botão da legenda de `gap`, `padding`, `border-radius` e `font-size`; mudou a variável, mudam todas as camadas, e o CSS usa `var(--espaco-m)`. Editar o campo à mão desliga a ligação.
+
+### Seletor de cor com paletas
+O seletor de cor tem campos **HEX · RGB · HSL**, **opacidade**, **contraste** sobre branco e preto (WCAG), **sugestões de harmonia** (complementar, análogas, tríade, tons), **recentes** e o **gerenciador de paletas dentro dele**: criar, renomear (clique no nome), guardar a cor atual com o **+**, tirar cores, trocar de paleta pelas abas, duplicar, copiar como variáveis CSS e excluir.
+
 ### Painel Design que explica o CSS
 Cada seção tem **ícone, título que recolhe/abre** e uma **explicação em português simples** (botão **Explicações** no topo liga e desliga). O cabeçalho mostra qual camada está selecionada e **a etiqueta HTML** que ela vira. Todo campo mostra o **nome do CSS** ao lado da legenda (`opacity`, `border-radius`, `left · top`...) e, ao passar o mouse, uma **dica rica**: título, o CSS de exemplo e o que ele faz. A mesma dica bonita vale para **todos os botões do app** (os atalhos aparecem como teclas).
 
 ### Notas e HTML semântico
-**Nota** = uma anotação sua sobre *para que serve* a camada ("Botão principal da home, leva ao checkout"). Botão direito → **Adicionar nota** (ou a seção Nota no painel). A camada ganha um selo na lista e a nota sai como **comentário no HTML gerado** (dá para desligar). É diferente do **Comentário**, que é uma conversa entre pessoas com "resolver". A seção **HTML** escolhe a etiqueta (`button`, `a`, `h1`, `header`, `nav`...), o endereço do link e a descrição para leitor de tela (`aria-label`).
+**Nota** = uma anotação sua sobre *para que serve* a camada ("Botão principal da home, leva ao checkout"). Botão direito → **Adicionar nota** (ou a seção Nota no painel). A nota aparece como um **post-it amarelo no canvas** (Exibir → Notas liga e desliga), ganha um selo na lista de camadas e sai como **comentário no HTML e no CSS gerados** (dá para desligar). É diferente do **Comentário**, que é uma conversa entre pessoas com "resolver". A seção **HTML** escolhe a etiqueta (`button`, `a`, `h1`, `header`, `nav`...), o endereço do link e a descrição para leitor de tela (`aria-label`).
 
 ### Paletas de cor próprias
 Na aba **Recursos → Paletas**: crie paletas (vazias, das cores da seleção, das cores do projeto ou colando uma lista), clique numa cor para pintar (Shift+clique pinta o contorno), copie como **variáveis CSS** ou transforme em **estilos de cor** do projeto. Ficam salvas no navegador e aparecem no **seletor de cor** de qualquer projeto, com um **+** para guardar a cor atual.
@@ -409,6 +418,8 @@ projetodesigner2/
 │   ├── components.js       Componentes, instâncias e estilos (puro)
 │   ├── comments.js         Comentários nas camadas: criar, responder, resolver, podar (puro)
 │   ├── palettes.js         Paletas de cor próprias: criar, ler cores de um texto, cores do projeto, CSS (puro + localStorage)
+│   ├── color.js            Matemática de cor: hex/RGB/HSL/HSV, harmonias, contraste WCAG (puro)
+│   ├── modes.js            Modos de cor (claro/escuro) e variáveis de tamanho (puro)
 │   ├── canvas.js           Desenha o documento em HTML; pan, zoom e geometria
 │   ├── overlay.js          Seleção, alças, guias, medidas, setas
 │   ├── tools.js            Mouse e teclado: todos os gestos e atalhos
@@ -444,7 +455,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 110 testes
+npm test      # 136 testes
 ```
 
 ### Testes de navegador
@@ -453,7 +464,7 @@ Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimen
 ```bash
 npm install && npx playwright install chromium
 npm start                 # em outro terminal
-npm run test:e2e          # as 19 suítes (≈ 370 verificações); sai com erro se alguma falhar
+npm run test:e2e          # as 22 suítes (≈ 460 verificações); sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](tests/e2e/README.md).
@@ -483,8 +494,9 @@ Este projeto cobre bastante de Figma e Penpot para uso **individual e para prot�
 **Design**
 - **Operações booleanas** (unir, subtrair, interseccionar formas). Pesa principalmente na criação de ícones.
 - **Mais de um preenchimento ou contorno por camada.**
-- **Variantes de componente** e **temas** de design. (As cores já viram variáveis de CSS no código; falta tema claro/escuro por variáveis no documento e variáveis de texto/espaçamento.)
-- **Unidades além de px** (`%`, `rem`, `vw`) e `calc()`. **Responsividade** (`@media`/breakpoints): um frame é uma tela de tamanho fixo.
+- **Variantes de componente** (botão primário/secundário/desabilitado numa peça só).
+- **Unidades além de px** (`%`, `rem`, `vw`) e `calc()`. A responsividade existe (Tablet e Celular com `@media`), mas as larguras dos breakpoints são fixas (1024 e 640px), só há dois além do Desktop, e a estrutura (quais camadas existem) é a mesma em todas as larguras.
+- **Variáveis de cor e tamanho:** não há variáveis de texto (família de fonte) nem de modo por variável de tamanho.
 - **Plugins** e integração com IA por MCP.
 - **Edição de imagem** (recorte, filtros) e lápis livre.
 - Texto com **estilos misturados** na mesma caixa e listas.
@@ -497,7 +509,7 @@ Hoje o projeto é pensado para **uma pessoa por vez**. O que existe e o que falt
 - **Sem login nem permissões.** Quem alcançasse o servidor leria, gravaria e apagaria tudo.
 - **Sem edição simultânea.** Cada projeto é um arquivo `.json` inteiro. Se duas pessoas editam o mesmo arquivo, o app **detecta o conflito e para de gravar**, mas **não junta** as duas edições. Dividir o trabalho por projeto ou por página funciona; trabalhar juntos no mesmo projeto ao mesmo tempo, não.
 - **Sem histórico por pessoa:** as versões antigas guardam o arquivo, não "quem mudou o quê".
-- **Comentários** existem (anotações na camada, com respostas e "resolver"), mas **sem notificação, menção nem login**: o autor é só o nome definido nas Configurações. Só aparecem os comentários da página aberta, e o texto não pode ser editado depois de enviado.
+- **Comentários** existem (anotações na camada, com respostas e "resolver"), mas **sem notificação, menção nem login**: o autor é só o nome definido nas Configurações. Só aparecem os comentários da página aberta. Dá para editar o texto depois de enviado (aparece "editado").
 
 Detalhes que valem saber:
 

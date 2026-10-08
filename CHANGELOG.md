@@ -6,6 +6,35 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.13.0] — 2026-10-08 — Responsivo, modos de cor, variáveis, seletor de cor com paletas e notas visíveis
+
+### Adicionado (responsivo)
+- **Barra Desktop · Tablet · Celular** no topo do canvas. Tablet (≤ 1024px) e Celular (≤ 640px) mostram o design inteiro como ficaria naquela largura e o painel Design edita **só a diferença** (`node.bps`, em cascata: celular = base + tablet + celular). Módulo de dados em `model.js` (`bpView`, `editBp`, `BP_KEYS`) análogo ao dos estados.
+- O CSS exportado ganha **`@media (max-width: …)`** com só o que muda em cada breakpoint (inclui o efeito de o layout do PAI mudar: um filho vira item de flex, por exemplo) e `display: none` para camadas ocultas por largura. **Largura fluida** numa tela da raiz: `width: 100%; max-width; min-height; margin: 0 auto`.
+- No modo Tablet/Celular: o painel mostra só o que pode variar com a largura (esconde Nota, HTML, Estados, Exportar, Componente), com aviso e **Restaurar ao Desktop**; o olho do cabeçalho oculta **só naquela largura**; o canvas **só seleciona** (arrastar, redimensionar, apagar e atalhos de edição ficam desligados); **Telas em 390px/768px** ajusta a largura dos frames só no modo. Camadas com ajustes ganham um ícone na lista. Os ajustes sobrevivem a recarregar e entram no desfazer; o modo volta a Desktop ao abrir.
+
+### Adicionado (modos de cor e variáveis)
+- **Modos de cor** (`styles.modes`, `style.modes`): "Escuro automático" (inverte a luminosidade) ou modo em branco. Ver o modo no canvas, **editar o valor do estilo no modo ativo** (pela amostra em Recursos e pelo painel Design), renomear, "vale sozinho pela preferência do sistema" e excluir (botão direito no modo). O CSS gera `:root[data-theme="escuro"]` e `@media (prefers-color-scheme: dark)`.
+- A **amostra de um estilo de cor** em Recursos agora **edita** o estilo (antes só dava para aplicar, renomear e excluir).
+- **Variáveis de tamanho** (`styles.vars`): aba Recursos → Variáveis (criar, renomear, mudar o valor, excluir). O botão na legenda de `gap`, `padding`, `border-radius` e `font-size` liga o campo a uma variável (ou cria uma com o valor atual). O valor chega a todas as camadas ligadas; editar o campo à mão desliga; o CSS usa `var(--espaco-m)` e declara no `:root`.
+
+### Adicionado (seletor de cor)
+- Seletor reescrito (`ui/colorpicker.js`, `color.js`): campos **HEX/RGB/HSL** (setas ± 1, Shift ± 10), **barra de opacidade**, cor original clicável, **contraste WCAG** sobre branco e preto, **sugestões de harmonia** (complementar, análogas, tríade, tons) com "guardar na paleta", **recentes**, conta-gotas e as cores do projeto/paletas prontas recolhidas.
+- **Paletas gerenciáveis dentro do seletor**: abas por paleta, **+ Nova** (já com a cor atual e o nome em edição), renomear (clique no nome ou duplo clique na aba), **+** guarda a cor atual, **×** tira a cor, duplicar, copiar como variáveis CSS e excluir **com confirmação ali mesmo**. O seletor se mantém inteiro na janela quando cresce.
+
+### Adicionado (notas e comentários)
+- **Notas visíveis**: post-it amarelo no canvas acima do canto superior direito da camada (a selecionada mostra a nota inteira), clique abre a nota no painel; **Exibir → Notas** liga/desliga. Campo da nota em estilo post-it. A nota também vira **comentário no CSS gerado** (`/* ... */`), além do HTML.
+- **Editar o texto de um comentário ou resposta** depois de enviado (ícone de lápis; mostra "editado"); entra no desfazer.
+
+### Adicionado (acabamentos da exportação)
+- **Estados (hover, pressionado, foco) em vetores**: o HTML exportado ganha `.icone:hover path[data-vis] { fill; stroke… }` (cor sólida e contorno).
+- **Filtros de cor no SVG exportado**: brilho, contraste, saturação, tons de cinza e matiz viram primitivas de `<filter>`.
+
+### Testes
+- `color.test.js`, `modes.test.js`, `responsivo.test.js` e mais casos em `html-nota.test.js`; suítes de navegador `responsivo.mjs`, `modos-variaveis.mjs` e `seletor-de-cor.mjs`; `comentarios.mjs` e `notas-paletas-painel.mjs` ampliadas.
+
+---
+
 ## [0.12.0] — 2026-10-08 — Painel Design explicativo, notas, HTML semântico e paletas
 
 ### Adicionado

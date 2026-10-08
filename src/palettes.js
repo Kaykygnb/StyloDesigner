@@ -122,12 +122,13 @@ function persist() {
   listeners.forEach((fn) => { try { fn(); } catch { /* um ouvinte com defeito não derruba os outros */ } });
 }
 
-/** Cria uma paleta nova e devolve ela. */
+/** Cria uma paleta nova, já a deixa como a paleta ativa do seletor de cor, e devolve ela. */
 export function createPalette(name, colors = []) {
   const all = getPalettes();
   if (all.length >= MAX_PALETTES) return null;
   const p = makePalette(name || `Paleta ${all.length + 1}`, colors);
   all.push(p);
+  try { globalThis.localStorage?.setItem(ACTIVE, p.id); } catch { /* sem armazenamento */ }
   persist();
   return p;
 }
@@ -139,6 +140,39 @@ export function changePalette(id, fn) {
   const r = fn(p);
   persist();
   return r;
+}
+
+const ACTIVE = 'pd.activePalette';
+const RECENT = 'pd.recentColors';
+
+/** Id da paleta ativa no seletor de cor (a escolhida por último; senão a 1ª). null se não há paletas. */
+export function getActiveId() {
+  const all = getPalettes();
+  let id = null;
+  try { id = globalThis.localStorage?.getItem(ACTIVE); } catch { /* idem */ }
+  return all.some((p) => p.id === id) ? id : (all[0]?.id ?? null);
+}
+
+/** Escolhe a paleta ativa do seletor de cor. */
+export function setActiveId(id) {
+  try { globalThis.localStorage?.setItem(ACTIVE, id); } catch { /* idem */ }
+  listeners.forEach((fn) => { try { fn(); } catch { /* idem */ } });
+}
+
+/** Últimas cores escolhidas (a mais recente primeiro, até 14). */
+export function getRecents() {
+  try {
+    const v = JSON.parse(globalThis.localStorage?.getItem(RECENT) || '[]');
+    return Array.isArray(v) ? v.map(normalizeHex).filter(Boolean).slice(0, 14) : [];
+  } catch { return []; }
+}
+
+/** Registra uma cor escolhida nas recentes (sem repetir). */
+export function pushRecent(color) {
+  const hex = normalizeHex(color);
+  if (!hex) return;
+  const next = [hex, ...getRecents().filter((c) => c !== hex)].slice(0, 14);
+  try { globalThis.localStorage?.setItem(RECENT, JSON.stringify(next)); } catch { /* idem */ }
 }
 
 /** Apaga uma paleta. */

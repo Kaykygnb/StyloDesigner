@@ -95,6 +95,37 @@ await page.waitForTimeout(250);
 cs = await comentarios();
 ok('Reabrir volta a abrir', cs[0].resolved === false);
 
+// ---------------------------------------------------------------- editar o texto depois de enviado
+await page.locator('.cm-filter button', { hasText: 'Todos' }).click();
+await page.waitForTimeout(300);
+const th = page.locator('.cm-thread').first();
+await th.hover();
+await th.locator('.cm-body > .cm-edit').first().click();
+await page.waitForTimeout(250);
+const edBox = th.locator('.cm-input').first();
+ok('o botão de editar abre a caixa com o texto atual', (await edBox.inputValue()).includes('roxo'));
+await edBox.fill('Trocar a cor para o verde da marca');
+await edBox.press('Control+Enter');
+await page.waitForTimeout(300);
+cs = await comentarios();
+ok('salvar troca o texto e marca como editado', cs[0].text === 'Trocar a cor para o verde da marca' && !!cs[0].editedAt && (await th.locator('.cm-time').first().innerText()).includes('editado'), JSON.stringify(cs[0]));
+await th.hover();
+await th.locator('.cm-body > .cm-edit').first().click();
+await th.locator('.cm-input').first().fill('texto descartado');
+await th.locator('.cm-input').first().press('Escape');
+await page.waitForTimeout(250);
+ok('Esc cancela a edição sem mudar nada', (await comentarios())[0].text === 'Trocar a cor para o verde da marca');
+await th.locator('.cm-reply .cm-edit').first().click({ force: true });
+await th.locator('.cm-reply .cm-input').first().fill('Feito, ficou perfeito');
+await th.locator('.cm-reply .cm-input').first().press('Control+Enter');
+await page.waitForTimeout(300);
+ok('também dá para editar uma resposta', (await comentarios())[0].replies[0].text === 'Feito, ficou perfeito' && !!(await comentarios())[0].replies[0].editedAt);
+await ev(() => { designer.store.undo(); designer.store.undo(); });
+await page.waitForTimeout(300);
+ok('Ctrl+Z desfaz as edições de texto', (await comentarios())[0].text.includes('roxo') && (await comentarios())[0].replies[0].text === 'Feito, ficou ótimo');
+await page.locator('.cm-filter button', { hasText: 'Abertos' }).click();
+await page.waitForTimeout(250);
+
 // ---------------------------------------------------------------- desfazer e apagar a camada
 await ev(() => designer.store.undo());
 await page.waitForTimeout(250);

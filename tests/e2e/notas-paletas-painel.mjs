@@ -95,6 +95,26 @@ await ev(() => designer.store.undo());
 await page.waitForTimeout(200);
 ok('desfazer volta a marcar', (await node(id.a)).noteInCode !== false);
 
+// post-it da nota no canvas
+ok('a nota aparece como post-it no canvas', (await page.locator('.note-chip').count()) === 1 && (await page.locator('.note-chip').innerText()).startsWith('Botão principal da home'));
+const chipBox = await page.locator('.note-chip').boundingBox();
+const nodeBox = await ev((i) => { const b = designer.canvas.aabb(i); const s = designer.canvas.toScreen(b.x + b.w, b.y); const r = designer.canvas.vpRect(); return { x: r.left + s.x, y: r.top + s.y }; }, id.a);
+ok('o post-it fica acima do canto superior direito da camada', Math.abs(chipBox.x + chipBox.width - nodeBox.x) < 6 && chipBox.y + chipBox.height <= nodeBox.y + 1, JSON.stringify([chipBox, nodeBox]));
+await ev(() => designer.store.setSelection([]));
+await page.waitForTimeout(250);
+await page.locator('.note-chip').click();
+await page.waitForTimeout(400);
+ok('clicar no post-it seleciona a camada e foca a nota no painel', (await ev(() => designer.store.ui.selection[0])) === id.a && await page.locator('.note-input').evaluate((e) => e === document.activeElement));
+await page.keyboard.press('Escape');
+await ev(() => { designer.store.ui.showNotes = false; designer.store.emit('overlay'); });
+await page.waitForTimeout(200);
+ok('Exibir → Notas desliga os post-its', (await page.locator('.note-chip').count()) === 0);
+await ev(() => { designer.store.ui.showNotes = true; designer.store.emit('overlay'); });
+await page.waitForTimeout(200);
+ok('e liga de novo', (await page.locator('.note-chip').count()) === 1);
+const css0 = await ev(async () => { const { generateCode } = await import('/src/css.js'); return generateCode([designer.store.get(designer.store.ui.selection[0])], null).css; });
+ok('a nota também vira comentário no CSS gerado', css0.startsWith('/* Botão principal da home. Leva ao checkout. */\n.botao-principal {'), css0.slice(0, 120));
+
 // ---------------------------------------------------------------- HTML
 const tagSel = sec('HTML').locator('select').first();
 await tagSel.selectOption('button');
@@ -147,20 +167,11 @@ await page.locator('.menu .menu-item', { hasText: 'estilos de cor' }).click();
 await page.waitForTimeout(300);
 const styles = await ev(() => designer.store.state.doc.styles.colors.map((c) => c.name + ':' + c.color));
 ok('"Adicionar ao projeto como estilos de cor" cria os estilos', styles.join() === 'Marca 1:#7C5CFF,Marca 2:#00C7BE', styles.join());
-// seletor de cor mostra a paleta e o + guarda a cor atual
+// o seletor de cor mostra as paletas próprias (o gerenciamento completo está em seletor-de-cor.mjs)
 await page.locator('#left .tab', { hasText: 'Camadas' }).click();
 await page.locator('#right .panel-section', { has: page.locator('.section-head', { hasText: 'Preenchimento' }) }).locator('button.swatch').click();
 await page.waitForSelector('.cp');
-ok('o seletor de cor mostra a paleta própria', (await page.locator('.cp .cp-group.mine .cp-group-title span', { hasText: 'Marca' }).count()) === 1);
-await page.locator('.cp .hex, .cp input.mono').first().fill('FFAA00');
-await page.locator('.cp .cp-group.mine .cp-add').click();
-await page.waitForTimeout(250);
-pl = await pals();
-ok('o + do seletor guarda a cor atual na paleta', pl[0].colors.includes('#FFAA00'), JSON.stringify(pl[0].colors));
-await page.locator('.cp .cp-newpal').click();
-await page.waitForTimeout(250);
-pl = await pals();
-ok('"Nova paleta com esta cor" cria outra paleta', pl.length === 2 && pl[1].colors.join() === '#FFAA00', JSON.stringify(pl));
+ok('o seletor de cor mostra a paleta própria como aba', (await page.locator('.cp .cp-pill', { hasText: 'Marca' }).count()) === 1);
 await page.keyboard.press('Escape');
 
 // ---------------------------------------------------------------- recarregar: paletas e preferências permanecem
@@ -168,7 +179,7 @@ await page.waitForTimeout(700);
 await page.reload();
 await page.waitForTimeout(900);
 pl = await pals();
-ok('as paletas sobrevivem a recarregar o navegador', pl.length === 2 && pl[0].name === 'Marca');
+ok('as paletas sobrevivem a recarregar o navegador', pl.length === 1 && pl[0].name === 'Marca');
 await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
 await page.waitForTimeout(300);
 ok('o estado das seções e das explicações é lembrado', (await page.locator('#right .section-help').first().isVisible()) === true);
@@ -176,12 +187,12 @@ ok('o estado das seções e das explicações é lembrado', (await page.locator(
 // excluir paleta
 await page.locator('#left .tab', { hasText: 'Recursos' }).click();
 await page.waitForTimeout(300);
-await page.locator('.pal-card').nth(1).locator('.pal-head .icon-btn').click();
+await page.locator('.pal-card').nth(0).locator('.pal-head .icon-btn').click();
 await page.locator('.menu .menu-item', { hasText: 'Excluir paleta' }).click();
 await page.locator('.modal button', { hasText: 'Excluir' }).last().click();
 await page.waitForTimeout(300);
 pl = await pals();
-ok('excluir paleta apaga só ela', pl.length === 1 && pl[0].name === 'Marca');
+ok('excluir paleta apaga a paleta', pl.length === 0);
 
 ok('sem erros no console', errors.length === 0, errors.join(' | '));
 await browser.close();

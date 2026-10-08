@@ -12,6 +12,7 @@ import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName,
 import { generateCode, joinCss } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 import { importSvg } from './svgimport.js';
+import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
 
 /**
  * Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez
@@ -812,6 +813,59 @@ export function createCommands(store, canvas) {
     for (const { name, color } of items) store.state.doc.styles.colors.push({ id: uid(), name, color, opacity: 1 });
     store.commit();
   }
+  // ------------------------------------------------------------------ modos de cor e variáveis de tamanho
+  /** Cria um modo de cor (escuro...) e já o mostra no canvas. `auto`: gera os valores invertendo a luminosidade. */
+  function addColorMode({ name, scheme = null, auto = false }) {
+    const m = addMode(store.state.doc.styles, { name, scheme, auto });
+    store.commit();
+    store.setMode(m.id);
+    return m;
+  }
+  /** Muda o nome de um modo de cor (o atributo data-theme no CSS acompanha). */
+  function renameColorMode(id, name) {
+    const m = modesOf(store.state.doc.styles).find((x) => x.id === id);
+    if (!m || !String(name || '').trim()) return;
+    m.name = String(name).trim();
+    store.commit();
+  }
+  /** Define se o modo vale sozinho pela preferência do sistema ('dark' | 'light' | null = só com data-theme). */
+  function setModeScheme(id, scheme) {
+    const m = modesOf(store.state.doc.styles).find((x) => x.id === id);
+    if (!m) return;
+    m.scheme = scheme || null;
+    store.commit();
+  }
+  /** Apaga um modo de cor (os valores dele nos estilos também). */
+  function deleteColorMode(id) {
+    removeMode(store.state.doc.styles, id);
+    if (ui.mode === id) store.setMode(null);
+    store.commit();
+  }
+  /** Cria uma variável de tamanho (espaçamento, raio, fonte). */
+  function addSizeVar(name, value) {
+    const v = addVar(store.state.doc.styles, name, value);
+    store.commit();
+    return v;
+  }
+  /** Muda o valor de uma variável e leva o valor a todas as camadas ligadas a ela. */
+  function setSizeVar(id, patch) {
+    const v = varsOf(store.state.doc.styles).find((x) => x.id === id);
+    if (!v) return;
+    if (patch.name != null && String(patch.name).trim()) v.name = String(patch.name).trim();
+    if (patch.value != null && Number.isFinite(Number(patch.value))) v.value = Math.max(0, Number(patch.value));
+    syncVars(store.state.doc, true);
+    store.commit();
+  }
+  /** Apaga uma variável (as camadas mantêm o valor que tinham). */
+  function deleteSizeVar(id) {
+    removeVar(store.state.doc.styles, id);
+    store.commit();
+  }
+  /** Liga (ou, com `v` nulo, desliga) um campo de várias camadas a uma variável de tamanho. */
+  function bindSizeVar(nodes, prop, v) {
+    store.update(() => nodes.forEach((n) => (v ? bindVar(n, prop, v) : unbindVar(n, prop))), { commit: true });
+  }
+
   /** Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele. */
   function addTextStyle(node, name) {
     const st = { id: uid(), name: name || `Texto ${store.state.doc.styles.texts.length + 1}`, ...textStyleFrom(node) };
@@ -987,7 +1041,8 @@ export function createCommands(store, canvas) {
     insertSvg, placeNew,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
-    localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle, removeStyle,
+    localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle,
+    addColorMode, renameColorMode, setModeScheme, deleteColorMode, addSizeVar, setSizeVar, deleteSizeVar, bindSizeVar, removeStyle,
     addGuide, removeGuide, addPathFromWorld, updatePathFromWorld, newIcon, normalizePath, addShapePath, syncInstances,
     notify: null, // função de aviso (toast); main.js liga
   };

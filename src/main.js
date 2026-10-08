@@ -22,6 +22,7 @@ import { createCodePanel } from './ui/code.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
 import { createCommentsPanel } from './ui/comments.js';
+import { createResponsiveBar } from './ui/responsive.js';
 import { openCount } from './comments.js';
 import { createIconsPanel } from './ui/googleicons.js';
 import { ensureFonts, usedFonts } from './fonts.js';
@@ -102,6 +103,7 @@ commands.notify = (msg) => toast(msg);
 const tools = createTools({ store, canvas, commands, viewport, toast });
 toolsRef = tools;
 createRulers({ store, canvas, stage: $('.stage'), commands });
+createResponsiveBar({ store, canvas, commands, toast, stage: $('.stage') });
 
 // ---------------------------------------------------------------- painel esquerdo
 // PAINEL ESQUERDO: abas "Camadas" e "Recursos" (cada uma é um painel pronto; a aba só escolhe qual mostrar)
@@ -409,6 +411,7 @@ const zoomLabel = h('button.zoom-pct', {
       { label: '200%', onClick: () => tools.zoomTo(2) },
       'sep',
       { label: 'Réguas', hint: '⇧ R', checked: ui.showRulers, onClick: () => { ui.showRulers = !ui.showRulers; store.emit('ui'); store.emit('overlay'); } },
+      { label: 'Notas', checked: ui.showNotes !== false, onClick: () => { ui.showNotes = ui.showNotes === false; store.emit('overlay'); } },
       { label: 'Guias', checked: ui.showGuides !== false, onClick: () => { ui.showGuides = ui.showGuides === false; store.emit('overlay'); } },
       { label: 'Grades de layout', checked: ui.showGrids !== false, onClick: () => { ui.showGrids = ui.showGrids === false; store.emit('overlay'); } },
       'sep',

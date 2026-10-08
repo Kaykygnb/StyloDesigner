@@ -22,8 +22,9 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, tagOf } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, tagOf, BREAKPOINTS, bpView, hasBps } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
+import { modesOf, styleValue, varsOf, varCssNames } from './modes.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
 const px = (v) => `${round(v)}px`;
@@ -134,8 +135,16 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   // 4 casos: (a) raiz da exportação, (b) item de CSS Grid, (c) item de flexbox, (d) camada livre (absolute).
   if (opts.root) {
     s.position = 'relative';
-    s.width = px(node.w);
-    s.height = px(node.h);
+    if (opts.fluid && node.fluid) {
+      // largura FLUIDA (site responsivo): ocupa a janela até a largura desenhada, centralizada; a altura vira mínima
+      s.width = '100%';
+      s['max-width'] = px(node.w);
+      s['min-height'] = px(node.h);
+      s.margin = '0 auto';
+    } else {
+      s.width = px(node.w);
+      s.height = px(node.h);
+    }
   } else if (flow && parent.layout.mode === 'grid') {
     // (b) Item de GRID: o tamanho 'fill' vira justify-self/align-self: stretch; colSpan/rowSpan viram `span N`.
     // Sem 'fill' e sem alinhamento próprio, o item NÃO escreve justify-self/align-self: assim vale o
@@ -612,6 +621,30 @@ export function stateStyle(node, parent, assets, opts, states) {
 }
 
 /**
+ * Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no
+ * preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`.
+ * Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+ */
+export function pathStateStyle(node, assets, state) {
+  const v = stateView(node, state);
+  const out = {};
+  const a = svgPaint(node.fill, node.id, assets), b = svgPaint(v.fill, node.id, assets);
+  if (!b.defs && (a.paint !== b.paint || a.opacity !== b.opacity)) {
+    out.fill = b.paint;
+    out['fill-opacity'] = String(b.opacity != null ? b.opacity : 1);
+  }
+  const sa = node.stroke, sb = v.stroke;
+  if (sb && sb.width > 0) {
+    if (!sa || sa.color !== sb.color) out.stroke = rgba(sb.color, 1);
+    if (!sa || sa.opacity !== sb.opacity) out['stroke-opacity'] = String(sb.opacity);
+    if (!sa || sa.width !== sb.width) out['stroke-width'] = String(sb.width);
+  } else if (sa && sa.width > 0) {
+    out.stroke = 'none';
+  }
+  return out;
+}
+
+/**
  * Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada
  * com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
  */
@@ -625,10 +658,10 @@ function makeClassNamer() {
   };
 }
 
-/** Texto da nota da camada pronto para virar comentário (uma linha, sem "--" que fecharia o comentário); '' se não vai ao código. */
+/** Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código. */
 export const noteComment = (node) => {
   if (!node.note || node.noteInCode === false) return '';
-  return String(node.note).trim().replace(/\s*\n\s*/g, ' ').replace(/-{2,}/g, '–');
+  return String(node.note).trim().replace(/\s*\n\s*/g, ' ').replace(/-{2,}/g, '–').replace(/\*\//g, '* /');
 };
 
 /** Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado. */
@@ -650,25 +683,70 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
   // quais variáveis foram usadas (nome → valor) para o chamador escrever o bloco :root (veja joinCss)
   const varNames = colorVarNames(styles);
   const tokens = new Map();
+  const tokenStyle = new Map(); // nome da variável de cor → id do estilo (para escrever os valores de cada modo)
   const useTokens = (node, st) => {
     const f = node.fill;
     if (!varNames.size || !f?.styleId || f.type !== 'solid' || node.type === 'path') return;
     const name = varNames.get(f.styleId);
     const key = node.type === 'text' ? 'color' : 'background-color';
     const literal = rgba(f.color, f.opacity);
-    if (name && st[key] === literal) { st[key] = `var(${name})`; tokens.set(name, literal); }
+    if (name && st[key] === literal) { st[key] = `var(${name})`; tokens.set(name, literal); tokenStyle.set(name, f.styleId); }
   };
+  // VARIÁVEIS de tamanho (gap, padding, border-radius, font-size): camadas ligadas escrevem var(--espaco-md)
+  const sizeNames = varCssNames(styles, slugify);
+  const sizeVars = varsOf(styles);
+  const SIZE_CSS = { gap: 'gap', padding: 'padding', radius: 'border-radius', fontSize: 'font-size' };
+  const useSizeVars = (node, st) => {
+    if (!node.vars || !sizeNames.size) return;
+    for (const [prop, id] of Object.entries(node.vars)) {
+      const v = sizeVars.find((x) => x.id === id);
+      const key = SIZE_CSS[prop];
+      if (!v || !key || !(key in st)) continue;
+      const one = px(v.value);
+      const literal = prop === 'padding' ? `${one} ${one} ${one} ${one}` : one;
+      if (st[key] === literal) { st[key] = `var(${sizeNames.get(id)})`; tokens.set(sizeNames.get(id), one); }
+    }
+  };
+  // RESPONSIVO: se alguma camada tem sobrescritas de breakpoint, cada camada ganha, por breakpoint, uma regra com SÓ o que
+  // muda (dentro de @media (max-width: N)). Camadas sem sobrescritas também entram: o layout do PAI pode ter mudado.
+  let anyBps = false;
+  const scan = (list) => list.forEach((n) => { if (hasBps(n)) anyBps = true; if (n.children) scan(n.children); });
+  scan(nodes);
+  const media = new Map(BREAKPOINTS.map((b) => [b.id, []]));
   const build = (node, par, depth, isRoot) => {
     if (!node.visible) return '';
     const cls = className(node);
-    const base = nodeStyle(node, par, assets, { root: isRoot });
+    const base = nodeStyle(node, par, assets, { root: isRoot, fluid: true });
     useTokens(node, base);
-    rules.push(cssRule(`.${cls}`, base));
+    useSizeVars(node, base);
+    // a NOTA da camada vira comentário no HTML e no CSS (a menos que a pessoa tenha desligado)
+    const note = noteComment(node);
+    rules.push((note ? `/* ${note} */\n` : '') + cssRule(`.${cls}`, base));
+    if (anyBps) {
+      let prev = base, prevHidden = false;
+      for (const bp of BREAKPOINTS) {
+        const view = bpView(node, bp.id);
+        const cur = nodeStyle(view, par && bpView(par, bp.id), assets, { root: isRoot, fluid: true });
+        const diff = {};
+        for (const [k, v] of Object.entries(cur)) if (prev[k] !== v) diff[k] = v;
+        for (const k of Object.keys(prev)) if (!(k in cur)) diff[k] = 'unset';
+        const hidden = view.visible === false;
+        if (hidden && !prevHidden) diff.display = 'none';
+        else if (!hidden && prevHidden) diff.display = cur.display || 'block';
+        if (Object.keys(diff).length) media.get(bp.id).push(cssRule(`.${cls}`, diff));
+        prev = cur; prevHidden = hidden;
+      }
+    }
     // estados: uma regra por estado com SÓ o que muda (.card:hover, .card:active, .card:focus-visible)
     for (const [state, , pseudo] of STATE_LIST) {
       if (!node.states?.[state] || !Object.keys(node.states[state]).length) continue;
       const diff = stateStyle(node, par, assets, { root: isRoot }, state);
       if (Object.keys(diff).length) rules.push(cssRule(`.${cls}${pseudo}`, diff));
+      // vetor: cor e contorno ficam DENTRO do <svg>, então o estado precisa mirar o <path> de dentro
+      if (node.type === 'path') {
+        const inner = pathStateStyle(node, assets, state);
+        if (Object.keys(inner).length) rules.push(cssRule(`.${cls}${pseudo} path[data-vis]`, inner));
+      }
     }
     const pad = '  '.repeat(depth);
     // elemento que tem estado de foco precisa poder receber foco pelo teclado
@@ -682,8 +760,6 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       + (node.alt ? ` aria-label="${escapeHtml(node.alt)}"` : '')
       + (node.alt && node.type !== 'text' && !hasKids ? ' role="img"' : '')
       + focusable;
-    // a NOTA da camada vira comentário no código (a menos que a pessoa tenha desligado)
-    const note = noteComment(node);
     const noteHtml = note ? `${pad}<!-- ${note} -->\n` : '';
     if (node.type === 'text') {
       return `${noteHtml}${pad}<${tag}${attrs}>${escapeHtml(node.text)}</${tag}>`;
@@ -696,7 +772,23 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     return `${noteHtml}${pad}<${tag}${attrs}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
-  return { html, css: rules.join('\n\n'), tokens: [...tokens] };
+  // blocos @media (do maior para o menor breakpoint, para o menor vencer na cascata)
+  for (const bp of BREAKPOINTS) {
+    const list = media.get(bp.id);
+    if (!list.length) continue;
+    rules.push(`@media (max-width: ${bp.max}px) {\n${list.join('\n\n').split('\n').map((l) => (l ? `  ${l}` : l)).join('\n')}\n}`);
+  }
+  // MODOS de cor: para cada modo, o valor das variáveis de cor usadas que têm valor próprio nele
+  const modes = modesOf(styles).map((m) => ({
+    id: m.id, name: m.name, scheme: m.scheme || null,
+    tokens: [...tokenStyle].map(([name, sid]) => {
+      const st = styles.colors.find((c) => c.id === sid);
+      if (!st?.modes?.[m.id]) return null;
+      const v = styleValue(st, m.id);
+      return [name, rgba(v.color, v.opacity)];
+    }).filter(Boolean),
+  })).filter((m) => m.tokens.length);
+  return { html, css: rules.join('\n\n'), tokens: [...tokens], modes };
 }
 
 /**
@@ -724,8 +816,24 @@ export function joinCss(parts) {
   const tokens = new Map();
   for (const p of parts) for (const [k, v] of p.tokens || []) tokens.set(k, v);
   const rules = parts.map((p) => p.css).filter(Boolean).join('\n\n');
-  const rootBlock = tokens.size ? `:root {\n${[...tokens].map(([k, v]) => `  ${k}: ${v};`).join('\n')}\n}` : '';
-  return [rootBlock, rules].filter(Boolean).join('\n\n');
+  const decls = (list, pad) => list.map(([k, v]) => `${pad}${k}: ${v};`).join('\n');
+  const rootBlock = tokens.size ? `:root {\n${decls([...tokens], '  ')}\n}` : '';
+  // modos de cor (claro/escuro...): um bloco por modo, ativado por <html data-theme="nome">; com `scheme`, também
+  // automático pela preferência do sistema (prefers-color-scheme) quando a página não escolheu um modo
+  const modes = new Map();
+  for (const p of parts) for (const m of p.modes || []) {
+    const cur = modes.get(m.id) || { ...m, tokens: new Map() };
+    for (const [k, v] of m.tokens) cur.tokens.set(k, v);
+    modes.set(m.id, cur);
+  }
+  const modeBlocks = [...modes.values()].map((m) => {
+    const attr = slugify(m.name);
+    const list = [...m.tokens];
+    let out = `:root[data-theme="${attr}"] {\n${decls(list, '  ')}\n}`;
+    if (m.scheme) out += `\n\n@media (prefers-color-scheme: ${m.scheme}) {\n  :root:not([data-theme]) {\n${decls(list, '    ')}\n  }\n}`;
+    return out;
+  });
+  return [rootBlock, ...modeBlocks, rules].filter(Boolean).join('\n\n');
 }
 
 /**

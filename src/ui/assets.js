@@ -5,10 +5,15 @@
  */
 
 import { h, ico, iconButton } from './dom.js';
+import { openColorPicker, colorPickerAnchor } from './colorpicker.js';
+import { syncStyles } from '../components.js';
+import { styleValue, setStyleColor, modesOf, varsOf } from '../modes.js';
 import { ask, askText, showMenu } from './menus.js';
 import { getPalettes, onPalettes, changePalette, createPalette, deletePalette, addColor as addToPalette, removeColor, parseColors, docColors, paletteCss } from '../palettes.js';
 import { rgba } from '../css.js';
-import { walk, defaultFill, defaultStroke } from '../model.js';
+import { walk, defaultFill, defaultStroke, slugify } from '../model.js';
+/** Nome da variável de CSS (o mesmo do código gerado). */
+const cssSlug = (s) => slugify(s || 'variavel');
 
 /**
  * Cria a aba RECURSOS (painel esquerdo): três listas do documento —
@@ -35,6 +40,9 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
 
   /** Reconstrói as três listas a partir do documento (só roda com a aba aberta). */
   function render() {
+    // com o seletor de cor aberto a partir de uma amostra daqui, não reconstrói a lista (o seletor fecharia)
+    const pa = colorPickerAnchor();
+    if (pa && el.contains(pa)) return;
     const doc = store.state.doc;
     const comps = components();
     const sel = () => store.selected();
@@ -59,8 +67,27 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
           n.fill.styleId = c.id;
         }), { commit: true });
       },
-    }, h('span.asset-swatch', { style: { background: rgba(c.color, c.opacity) } }),
-    h('span.asset-name', c.name), h('span.muted.mono', c.color),
+    }, (() => {
+      // a amostra EDITA o estilo (no modo de cor ativo): mudou aqui, muda em todas as camadas ligadas
+      const mode = modesOf(doc.styles).find((m) => m.id === ui.mode);
+      const cur = styleValue(c, ui.mode);
+      const sw = h('button.asset-swatch', {
+        type: 'button', style: { background: rgba(cur.color, cur.opacity) }, 'aria-label': `Editar a cor ${c.name}`,
+        title: mode ? `Editar a cor no modo ${mode.name}` : 'Editar a cor (muda em todas as camadas ligadas)',
+        onclick: (e) => {
+          e.stopPropagation();
+          const live = (fn) => { store.update(() => { fn(); syncStyles(store.state.doc); }, { structural: false }); const v = styleValue(c, ui.mode); sw.style.background = rgba(v.color, v.opacity); };
+          openColorPicker({
+            anchor: sw, get: () => styleValue(c, ui.mode).color, commit: () => store.commit(),
+            set: (hex) => live(() => setStyleColor(c, ui.mode, hex)),
+            opacity: () => styleValue(c, ui.mode).opacity, setOpacity: (o) => live(() => setStyleColor(c, ui.mode, styleValue(c, ui.mode).color, o)),
+            onClose: () => render(),
+          });
+        },
+      });
+      return sw;
+    })(),
+    h('span.asset-name', c.name), h('span.muted.mono', styleValue(c, ui.mode).color),
     h('span.row-actions.show',
       iconButton('more', 'Renomear', async (e) => {
         e.stopPropagation();
@@ -85,6 +112,28 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
         if (name) { t.name = name; store.commit(); }
       }, 'small'),
       iconButton('x', 'Excluir estilo', (e) => { e.stopPropagation(); commands.removeStyle('texts', t.id); }, 'small'))));
+
+    // ---- variáveis de tamanho (espaçamentos, raios, tamanhos de fonte)
+    const varRows = varsOf(doc.styles).map((v) => {
+      const input = h('input.text.mono.var-val', { type: 'text', inputmode: 'decimal', value: String(v.value), 'aria-label': `Valor de ${v.name}` });
+      input.addEventListener('focus', () => input.select());
+      input.addEventListener('keydown', (e) => e.key === 'Enter' && input.blur());
+      input.addEventListener('change', () => { const n = Number(String(input.value).replace(',', '.')); if (Number.isFinite(n)) commands.setSizeVar(v.id, { value: n }); else input.value = String(v.value); });
+      return h('div.asset-row.var-row',
+        h('button.var-name', {
+          type: 'button', title: 'Clique para renomear',
+          onclick: async () => { const n = await askText({ title: 'Nome da variável', label: 'Nome da variável', value: v.name, confirm: 'Salvar' }); if (n) commands.setSizeVar(v.id, { name: n }); },
+        }, h('span', v.name), h('code', `--${cssSlug(v.name)}`)),
+        input, h('span.muted', 'px'),
+        iconButton('x', 'Excluir variável (as camadas mantêm o valor)', () => commands.deleteSizeVar(v.id), 'small'));
+    });
+    const addVarBtn = iconButton('plus', 'Nova variável', async () => {
+      const name = await askText({ title: 'Nova variável', label: 'Nome (ex.: Espaço médio, Raio dos cards)', value: `Variável ${varsOf(doc.styles).length + 1}`, confirm: 'Criar' });
+      if (!name) return;
+      const value = await askText({ title: 'Valor da variável', label: 'Valor em pixels', value: '16', confirm: 'Criar' });
+      if (value == null) return;
+      commands.addSizeVar(name, Number(String(value).replace(',', '.')) || 0);
+    }, 'small');
 
     const addColor = iconButton('plus', 'Criar estilo de cor da seleção', async () => {
       const n = sel().find((x) => x.fill?.type === 'solid');
@@ -175,6 +224,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     el.replaceChildren(
       section('Componentes', null, compRows),
       section('Cores', addColor, colorRows.length ? colorRows : [h('p.hint', 'Crie estilos de cor: mudou aqui, muda em todas as camadas.')]),
+      section('Variáveis', addVarBtn, varRows.length ? varRows : [h('p.hint', 'Números reutilizáveis (espaçamento, raio, fonte). Ligue um campo do painel Design a uma variável: mudou aqui, muda em todas as camadas, e o CSS usa var(--nome).')]),
       section('Paletas', newPalette, paletteCards.length ? paletteCards : [h('p.hint', 'Suas paletas ficam salvas neste navegador e aparecem no seletor de cor de qualquer projeto. Crie uma com o +.')]),
       section('Tipografia', addText, textRows.length ? textRows : [h('p.hint', 'Crie estilos de texto a partir de uma camada de texto.')]),
     );

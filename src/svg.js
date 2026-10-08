@@ -52,6 +52,27 @@ function shapeD(node, w, h) {
  * @param {{assets?: object, boxOf?: (node, parent) => {x,y,w,h}}} [opts]
  * @returns {string} documento SVG
  */
+/**
+ * Os filtros de COR da camada (brightness, contrast, saturate, grayscale, hue-rotate) como primitivas de <filter> do SVG,
+ * na mesma ordem do CSS. grayscale vira `saturate` com (1 − valor), que é o mesmo efeito visual.
+ * @returns {string[]} primitivas prontas (vazio se a camada não usa nenhum)
+ */
+export function colorFilterPrimitives(node) {
+  const fx = node.fx || {};
+  const out = [];
+  const v = (key, def) => (fx[key] != null ? fx[key] : def);
+  const b = v('brightness', 100) / 100, c = v('contrast', 100) / 100, s = v('saturate', 100) / 100, g = v('grayscale', 0) / 100, hr = v('hue', 0);
+  if (b !== 1) out.push(`<feComponentTransfer><feFuncR type="linear" slope="${n2(b)}"/><feFuncG type="linear" slope="${n2(b)}"/><feFuncB type="linear" slope="${n2(b)}"/></feComponentTransfer>`);
+  if (c !== 1) {
+    const i = n2(0.5 - 0.5 * c);
+    out.push(`<feComponentTransfer><feFuncR type="linear" slope="${n2(c)}" intercept="${i}"/><feFuncG type="linear" slope="${n2(c)}" intercept="${i}"/><feFuncB type="linear" slope="${n2(c)}" intercept="${i}"/></feComponentTransfer>`);
+  }
+  if (s !== 1) out.push(`<feColorMatrix type="saturate" values="${n2(Math.max(0, s))}"/>`);
+  if (g > 0) out.push(`<feColorMatrix type="saturate" values="${n2(Math.max(0, 1 - g))}"/>`);
+  if (hr) out.push(`<feColorMatrix type="hueRotate" values="${n2(hr)}"/>`);
+  return out;
+}
+
 export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: n.w, h: n.h }) } = {}) {
   // `defs` acumula definições reutilizáveis (gradientes, filtros, clip-paths) que vão no <defs> no topo do SVG
   const defs = [];
@@ -92,11 +113,11 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
   }
 
   /**
-   * Sombra externa e blur da camada como <filter> (feDropShadow + feGaussianBlur). stdDeviation = blur/2 porque o
+   * Sombra externa, blur e filtros de cor da camada como <filter> (feDropShadow + feGaussianBlur). stdDeviation = blur/2 porque o
    * "blur" do CSS corresponde a ~2× o desvio-padrão do SVG. A área do filtro é ampliada (−50%…200%) para a sombra não ser cortada.
    */
   function filterAttr(node) {
-    const parts = [];
+    const parts = colorFilterPrimitives(node);
     for (const s of node.shadows || []) {
       if (s.inset) continue;
       parts.push(`<feDropShadow dx="${s.x}" dy="${s.y}" stdDeviation="${n2(s.blur / 2)}" flood-color="${rgba(s.color, 1)}" flood-opacity="${s.opacity}"/>`);

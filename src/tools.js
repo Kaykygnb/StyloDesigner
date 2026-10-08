@@ -269,8 +269,24 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       store.emit('overlay');
       return;
     }
+    // post-it de nota (desenhado pelo overlay): seleciona a camada e abre a nota no painel Design
+    if (t.dataset?.note && store.get(t.dataset.note)) {
+      ui.focusNote = true;
+      store.setSelection([t.dataset.note]);
+      ui.setRightTab?.('design');
+      store.emit('selection');
+      return;
+    }
     // ferramenta COMENTAR: o clique numa camada cria um rascunho de comentário NAQUELE ponto
     if (tool === 'comment') { startComment(e, hitId); return; }
+    // modo RESPONSIVO (Tablet/Celular): o canvas só seleciona; os ajustes vão pelo painel Design (assim valem só nesta largura)
+    if (ui.bp) {
+      const label = t.dataset.label || null;
+      const sid = label || (hitId ? (e.ctrlKey || e.metaKey ? hitId : pickSelectable(hitId)) : null);
+      if (!sid) { if (!e.shiftKey) store.setSelection([]); return; }
+      store.setSelection(e.shiftKey ? (ui.selection.includes(sid) ? ui.selection.filter((s) => s !== sid) : [...ui.selection, sid]) : [sid]);
+      return;
+    }
     // 3) caneta: cada clique adiciona um ponto (clicar no primeiro ponto fecha o caminho)
     if (tool === 'pen') {
       drag = { type: 'pen' };
@@ -1069,6 +1085,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
    * Durante a caneta, termina o caminho.
    */
   viewport.addEventListener('dblclick', (e) => {
+    if (ui.bp) return; // modo responsivo: nada de editar texto/pontos no canvas
     const t = downTarget && viewport.contains(downTarget) ? downTarget : e.target;
     if (pen.isDrawing()) { ui.pen.pts.pop(); pen.finish(false); return; }
     if (ui.tool !== 'move') return;
@@ -1165,6 +1182,11 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     }
     // a partir daqui, se o usuário está digitando num campo, ignora (os atalhos do canvas não devem roubar as teclas)
     if (isTyping(e.target)) return;
+    // modo RESPONSIVO: só navegação (ferramentas Mover/Mão/Comentar, zoom, desfazer); o resto mexeria no desenho de TODAS as larguras
+    if (ui.bp) {
+      const nav = ['v', 'h', 'c', ' ', 'tab', 'shift', 'alt', 'control', 'meta', '+', '=', '-', '_', '0', '1', '2'].includes(key) || (mod && ['z', 'y', '0', '1', '2', '=', '-', '+', 's'].includes(key));
+      if (!nav) { e.preventDefault(); return; }
+    }
 
     // Tab / Shift+Tab: próxima / anterior camada no mesmo nível, na ordem da lista de camadas (de cima para baixo)
     if (e.key === 'Tab') {

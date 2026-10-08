@@ -14,6 +14,7 @@
 import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
 import { buildSample } from './sample.js';
 import { syncInstances, syncStyles } from './components.js';
+import { syncVars } from './modes.js';
 import { pruneComments } from './comments.js';
 
 
@@ -74,6 +75,10 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       dropTarget: null,
       // estado interativo sendo editado no painel Design ('hover' | 'active' | 'focus'; null = a camada normal)
       editState: null,
+      // modo responsivo: null = Desktop (o desenho base) · 'tablet' | 'mobile' = editando/vendo aquela largura
+      bp: null,
+      // modo de cor visto no canvas (null = padrão)
+      mode: null,
       // comentários: rascunho ({ nodeId, rx, ry }) esperando o texto · comentário em destaque (id) · filtro da lista
       commentDraft: null,
       activeComment: null,
@@ -200,6 +205,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     fitGroups(api.page().children);
     syncInstances(state.doc.pages);
     syncStyles(state.doc);
+    syncVars(state.doc); // variáveis de tamanho (gap, padding, raio, fonte) → camadas ligadas
     pruneComments(state.doc); // camada apagada leva os comentários dela (desfazer traz de volta)
     version++;
     const snap = snapshot();
@@ -247,6 +253,22 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     if (next.length === cur.length && next.every((id, i) => id === cur[i])) return;
     state.ui.selection = next;
     emit('selection');
+  };
+
+  /** Entra no modo responsivo (null = Desktop, 'tablet', 'mobile'). Sai de qualquer estado (hover...) em edição. */
+  /** Escolhe o MODO DE COR visto no canvas (null = padrão; ou o id de um modo: escuro...). */
+  api.setMode = (mode) => {
+    const next = mode || null;
+    if (state.ui.mode === next) return;
+    state.ui.mode = next;
+    emit('bp'); // mesma "visão" do modo responsivo: o canvas e o painel redesenham
+  };
+  api.setBp = (bp) => {
+    const next = bp || null;
+    if (state.ui.bp === next) return;
+    state.ui.bp = next;
+    state.ui.editState = null;
+    emit('bp');
   };
 
   /** Troca a ferramenta ativa ('move', 'frame', 'rect', 'pen'...). */

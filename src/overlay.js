@@ -11,7 +11,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { round } from './model.js';
+import { round, walk } from './model.js';
 import { rgba } from './css.js';
 
 /**
@@ -206,6 +206,25 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
       });
       const dr = ui.commentDraft;
       if (dr && store.get(dr.nodeId)) pin('cm:draft', 'comment-pin draft', '+', dr.nodeId, dr.rx, dr.ry, null);
+    }
+
+    // ---- NOTAS: um post-it amarelo acima do canto direito de cada camada que tem nota (ligar/desligar em Exibir → Notas).
+    // A camada selecionada mostra a nota inteira; as outras mostram só a 1ª linha. Clicar abre a nota no painel.
+    if (ui.showNotes !== false) {
+      walk(page.children, (n) => {
+        if (!n.note || !n.visible) return;
+        const b = canvas.aabb(n.id);
+        if (!b) return;
+        const p = canvas.toScreen(b.x + b.w, b.y);
+        const open = sel.includes(n.id);
+        const el = get(`note:${n.id}`, `note-chip${open ? ' open' : ''}`);
+        el.dataset.note = n.id;
+        const text = open ? n.note : n.note.split('\n')[0];
+        if (el.textContent !== text) el.textContent = text;
+        el.style.left = `${p.x}px`;
+        el.style.top = `${p.y}px`;
+        el.style.maxWidth = `${open ? 260 : Math.max(120, Math.min(220, b.w * z))}px`;
+      });
     }
 
     // ---- contorno fino da camada sob o mouse (só com a ferramenta Mover, e não durante arrastos)
@@ -484,7 +503,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
 
   // o overlay precisa estar sempre em dia com o canvas: redesenha de forma síncrona nesses eventos
   store.subscribeSync((reason) => {
-    if (['doc', 'selection', 'view', 'overlay', 'hover'].includes(reason)) render();
+    if (['doc', 'selection', 'view', 'overlay', 'hover', 'bp'].includes(reason)) render();
   });
   render();
 

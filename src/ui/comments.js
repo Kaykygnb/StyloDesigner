@@ -14,7 +14,7 @@
  */
 
 import { h, ico } from './dom.js';
-import { addComment, addReply, commentsOf, removeComment, setResolved, timeAgo } from '../comments.js';
+import { addComment, addReply, commentsOf, editText, removeComment, setResolved, timeAgo } from '../comments.js';
 
 /** Primeira letra (maiúscula) do nome, para o "avatar". */
 const initial = (name) => (String(name || '?').trim()[0] || '?').toUpperCase();
@@ -32,7 +32,18 @@ export function createCommentsPanel({ store, canvas, prefs, toast }) {
   let composerText = '';
   const replyText = new Map(); // id do comentário → rascunho da resposta
   let replyOpen = null; // id do comentário com a caixa de resposta aberta
+  let editing = null; // id do comentário (ou da resposta) cujo texto está sendo editado
+  const editText_ = new Map(); // id → rascunho do texto editado
 
+  /** Comentário ou resposta pelo id, no documento de agora (os objetos antigos ficam velhos depois de desfazer). */
+  const findItem = (id) => {
+    for (const c of commentsOf(store.state.doc)) {
+      if (c.id === id) return c;
+      const r = (c.replies || []).find((x) => x.id === id);
+      if (r) return r;
+    }
+    return null;
+  };
   const author = () => String(prefs.author || '').trim() || 'Eu';
 
   /** Para onde vai o comentário novo: o ponto escolhido com a ferramenta, ou a camada selecionada (canto superior direito). */
@@ -92,16 +103,31 @@ export function createCommentsPanel({ store, canvas, prefs, toast }) {
   function thread(c, n) {
     const node = store.get(c.nodeId);
     const card = h('article.cm-thread' + (c.resolved ? '.resolved' : '') + (ui.activeComment === c.id ? '.active' : ''), { dataset: { comment: c.id } });
+    /** Texto do comentário/resposta: com o botão de editar, ou a caixa de edição aberta. */
+    const body = (item, owner) => {
+      if (editing === item.id) {
+        return composer({
+          placeholder: 'Editar…', text: editText_.get(item.id) ?? item.text, label: 'Salvar', autofocus: true,
+          onText: (v) => editText_.set(item.id, v),
+          onSend: () => { const v = editText_.get(item.id) ?? item.text; editing = null; editText_.delete(item.id); change(() => { const live = findItem(item.id); if (live) editText(live, v); }); },
+          onEsc: () => { editing = null; editText_.delete(item.id); sig = ''; render(); },
+        });
+      }
+      return h('div.cm-body',
+        h('p.cm-text', item.text),
+        h('button.cm-edit', { type: 'button', title: 'Editar o texto', 'aria-label': 'Editar o texto', onclick: (e) => { e.stopPropagation(); editing = item.id; sig = ''; render(); } }, ico('pen', 11)));
+    };
+    const when = (item) => h('span.cm-time', timeAgo(item.at), item.editedAt ? ' · editado' : '');
     const head = h('div.cm-head',
       h('span.cm-avatar', initial(c.author)),
-      h('div.cm-who', h('strong', c.author), h('span.cm-time', timeAgo(c.at))),
+      h('div.cm-who', h('strong', c.author), when(c)),
       h('span.cm-num', `#${n}`));
     const where = h('button.cm-target', { type: 'button', title: 'Ir para a camada', onclick: () => goTo(c) }, ico('layers', 11), ` ${node?.name || 'camada'}`);
-    card.append(head, where, h('p.cm-text', c.text));
+    card.append(head, where, body(c));
     for (const r of c.replies || []) {
       card.append(h('div.cm-reply',
-        h('div.cm-head', h('span.cm-avatar.small', initial(r.author)), h('div.cm-who', h('strong', r.author), h('span.cm-time', timeAgo(r.at)))),
-        h('p.cm-text', r.text)));
+        h('div.cm-head', h('span.cm-avatar.small', initial(r.author)), h('div.cm-who', h('strong', r.author), when(r))),
+        body(r)));
     }
     if (replyOpen === c.id) {
       card.append(composer({
@@ -143,7 +169,7 @@ export function createCommentsPanel({ store, canvas, prefs, toast }) {
     const t = target();
     const filter = ui.commentFilter || 'open';
     const open = all.filter((c) => !c.resolved).length;
-    const next = JSON.stringify([all, filter, t && [t.nodeId, store.get(t.nodeId)?.name], ui.activeComment, replyOpen, author()]);
+    const next = JSON.stringify([all, filter, t && [t.nodeId, store.get(t.nodeId)?.name], ui.activeComment, replyOpen, editing, author()]);
     if (next === sig) return;
     sig = next;
 

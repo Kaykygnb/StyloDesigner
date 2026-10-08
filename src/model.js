@@ -388,6 +388,81 @@ export function editState(node, state, fn) {
   if (Object.keys(states).length) node.states = states; else delete node.states;
 }
 
+// ---------------------------------------------------------------- RESPONSIVO (breakpoints)
+/**
+ * Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular
+ * também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
+ */
+export const BREAKPOINTS = [
+  { id: 'tablet', name: 'Tablet', max: 1024, preview: 768 },
+  { id: 'mobile', name: 'Celular', max: 640, preview: 390 },
+];
+/** Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela). */
+export const BP_KEYS = [
+  'x', 'y', 'w', 'h', 'sizeX', 'sizeY', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'margin', 'grow', 'absolute', 'visible',
+  'alignSelf', 'justifySelf', 'colSpan', 'rowSpan', 'layout', 'rotation', 'overflow', 'fluid',
+  'fontSize', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign', 'fontWeight', 'textTransform', 'truncate', 'lines',
+  'radius', 'opacity', 'blend', 'clip', 'fill', 'stroke', 'shadows', 'blur', 'bgBlur', 'fx',
+];
+/** Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile']. */
+export const bpsUpTo = (bp) => {
+  const i = BREAKPOINTS.findIndex((b) => b.id === bp);
+  return i < 0 ? [] : BREAKPOINTS.slice(0, i + 1).map((b) => b.id);
+};
+/** A camada tem sobrescritas em algum breakpoint (ou num específico)? */
+export const hasBps = (n, which) => !!n?.bps && (which ? Object.keys(n.bps[which] || {}).length > 0 : Object.values(n.bps).some((o) => Object.keys(o || {}).length));
+
+/**
+ * "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet +
+ * celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria
+ * camada. Não altera nada.
+ * @param {object} node
+ * @param {string|null} bp  'tablet' | 'mobile' | null (desktop)
+ */
+export function bpView(node, bp) {
+  if (!bp || !node.bps) return node;
+  let v = node;
+  for (const id of bpsUpTo(bp)) {
+    const ov = node.bps[id];
+    if (!ov || !Object.keys(ov).length) continue;
+    if (v === node) v = { ...node };
+    for (const k of BP_KEYS) {
+      if (ov[k] === undefined) continue;
+      if (ov[k] === null) delete v[k]; else v[k] = cloneDeep(ov[k]);
+    }
+  }
+  return v;
+}
+
+/**
+ * Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em
+ * `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some).
+ * É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
+ * @param {object} node  camada real (é alterada)
+ * @param {string} bp  'tablet' | 'mobile'
+ * @param {(draft: object) => void} fn  recebe o rascunho (só as chaves de BP_KEYS ficam)
+ */
+export function editBp(node, bp, fn) {
+  const ids = bpsUpTo(bp);
+  if (!ids.length) { fn(node); return; }
+  const view = bpView(node, bp);
+  const lower = bpView(node, ids[ids.length - 2] || null);
+  const draft = { ...node };
+  for (const k of BP_KEYS) {
+    if (view[k] === undefined) delete draft[k]; else draft[k] = cloneDeep(view[k]);
+  }
+  fn(draft);
+  const ov = { ...(node.bps?.[bp] || {}) };
+  for (const k of BP_KEYS) {
+    const val = draft[k], base = lower[k];
+    if (JSON.stringify(val) === JSON.stringify(base)) delete ov[k];
+    else ov[k] = val === undefined ? null : cloneDeep(val);
+  }
+  const bps = { ...(node.bps || {}) };
+  if (Object.keys(ov).length) bps[bp] = ov; else delete bps[bp];
+  if (Object.keys(bps).length) node.bps = bps; else delete node.bps;
+}
+
 /** Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar). */
 export function cloneNode(node) {
   const copy = cloneDeep(node);

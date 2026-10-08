@@ -8,13 +8,16 @@
  */
 
 import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip, textField } from './dom.js';
-import { askText } from './menus.js';
+import { askText, showMenu } from './menus.js';
+import { styleValue, setStyleColor, varsOf, modesOf } from '../modes.js';
+import { syncStyles } from '../components.js';
 import { fontField } from './fontpicker.js';
 import { nodeIcon } from './icons.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
   BLEND_MODES, FONT_WEIGHTS, OVERFLOWS, overflowOf, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
   constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView, TEXT_TAGS, BOX_TAGS, tagOf, TYPE_LABEL,
+  BREAKPOINTS, bpView, editBp, hasBps,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
@@ -57,11 +60,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   const ids = () => ui.selection.filter((id) => store.get(id));
   const nodes = () => ids().map((id) => store.get(id));
   // Em modo ESTADO (hover...), P() lê a "visão" do estado e each() escreve no estado (só o que difere do normal fica guardado)
+  // Em modo RESPONSIVO (Tablet/Celular) o painel mostra a visão daquela largura e escreve só a diferença em node.bps
   const P = () => {
     const n = store.get(ids()[0]);
-    return ui.editState && n ? stateView(n, ui.editState) : n;
+    if (!n) return n;
+    return ui.editState ? stateView(n, ui.editState) : ui.bp ? bpView(n, ui.bp) : n;
   };
-  const each = (fn) => store.update(() => nodes().forEach((n) => (ui.editState ? editState(n, ui.editState, fn) : fn(n))), { structural: false });
+  const each = (fn) => store.update(() => nodes().forEach((n) => (ui.editState ? editState(n, ui.editState, fn) : ui.bp ? editBp(n, ui.bp, fn) : fn(n))), { structural: false });
+  /** Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular). */
+  const parentOf = (id) => { const p = store.parentOf(id); return p && ui.bp ? bpView(p, ui.bp) : p; };
   /** Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar. */
   const commit = () => store.commit();
   /** Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho). */
@@ -186,9 +193,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   function positionSection() {
     const single = ids().length === 1;
     const n0 = P();
-    const parent = store.parentOf(n0.id);
+    const parent = parentOf(n0.id);
     const inFlow = isFlow(n0, parent);
-    const body = [cap('Alinhamento', alignRow())];
+    const body = ui.bp ? [] : [cap('Alinhamento', alignRow())];
+    if (!single && ui.bp) return section('Posição', [h('p.hint', 'No modo Tablet/Celular, ajuste uma camada por vez.')]);
     if (!single) {
       // várias camadas: X/Y da caixa que envolve todas
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
@@ -204,7 +212,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         posRow.title = 'Posição controlada pelo auto layout do pai';
       }
       body.push(capK('Posição', 'left-top', posRow));
-      if (parent?.type === 'frame' && !hasLayout(parent) && !n0.absolute) {
+      if (parent?.type === 'frame' && !hasLayout(parent) && !n0.absolute && !ui.bp) {
         body.push(capK('Restrições', 'constraints', row(
           select(H_CONS, () => constraintsOf(P()).h, (v) => each((n) => { n.constraints = { ...constraintsOf(n), h: v }; }), 'Constraint horizontal: como reage quando o frame muda de largura', '↔'),
           select(V_CONS, () => constraintsOf(P()).v, (v) => each((n) => { n.constraints = { ...constraintsOf(n), v: v }; }), 'Constraint vertical: como reage quando o frame muda de altura', '↕'))));
@@ -212,11 +220,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     }
     body.push(capK('Rotação', 'rotate', row(
       num('↻', () => P().rotation, (v) => each((n) => { n.rotation = v; }), { title: 'rotação (transform: rotate)', decimals: 1, min: -360, max: 360, unit: '°' }),
-      h('div.btn-group',
+      ui.bp ? null : h('div.btn-group',
         h('button.icon-btn.small' + (n0.flipX ? '.on' : ''), { type: 'button', title: 'Espelhar na horizontal (Shift+H)', onclick: () => commands.flip('x') }, ico('flipH', 14)),
         h('button.icon-btn.small' + (n0.flipY ? '.on' : ''), { type: 'button', title: 'Espelhar na vertical (Shift+V)', onclick: () => commands.flip('y') }, ico('flipV', 14))))));
     // ordem de empilhamento (z-index): quem fica na frente de quem
-    if (!ui.editState) {
+    if (!ui.editState && !ui.bp) {
       const stack = (icon, title, mode) => h('button.icon-btn.small', { type: 'button', title, onclick: () => commands.reorder(mode) }, ico(icon, 14));
       body.push(capK('Empilhamento', 'z-index', h('div.btn-group',
         stack('front', 'Trazer para frente (Ctrl+Shift+])', 'front'), stack('front', 'Avançar um nível (Ctrl+])', 'forward'),
@@ -231,10 +239,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    */
   function headerBlock() {
     const ns = nodes();
-    const n = ns[0];
+    const n = ui.bp ? bpView(ns[0], ui.bp) : ns[0];
     const one = ns.length === 1;
-    const flip = (key) => { store.update(() => ns.forEach((x) => { x[key] = !x[key]; }), { commit: true }); };
-    const eyeBtn = h('button.icon-btn.small' + (!n.visible ? '.on' : ''), { type: 'button', title: n.visible ? 'Ocultar (display: none)' : 'Mostrar', onclick: () => flip('visible') }, ico(n.visible ? 'eye' : 'eyeOff', 14));
+    const flip = (key) => { store.update(() => ns.forEach((x) => { if (ui.bp && key === 'visible') editBp(x, ui.bp, (d) => { d.visible = !d.visible; }); else x[key] = !x[key]; }), { commit: true }); };
+    const eyeBtn = h('button.icon-btn.small' + (!n.visible ? '.on' : ''), { type: 'button', title: ui.bp ? (n.visible ? 'Ocultar só nesta largura (display: none)' : 'Mostrar nesta largura') : (n.visible ? 'Ocultar (display: none)' : 'Mostrar'), onclick: () => flip('visible') }, ico(n.visible ? 'eye' : 'eyeOff', 14));
     const lockBtn = h('button.icon-btn.small' + (n.locked ? '.on' : ''), { type: 'button', title: n.locked ? 'Destravar' : 'Travar: não dá para clicar nela no canvas', onclick: () => flip('locked') }, ico(n.locked ? 'lock' : 'unlock', 14));
     const help = h('button.explain-btn' + (explain ? '.on' : ''), {
       type: 'button', 'aria-pressed': String(explain),
@@ -254,8 +262,23 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       h('div.sel-top',
         h('span.sel-ico', ico(one ? nodeIcon(n.type) : 'layers', 18)),
         h('div.sel-info', h('div.sel-name', one ? n.name : `${ns.length} camadas`), h('div.sel-sub', ...sub)),
-        h('div.sel-actions', eyeBtn, lockBtn)),
+        h('div.sel-actions', eyeBtn, ui.bp ? null : lockBtn)),
+      ui.bp ? bpBanner(ns) : null,
       help);
+  }
+
+  /** Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop. */
+  function bpBanner(ns) {
+    const b = BREAKPOINTS.find((x) => x.id === ui.bp);
+    const touched = ns.filter((x) => hasBps(x, ui.bp));
+    const kids = [h('span', 'Editando o ', h('b', b.name), ` (janela até ${b.max}px). Só o que for diferente do Desktop é guardado; o resto continua herdando.`)];
+    if (touched.length) {
+      kids.push(h('button.btn.small', {
+        type: 'button', title: `Apaga os ajustes do ${b.name} desta camada e volta a herdar do Desktop`,
+        onclick: () => store.update(() => touched.forEach((x) => { delete x.bps[ui.bp]; if (!Object.keys(x.bps).length) delete x.bps; }), { commit: true }),
+      }, ico('undo', 12), ' Restaurar ao Desktop'));
+    }
+    return h('div.bp-banner', ...kids);
   }
 
   // campo de texto da Nota (guardado para o foco pedido pelo menu "Adicionar nota")
@@ -265,7 +288,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    * aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
    */
   function noteSection() {
-    if (ids().length !== 1 || ui.editState) return null;
+    if (ids().length !== 1 || ui.editState || ui.bp) return null;
     const ta = h('textarea.note-input', { rows: 3, spellcheck: true, 'aria-label': 'Nota da camada', placeholder: 'Para que serve esta camada?\nEx.: Botão principal da tela inicial. Leva ao checkout.' });
     noteInput = ta;
     const dot = h('span.dot-on', { title: 'Esta camada tem nota' });
@@ -291,7 +314,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    * leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
    */
   function htmlSection() {
-    if (ids().length !== 1 || ui.editState) return null;
+    if (ids().length !== 1 || ui.editState || ui.bp) return null;
     const n0 = P();
     if (n0.type === 'line') return null;
     const isText = n0.type === 'text';
@@ -315,9 +338,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   function sizeSection() {
     const single = ids().length === 1;
     const n0 = P();
-    const parent = store.parentOf(n0.id);
+    const parent = parentOf(n0.id);
     const inFlow = isFlow(n0, parent);
     const body = [];
+    if (!single && ui.bp) return section('Tamanho', [h('p.hint', 'No modo Tablet/Celular, ajuste uma camada por vez.')]);
     if (!single) {
       const box = () => canvas.unionAabb(commands.topSelection().map((n) => n.id)) || { x: 0, y: 0, w: 0, h: 0 };
       body.push(capK('Dimensões', 'width-height', row(num('W', () => box().w, (v) => commands.setSelectionBox({ w: v }), { min: 1, decimals: 1 }),
@@ -349,6 +373,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         const [w, hh] = v.split('x').map(Number);
         each((n) => { resizeNode(n, w, hh, 'w'); n.h = hh; n.sizeY = 'fixed'; });
       }, 'Predefinições de tamanho'));
+      body.push(tip(check('Largura fluida no site exportado', () => !!P().fluid, (v) => each((n) => { if (v) n.fluid = true; else delete n.fluid; })), {
+        title: 'Largura fluida', css: 'width: 100%;\nmax-width: 1200px;\nmin-height: 800px;\nmargin: 0 auto;',
+        text: 'Na página exportada, esta tela ocupa 100% da janela até a largura que você desenhou (max-width), centralizada. A altura vira mínima. Sem isso, a tela tem sempre a largura fixa. Combine com Tablet/Celular para um site responsivo de verdade.',
+      }));
     }
     if (hasSizeLimits(n0)) body.push(limitsBlock(n0));
     return section('Tamanho', body);
@@ -412,7 +440,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    */
   function appearanceSection() {
     const n0 = P();
-    const parent = store.parentOf(n0.id);
+    const parent = parentOf(n0.id);
     const body = [row(
       capK('Opacidade', 'opacity', num('%', () => P().opacity * 100, (v) => each((n) => { n.opacity = v / 100; }), { min: 0, max: 100, decimals: 0, title: 'opacity' })),
       capK('Mesclagem', 'mix-blend-mode', select(BLEND_MODES.map((m) => [m, m]), () => P().blend, (v) => each((n) => { n.blend = v; }), 'mix-blend-mode (mistura com o que está atrás)', '◐')))];
@@ -438,7 +466,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       }), 'overflow')));
       if (overflowOf(n0).startsWith('scroll')) body.push(h('p.hint', 'A rolagem funciona na apresentação e no HTML exportado. No editor o conteúdo aparece cortado.'));
     }
-    if (!ui.editState && (n0.isMask || parent?.type === 'group')) {
+    if (!ui.editState && !ui.bp && (n0.isMask || parent?.type === 'group')) {
       body.push(check('Usar como máscara (clip-path)', () => !!P().isMask, (v) => each((n) => { n.isMask = v; })));
     }
     return section('Aparência', body);
@@ -547,8 +575,49 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   /** Monta o objeto de dica de uma propriedade do CSS_DOC. */
   const cssTip = (key) => ({ title: CSS_DOC[key][0], css: CSS_DOC[key][1], text: CSS_DOC[key][2] });
   /** Grupo com legenda em português + nome da propriedade CSS (mono) e dica rica ao passar o mouse na legenda e no controle. */
+  // campos que podem ser ligados a uma VARIÁVEL de tamanho: chave do CSS → campo da camada
+  const VAR_FOR = { gap: 'gap', padding: 'padding', 'border-radius': 'radius', 'font-size': 'fontSize' };
+  const VAR_CSS = { gap: 'gap', padding: 'padding', radius: 'border-radius', fontSize: 'font-size' };
+  /** Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md). */
+  function varButton(prop) {
+    if (ui.bp || ui.editState) return null;
+    const b = h('button.var-btn', { type: 'button', 'aria-label': 'Ligar a uma variável' }, ico('component', 11));
+    const current = (n) => (prop === 'gap' ? n.layout?.gap : prop === 'padding' ? n.layout?.padding?.[0] : prop === 'radius' ? n.radius?.[0] : n.fontSize) ?? 0;
+    const refresh = () => {
+      const n = store.get(ids()[0]);
+      const v = varsOf(store.state.doc.styles).find((x) => x.id === n?.vars?.[prop]);
+      b.classList.toggle('on', !!v);
+      b.hidden = !n || ((prop === 'gap' || prop === 'padding') && (!hasLayout(n) || (prop === 'gap' && n.layout.mode === 'grid')));
+      tip(b, v
+        ? { title: `Variável: ${v.name}`, css: `${VAR_CSS[prop]}: var(--nome);`, text: 'Este campo está ligado a uma variável do projeto. Mudar o valor da variável (aba Recursos) muda todas as camadas ligadas. Editar o campo à mão desliga.' }
+        : { title: 'Ligar a uma variável', text: 'Reaproveite um valor do projeto (ex.: espaço médio) em vez de um número solto. No CSS exportado vira var(--nome).' });
+    };
+    updaters.push(refresh);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const n = store.get(ids()[0]);
+      if (!n) return;
+      const vars = varsOf(store.state.doc.styles);
+      const boundId = n.vars?.[prop];
+      const r = b.getBoundingClientRect();
+      const items = vars.length
+        ? vars.map((v) => ({ label: `${v.name} · ${v.value}px`, checked: boundId === v.id, onClick: () => commands.bindSizeVar(nodes(), prop, v) }))
+        : [{ label: 'Nenhuma variável ainda', disabled: true }];
+      items.push('sep', {
+        label: 'Nova variável com o valor atual…', icon: 'plus',
+        onClick: async () => {
+          const name = await askText({ title: 'Nova variável', label: 'Nome (ex.: Espaço médio, Raio dos cards)', value: `Variável ${vars.length + 1}`, confirm: 'Criar' });
+          if (!name) return;
+          commands.bindSizeVar(nodes(), prop, commands.addSizeVar(name, current(n)));
+        },
+      });
+      if (boundId) items.push({ label: 'Desligar da variável', onClick: () => commands.bindSizeVar(nodes(), prop, null) });
+      showMenu(r.left, r.bottom + 4, items, { anchorRight: true });
+    });
+    return b;
+  }
   const capK = (label, key, ...children) => {
-    const g = h('div.cap-group', h('div.cap.has-tip', label, h('span.cap-css', CSS_DOC[key][3] || key)), ...children);
+    const g = h('div.cap-group', h('div.cap.has-tip', label, h('span.cap-right', h('span.cap-css', CSS_DOC[key][3] || key), VAR_FOR[key] ? varButton(VAR_FOR[key]) : null)), ...children);
     return tip(g, cssTip(key));
   };
 
@@ -572,7 +641,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       ['grid', 'grid', 'Grade', 'grid', { title: 'Grade (CSS Grid)', css: 'display: grid;\ngrid-template-columns: repeat(3, 1fr);', text: 'Uma tabela invisível de colunas e linhas. Cada item cai numa célula: ótimo para cards, galerias e painéis.' }],
     ];
     const cards = MODES.map(([v, icon, name, css, doc]) => {
-      const b = h('button.al-mode', { type: 'button', dataset: { v }, onclick: () => { store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
+      const b = h('button.al-mode', { type: 'button', dataset: { v }, onclick: () => { if (ui.bp) each((n) => { n.layout = { ...n.layout, mode: v }; }); else store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
         ico(icon, 20), h('span.al-mode-name', name), h('span.al-mode-css', css));
       updaters.push(() => b.classList.toggle('on', L().mode === v));
       return tip(b, doc);
@@ -588,7 +657,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const LIVE_KEYS = ['display', 'flex-direction', 'flex-wrap', 'grid-template-columns', 'grid-template-rows', 'gap', 'justify-content', 'justify-items', 'align-items', 'padding'];
     const code = h('div.al-code-body');
     const fillCode = () => {
-      const s = nodeStyle(P(), store.parentOf(P().id), store.state.doc.assets);
+      const s = nodeStyle(P(), parentOf(P().id), store.state.doc.assets);
       code.replaceChildren(
         h('div.al-brace', '.frame {'),
         ...LIVE_KEYS.filter((k) => s[k] != null).map((k) => tip(h('div.al-line', h('span.al-prop', k), ':', h('span.al-val', ` ${s[k]}`), ';'), cssTip(k))),
@@ -848,7 +917,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
    * "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
    */
   function flowItemSection() {
-    const parent = store.parentOf(P().id);
+    const parent = parentOf(P().id);
     const grid = parent.layout.mode === 'grid';
     const body = [
       tip(h('div.al-check', check('Fora do fluxo (absolute)', () => P().absolute, (v) => each((n) => {
@@ -892,7 +961,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
   /** Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar. */
   const commandsOrigin = (n) => {
-    const parent = store.parentOf(n.id);
+    const parent = parentOf(n.id);
     const o = canvas.originOf(n.id);
     const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
     return { x: Math.round(o.x - po.x), y: Math.round(o.y - po.y) };
@@ -994,14 +1063,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const weights = FONT_WEIGHTS.filter(([w]) => avail.includes(w));
     const styles = store.state.doc.styles.texts;
     return section('Texto', [
-      row(
+      ui.bp ? null : row(
         select([['', 'Sem estilo'], ...styles.map((t) => [t.id, t.name])], () => P().textStyleId || '',
           (v) => each((n) => { if (v) n.textStyleId = v; else delete n.textStyleId; }), 'Estilo de texto'),
         iconButton('plus', 'Criar estilo de texto a partir desta camada', async () => {
           const name = await askText({ title: 'Nome do estilo de texto', label: 'Nome do estilo de texto', value: `Texto ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addTextStyle(P(), name);
         }, 'small')),
-      capK('Fonte', 'font-family', reg(fontField({
+      ui.bp ? null : capK('Fonte', 'font-family', reg(fontField({
         get: () => P().fontFamily,
         // ao trocar a fonte: começa a baixar (Google Fonts) e ajusta o peso para o mais próximo que ela tem
         set: (v) => { ensureFonts([v]); each((n) => { n.fontFamily = v; n.fontWeight = nearestWeight(v, n.fontWeight); delete n.textStyleId; }); commit(); },
@@ -1017,12 +1086,12 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           options: [['left', 'alignTextL', 'Esquerda'], ['center', 'alignTextC', 'Centro'], ['right', 'alignTextR', 'Direita']],
           get: () => P().textAlign, set: (v) => each((n) => { n.textAlign = v; }), commit,
         })),
-        reg(segmented({
+        ui.bp ? null : reg(segmented({
           options: [['italic', 'italic', 'Itálico']],
           get: () => (P().fontStyle === 'italic' ? 'italic' : ''),
           set: () => each((n) => { n.fontStyle = n.fontStyle === 'italic' ? 'normal' : 'italic'; }), commit,
         })),
-        reg(segmented({
+        ui.bp ? null : reg(segmented({
           options: [['underline', 'underline', 'Sublinhado'], ['line-through', 'strike', 'Riscado']],
           get: () => P().textDecoration,
           set: (v) => each((n) => { n.textDecoration = n.textDecoration === v ? 'none' : v; }), commit,
@@ -1030,7 +1099,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       row(
         capK('Caixa das letras', 'text-transform', select([['none', 'Normal'], ['uppercase', 'MAIÚSCULAS'], ['lowercase', 'minúsculas'], ['capitalize', 'Cada Palavra']],
           () => P().textTransform || 'none', (v) => each((n) => { n.textTransform = v; }), 'text-transform')),
-        P().sizeY === 'fixed'
+        P().sizeY === 'fixed' && !ui.bp
           ? capK('Alinhamento vertical', 'vertical-align', reg(segmented({
             options: [['top', 'alignT', 'Alinhar ao topo da caixa'], ['center', 'alignCV', 'Centralizar na vertical'], ['bottom', 'alignB', 'Alinhar embaixo']],
             get: () => P().textVAlign || 'top', set: (v) => each((n) => { n.textVAlign = v; }), commit,
@@ -1105,10 +1174,20 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const t = n0.fill.type;
     if (t === 'solid') {
       const styles = store.state.doc.styles.colors;
+      // com um MODO de cor ativo (escuro...) e a cor ligada a um estilo, o campo edita o valor do estilo NAQUELE modo
+      const styleOf = () => styles.find((c) => c.id === fill().styleId);
+      const inMode = () => !!(ui.mode && !ui.editState && styleOf());
+      const editStyle = (color, opacity) => store.update(() => { setStyleColor(styleOf(), ui.mode, color ?? styleValue(styleOf(), ui.mode).color, opacity); syncStyles(store.state.doc); }, { structural: false });
       body.push(reg(colorRow({ groups: colorGroups,
-        get: () => fill().color, set: (v) => each((n) => { n.fill.color = v; delete n.fill.styleId; }), commit,
-        opacity: () => fill().opacity, setOpacity: (v) => each((n) => { n.fill.opacity = v; delete n.fill.styleId; }),
+        get: () => (inMode() ? styleValue(styleOf(), ui.mode).color : fill().color),
+        set: (v) => (inMode() ? editStyle(v) : each((n) => { n.fill.color = v; delete n.fill.styleId; })), commit,
+        opacity: () => (inMode() ? styleValue(styleOf(), ui.mode).opacity : fill().opacity),
+        setOpacity: (v) => (inMode() ? editStyle(undefined, v) : each((n) => { n.fill.opacity = v; delete n.fill.styleId; })),
       })));
+      if (ui.mode && !ui.editState) {
+        const mname = modesOf(store.state.doc.styles).find((m) => m.id === ui.mode)?.name || 'este modo';
+        body.push(h('p.hint', fill().styleId ? `Modo ${mname}: a cor que você muda aqui vale só neste modo (é o valor do estilo de cor).` : `Modo ${mname} ativo: esta cor não está ligada a um estilo, então vale igual em todos os modos. Crie um estilo de cor (botão +) para ter um valor por modo.`));
+      }
       body.push(docColorChips((hex) => { each((n) => { n.fill.color = hex; n.fill.opacity = 1; delete n.fill.styleId; }); commit(); }));
       body.push(row(
         select([['', 'Sem estilo de cor'], ...styles.map((c) => [c.id, c.name])], () => fill().styleId || '',
@@ -1372,14 +1451,14 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   function signature() {
     const ns = nodes();
     if (!ns.length) return 'empty';
-    const n = ns[0];
-    const parent = store.parentOf(n.id);
+    const n = ui.bp ? bpView(ns[0], ui.bp) : ns[0];
+    const parent = parentOf(n.id);
     return [
       ns.map((x) => x.id + x.type).join(','), n.fill.type, n.fill.stops.length, !!n.stroke, n.shadows.length,
       // contorno por lado: quais lados e se é "personalizado" mudam os campos mostrados
       n.stroke?.sides ? n.stroke.sides.map((v) => (v > 0 ? 1 : 0)).join('') + (n.stroke.sidesCustom ? 'c' : '') : '',
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
-      n.visible, n.locked, tagOf(n), store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
+      ui.bp, ui.mode, hasBps(ns[0], ui.bp), n.visible, n.locked, tagOf(n), n.fluid, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
       n.type === 'frame' ? overflowOf(n) : '',
       n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
@@ -1391,7 +1470,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.type === 'path' ? `${ui.editPathId === n.id}|${ui.editPt}|${(ui.editPts || []).join('.')}|${ui.editPathId === n.id ? tools.pen.pointType() : ''}` : '',
       store.state.doc.styles.colors.length, store.state.doc.styles.texts.length, n.fill.styleId, n.textStyleId, n.type,
       n.type === 'text' ? n.fontFamily : '', // a lista de pesos depende da fonte
-      n.constraints?.h, !!store.parentOf(n.id) && !hasLayout(store.parentOf(n.id)), paddingExpanded, gapSplit, n.layout ? n.layout.colGap !== n.layout.rowGap : '', n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
+      n.constraints?.h, !!parentOf(n.id) && !hasLayout(parentOf(n.id)), paddingExpanded, gapSplit, n.layout ? n.layout.colGap !== n.layout.rowGap : '', n.layout ? n.layout.padding[0] !== n.layout.padding[2] || n.layout.padding[1] !== n.layout.padding[3] : '',
     ].join('|');
   }
 
@@ -1406,7 +1485,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         el.replaceChildren(emptySection());
       } else {
         const n = P();
-        const parent = store.parentOf(n.id);
+        const parent = parentOf(n.id);
         // Ordem (parecida com a do Figma): onde está → que tamanho tem → como se organiza (layout) → como parece.
         // Componente principal/instância aparece no topo (é informação importante); "Criar componente" vai para o fim.
         const one = ids().length === 1;
@@ -1421,6 +1500,21 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           return;
         }
         parts.push(headerBlock(), noteSection());
+        if (ui.bp) {
+          // modo RESPONSIVO: só o que pode mudar com a largura da tela
+          parts.length = 0;
+          parts.push(headerBlock(), positionSection(), sizeSection());
+          if (one && hasLayout(parent)) parts.push(flowItemSection());
+          if (one && n.type === 'frame') parts.push(autoLayoutSection());
+          if (n.type === 'text') parts.push(textSection());
+          if (n.type !== 'section') parts.push(appearanceSection());
+          if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
+          if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
+          if (n.type !== 'section' && n.type !== 'path') parts.push(effectsSection());
+          el.replaceChildren(...parts.filter(Boolean));
+          updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
+          return;
+        }
         if (canComp && isComp) parts.push(componentSection());
         parts.push(positionSection(), sizeSection());
         if (one && hasLayout(parent)) parts.push(flowItemSection());
@@ -1468,7 +1562,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
   // atualiza quando o documento, a seleção ou o histórico (desfazer) mudam
   store.subscribe((reasons) => {
-    if (['doc', 'selection', 'history'].some((r) => reasons.has(r))) render();
+    if (['doc', 'selection', 'history', 'bp'].some((r) => reasons.has(r))) render();
   });
   render();
 

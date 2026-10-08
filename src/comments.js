@@ -9,7 +9,7 @@
  *  nas versões antigas e no desfazer. Documentos antigos não têm a lista (todas as funções toleram isso).
  *
  *  Formato:
- *    { id, nodeId, rx, ry, text, author, at (data ISO), resolved, replies: [{ id, text, author, at }] }
+ *    { id, nodeId, rx, ry, text, author, at (data ISO), editedAt?, resolved, replies: [{ id, text, author, at, editedAt? }] }
  *
  *  Sem login: o autor é o nome definido nas Configurações. Quando existir trabalho em equipe, o mesmo formato serve.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -43,6 +43,18 @@ export function addReply(comment, { text, author }) {
   const r = { id: uid(), text: t, author: author || 'Eu', at: new Date().toISOString() };
   (comment.replies ||= []).push(r);
   return r;
+}
+
+/**
+ * Troca o texto de um comentário (ou de uma resposta: qualquer objeto com `text`) e marca `editedAt`.
+ * Texto vazio ou igual ao atual não muda nada. @returns {boolean} true se mudou
+ */
+export function editText(item, text) {
+  const t = String(text ?? '').trim();
+  if (!t || t === item.text) return false;
+  item.text = t;
+  item.editedAt = new Date().toISOString();
+  return true;
 }
 
 /** Marca (ou reabre) um comentário como resolvido. */
