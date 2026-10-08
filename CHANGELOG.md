@@ -14,6 +14,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - Não valem para grupos (a caixa deles é recalculada dos filhos); a proporção também não vale para texto e linha.
 - Os campos novos (`minW`, `maxW`, `minH`, `maxH`, `aspect`) **sincronizam do componente principal para as instâncias** e podem ser sobrescritos numa instância.
 - Campo numérico "anulável" (`nullable` em `ui/dom.js`): apagar o texto remove o valor.
+- **Imagem de fundo com controle de verdade**: ajuste (cobrir, conter, esticar ou **tamanho próprio** em % da camada), **posição** (matriz 3×3 + X/Y em %) e **repetição** (ladrilho, só na horizontal ou só na vertical; vale em "conter" e "tamanho próprio"). Sai como `background-size`, `background-position` e `background-repeat`. Projetos antigos continuam iguais (cover, centro, sem repetir).
+- No **SVG exportado**: tamanho próprio e posição ficam **exatos** (o editor guarda o tamanho original da imagem ao escolhê-la) e a repetição vira `<pattern>`; em cobrir/conter a posição é aproximada em 3 alinhamentos (o SVG não tem posição em %). Repetir junto com "conter" não é exportado.
 
 ### Adicionado
 - **Seletor de cor próprio** (no lugar do seletor feio do navegador): área de saturação/brilho, barra de matiz, campo HEX, conta-gotas e **grupos de cores**: "Neste projeto" (as mais usadas), "Estilos de cor" e paletas prontas (Neutros, Vivas, Suaves). Aplica ao vivo, grava o histórico ao soltar, fecha com Esc ou clicando fora e rola se a tela for baixa. Vale para preenchimento, contorno, gradiente, sombras e grades.

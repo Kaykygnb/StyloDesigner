@@ -126,6 +126,36 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
   }
 
   /**
+   * Conteúdo SVG de uma IMAGEM de fundo dentro da caixa w×h, imitando o CSS do editor:
+   *  - cover/contain/fill → <image preserveAspectRatio>; a posição (posX/posY) vira o alinhamento mais próximo entre 3
+   *    (início/meio/fim) — o SVG não tem posição em %, então nesses ajustes é uma aproximação;
+   *  - tamanho próprio ('size') → posição e tamanho EXATOS (usa natW/natH, o tamanho original guardado ao escolher a
+   *    imagem); com repeat vira <pattern> (ladrilho). Sem natW/natH cai no "cobrir".
+   * (Repetir junto com "conter" não é exportado: sai uma imagem só.)
+   */
+  function imageSvg(fill, w, h, src) {
+    const fit = fill.fit || 'cover';
+    const bx = (fill.posX ?? 50) / 100, by = (fill.posY ?? 50) / 100;
+    if (fit === 'size' && fill.natW > 0 && fill.natH > 0) {
+      const tw = (w * (fill.size ?? 100)) / 100, th = (tw * fill.natH) / fill.natW;
+      const ox = (w - tw) * bx, oy = (h - th) * by;
+      const rep = fill.repeat || 'no-repeat';
+      const img = `<image href="${src}" width="${n2(tw)}" height="${n2(th)}" preserveAspectRatio="none"`;
+      if (rep === 'no-repeat') return `${img} x="${n2(ox)}" y="${n2(oy)}"/>`;
+      const pid = id('p');
+      defs.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" x="${n2(ox)}" y="${n2(oy)}" width="${n2(tw)}" height="${n2(th)}">${img}/></pattern>`);
+      // repeat-x só ladrilha na horizontal (uma faixa na altura da imagem); repeat-y só na vertical
+      const rx = rep === 'repeat-y' ? ox : 0, rw = rep === 'repeat-y' ? tw : w;
+      const ry = rep === 'repeat-x' ? oy : 0, rh = rep === 'repeat-x' ? th : h;
+      return `<rect x="${n2(rx)}" y="${n2(ry)}" width="${n2(rw)}" height="${n2(rh)}" fill="url(#${pid})"/>`;
+    }
+    const ax = bx < 0.33 ? 'xMin' : bx > 0.67 ? 'xMax' : 'xMid';
+    const ay = by < 0.33 ? 'YMin' : by > 0.67 ? 'YMax' : 'YMid';
+    const par = fit === 'fill' ? 'none' : `${ax}${ay} ${fit === 'contain' ? 'meet' : 'slice'}`;
+    return `<image href="${src}" width="${n2(w)}" height="${n2(h)}" preserveAspectRatio="${par}"/>`;
+  }
+
+  /**
    * Forma + contorno de retângulo/elipse/frame/vetor. Retângulos sem cantos viram <rect> simples (mais limpo);
    * com cantos/elipse/vetor viram <path>. Imagem: <image> recortada pela forma, com o mesmo `fit` do editor.
    */
@@ -141,8 +171,7 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
       const src = assets[node.fill.assetId];
       const cid = id('c');
       defs.push(`<clipPath id="${cid}"><path d="${shapeD(node, w, h)}"/></clipPath>`);
-      const par = node.fill.fit === 'fill' ? 'none' : node.fill.fit === 'contain' ? 'xMidYMid meet' : 'xMidYMid slice';
-      if (src) out.push(`<g clip-path="url(#${cid})"><image href="${src}" width="${n2(w)}" height="${n2(h)}" preserveAspectRatio="${par}"/></g>`);
+      if (src) out.push(`<g clip-path="url(#${cid})">${imageSvg(node.fill, w, h, src)}</g>`);
     } else if (plainRect && !hasRadius) {
       out.push(`<rect width="${n2(w)}" height="${n2(h)}" ${p.attr}/>`);
     } else {

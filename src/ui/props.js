@@ -319,6 +319,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'justify-content': ['justify-content', 'justify-content: space-between;', 'Como os itens se distribuem ao longo do eixo principal (a direção da fila): começo, centro, fim ou espalhados.'],
     'align-items': ['align-items', 'align-items: center;', 'Como os itens se alinham no eixo cruzado (o contrário da fila): no topo, no meio, embaixo ou esticados.'],
     'justify-items': ['justify-items', 'justify-items: center;', 'No grid: a posição HORIZONTAL de cada item dentro da sua célula.'],
+    'background-size': ['background-size', 'background-size: cover;', 'Como a imagem se ajusta à caixa. cover = preenche cortando as sobras; contain = aparece inteira; 100% 100% = estica; tamanho próprio = uma largura em % da caixa (altura proporcional).'],
+    'background-position': ['background-position', 'background-position: 50% 50%;', 'Qual parte da imagem fica visível quando ela é maior que a caixa (ou onde ela fica quando é menor). 0% = começo, 50% = centro, 100% = fim.'],
+    'background-repeat': ['background-repeat', 'background-repeat: repeat;', 'Se a imagem se repete como ladrilho quando não cobre a caixa toda: nos dois sentidos, só na horizontal ou só na vertical.'],
     'min-width': ['min-width', 'min-width: 120px;', 'A largura nunca fica MENOR que isto, mesmo que o conteúdo ou o espaço do pai peçam menos. Vazio = sem limite.'],
     'max-width': ['max-width', 'max-width: 480px;', 'A largura nunca passa disto. Em texto com largura "hug", o texto passa a QUEBRAR LINHA ao chegar no limite. Vazio = sem limite.'],
     'min-height': ['min-height', 'min-height: 48px;', 'A altura nunca fica MENOR que isto. Útil em cards que crescem com o conteúdo mas não devem ficar baixos demais.'],
@@ -780,7 +783,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         () => fill().type, (v) => {
           each((n) => { n.fill.type = v; });
           if (v === 'image' && !fill().assetId) {
-            pickImage(({ assetId }) => { each((n) => { n.fill.assetId = assetId; }); commit(); });
+            pickImage(({ assetId, w, h }) => { each((n) => { n.fill.assetId = assetId; n.fill.natW = w; n.fill.natH = h; }); commit(); });
           }
         }, 'Tipo de preenchimento')),
     ];
@@ -826,9 +829,31 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         },
       }, ico('plus', 12), ' Adicionar cor'));
     } else if (t === 'image') {
-      body.push(row(
-        h('button.btn.wide', { type: 'button', onclick: () => pickImage(({ assetId }) => { each((n) => { n.fill.assetId = assetId; }); commit(); }) }, ico('image', 14), ' Trocar imagem'),
-        select([['cover', 'Cobrir (cover)'], ['contain', 'Conter (contain)'], ['fill', 'Esticar (100% 100%)']], () => fill().fit, (v) => each((n) => { n.fill.fit = v; }), 'background-size')));
+      const fitVal = () => fill().fit || 'cover';
+      body.push(
+        h('button.btn.wide', { type: 'button', onclick: () => pickImage(({ assetId, w, h }) => { each((n) => { n.fill.assetId = assetId; n.fill.natW = w; n.fill.natH = h; }); commit(); }) }, ico('image', 14), ' Trocar imagem'),
+        capK('Ajuste da imagem', 'background-size', select([['cover', 'Cobrir (cover)'], ['contain', 'Conter (contain)'], ['fill', 'Esticar (100% 100%)'], ['size', 'Tamanho próprio (%)']], fitVal, (v) => each((n) => { n.fill.fit = v; }), 'background-size')));
+      if (fitVal() === 'size') {
+        body.push(capK('Largura', 'background-size', num('%', () => fill().size ?? 100, (v) => each((n) => { n.fill.size = Math.max(1, v); }), { min: 1, decimals: 0, title: 'Largura da imagem em % da camada' })));
+      }
+      // posição: matriz 3×3 (cantos, bordas, centro) + X/Y em % para ajuste fino
+      const POS = [0, 50, 100];
+      const posCells = [];
+      for (const py of POS) {
+        for (const pxv of POS) {
+          const b = h('button.al-cell', { type: 'button', 'aria-label': `Posição ${pxv}% ${py}%`, onclick: () => { each((n) => { n.fill.posX = pxv; n.fill.posY = py; }); commit(); } }, h('i'));
+          updaters.push(() => b.classList.toggle('on', (fill().posX ?? 50) === pxv && (fill().posY ?? 50) === py));
+          posCells.push(b);
+        }
+      }
+      body.push(capK('Posição', 'background-position', row(
+        h('div.al-matrix', posCells),
+        h('div.col',
+          num('X', () => fill().posX ?? 50, (v) => each((n) => { n.fill.posX = Math.max(0, Math.min(100, v)); }), { min: 0, max: 100, decimals: 0, title: 'Posição horizontal em %' }),
+          num('Y', () => fill().posY ?? 50, (v) => each((n) => { n.fill.posY = Math.max(0, Math.min(100, v)); }), { min: 0, max: 100, decimals: 0, title: 'Posição vertical em %' })))));
+      if (fitVal() === 'contain' || fitVal() === 'size') {
+        body.push(capK('Repetição', 'background-repeat', select([['no-repeat', 'Não repetir'], ['repeat', 'Repetir (ladrilho)'], ['repeat-x', 'Repetir na horizontal'], ['repeat-y', 'Repetir na vertical']], () => fill().repeat || 'no-repeat', (v) => each((n) => { n.fill.repeat = v; }), 'background-repeat')));
+      }
     }
     return section(isText ? 'Cor do texto' : 'Preenchimento', body);
   }
@@ -1024,6 +1049,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.stroke?.sides ? n.stroke.sides.map((v) => (v > 0 ? 1 : 0)).join('') + (n.stroke.sidesCustom ? 'c' : '') : '',
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
+      n.fill.type === 'image' ? n.fill.fit : '',
       !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
       // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)

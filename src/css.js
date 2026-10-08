@@ -86,11 +86,15 @@ export function fillCss(fill, assets = {}) {
     case 'image': {
       const src = assets[fill.assetId];
       if (!src) return { 'background-color': '#c4c4c4' };
+      // ajuste: cover | contain | fill (100% 100%) | size (largura = N% da camada, altura proporcional)
+      const fit = fill.fit || 'cover';
+      const bx = fill.posX ?? 50, by = fill.posY ?? 50; // posição da imagem em %, 50/50 = centro
       return {
         'background-image': `url("${src}")`,
-        'background-size': fill.fit === 'fill' ? '100% 100%' : fill.fit,
-        'background-position': 'center',
-        'background-repeat': 'no-repeat',
+        'background-size': fit === 'fill' ? '100% 100%' : fit === 'size' ? `${round(fill.size ?? 100)}% auto` : fit,
+        'background-position': bx === 50 && by === 50 ? 'center' : `${round(bx)}% ${round(by)}%`,
+        // repetir só faz sentido quando a imagem NÃO cobre a caixa toda (contain e tamanho próprio)
+        'background-repeat': fit === 'contain' || fit === 'size' ? fill.repeat || 'no-repeat' : 'no-repeat',
       };
     }
     default:

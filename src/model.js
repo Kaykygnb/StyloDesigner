@@ -80,7 +80,10 @@ export const TYPE_LABEL = {
  *  - color/opacity: cor sólida (hex #RRGGBB) e opacidade 0..1
  *  - stops:   paradas do gradiente [{ color, opacity, pos(0..100) }]
  *  - angle:   ângulo do gradiente linear em graus (CSS: 0 = para cima, 90 = para a direita)
- *  - assetId/fit: imagem (id em doc.assets) e como encaixa ('cover' | 'contain' | 'fill')
+ *  - assetId/fit: imagem (id em doc.assets) e como encaixa ('cover' | 'contain' | 'fill' | 'size' = tamanho próprio)
+ *  - campos OPCIONAIS da imagem (ausente = padrão): posX/posY (posição 0–100%, padrão 50 = centro), size (% da largura da
+ *    camada, só no ajuste 'size', padrão 100), repeat ('no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y', só em
+ *    'contain'/'size', padrão 'no-repeat') e natW/natH (tamanho original da imagem, para o SVG exportado calcular o ladrilho)
  *  - styleId (opcional): liga a um estilo de cor compartilhado (ver components.js → syncStyles)
  * @param {string} [color='#D9D9D9']  cor sólida inicial
  */

@@ -610,7 +610,7 @@ export function createCommands(store, canvas) {
       const node = createNode('rect', {
         name: file.name?.replace(/\.[^.]+$/, '') || 'Imagem',
         w: Math.round(w * scale), h: Math.round(h * scale),
-        fill: { ...defaultFill(), type: 'image', assetId, fit: 'cover' },
+        fill: { ...defaultFill(), type: 'image', assetId, fit: 'cover', natW: w, natH: h },
       });
       const r = canvas.vpRect();
       const p = at || canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2);

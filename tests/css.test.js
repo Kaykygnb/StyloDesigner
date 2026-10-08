@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize } from '../src/model.js';
-import { nodeStyle, rgba, exportHtml, generateCode } from '../src/css.js';
+import { nodeStyle, rgba, exportHtml, generateCode, fillCss } from '../src/css.js';
+import { toSvg } from '../src/svg.js';
 import { buildSample } from '../src/sample.js';
 
 test('rgba converte hex e opacidade', () => {
@@ -220,4 +221,44 @@ test('applyLimits só corrige eixos de medida FIXA', () => {
   applyLimits(n);
   assert.equal(n.w, 300);
   assert.equal(n.h, 500); // eixo fill: quem decide é o navegador
+});
+
+// ---------------------------------------------------------------- imagem de fundo: ajuste, posição, repetição
+const IMG = 'data:image/png;base64,AAAA';
+const imgFill = (extra = {}) => ({ ...defaultFill(), type: 'image', assetId: 'a1', fit: 'cover', ...extra });
+
+test('imagem de fundo: padrão idêntico ao de antes (cover, center, no-repeat)', () => {
+  const css = fillCss(imgFill(), { a1: IMG });
+  assert.equal(css['background-size'], 'cover');
+  assert.equal(css['background-position'], 'center');
+  assert.equal(css['background-repeat'], 'no-repeat');
+});
+
+test('imagem de fundo: posição em %, tamanho próprio e repetição', () => {
+  const css = fillCss(imgFill({ fit: 'size', size: 40, posX: 0, posY: 100, repeat: 'repeat-x' }), { a1: IMG });
+  assert.equal(css['background-size'], '40% auto');
+  assert.equal(css['background-position'], '0% 100%');
+  assert.equal(css['background-repeat'], 'repeat-x');
+});
+
+test('imagem de fundo: repetir só vale em contain e tamanho próprio', () => {
+  assert.equal(fillCss(imgFill({ fit: 'cover', repeat: 'repeat' }), { a1: IMG })['background-repeat'], 'no-repeat');
+  assert.equal(fillCss(imgFill({ fit: 'fill', repeat: 'repeat' }), { a1: IMG })['background-repeat'], 'no-repeat');
+  assert.equal(fillCss(imgFill({ fit: 'contain', repeat: 'repeat' }), { a1: IMG })['background-repeat'], 'repeat');
+});
+
+test('SVG exportado: posição aproximada em cover e posição/tamanho exatos em tamanho próprio', () => {
+  const mk = (fill) => createNode('rect', { w: 200, h: 100, fill });
+  const cover = toSvg(mk(imgFill({ posX: 0, posY: 100 })), { assets: { a1: IMG } });
+  assert.match(cover, /preserveAspectRatio="xMinYMax slice"/);
+  // 50% de 200 = 100 de largura; imagem 2:1 → 50 de altura; posição 100%/0% → x = 100, y = 0
+  const own = toSvg(mk(imgFill({ fit: 'size', size: 50, natW: 400, natH: 200, posX: 100, posY: 0 })), { assets: { a1: IMG } });
+  assert.match(own, /x="100" y="0"/);
+  assert.match(own, /width="100" height="50"/);
+  const tile = toSvg(mk(imgFill({ fit: 'size', size: 50, natW: 400, natH: 200, repeat: 'repeat' })), { assets: { a1: IMG } });
+  assert.match(tile, /<pattern /);
+  assert.match(tile, /fill="url\(#p\d+\)"/);
+  // sem o tamanho original guardado, cai no "cobrir"
+  const fallback = toSvg(mk(imgFill({ fit: 'size', size: 50 })), { assets: { a1: IMG } });
+  assert.match(fallback, /slice/);
 });
