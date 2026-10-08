@@ -6,6 +6,18 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.14.0] — 2026-10-08 — Exemplo "Vitrine completa"
+
+### Adicionado
+- **Exemplo "Vitrine completa"** (`src/sample-vitrine.js`): uma landing page responsiva inteira, na página inicial (com miniatura) e em Arquivo → Exemplo. Usa auto layout (flex e grade), Tablet/Celular (grade 3 → 2 → 1, hero em coluna, menu que some, fontes menores), tela raiz de largura fluida, modo escuro, variáveis de tamanho e estilos de texto, estados com transição e cursor, três componentes com instâncias, ícones vetoriais, gradientes linear/radial/cônico, vidro, HTML semântico, limite de linhas, faixa com rolagem horizontal, protótipo (botão → "Obrigado" → volta), notas, comentários (um com resposta, um resolvido), grade de layout, seção do canvas e a 2ª página "Guia de estilo".
+- `scripts/gerar-miniatura-vitrine.mjs` gera a miniatura (`assets/example-vitrine.png`).
+- Testes: `vitrine.test.js` (a estrutura promete e entrega) e a suíte de navegador `vitrine.mjs` (abre pela página inicial, 3 → 2 → 1 colunas, modo escuro, código, apresentar).
+
+### Alterado
+- Os post-its de nota viram só o ícone quando o zoom é menor que 50%, para não cobrir o design em telas grandes.
+
+---
+
 ## [0.13.1] — 2026-10-08 — Layout mais limpo
 
 ### Alterado

@@ -34,7 +34,7 @@ try {
   ok('app abre na página inicial', await homeOpen());
   ok('editor por trás fica inert', await ev(() => document.getElementById('app').inert === true));
   ok('mostra "Continuar", "Na pasta" e exemplos', (await p.locator('.home-section h2').allTextContents()).join('|').includes('Continuar de onde parou')
-    && (await p.locator('.home-card.sample').count()) === 2);
+    && (await p.locator('.home-card.sample').count()) === 3);
   ok('pasta vazia mostra orientação', (await p.locator('.home-empty').innerText()).includes('Ctrl+S'));
   ok('miniatura ao vivo do projeto aberto', (await p.locator('.home-wide img').getAttribute('src') || '').startsWith('data:image/svg+xml'));
   const layersBefore = await ev(() => designer.store.page().children.length);

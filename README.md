@@ -82,6 +82,9 @@ Em **Modo de cor → Escuro automático** o projeto ganha um modo escuro: cada *
 ### Seletor de cor com paletas
 O seletor de cor tem campos **HEX · RGB · HSL**, **opacidade**, **contraste** sobre branco e preto (WCAG), **sugestões de harmonia** (complementar, análogas, tríade, tons), **recentes** e o **gerenciador de paletas dentro dele**: criar, renomear (clique no nome), guardar a cor atual com o **+**, tirar cores, trocar de paleta pelas abas, duplicar, copiar como variáveis CSS e excluir.
 
+### Exemplo "Vitrine completa": um site inteiro com tudo
+**Página inicial → Vitrine completa** (ou **Arquivo → Exemplo: vitrine completa**) abre uma landing page responsiva (a fictícia "Lumen") feita só com o que o editor oferece: auto layout em flexbox e grade, **Tablet/Celular** (a grade vai de 3 para 2 e 1 colunas, o hero vira coluna, o menu some), **modo escuro**, **variáveis** e estilos de texto, **estados** (hover, pressionado e foco) com transição, **componentes** (botão, card de recurso, card de plano), **ícones vetoriais** desenhados com a caneta, gradientes linear/radial/cônico, sombras, blur e vidro, **HTML semântico** (header, nav, h1, a, button, footer), texto com limite de linhas, faixa que rola na horizontal, **protótipo** (o botão leva à tela "Obrigado"), notas, comentários, grade de layout e uma 2ª página "Guia de estilo". Abra, troque a largura e o modo de cor no topo, e exporte o HTML.
+
 ### Painel Design que explica o CSS
 Cada seção tem **ícone, título que recolhe/abre** e uma **explicação em português simples** (botão **Explicações** no topo liga e desliga). O cabeçalho mostra qual camada está selecionada e **a etiqueta HTML** que ela vira. Todo campo mostra o **nome do CSS** ao lado da legenda (`opacity`, `border-radius`, `left · top`...) e, ao passar o mouse, uma **dica rica**: título, o CSS de exemplo e o que ele faz. A mesma dica bonita vale para **todos os botões do app** (os atalhos aparecem como teclas).
 
@@ -432,7 +435,8 @@ projetodesigner2/
 │   ├── fonts.js            Google Fonts: lista, carregamento sob demanda, prévia, link no HTML
 │   ├── data/               Listas embutidas: 1.908 fontes e 4.299 ícones do Google (geradas)
 │   ├── export.js           PNG, SVG, HTML e arquivo de projeto
-│   ├── sample.js           Os dois projetos de exemplo
+│   ├── sample.js           Os dois primeiros projetos de exemplo
+│   ├── sample-vitrine.js   O exemplo "Vitrine completa": site responsivo que usa todos os recursos
 │   ├── ui/                 Painéis (camadas, propriedades, código, recursos, protótipo, comentários, ícones), seletor de fontes e de cor, dicas ricas (dom.js), página inicial (home.js),
 │   │                       menus e janelas (perguntas, configurações, projetos na pasta), ícones
 │   └── styles/app.css      Todo o visual (tema claro/escuro por variáveis CSS)
@@ -455,7 +459,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 136 testes
+npm test      # 145 testes
 ```
 
 ### Testes de navegador

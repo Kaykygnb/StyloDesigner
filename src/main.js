@@ -31,6 +31,7 @@ import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
 import { h, ico, iconButton, tip, installAutoTips } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleApp } from './sample.js';
+import { buildSampleShowcase } from './sample-vitrine.js';
 import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
 import { createSaving } from './saving.js';
 import { openSettings as openSettingsDialog } from './ui/settings.js';
@@ -252,6 +253,7 @@ const fileBtn = h('button.btn.ghost', {
       'sep',
       { label: 'Exemplo: landing page', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Landing page"?')) { store.loadSample(); canvas.fit(null); } } },
       { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "App mobile"?')) { store.loadDoc(buildSampleApp(), { pristine: true }); canvas.fit(null); } } },
+      { label: 'Exemplo: vitrine completa (site responsivo)', icon: 'star', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Vitrine completa"?')) { store.loadDoc(buildSampleShowcase(), { pristine: true }); canvas.fit(null); } } },
       'sep',
       { label: 'Configurações…', hint: 'Ctrl+,', icon: 'settings', onClick: () => openSettings() },
     ]);
@@ -518,6 +520,7 @@ const home = createHome({
     samples: [
       { label: 'Landing page', description: 'Hero, cartões em flexbox, vidro e gradientes', load: () => store.loadSample() },
       { label: 'App mobile', description: 'CSS Grid, componentes, estilos e protótipo', load: () => store.loadDoc(buildSampleApp(), { pristine: true }) },
+      { label: 'Vitrine completa', description: 'Site responsivo com modo escuro, variáveis, estados, componentes e vetores', image: 'assets/example-vitrine.png', load: () => store.loadDoc(buildSampleShowcase(), { pristine: true }) },
     ],
   },
 });

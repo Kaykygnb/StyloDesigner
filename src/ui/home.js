@@ -204,7 +204,7 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
       h('div.home-grid.samples', create.samples.map((s, i) => h('button.home-card.sample', {
         type: 'button', onclick: () => replaceWith(`Abrir o exemplo "${s.label}"?`, async () => s.load()),
       }, h('div.home-thumb.sample-art', { dataset: { variant: String(i) } },
-        h('img', { src: `assets/example-${i ? 'mobile' : 'landing'}.png`, alt: '', loading: 'lazy', decoding: 'async' })),
+        h('img', { src: s.image || `assets/example-${i ? 'mobile' : 'landing'}.png`, alt: '', loading: 'lazy', decoding: 'async' })),
       h('div.home-card-info', h('strong', s.label), h('span.muted', s.description))))));
 
     root.replaceChildren(top, h('div.home-main', hero, cont, folderSec, samples));

@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-43 arquivos · 693 funções e constantes documentadas.
+44 arquivos · 696 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -29,6 +29,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/pen.js`](#srcpenjs) | Ferramenta caneta (vetores) e edição de pontos |
 | [`src/present.js`](#srcpresentjs) | Modo apresentar (protótipo em tela cheia) |
 | [`src/rulers.js`](#srcrulersjs) | Réguas e criação de guias |
+| [`src/sample-vitrine.js`](#srcsample-vitrinejs) | Exemplo "vitrine": um site inteiro que usa tudo que o editor faz |
 | [`src/sample.js`](#srcsamplejs) | Projeto de exemplo |
 | [`src/saving.js`](#srcsavingjs) | Regras de salvamento (navegador + pasta do computador) |
 | [`src/storage.js`](#srcstoragejs) | Onde o projeto é guardado: navegador (IndexedDB) e pasta do computador (servidor) |
@@ -513,31 +514,31 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`toast(msg)`** <sub>do módulo</sub> · [L50](../src/main.js#L50) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L64](../src/main.js#L64) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L89](../src/main.js#L89) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L92](../src/main.js#L92) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L124](../src/main.js#L124) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L156](../src/main.js#L156) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L269](../src/main.js#L269) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`toast(msg)`** <sub>do módulo</sub> · [L51](../src/main.js#L51) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L65](../src/main.js#L65) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings()`** <sub>do módulo</sub> · [L90](../src/main.js#L90) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
+- **`quickSave()`** <sub>do módulo</sub> · [L93](../src/main.js#L93) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L125](../src/main.js#L125) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L157](../src/main.js#L157) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L271](../src/main.js#L271) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L309](../src/main.js#L309) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L326](../src/main.js#L326) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L311](../src/main.js#L311) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L328](../src/main.js#L328) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L338](../src/main.js#L338) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L397](../src/main.js#L397) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L433](../src/main.js#L433) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L479](../src/main.js#L479) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L554](../src/main.js#L554) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L608](../src/main.js#L608) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L616](../src/main.js#L616) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L340](../src/main.js#L340) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L399](../src/main.js#L399) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L435](../src/main.js#L435) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L481](../src/main.js#L481) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L557](../src/main.js#L557) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L611](../src/main.js#L611) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L619](../src/main.js#L619) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -746,7 +747,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     falsy → só a borda · 'plain' → 8 alças · 'full' → 8 alças + 4 zonas de rotação · 'line' → só as 2 pontas (linhas)
   Alças de borda somem quando a caixa é minúscula (<24px), para não cobrirem o objeto.
 - **`render()`** <sub>interna</sub> · [L166](../src/overlay.js#L166) — Redesenha o overlay inteiro (barato graças ao pool). Camadas, de baixo para cima: nomes dos frames → hover → alvo de soltura → seleção → guias de snap → grades de layout → guias manuais → grade de pixels → medidas (Alt) → caneta → setas do protótipo → marquee.
-- **`pill(aabb, text)`** <sub>interna</sub> · [L495](../src/overlay.js#L495) — Etiqueta azul "L × A" logo abaixo da seleção.
+- **`pill(aabb, text)`** <sub>interna</sub> · [L497](../src/overlay.js#L497) — Etiqueta azul "L × A" logo abaixo da seleção.
 
 ---
 
@@ -914,6 +915,34 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`bind(el, axis)`** <sub>interna</sub> · [L109](../src/rulers.js#L109) — Liga o arrasto numa régua: durante o arrasto mostra a guia + a posição; ao soltar, cria a guia — mas só se o mouse estiver DENTRO da área do canvas (soltar em cima da régua cancela).
   - `el` <sub>HTMLElement</sub> — régua
   - `axis` <sub>'x'\|'y'</sub> — eixo da guia criada: a régua de cima cria guias horizontais ('y'); a da esquerda, verticais ('x')
+
+---
+
+## src/sample-vitrine.js
+
+**EXEMPLO "VITRINE": um site inteiro que usa TUDO que o editor faz** · [abrir o código](../src/sample-vitrine.js)
+
+```text
+ Uma landing page responsiva (a fictícia "Lumen") feita só com o que o app oferece. Abra, mexa e exporte o HTML:
+
+  • AUTO LAYOUT: flexbox em linha e coluna, `fill`/`hug`, `wrap`, e uma GRADE de 3 colunas (CSS Grid);
+  • RESPONSIVO: a grade vai de 3 → 2 → 1 colunas, o hero vira coluna, o menu some e as fontes diminuem
+    (barra Desktop/Tablet/Celular no topo) e a tela raiz tem largura FLUIDA (width: 100%);
+  • MODOS DE COR: estilos de cor com valor claro e ESCURO (botão de sol/lua no topo);
+  • VARIÁVEIS: espaçamentos e raio ligados a variáveis (`var(--espaco-m)`) + estilos de texto;
+  • ESTADOS: hover, pressionado e foco nos botões e nos cards, com transição e cursor;
+  • COMPONENTES: botão, card de recurso e card de plano (um principal, várias instâncias com texto próprio);
+  • VETORES: ícones desenhados com a caneta; gradientes linear, radial e cônico; sombras, blur e VIDRO;
+  • HTML SEMÂNTICO: header, nav, section, h1/h2/h3, a (com href), button, footer; descrição de acessibilidade;
+  • TEXTO: limite de linhas com "…" (line-clamp), tamanhos máximos, e uma faixa que ROLA na horizontal;
+  • PROTÓTIPO: o botão do topo leva à tela "Obrigado" (e ela volta);
+  • NOTAS e COMENTÁRIOS nas camadas, grades de layout na tela, seção do canvas e uma 2ª página "Guia de estilo".
+```
+
+- **`text(t, props = {})`** <sub>do módulo</sub> · [L39](../src/sample-vitrine.js#L39) — Atalhos de criação: texto, cor sólida, cor ligada a um estilo, flex e vetor (ícone de 24×24).
+- **`star(cx = 12, cy = 12, ro = 10.5, ri = 4.6)`** <sub>do módulo</sub> · [L52](../src/sample-vitrine.js#L52) — Estrela de 5 pontas em 24×24 (para o logo e um ícone).
+- **`buildSampleShowcase()`** · [L70](../src/sample-vitrine.js#L70) — Monta o projeto "Vitrine" (documento completo, pronto para abrir).
+  - ↩︎ `object` documento (ver model.js → makeDoc)
 
 ---
 

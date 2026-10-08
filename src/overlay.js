@@ -219,7 +219,9 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
         const open = sel.includes(n.id);
         const el = get(`note:${n.id}`, `note-chip${open ? ' open' : ''}`);
         el.dataset.note = n.id;
-        const text = open ? n.note : n.note.split('\n')[0];
+        // com pouco zoom os post-its viram só o ícone (senão cobririam o design)
+        const text = open ? n.note : z < 0.5 ? '' : n.note.split('\n')[0];
+        el.classList.toggle('mini', !open && z < 0.5);
         if (el.textContent !== text) el.textContent = text;
         el.style.left = `${p.x}px`;
         el.style.top = `${p.y}px`;
