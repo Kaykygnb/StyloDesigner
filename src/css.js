@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
@@ -211,8 +211,8 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     // padding só entra no CSS se algum lado for diferente de zero (código gerado mais enxuto).
     if (t || r || b || l) s.padding = `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
   }
-  // "Cortar conteúdo" = overflow:hidden. Também faz os filhos respeitarem o border-radius do frame.
-  if (node.type === 'frame' && node.clip) s.overflow = 'hidden';
+  // Conteúdo que sai da caixa: cortar (overflow:hidden, que também faz os filhos respeitarem o border-radius), mostrar ou rolar.
+  if (node.type === 'frame') overflowCss(node, s, opts);
 
   // Linhas têm um desenho próprio (barra com gradiente) e não usam fill/radius/outline: retorna cedo.
   if (node.type === 'line') {
@@ -329,6 +329,18 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   return s;
 }
 
+
+/**
+ * Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram
+ * "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na
+ * apresentação e no código exportado).
+ */
+function overflowCss(node, s, opts = {}) {
+  const o = overflowOf(node);
+  if (o === 'visible') return;
+  if (o === 'hidden' || opts.editor) { s.overflow = 'hidden'; return; }
+  if (o === 'scroll-y') { s['overflow-x'] = 'hidden'; s['overflow-y'] = 'auto'; } else if (o === 'scroll-x') { s['overflow-x'] = 'auto'; s['overflow-y'] = 'hidden'; } else s.overflow = 'auto';
+}
 
 /**
  * Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda).

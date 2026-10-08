@@ -481,3 +481,30 @@ test('cleanTrackList tira o que não é lista de trilhas (não dá para fechar a
   g.layout = { ...g.layout, mode: 'grid', colsTemplate: '1fr; } .x { background: red' };
   assert.ok(!/[;{}]/.test(nodeStyle(g, null)['grid-template-columns']));
 });
+
+// ---------------------------------------------------------------- conteúdo que sai da caixa (overflow)
+test('frame: cortar = overflow hidden (como antes, por clip), mostrar = nada, rolar = auto no eixo escolhido', () => {
+  const f = createNode('frame');
+  assert.equal(nodeStyle(f, null).overflow, 'hidden'); // padrão do frame: clip true
+  f.clip = false;
+  assert.equal(nodeStyle(f, null).overflow, undefined);
+  f.overflow = 'scroll-y';
+  let s = nodeStyle(f, null);
+  assert.deepEqual([s['overflow-x'], s['overflow-y'], s.overflow], ['hidden', 'auto', undefined]);
+  f.overflow = 'scroll-x';
+  s = nodeStyle(f, null);
+  assert.deepEqual([s['overflow-x'], s['overflow-y']], ['auto', 'hidden']);
+  f.overflow = 'scroll';
+  assert.equal(nodeStyle(f, null).overflow, 'auto');
+  f.overflow = 'visible';
+  assert.equal(nodeStyle(f, null).overflow, undefined);
+});
+
+test('no CANVAS (opts.editor) a rolagem vira "cortar"; frames que cortam ou mostram não mudam', () => {
+  const f = createNode('frame', { overflow: 'scroll' });
+  assert.equal(nodeStyle(f, null, {}, { editor: true }).overflow, 'hidden');
+  assert.equal(nodeStyle(f, null, {}, { editor: true })['overflow-y'], undefined);
+  assert.equal(nodeStyle(f, null).overflow, 'auto'); // exportação e apresentação: rolagem de verdade
+  const keep = createNode('frame', { clip: false });
+  assert.equal(nodeStyle(keep, null, {}, { editor: true }).overflow, undefined);
+});

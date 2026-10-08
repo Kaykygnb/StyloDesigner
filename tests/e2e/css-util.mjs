@@ -101,6 +101,27 @@ await page.waitForTimeout(250);
 const bg = await ev((id) => designer.canvas.els.get(id).style.backgroundImage, c);
 ok('gradiente cônico vira conic-gradient no canvas', /^conic-gradient\(from 135deg/.test(bg), bg);
 
+// ---------------------------------------------------------------- rolagem do frame (overflow)
+await reset();
+const sc = await ev(async () => {
+  const m = await import('/src/model.js'); const f = m.createNode('frame', { name: 'Lista', x: 0, y: 0, w: 200, h: 100 });
+  const longo = m.createNode('rect', { name: 'Conteúdo', x: 10, y: 10, w: 100, h: 300 }); f.children = [longo];
+  designer.store.update((pg) => pg.children.push(f), { commit: true }); designer.store.setSelection([f.id]);
+  return f.id;
+});
+await page.waitForTimeout(300);
+await page.locator('#right .cap-group', { has: page.locator('.cap-css', { hasText: 'overflow' }) }).locator('select').selectOption('scroll-y');
+await page.waitForTimeout(250);
+const tela = await ev((id) => { const n = designer.store.get(id); const el = designer.canvas.els.get(id); const cs = getComputedStyle(el); return { ov: n.overflow, clip: n.clip, canvasOverflow: cs.overflowY, canvasX: cs.overflowX }; }, sc);
+ok('escolher "Rolar na vertical" guarda o modo e mantém clip', tela.ov === 'scroll-y' && tela.clip === true, JSON.stringify(tela));
+ok('no editor o conteúdo continua cortado (sem barra de rolagem no canvas)', tela.canvasOverflow === 'hidden' && tela.canvasX === 'hidden', JSON.stringify(tela));
+await page.locator('button', { hasText: 'Apresentar' }).first().click();
+await page.waitForSelector('.present .present-board');
+const apres = await ev((id) => { const el = document.querySelector('.present [data-id="' + id + '"]'); const cs = getComputedStyle(el); return { y: cs.overflowY, x: cs.overflowX, rolavel: el.scrollHeight > el.clientHeight }; }, sc);
+ok('na apresentação rola de verdade (overflow-y auto, conteúdo maior que a caixa)', apres.y === 'auto' && apres.x === 'hidden' && apres.rolavel, JSON.stringify(apres));
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+
 ok('sem erros no console', errors.length === 0, errors.join(' | '));
 await browser.close();
 process.exit(fails ? 1 : 0);

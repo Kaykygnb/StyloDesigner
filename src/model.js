@@ -194,6 +194,8 @@ export function createNode(type, props = {}) {
     // Campos OPCIONAIS (só existem quando o usuário os define; ausente = padrão do CSS):
     //   minW, maxW, minH, maxH — limites de tamanho em px (min-width, max-width, min-height, max-height);
     //   aspect — proporção largura/altura (CSS aspect-ratio), ex.: 1.7778 = 16:9. Veja limitSize/applyLimits/hasAspect.
+    //   overflow — (frame) o que acontece com o conteúdo que sai da caixa: 'hidden' (cortar, padrão de `clip: true`),
+    //   'visible', 'scroll-y', 'scroll-x' ou 'scroll' (rolar). Ausente = deriva de `clip`. Veja overflowOf/css.js.
     //   grow — peso do item "fill" no eixo principal de um flex (CSS flex-grow; padrão 1): dois itens com 1 e 2 dividem
     //   o espaço em 1/3 e 2/3;
     //   margin — [topo, direita, baixo, esquerda] em px, só para itens EM FLUXO de um flex/grid (CSS margin);
@@ -266,6 +268,14 @@ export function createNode(type, props = {}) {
   Object.assign(node, props);
   return node;
 }
+
+/** Modos de "conteúdo que sai da caixa" de um frame: [valor, rótulo]. */
+export const OVERFLOWS = [
+  ['hidden', 'Cortar (hidden)'], ['visible', 'Mostrar (visible)'], ['scroll-y', 'Rolar na vertical (auto)'],
+  ['scroll-x', 'Rolar na horizontal (auto)'], ['scroll', 'Rolar nos dois sentidos (auto)'],
+];
+/** Modo de overflow de um frame: o campo `overflow`, ou — em projetos antigos — o que `clip` diz (true = cortar). */
+export const overflowOf = (n) => n.overflow ?? (n.clip ? 'hidden' : 'visible');
 
 /**
  * Limpa o texto de uma lista de trilhas do grid (grid-template-columns/rows) digitado pelo usuário: tira o que não

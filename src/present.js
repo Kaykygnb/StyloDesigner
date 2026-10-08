@@ -8,7 +8,7 @@
  */
 
 import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { hasStates, isBoard, stateView, walk } from './model.js';
+import { hasStates, isBoard, overflowOf, stateView, walk } from './model.js';
 
 /**
  * Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave`
@@ -123,7 +123,8 @@ export function createPresent({ store, canvas }) {
     wrap.style.width = `${frame.w}px`;
     wrap.style.height = `${frame.h}px`;
     const dom = buildDom(frame, null, store.state.doc.assets, true);
-    dom.style.overflow = frame.clip ? 'hidden' : 'visible';
+    // a tela inicial corta ou mostra; se o frame tem ROLAGEM (overflow-y/x auto), vale o que o nodeStyle escreveu
+    if (!overflowOf(frame).startsWith('scroll')) dom.style.overflow = frame.clip ? 'hidden' : 'visible';
     wrap.append(dom);
     wrap.addEventListener('click', (e) => trigger(e.target, 'click'));
     wrap.addEventListener('pointerover', (e) => {

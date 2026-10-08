@@ -225,7 +225,7 @@ export function createCanvas(store, viewport) {
     // CSS final = estilo calculado em css.js + extras só do editor (oculta, bloqueada, em edição de texto)
     // editando um ESTADO (hover...) no painel: a camada selecionada aparece com as sobrescritas desse estado
     const view = ui.editState && ui.selection.includes(node.id) ? stateView(node, ui.editState) : node;
-    let css = toCssText(nodeStyle(view, parent, store.state.doc.assets));
+    let css = toCssText(nodeStyle(view, parent, store.state.doc.assets, { editor: true }));
     css += ';transition:none;cursor:inherit'; // no editor nada anima nem muda o cursor das ferramentas
     if (!node.visible) css += ';display:none';
     css += `;pointer-events:${node.locked ? 'none' : 'auto'}`;

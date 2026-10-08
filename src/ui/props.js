@@ -12,7 +12,7 @@ import { askText } from './menus.js';
 import { fontField } from './fontpicker.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
-  BLEND_MODES, FONT_WEIGHTS, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
+  BLEND_MODES, FONT_WEIGHTS, OVERFLOWS, overflowOf, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
   constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
@@ -289,7 +289,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         body.push(row(corner(3, '↙', 'border-bottom-left-radius'), corner(2, '↘', 'border-bottom-right-radius')));
       }
     }
-    if (n0.type === 'frame' && !ui.editState) body.push(check('Cortar conteúdo (overflow: hidden)', () => P().clip, (v) => each((n) => { n.clip = v; })));
+    if (n0.type === 'frame' && !ui.editState) {
+      body.push(capK('Conteúdo que sai', 'overflow', select(OVERFLOWS, () => overflowOf(P()), (v) => each((n) => {
+        n.clip = v !== 'visible'; // clip continua valendo para o SVG exportado e para projetos antigos
+        if (v === 'hidden' || v === 'visible') delete n.overflow; else n.overflow = v;
+      }), 'overflow')));
+      if (overflowOf(n0).startsWith('scroll')) body.push(h('p.hint', 'A rolagem funciona na apresentação e no HTML exportado. No editor o conteúdo aparece cortado.'));
+    }
     if (!ui.editState && (n0.isMask || parent?.type === 'group')) {
       body.push(check('Usar como máscara (clip-path)', () => !!P().isMask, (v) => each((n) => { n.isMask = v; })));
     }
@@ -344,6 +350,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     cursor: ['cursor', 'cursor: pointer;', 'O formato do mouse quando passa por cima. "pointer" (mãozinha) diz que a camada é clicável. Aparece no código exportado e na apresentação, não no editor.'],
     transform: ['transform', 'transform: scale(1.05);', 'Aumenta (acima de 1) ou diminui (abaixo de 1) a camada, a partir do centro. Num :hover costuma ser 1.02 a 1.08; num :active, 0.97.'],
     'flex-grow': ['flex-grow', 'flex: 2 1 0%;', 'O PESO deste item na divisão do espaço sobrando (só para itens "Preencher" no eixo principal). Com pesos 1 e 2, um item fica com 1/3 e o outro com 2/3.'],
+    overflow: ['overflow', 'overflow-y: auto;', 'O que acontece com o que passa da borda: cortar, mostrar por cima ou criar uma ROLAGEM (barra). A rolagem só funciona na apresentação e no HTML exportado; no editor o conteúdo aparece cortado.'],
     position: ['position', 'position: absolute;\nleft: 12px;\ntop: 8px;', 'Marcado, o item SAI do fluxo do layout e fica onde você o coloca (left/top), por cima dos outros. Bom para selos, badges e enfeites.'],
     'grid-column': ['grid-column', 'grid-column: span 2;', 'Quantas COLUNAS da grade este item ocupa. "span 2" = duas colunas de largura.'],
     'grid-row': ['grid-row', 'grid-row: span 2;', 'Quantas LINHAS da grade este item ocupa.'],
@@ -1197,6 +1204,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       n.layout?.mode, n.layout?.wrap, hasLayout(parent), parent?.layout?.mode, n.absolute, n.sizeX, n.sizeY, radiusExpanded,
       n.visible, store.state.doc.pages.length, n.layout?.mode === 'grid', n.component, n.instanceOf, n.lockRatio,
       n.fill.type === 'image' ? n.fill.fit : '',
+      n.type === 'frame' ? overflowOf(n) : '',
       n.type === 'text' ? `${n.truncate || ''}|${n.sizeX}|${n.maxW > 0}` : '',
       ui.editState, n.states ? Object.keys(n.states).join() : '', n.transition?.duration > 0,
       marginExpanded, n.margin && (n.margin[0] !== n.margin[2] || n.margin[1] !== n.margin[3]), n.fx && Object.keys(n.fx).length,
