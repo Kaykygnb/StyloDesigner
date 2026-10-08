@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-42 arquivos · 693 funções e constantes documentadas.
+43 arquivos · 694 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -37,6 +37,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/svgimport.js`](#srcsvgimportjs) | Importa SVG como vetores editáveis |
 | [`src/thumbnail.js`](#srcthumbnailjs) | Miniatura do projeto (SVG) para a página inicial |
 | [`src/tools.js`](#srctoolsjs) | Interação: mouse e teclado no canvas |
+| [`src/version.js`](#srcversionjs) |  |
 | [`src/ui/assets.js`](#srcuiassetsjs) | Aba "recursos" (componentes e estilos) |
 | [`src/ui/code.js`](#srcuicodejs) | Aba "código" (CSS e HTML da seleção) |
 | [`src/ui/colorpicker.js`](#srcuicolorpickerjs) | Seletor de cor (popover) com gerenciador de paletas |
@@ -1287,6 +1288,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/version.js
+
+- **`VERSION`** · [L2](../src/version.js#L2) — Versão do app mostrada na página inicial. Mantida igual à do package.json (tests/versao.test.js confere).
+
+---
+
 ## src/ui/assets.js
 
 **ABA "RECURSOS" (COMPONENTES E ESTILOS)** · [abrir o código](../src/ui/assets.js)
@@ -1505,11 +1512,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  ficam desligados (ui.homeOpen, ver tools.js → covered()).
 ```
 
-- **`when(ms)`** <sub>do módulo</sub> · [L22](../src/ui/home.js#L22) — "há 5 min", "há 3 h", "ontem", ou a data.
-- **`baseName(file)`** <sub>do módulo</sub> · [L32](../src/ui/home.js#L32) — Nome bonito a partir do arquivo: "meu-app.json" → "meu-app".
-- **`hue(text)`** <sub>do módulo</sub> · [L35](../src/ui/home.js#L35) — Cor de fundo estável por nome (para os projetos sem miniatura não ficarem todos iguais).
-- **`thumbBox(name, src)`** <sub>do módulo</sub> · [L42](../src/ui/home.js#L42) — Miniatura de um card: a imagem SVG (se houver) ou uma "capa" com a inicial do nome.
-- **`createHome({ store, saving, canvas, thumbnail, toast, openSettings, openProjec…)`** · [L66](../src/ui/home.js#L66) — Cria a PÁGINA INICIAL: cards dos projetos da pasta (com miniatura, busca, renomear, duplicar), "continuar de onde parou" e exemplos. Abre por cima do editor e o deixa inativo (inert) enquanto estiver aberta.
+- **`when(ms)`** <sub>do módulo</sub> · [L23](../src/ui/home.js#L23) — "há 5 min", "há 3 h", "ontem", ou a data.
+- **`baseName(file)`** <sub>do módulo</sub> · [L33](../src/ui/home.js#L33) — Nome bonito a partir do arquivo: "meu-app.json" → "meu-app".
+- **`hue(text)`** <sub>do módulo</sub> · [L36](../src/ui/home.js#L36) — Cor de fundo estável por nome (para os projetos sem miniatura não ficarem todos iguais).
+- **`thumbBox(name, src)`** <sub>do módulo</sub> · [L43](../src/ui/home.js#L43) — Miniatura de um card: a imagem SVG (se houver) ou uma "capa" com a inicial do nome.
+- **`createHome({ store, saving, canvas, thumbnail, toast, openSettings, openProjec…)`** · [L67](../src/ui/home.js#L67) — Cria a PÁGINA INICIAL: cards dos projetos da pasta (com miniatura, busca, renomear, duplicar), "continuar de onde parou" e exemplos. Abre por cima do editor e o deixa inativo (inert) enquanto estiver aberta.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — , deps.saving, deps.canvas
   - `deps.thumbnail` <sub>() => string\|null</sub> — miniatura da página aberta (thumbnail.js)
@@ -1519,14 +1526,14 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `deps.confirmReplace` <sub>(q: string) => Promise<boolean></sub> — pergunta antes de trocar o projeto aberto
   - `deps.importFile` <sub>() => void</sub> — abre o seletor de .json do computador
   - `[]` <sub>{ blank: () => void, samples: {label, description, load</sub> — }} deps.create
-- **`close()`** <sub>interna</sub> · [L75](../src/ui/home.js#L75) — Fecha a página inicial e devolve o editor (foco no canvas para os atalhos voltarem a funcionar).
-- **`open()`** <sub>interna</sub> · [L89](../src/ui/home.js#L89) — Abre (ou redesenha) a página inicial.
-- **`onKey(e)`** <sub>interna</sub> · [L107](../src/ui/home.js#L107) — Esc fecha (volta ao editor); "/" foca a busca, como em muitos apps.
-- **`refreshList()`** <sub>interna</sub> · [L116](../src/ui/home.js#L116) — Busca a lista da pasta e redesenha a grade.
-- **`replaceWith(question, action)`** <sub>interna</sub> · [L127](../src/ui/home.js#L127) — Troca o projeto aberto por `action` (abrir da pasta, exemplo, novo), perguntando antes se for perder algo.
-- **`openFile(file)`** <sub>interna</sub> · [L139](../src/ui/home.js#L139) — Abre um projeto da pasta. Se já é o aberto, só volta ao editor.
-- **`renderGrid()`** <sub>interna</sub> · [L214](../src/ui/home.js#L214) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
-- **`card(p)`** <sub>interna</sub> · [L231](../src/ui/home.js#L231) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
+- **`close()`** <sub>interna</sub> · [L76](../src/ui/home.js#L76) — Fecha a página inicial e devolve o editor (foco no canvas para os atalhos voltarem a funcionar).
+- **`open()`** <sub>interna</sub> · [L90](../src/ui/home.js#L90) — Abre (ou redesenha) a página inicial.
+- **`onKey(e)`** <sub>interna</sub> · [L108](../src/ui/home.js#L108) — Esc fecha (volta ao editor); "/" foca a busca, como em muitos apps.
+- **`refreshList()`** <sub>interna</sub> · [L117](../src/ui/home.js#L117) — Busca a lista da pasta e redesenha a grade.
+- **`replaceWith(question, action)`** <sub>interna</sub> · [L128](../src/ui/home.js#L128) — Troca o projeto aberto por `action` (abrir da pasta, exemplo, novo), perguntando antes se for perder algo.
+- **`openFile(file)`** <sub>interna</sub> · [L140](../src/ui/home.js#L140) — Abre um projeto da pasta. Se já é o aberto, só volta ao editor.
+- **`renderGrid()`** <sub>interna</sub> · [L215](../src/ui/home.js#L215) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
+- **`card(p)`** <sub>interna</sub> · [L232](../src/ui/home.js#L232) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
 
 ---
 

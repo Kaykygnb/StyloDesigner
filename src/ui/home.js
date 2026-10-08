@@ -17,6 +17,7 @@ import { h, ico, iconButton } from './dom.js';
 import { showMenu } from './menus.js';
 import { folder } from '../storage.js';
 import { formatBytes } from './settings.js';
+import { VERSION } from '../version.js';
 
 /** "há 5 min", "há 3 h", "ontem", ou a data. */
 function when(ms) {
@@ -152,7 +153,7 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
       h('div.brand',
         h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>' }),
         h('span.brand-name', 'Projeto Designer'),
-        h('span.home-version', 'v0.13')),
+        h('span.home-version', 'v' + VERSION)),
       h('div.spacer'),
       h('label.home-search', ico('search', 15), search, h('kbd', '/')),
       iconButton(ui.theme === 'dark' ? 'sun' : 'moon', 'Alternar tema claro/escuro', () => { store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'); renderShell(); }),

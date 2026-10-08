@@ -1286,7 +1286,6 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .design-panel .sh-ico { width: 16px; height: 16px; background: none; color: var(--muted); }
 .design-panel .section-body { gap: 9px; }
 .design-panel .cap-group { gap: 4px; }
-.design-panel .cap-css { display: none; }
 .design-panel .cap.has-tip { flex-direction: row; }
 .design-panel .field { height: 30px; border-radius: 6px; }
 .design-panel .num-label { line-height: 28px; }

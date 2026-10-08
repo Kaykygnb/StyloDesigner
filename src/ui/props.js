@@ -251,7 +251,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (noteOpen) noteInput?.focus();
         else el.querySelector('.note-toggle')?.focus();
       },
-    }, ico('info', 14)) : null;
+    }, ico('file', 14)) : null;
     if (note) updaters.push(() => note.classList.toggle('has-note', !!P()?.note));
     const sub = one
       ? [TYPE_LABEL[n.type] || n.type, ' · ', tip(h('code.sel-tag', `<${tagOf(n)}>`), { title: 'Etiqueta HTML', text: 'É assim que esta camada aparece no código exportado. Para mudar, use a seção "HTML" mais abaixo.' })]
