@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates, cleanTrackList } from '../src/model.js';
 import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle, colorVarNames, joinCss } from '../src/css.js';
 import { toSvg } from '../src/svg.js';
-import { buildSample } from '../src/sample.js';
+import { buildSample } from './fixtures/amostras.js';
 
 test('rgba converte hex e opacidade', () => {
   assert.equal(rgba('#ff0000', 1), '#ff0000');

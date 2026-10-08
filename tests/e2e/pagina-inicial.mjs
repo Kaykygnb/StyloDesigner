@@ -34,7 +34,7 @@ try {
   ok('app abre na página inicial', await homeOpen());
   ok('editor por trás fica inert', await ev(() => document.getElementById('app').inert === true));
   ok('mostra "Continuar", "Na pasta" e exemplos', (await p.locator('.home-section h2').allTextContents()).join('|').includes('Continuar de onde parou')
-    && (await p.locator('.home-card.sample').count()) === 3);
+    && (await p.locator('.home-card.sample').count()) === 1);
   ok('pasta vazia mostra orientação', (await p.locator('.home-empty').innerText()).includes('Ctrl+S'));
   ok('miniatura ao vivo do projeto aberto', (await p.locator('.home-wide img').getAttribute('src') || '').startsWith('data:image/svg+xml'));
   const layersBefore = await ev(() => designer.store.page().children.length);
@@ -47,10 +47,10 @@ try {
   ok('clicar no logo abre a página inicial', await homeOpen());
 
   // ---------------------------------------------------------------- 2. abrir exemplo sem pergunta (projeto intocado)
-  await p.locator('.home-card.sample', { hasText: 'App mobile' }).click();
+  await p.locator('.home-card.sample', { hasText: 'Vitrine completa' }).click();
   await p.waitForTimeout(500);
   ok('exemplo abre sem perguntar (nada a perder)', !(await homeOpen()) && (await p.locator('.ask-buttons').count()) === 0);
-  ok('é o exemplo app mobile', (await ev(() => designer.store.state.doc.name)).includes('App'), await ev(() => designer.store.state.doc.name));
+  ok('é o projeto base (Vitrine completa)', (await ev(() => designer.store.state.doc.name)).includes('Vitrine'), await ev(() => designer.store.state.doc.name));
 
   // ---------------------------------------------------------------- 3. lembrete "só no navegador" depois de algumas edições
   for (let i = 0; i < 12; i++) await ev((i) => { designer.store.state.doc.name = 'Casa teste ' + i; designer.store.commit(); }, i);

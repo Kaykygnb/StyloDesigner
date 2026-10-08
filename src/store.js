@@ -12,7 +12,7 @@
  */
 
 import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
-import { buildSample } from './sample.js';
+import { buildSampleShowcase } from './sample-vitrine.js';
 import { syncInstances, syncStyles } from './components.js';
 import { syncVars } from './modes.js';
 import { pruneComments } from './comments.js';
@@ -346,7 +346,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   };
   /** Projeto em branco / projeto de exemplo. */
   api.newDoc = () => api.loadDoc(makeDoc(), { pristine: true });
-  api.loadSample = () => api.loadDoc(buildSample(), { pristine: true });
+  /** Abre o projeto base (o exemplo "Vitrine completa"). */
+  api.loadSample = () => api.loadDoc(buildSampleShowcase(), { pristine: true });
 
   /** Guarda uma imagem (data URL) em doc.assets sob o id dado. */
   api.addAsset = (id, dataUrl) => {
@@ -437,7 +438,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       // veio do localStorage antigo: grava logo no IndexedDB (conclui a migração)
       if (initial.migrated) scheduleSave();
     } else {
-      api.loadDoc(buildSample(), { pristine: true });
+      api.loadDoc(buildSampleShowcase(), { pristine: true }); // primeira abertura: o projeto base que ensina o app
     }
     globalThis.document && (document.documentElement.dataset.theme = state.ui.theme);
   }

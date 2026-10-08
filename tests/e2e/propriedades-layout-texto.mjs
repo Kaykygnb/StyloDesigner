@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { buildSample } from '../fixtures/amostras.js';
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await b.newContext({ viewport: { width: 1440, height: 860 }, acceptDownloads: true });
 const p = await ctx.newPage();
@@ -57,7 +58,7 @@ await p.locator('.color-chips .chip').first().click();
 ok('clicar no chip aplica a cor mais usada (#FF0000)', (await ev(() => designer.store.page().children[3].fill.color)) === '#FF0000');
 
 // ---- exportar todos os frames
-await ev(() => designer.store.loadSample());
+await ev((doc) => designer.store.loadDoc(doc, { pristine: true }), buildSample()); // documento da antiga Landing (3 frames)
 await p.waitForTimeout(300);
 await p.click('button:has-text("Arquivo")');
 const downloads = [];

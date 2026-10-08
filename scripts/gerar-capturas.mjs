@@ -17,6 +17,7 @@ import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { buildSample, buildSampleApp } from '../tests/fixtures/amostras.js';
 import { join } from 'node:path';
 
 const OUT = fileURLToPath(new URL('../docs/screenshots', import.meta.url));
@@ -27,8 +28,9 @@ const p = await ctx.newPage();
 const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('console', m => m.type() === 'error' && errors.push(m.text()));
 await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(700);
 const ev = (f, a) => p.evaluate(f, a);
-const loadApp = async () => { await ev(async () => { const { buildSampleApp } = await import('/src/sample.js'); designer.store.setTheme('dark'); designer.store.loadDoc(buildSampleApp()); designer.store.ui.rightTab; }); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
-const loadLanding = async () => { await ev(() => { designer.store.setTheme('dark'); designer.store.loadSample(); }); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
+// os documentos dos exemplos antigos (Landing e App mobile) agora vivem em tests/fixtures/amostras.js: são montados aqui no Node e entregues ao app
+const loadApp = async () => { await ev((doc) => { designer.store.setTheme('dark'); designer.store.loadDoc(doc); }, buildSampleApp()); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
+const loadLanding = async () => { await ev((doc) => { designer.store.setTheme('dark'); designer.store.loadDoc(doc); }, buildSample()); await p.waitForTimeout(250); await ev(() => designer.canvas.fit(null)); };
 const find = (name) => ev((name) => { let id; const w = (l) => l.forEach(n => { if (n.name === name && !id) id = n.id; n.children && w(n.children); }); w(designer.store.page().children); return id; }, name);
 const select = async (name, { fitSel = false, pad = 160, maxZoom = 1.2 } = {}) => { const id = await find(name); await ev(({ id, fitSel, pad, maxZoom }) => { designer.store.setSelection([id]); if (fitSel) designer.canvas.fit([id], { padding: pad, maxZoom }); }, { id, fitSel, pad, maxZoom }); await p.waitForTimeout(250); return id; };
 const rightTab = async (t) => { await p.click(`#right .tab:has-text("${t}")`); await p.waitForTimeout(200); };

@@ -1,3 +1,4 @@
+import { buildSampleApp } from '../fixtures/amostras.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -8,9 +9,11 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 
 try {
-  await page.goto(process.env.APP_URL || 'http://localhost:5173/');
-  await page.waitForSelector('.home-wide');
-  await page.locator('.home-card.sample', { hasText: 'App mobile' }).click();
+  // usa o documento do antigo exemplo "App mobile" (agora só dado de teste, em tests/fixtures/amostras.js)
+  await page.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href);
+  await page.waitForTimeout(900);
+  await page.evaluate((doc) => designer.store.loadDoc(doc, { pristine: true }), buildSampleApp());
+  await page.waitForTimeout(500);
   const home = page.locator('.layer-row', { has: page.locator('.layer-name', { hasText: /^Home$/ }) });
   if (!(await home.locator('.twist').getAttribute('class')).includes('open')) await home.locator('.twist').click();
   await page.locator('.layer-row', { has: page.locator('.layer-name', { hasText: /^Cartão de saldo$/ }) }).click();

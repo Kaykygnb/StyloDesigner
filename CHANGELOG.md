@@ -14,6 +14,7 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - Testes: `vitrine.test.js` (a estrutura promete e entrega) e a suíte de navegador `vitrine.mjs` (abre pela página inicial, 3 → 2 → 1 colunas, modo escuro, código, apresentar).
 
 ### Alterado
+- **A Vitrine é o único projeto de exemplo**: aparece na primeira abertura, na página inicial ("Projeto base para aprender") e em Arquivo → Abrir o projeto base. Os exemplos "Landing" e "App mobile" saíram do app; os documentos deles ficam só como dados de teste em `tests/fixtures/amostras.js`.
 - Os post-its de nota viram só o ícone quando o zoom é menor que 50%, para não cobrir o design em telas grandes.
 
 ---

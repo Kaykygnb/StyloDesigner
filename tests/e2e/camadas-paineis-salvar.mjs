@@ -1,8 +1,11 @@
 import { chromium } from 'playwright';
+import { buildSample } from '../fixtures/amostras.js';
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const p = await (await b.newContext({ viewport: { width: 1440, height: 860 } })).newPage();
 const errors = []; p.on('pageerror', e => errors.push(e.message)); p.on('console', m => m.type() === 'error' && errors.push(m.text()));
 await p.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href); await p.waitForTimeout(800);
+// estes testes usam o documento da antiga "Landing" (agora só dado de teste); o app abre com a Vitrine
+await p.evaluate((doc) => designer.store.loadDoc(doc, { pristine: true }), buildSample()); await p.waitForTimeout(400);
 let fails = 0; const ok = (n, c, x = '') => { if (!c) fails++; console.log((c ? 'PASS ' : 'FAIL ') + n + (c ? '' : '  ' + x)); };
 const ev = (f, a) => p.evaluate(f, a);
 const rows = () => p.locator('.layer-row').count();

@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-44 arquivos · 696 funções e constantes documentadas.
+43 arquivos · 690 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -30,7 +30,6 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/present.js`](#srcpresentjs) | Modo apresentar (protótipo em tela cheia) |
 | [`src/rulers.js`](#srcrulersjs) | Réguas e criação de guias |
 | [`src/sample-vitrine.js`](#srcsample-vitrinejs) | Exemplo "vitrine": um site inteiro que usa tudo que o editor faz |
-| [`src/sample.js`](#srcsamplejs) | Projeto de exemplo |
 | [`src/saving.js`](#srcsavingjs) | Regras de salvamento (navegador + pasta do computador) |
 | [`src/storage.js`](#srcstoragejs) | Onde o projeto é guardado: navegador (IndexedDB) e pasta do computador (servidor) |
 | [`src/store.js`](#srcstorejs) | Estado central, histórico (desfazer) e salvamento |
@@ -514,31 +513,31 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`toast(msg)`** <sub>do módulo</sub> · [L51](../src/main.js#L51) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L65](../src/main.js#L65) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L90](../src/main.js#L90) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L93](../src/main.js#L93) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L125](../src/main.js#L125) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L157](../src/main.js#L157) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L271](../src/main.js#L271) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`toast(msg)`** <sub>do módulo</sub> · [L50](../src/main.js#L50) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L64](../src/main.js#L64) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings()`** <sub>do módulo</sub> · [L89](../src/main.js#L89) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
+- **`quickSave()`** <sub>do módulo</sub> · [L92](../src/main.js#L92) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L124](../src/main.js#L124) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L156](../src/main.js#L156) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L268](../src/main.js#L268) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L311](../src/main.js#L311) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L328](../src/main.js#L328) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L308](../src/main.js#L308) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L325](../src/main.js#L325) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L340](../src/main.js#L340) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L399](../src/main.js#L399) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L435](../src/main.js#L435) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L481](../src/main.js#L481) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L557](../src/main.js#L557) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L611](../src/main.js#L611) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L619](../src/main.js#L619) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L337](../src/main.js#L337) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L396](../src/main.js#L396) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L432](../src/main.js#L432) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L478](../src/main.js#L478) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L552](../src/main.js#L552) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L606](../src/main.js#L606) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L614](../src/main.js#L614) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -946,32 +945,6 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
-## src/sample.js
-
-**PROJETO DE EXEMPLO** · [abrir o código](../src/sample.js)
-
-```text
- Documento de demonstração carregado na primeira abertura. Mostra auto layout (flexbox), gradientes,
- sombras e blur. Também é a base das capturas de tela do README.
-```
-
-- **`text(t, props = {})`** <sub>do módulo</sub> · [L14](../src/sample.js#L14) — Atalho para criar uma camada de texto: o nome da camada é o início do próprio texto.
-- **`solid(color, opacity = 1)`** <sub>do módulo</sub> · [L16](../src/sample.js#L16) — Preenchimento de cor sólida com opacidade opcional.
-- **`flex(mode, extra = {})`** <sub>do módulo</sub> · [L18](../src/sample.js#L18) — Configuração de auto layout flex com valores-padrão do exemplo (cada chamada só diz o que muda).
-- **`buildSample()`** · [L29](../src/sample.js#L29) — Monta o projeto de EXEMPLO que aparece na primeira vez que o app abre (e em Arquivo → Carregar exemplo). Serve de vitrine: 3 pranchas que usam auto layout em flexbox (linha e coluna), `fill`/`hug`, gradientes linear e radial, sombras, blur, contorno translúcido, camada absoluta (orb) dentro de auto layout e efeito vidro (backdrop-filter). Tudo é construído com createNode, o mesmo que o app usa.
-  - ↩︎ `object` um documento completo (ver model.js → makeDoc)
-- **`mk(emoji, name, desc, color)`** <sub>interna</sub> · [L98](../src/sample.js#L98) — Fábrica de cartão: ícone (emoji) + título + descrição, em coluna, com sombra azulada.
-- **`buildSampleApp()`** · [L155](../src/sample.js#L155) — Segundo projeto de exemplo: um app de carteira digital (mobile). Demonstra o que o primeiro exemplo não mostra:
-
-   - CSS GRID (as 4 "ações rápidas" estão numa grade de 4 colunas)
-   - COMPONENTES: o botão "Ação" é um componente principal; as 4 ações são INSTÂNCIAS com texto/ícone sobrescritos
-   - PROTÓTIPO: tocar em "Enviar" navega para a tela de sucesso, e o botão dela volta para o início
-   - flexbox com `fill`/`hug`, gradientes, sombras e estilo de lista
-  Três pranchas lado a lado: Home, Sucesso e a prancha "Componentes" (onde mora o principal).
-  - ↩︎ `object` documento completo
-
----
-
 ## src/saving.js
 
 **REGRAS DE SALVAMENTO (navegador + pasta do computador)** · [abrir o código](../src/saving.js)
@@ -1096,10 +1069,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - 1x por frame (subscribe): painéis pesados (camadas, propriedades) juntam vários motivos em uma só atualização.
 - **`index()`** <sub>interna</sub> · [L139](../src/store.js#L139) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
 - **`restore(snap)`** <sub>interna</sub> · [L225](../src/store.js#L225) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
-- **`scheduleSave()`** <sub>interna</sub> · [L361](../src/store.js#L361) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
-- **`save()`** <sub>interna</sub> · [L376](../src/store.js#L376) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+- **`scheduleSave()`** <sub>interna</sub> · [L362](../src/store.js#L362) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
+- **`save()`** <sub>interna</sub> · [L377](../src/store.js#L377) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
   - ↩︎ `Promise<void>` resolve quando o projeto (como estava) terminou de ser gravado
-- **`init()`** <sub>interna</sub> · [L426](../src/store.js#L426) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+- **`init()`** <sub>interna</sub> · [L427](../src/store.js#L427) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 

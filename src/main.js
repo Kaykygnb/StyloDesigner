@@ -30,7 +30,6 @@ import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
 import { h, ico, iconButton, tip, installAutoTips } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
-import { buildSampleApp } from './sample.js';
 import { buildSampleShowcase } from './sample-vitrine.js';
 import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
 import { createSaving } from './saving.js';
@@ -251,9 +250,7 @@ const fileBtn = h('button.btn.ghost', {
         },
       },
       'sep',
-      { label: 'Exemplo: landing page', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Landing page"?')) { store.loadSample(); canvas.fit(null); } } },
-      { label: 'Exemplo: app mobile (grid, componentes, protótipo)', icon: 'layers', onClick: async () => { if (await confirmReplace('Abrir o exemplo "App mobile"?')) { store.loadDoc(buildSampleApp(), { pristine: true }); canvas.fit(null); } } },
-      { label: 'Exemplo: vitrine completa (site responsivo)', icon: 'star', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Vitrine completa"?')) { store.loadDoc(buildSampleShowcase(), { pristine: true }); canvas.fit(null); } } },
+      { label: 'Abrir o projeto base (vitrine completa)', icon: 'star', onClick: async () => { if (await confirmReplace('Abrir o exemplo "Vitrine completa"?')) { store.loadDoc(buildSampleShowcase(), { pristine: true }); canvas.fit(null); } } },
       'sep',
       { label: 'Configurações…', hint: 'Ctrl+,', icon: 'settings', onClick: () => openSettings() },
     ]);
@@ -518,9 +515,7 @@ const home = createHome({
   create: {
     blank: () => store.newDoc(),
     samples: [
-      { label: 'Landing page', description: 'Hero, cartões em flexbox, vidro e gradientes', load: () => store.loadSample() },
-      { label: 'App mobile', description: 'CSS Grid, componentes, estilos e protótipo', load: () => store.loadDoc(buildSampleApp(), { pristine: true }) },
-      { label: 'Vitrine completa', description: 'Site responsivo com modo escuro, variáveis, estados, componentes e vetores', image: 'assets/example-vitrine.png', load: () => store.loadDoc(buildSampleShowcase(), { pristine: true }) },
+      { label: 'Vitrine completa', description: 'O projeto base: um site responsivo que usa todos os recursos e ensina o app', image: 'assets/example-vitrine.png', load: () => store.loadDoc(buildSampleShowcase(), { pristine: true }) },
     ],
   },
 });
@@ -605,7 +600,7 @@ const emptyHint = h('div.empty-canvas',
   h('h3', 'Canvas vazio'),
   h('p', 'Aperte ', h('kbd', 'F'), ' e arraste para desenhar um frame'),
   h('p', 'ou arraste uma imagem para cá'),
-  h('p.muted', 'Arquivo → Exemplo mostra o que dá para fazer'));
+  h('p.muted', 'Arquivo → Abrir o projeto base mostra o que dá para fazer'));
 $('.stage').append(emptyHint);
 /** Mostra/esconde a dica conforme a página tem ou não camadas. */
 const syncEmpty = () => { emptyHint.style.display = store.page().children.length ? 'none' : ''; };

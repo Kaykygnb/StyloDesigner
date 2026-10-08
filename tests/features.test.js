@@ -231,7 +231,7 @@ test('medidas Alt: camada dentro de outra mostra as 4 margens', () => {
   assert.deepEqual(measures({ x: 0, y: 0, w: 10, h: 10 }, { x: 5, y: 5, w: 10, h: 10 }), []); // sobrepostas: sem medida
 });
 
-import { buildSampleApp } from '../src/sample.js';
+import { buildSampleApp } from './fixtures/amostras.js';
 import { walk } from '../src/model.js';
 
 test('exemplo "app mobile": instâncias sincronizadas, estilos ligados e protótipo navegável', () => {

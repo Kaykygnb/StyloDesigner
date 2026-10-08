@@ -1,14 +1,14 @@
 /**
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  sample.js — PROJETO DE EXEMPLO
+ *  amostras.js — DOCUMENTOS DE TESTE (antigos exemplos "Landing" e "App mobile")
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  Documento de demonstração carregado na primeira abertura. Mostra auto layout (flexbox), gradientes,
  *  sombras e blur. Também é a base das capturas de tela do README.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from './model.js';
-import { createInstance, makeComponent, syncInstances } from './components.js';
+import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from '../../src/model.js';
+import { createInstance, makeComponent, syncInstances } from '../../src/components.js';
 
 /** Atalho para criar uma camada de texto: o nome da camada é o início do próprio texto. */
 const text = (t, props = {}) => createNode('text', { name: t.slice(0, 24), text: t, ...props });
