@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
@@ -69,6 +69,7 @@ const stopsCss = (stops) =>
  *  - solid  → background-color
  *  - linear → background-image: linear-gradient(...)
  *  - radial → background-image: radial-gradient(...)
+ *  - conic  → background-image: conic-gradient(from Ndeg, ...)
  *  - image  → background-image: url(data:...) + size/position/repeat (se a imagem não existir mais, cinza neutro)
  *  - none   → nada
  * @param {object} fill  preenchimento (ver model.js → defaultFill)
@@ -83,6 +84,9 @@ export function fillCss(fill, assets = {}) {
       return { 'background-image': `linear-gradient(${round(fill.angle)}deg, ${stopsCss(fill.stops)})` };
     case 'radial':
       return { 'background-image': `radial-gradient(circle at center, ${stopsCss(fill.stops)})` };
+    case 'conic':
+      // cônico: as cores giram em volta do centro (como um relógio ou uma roda de cores); angle = onde começa
+      return { 'background-image': `conic-gradient(from ${round(fill.angle)}deg at center, ${stopsCss(fill.stops)})` };
     case 'image': {
       const src = assets[fill.assetId];
       if (!src) return { 'background-color': '#c4c4c4' };
@@ -156,7 +160,8 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     const crossFill = row ? node.sizeY === 'fill' : node.sizeX === 'fill';
     s.position = 'relative';
     marginCss(node, s);
-    s.flex = mainFill ? '1 1 0%' : '0 0 auto';
+    // fill no eixo principal divide o espaço sobrando; `grow` é o peso (1 e 2 = um terço e dois terços)
+    s.flex = mainFill ? `${node.grow > 0 && node.grow !== 1 ? round(node.grow, 2) : 1} 1 0%` : '0 0 auto';
     if (mainFill) s[row ? 'min-width' : 'min-height'] = '0';
     if (crossFill) s['align-self'] = 'stretch';
     else if (node.alignSelf && node.alignSelf !== 'auto') s['align-self'] = node.alignSelf;
@@ -184,8 +189,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       const hug = node.sizeX === 'hug';
       const track = hug ? 'max-content' : 'minmax(0, 1fr)';
       s.display = 'grid';
-      s['grid-template-columns'] = `repeat(${L.cols || 2}, ${track})`;
-      if (L.rows > 0) s['grid-template-rows'] = `repeat(${L.rows}, minmax(0, 1fr))`;
+      // trilhas personalizadas (colsTemplate/rowsTemplate) mandam; senão: N colunas iguais e linhas automáticas ou N iguais
+      s['grid-template-columns'] = L.colsTemplate ? cleanTrackList(L.colsTemplate) : `repeat(${L.cols || 2}, ${track})`;
+      if (L.rowsTemplate) s['grid-template-rows'] = cleanTrackList(L.rowsTemplate);
+      else if (L.rows > 0) s['grid-template-rows'] = `repeat(${L.rows}, minmax(0, 1fr))`;
       s.gap = `${px(L.rowGap ?? L.gap)} ${px(L.colGap ?? L.gap)}`;
       s['justify-items'] = GRID_ALIGN[L.justify] || 'start';
       s['align-items'] = GRID_ALIGN[L.align] || 'start';
@@ -498,6 +505,10 @@ function svgPaint(fill, id, assets) {
   if (!fill || fill.type === 'none') return { paint: 'none', defs: '' };
   if (fill.type === 'solid') return { paint: rgba(fill.color, 1), opacity: fill.opacity, defs: '' };
   if (fill.type === 'image') return { paint: '#c4c4c4', defs: '' };
+  if (fill.type === 'conic') { // o SVG não tem gradiente cônico: vetor usa a cor da 1ª parada
+    const first = [...fill.stops].sort((a, b) => a.pos - b.pos)[0];
+    return { paint: rgba(first.color, 1), opacity: first.opacity, defs: '' };
+  }
   const stops = [...fill.stops].sort((a, b) => a.pos - b.pos)
     .map((st) => `<stop offset="${round(st.pos)}%" stop-color="${rgba(st.color, 1)}" stop-opacity="${st.opacity}"/>`).join('');
   if (fill.type === 'radial') {

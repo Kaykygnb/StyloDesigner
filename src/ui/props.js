@@ -7,13 +7,13 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip } from './dom.js';
+import { h, ico, iconButton, numField, selectField, segmented, colorRow, tip, textField } from './dom.js';
 import { askText } from './menus.js';
 import { fontField } from './fontpicker.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
   BLEND_MODES, FONT_WEIGHTS, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
-  constraintsOf, round, STATE_LIST, canHaveStates, editState, hasStates, stateView,
+  constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
@@ -212,6 +212,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     return section('Tamanho', body);
   }
 
+  // Blocos recolhíveis (<details>) lembram se estavam abertos: sem isso fechariam sozinhos quando o último valor é apagado,
+  // com a pessoa ainda no meio da edição.
+  const openFolds = new Set();
+  const fold = (key, used, title, ...body) => {
+    const d = h('details.size-limits', { open: used || openFolds.has(key) },
+      h('summary', ico('chevron', 11), ` ${title}`, used ? h('span.dot-on') : null), ...body);
+    d.addEventListener('toggle', () => { if (d.open) openFolds.add(key); else openFolds.delete(key); });
+    return d;
+  };
+
   /** Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora). */
   const ASPECTS = [
     ['', 'Livre'], ['1', '1 : 1 (quadrado)'], ['1.3333', '4 : 3'], ['1.7778', '16 : 9'], ['1.5', '3 : 2'], ['2', '2 : 1'],
@@ -251,8 +261,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         body.push(h('p.hint', 'Largura e altura estão fixas: o editor mantém a proporção ao redimensionar. Para o CSS aspect-ratio valer no código, deixe uma das medidas em Hug ou Fill.'));
       }
     }
-    return h('details.size-limits', { open: used },
-      h('summary', ico('chevron', 11), ' Limites e proporção', used ? h('span.dot-on') : null), h('div.section-body', body));
+    return fold('limits', used, 'Limites e proporção', h('div.section-body', body));
   }
 
   /**
@@ -334,6 +343,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     transition: ['transition', 'transition: all 200ms ease;', 'Faz a camada MUDAR SUAVEMENTE entre o estado normal e hover/pressionado/foco, em vez de pular. Duração em milissegundos (0 = sem transição).'],
     cursor: ['cursor', 'cursor: pointer;', 'O formato do mouse quando passa por cima. "pointer" (mãozinha) diz que a camada é clicável. Aparece no código exportado e na apresentação, não no editor.'],
     transform: ['transform', 'transform: scale(1.05);', 'Aumenta (acima de 1) ou diminui (abaixo de 1) a camada, a partir do centro. Num :hover costuma ser 1.02 a 1.08; num :active, 0.97.'],
+    'flex-grow': ['flex-grow', 'flex: 2 1 0%;', 'O PESO deste item na divisão do espaço sobrando (só para itens "Preencher" no eixo principal). Com pesos 1 e 2, um item fica com 1/3 e o outro com 2/3.'],
     position: ['position', 'position: absolute;\nleft: 12px;\ntop: 8px;', 'Marcado, o item SAI do fluxo do layout e fica onde você o coloca (left/top), por cima dos outros. Bom para selos, badges e enfeites.'],
     'grid-column': ['grid-column', 'grid-column: span 2;', 'Quantas COLUNAS da grade este item ocupa. "span 2" = duas colunas de largura.'],
     'grid-row': ['grid-row', 'grid-row: span 2;', 'Quantas LINHAS da grade este item ocupa.'],
@@ -485,7 +495,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         for (let c = 0; c < N; c++) {
           const cell = h('button.gp-cell', { type: 'button', 'aria-label': `${c + 1} colunas × ${r + 1} linhas` });
           cell.addEventListener('mouseenter', () => { paint(c + 1, r + 1, 'hover'); label.textContent = `${c + 1} × ${r + 1}`; });
-          cell.addEventListener('click', () => { each((n) => { n.layout.cols = c + 1; n.layout.rows = r + 1; }); commit(); });
+          cell.addEventListener('click', () => { each((n) => { n.layout.cols = c + 1; n.layout.rows = r + 1; delete n.layout.colsTemplate; delete n.layout.rowsTemplate; }); commit(); });
           cells.push(cell);
         }
       }
@@ -515,8 +525,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           text: 'Passe o mouse para ver o tamanho da grade e clique para aplicar. Para algo diferente, use os campos logo abaixo.',
         }),
         row(
-          capK('Colunas', 'grid-template-columns', num('col', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); }), { min: 1, decimals: 0 })),
-          capK('Linhas', 'grid-template-rows', num('lin', () => L().rows ?? 0, (v) => each((n) => { n.layout.rows = Math.max(0, Math.round(v)); }), { min: 0, decimals: 0 }))),
+          capK('Colunas', 'grid-template-columns', num('col', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); delete n.layout.colsTemplate; }), { min: 1, decimals: 0 })),
+          capK('Linhas', 'grid-template-rows', num('lin', () => L().rows ?? 0, (v) => each((n) => { n.layout.rows = Math.max(0, Math.round(v)); delete n.layout.rowsTemplate; }), { min: 0, decimals: 0 }))),
+        // trilhas personalizadas em CSS (ex.: "200px 1fr 2fr"): vazio = usa os números acima
+        fold('tracks', !!(L().colsTemplate || L().rowsTemplate), 'Trilhas personalizadas (CSS)',
+          h('div.section-body',
+            capK('Colunas', 'grid-template-columns', reg(textField({ mono: true, placeholder: '200px 1fr 2fr', get: () => L().colsTemplate || '',
+              set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.colsTemplate = t; else delete n.layout.colsTemplate; }), commit }))),
+            capK('Linhas', 'grid-template-rows', reg(textField({ mono: true, placeholder: 'auto 1fr auto', get: () => L().rowsTemplate || '',
+              set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.rowsTemplate = t; else delete n.layout.rowsTemplate; }), commit }))),
+            h('p.hint', 'Larguras de cada coluna/linha: px, %, fr (fração do espaço), auto, minmax(), repeat(). Ex.: barra lateral + conteúdo = 240px 1fr. Vazio = usa o número de colunas acima.'))),
         capK('Espaço entre células', 'gap', gapRow),
         paddingBlock(),
         capK('Posição na célula', 'justify-items',
@@ -679,6 +697,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             capK('Vertical na célula', 'align-self', selfSelect('alignSelf', 'sizeY', selfOpts, 'align-self'))));
       } else {
         body.push(capK('Alinhamento deste item', 'align-self', selfSelect('alignSelf', cross, selfOpts, 'align-self')));
+        // "Preencher" no eixo principal: peso na divisão do espaço (flex-grow)
+        if (P()[parent.layout.mode === 'row' ? 'sizeX' : 'sizeY'] === 'fill') {
+          body.push(capK('Peso do espaço', 'flex-grow', num('×', () => P().grow ?? 1, (v) => each((n) => { if (v > 0 && v !== 1) n.grow = v; else delete n.grow; }), { min: 0.1, step: 0.5, decimals: 1, title: 'flex-grow' })));
+        }
       }
     }
     return section('Item do layout', body);
@@ -888,7 +910,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const isText = n0.type === 'text';
     const fill = () => P().fill;
     const body = [
-      cap('Tipo', select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['image', 'Imagem']],
+      cap('Tipo', select([['none', 'Nenhum'], ['solid', 'Cor sólida'], ['linear', 'Gradiente linear'], ['radial', 'Gradiente radial'], ['conic', 'Gradiente cônico'], ['image', 'Imagem']],
         () => fill().type, (v) => {
           each((n) => { n.fill.type = v; });
           if (v === 'image' && !fill().assetId) {
@@ -911,9 +933,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           const name = await askText({ title: 'Nome do estilo de cor', label: 'Nome do estilo de cor', value: `Cor ${styles.length + 1}`, confirm: 'Salvar' });
           if (name) commands.addColorStyle(P(), name);
         }, 'small')));
-    } else if (t === 'linear' || t === 'radial') {
+    } else if (t === 'linear' || t === 'radial' || t === 'conic') {
       body.push(gradientBar());
-      if (t === 'linear') body.push(row(num('°', () => fill().angle, (v) => each((n) => { n.fill.angle = v; }), { title: 'ângulo', decimals: 0, min: -360, max: 360 })));
+      if (t === 'linear' || t === 'conic') body.push(row(num('°', () => fill().angle, (v) => each((n) => { n.fill.angle = v; }), { title: t === 'conic' ? 'onde o giro começa (graus)' : 'ângulo', decimals: 0, min: -360, max: 360 })));
+      if (t === 'conic' && !isText) body.push(h('p.hint', 'Cônico: as cores giram em volta do centro. Em vetores e no SVG exportado vale só a cor da 1ª parada (o SVG não tem gradiente cônico).'));
       n0.fill.stops.forEach((_, i) => {
         body.push(h('div.stop-row',
           num('%', () => fill().stops[i]?.pos ?? 0, (v) => each((n) => { if (n.fill.stops[i]) n.fill.stops[i].pos = v; }), { min: 0, max: 100, decimals: 0, width: '70px', title: 'posição' }),
@@ -1107,8 +1130,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       if (v == null || v === def) delete n.fx[key]; else n.fx[key] = v;
       if (!Object.keys(n.fx).length) delete n.fx;
     }), { decimals: 0, ...opts }));
-    return h('details.size-limits', { open: used },
-      h('summary', ico('chevron', 11), ' Filtros de cor', used ? h('span.dot-on') : null),
+    return fold('filters', used, 'Filtros de cor',
       h('div.section-body',
         row(fx('Brilho', 'brightness', 'brightness', 100, '%', { min: 0, max: 300 }), fx('Contraste', 'contrast', 'contrast', 100, '%', { min: 0, max: 300 })),
         row(fx('Saturação', 'saturate', 'saturate', 100, '%', { min: 0, max: 300 }), fx('Tons de cinza', 'grayscale', 'grayscale', 0, '%', { min: 0, max: 100 })),

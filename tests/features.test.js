@@ -338,3 +338,18 @@ test('estados, transição e cursor sincronizam do principal para as instâncias
   syncInstances(pages.concat([{ children: [inst] }]));
   assert.deepEqual(inst.states, { hover: { opacity: 0.5 } });
 });
+
+test('peso e trilhas sincronizam: peso do filho vem do principal; peso da raiz é da própria instância', () => {
+  const main = createNode('frame', { name: 'Linha', w: 300, h: 60, grow: 3 });
+  main.layout = { ...main.layout, mode: 'grid', colsTemplate: '1fr 2fr' };
+  const kid = createNode('rect', { name: 'A', grow: 2 });
+  main.children.push(kid);
+  makeComponent(main);
+  const pages = [{ children: [main] }];
+  const inst = createInstance(main, pages);
+  assert.equal(inst.layout.colsTemplate, '1fr 2fr');
+  assert.equal(inst.children[0].grow, 2);
+  inst.grow = 5; // peso da raiz: lugar da instância
+  syncInstances(pages.concat([{ children: [inst] }]));
+  assert.equal(inst.grow, 5);
+});

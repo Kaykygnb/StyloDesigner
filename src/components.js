@@ -29,13 +29,13 @@ export const OVERRIDE_PROPS = [
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textAlign',
   'textDecoration', 'fill', 'stroke', 'opacity', 'visible', 'radius', 'shadows', 'blur', 'bgBlur', 'blend',
   'x', 'y', 'w', 'h', 'sizeX', 'sizeY', 'rotation', 'flipX', 'flipY', 'clip', 'layout', 'points', 'vw', 'vh', 'closed',
-  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'wordSpacing', 'truncate', 'lines', 'margin', 'fx', 'states', 'transition', 'cursor',
+  'textStyleId', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'wordSpacing', 'truncate', 'lines', 'margin', 'fx', 'states', 'transition', 'cursor', 'grow',
 ];
 /**
  * Propriedades da RAIZ da instância que vêm do principal. `x` e `y` ficam de fora: cada instância tem a sua
  * própria posição no canvas. (O nome também é da instância.)
  */
-const ROOT_KEYS = OVERRIDE_PROPS.filter((k) => k !== 'x' && k !== 'y' && k !== 'margin').concat(['grids']); // margem é do lugar da instância, como x/y
+const ROOT_KEYS = OVERRIDE_PROPS.filter((k) => k !== 'x' && k !== 'y' && k !== 'margin' && k !== 'grow').concat(['grids']); // margem e peso no flex são do lugar da instância, como x/y
 
 /** Copia só as chaves pedidas (cópia profunda). Ex.: pick(no, ['fill','opacity']). */
 const pick = (node, keys) => {

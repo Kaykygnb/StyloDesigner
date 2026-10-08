@@ -67,6 +67,10 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     if (!fill || fill.type === 'none') return { attr: 'fill="none"' };
     if (fill.type === 'solid') return { attr: `fill="${rgba(fill.color, 1)}"${fill.opacity < 1 ? ` fill-opacity="${fill.opacity}"` : ''}` };
     if (fill.type === 'image') return { image: true };
+    if (fill.type === 'conic') { // o SVG não tem gradiente cônico: usa a cor da 1ª parada
+      const first = [...fill.stops].sort((a, b) => a.pos - b.pos)[0];
+      return { attr: `fill="${rgba(first.color, 1)}"${first.opacity < 1 ? ` fill-opacity="${first.opacity}"` : ''}` };
+    }
     const gid = id('g');
     const stops = [...fill.stops].sort((a, b) => a.pos - b.pos)
       .map((s) => `<stop offset="${n2(s.pos)}%" stop-color="${rgba(s.color, 1)}" stop-opacity="${s.opacity}"/>`).join('');

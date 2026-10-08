@@ -76,10 +76,10 @@ export const TYPE_LABEL = {
  * tempo, de propósito: assim, ao trocar de "cor sólida" para "gradiente" e voltar, o usuário não perde
  * a cor que tinha escolhido. Só o campo `type` decide qual parte vale.
  *
- *  - type:    'none' | 'solid' | 'linear' | 'radial' | 'image'
+ *  - type:    'none' | 'solid' | 'linear' | 'radial' | 'conic' | 'image'  (conic = gradiente cônico/angular)
  *  - color/opacity: cor sólida (hex #RRGGBB) e opacidade 0..1
  *  - stops:   paradas do gradiente [{ color, opacity, pos(0..100) }]
- *  - angle:   ângulo do gradiente linear em graus (CSS: 0 = para cima, 90 = para a direita)
+ *  - angle:   ângulo do gradiente linear em graus (CSS: 0 = para cima, 90 = para a direita); no cônico, onde o giro começa
  *  - assetId/fit: imagem (id em doc.assets) e como encaixa ('cover' | 'contain' | 'fill' | 'size' = tamanho próprio)
  *  - campos OPCIONAIS da imagem (ausente = padrão): posX/posY (posição 0–100%, padrão 50 = centro), size (% da largura da
  *    camada, só no ajuste 'size', padrão 100), repeat ('no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y', só em
@@ -115,6 +115,8 @@ export const defaultShadow = () => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#
  *  - mode: 'none' (filhos livres, position:absolute) | 'row' | 'column' (display:flex) | 'grid' (display:grid)
  *  - gap / colGap / rowGap: espaço entre itens (flex usa `gap`; grid usa colGap e rowGap)
  *  - cols / rows: colunas e linhas do grid (rows 0 = linhas automáticas)
+ *  - colsTemplate / rowsTemplate (opcionais, só no grid): lista de trilhas em CSS, ex.: "200px 1fr 2fr" ou
+ *    "repeat(auto-fit, minmax(200px, 1fr))". Quando existem, mandam no lugar de cols/rows (veja cleanTrackList)
  *  - padding: [topo, direita, baixo, esquerda] — mesma ordem do atalho `padding` do CSS
  *  - justify: justify-content (flex) ou justify-items (grid)
  *  - align:   align-items
@@ -192,6 +194,8 @@ export function createNode(type, props = {}) {
     // Campos OPCIONAIS (só existem quando o usuário os define; ausente = padrão do CSS):
     //   minW, maxW, minH, maxH — limites de tamanho em px (min-width, max-width, min-height, max-height);
     //   aspect — proporção largura/altura (CSS aspect-ratio), ex.: 1.7778 = 16:9. Veja limitSize/applyLimits/hasAspect.
+    //   grow — peso do item "fill" no eixo principal de um flex (CSS flex-grow; padrão 1): dois itens com 1 e 2 dividem
+    //   o espaço em 1/3 e 2/3;
     //   margin — [topo, direita, baixo, esquerda] em px, só para itens EM FLUXO de um flex/grid (CSS margin);
     //   fx — filtros de cor { brightness, contrast, saturate (%), grayscale (%), hue (°) }, só as chaves fora do padrão
     //   (CSS filter: brightness() contrast() saturate() grayscale() hue-rotate()). Veja css.js → colorFilters.
@@ -261,6 +265,16 @@ export function createNode(type, props = {}) {
   // os `props` do chamador vencem os padrões acima
   Object.assign(node, props);
   return node;
+}
+
+/**
+ * Limpa o texto de uma lista de trilhas do grid (grid-template-columns/rows) digitado pelo usuário: tira o que não
+ * faz parte de uma lista de trilhas (; { } : aspas, @, etc.), apara os espaços e limita o tamanho. Como o texto vai
+ * para o CSS exportado, isso impede que alguém "feche" a regra e escreva outras. Valor inválido para o CSS (ex.:
+ * "abc") é simplesmente ignorado pelo navegador.
+ */
+export function cleanTrackList(text) {
+  return String(text ?? '').replace(/[^\w\s().,%+\-*/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
 /** true para camadas que guardam filhos (frame, grupo e seção). */

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates } from '../src/model.js';
+import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates, cleanTrackList } from '../src/model.js';
 import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle } from '../src/css.js';
 import { toSvg } from '../src/svg.js';
 import { buildSample } from '../src/sample.js';
@@ -424,4 +424,60 @@ test('generateCode escreve .classe:hover/:active/:focus-visible, tabindex no foc
   const plain = generateCode([btn()], null, {});
   assert.doesNotMatch(plain.css, /:hover|:active|:focus/);
   assert.doesNotMatch(plain.html, /tabindex/);
+});
+
+// ---------------------------------------------------------------- gradiente cônico
+test('gradiente cônico: conic-gradient com o ângulo de início e as paradas ordenadas', () => {
+  const fill = { ...defaultFill(), type: 'conic', angle: 45, stops: [{ color: '#0000ff', opacity: 1, pos: 100 }, { color: '#ff0000', opacity: 1, pos: 0 }] };
+  assert.equal(fillCss(fill)['background-image'], 'conic-gradient(from 45deg at center, #ff0000 0%, #0000ff 100%)');
+});
+
+test('gradiente cônico em vetor e no SVG: cai para a cor da 1ª parada (o SVG não tem cônico)', () => {
+  const fill = { ...defaultFill(), type: 'conic', angle: 0, stops: [{ color: '#0000ff', opacity: 1, pos: 100 }, { color: '#ff0000', opacity: 0.5, pos: 0 }] };
+  const r = createNode('rect', { w: 100, h: 100, fill });
+  const svg = toSvg(r);
+  assert.ok(svg.includes('fill="#ff0000"') && svg.includes('fill-opacity="0.5"'), svg);
+  assert.ok(!svg.includes('Gradient'), svg);
+});
+
+// ---------------------------------------------------------------- peso no flex e trilhas personalizadas do grid
+test('flex-grow: peso do item "fill" no eixo principal (padrão 1 continua "1 1 0%")', () => {
+  const parent = createNode('frame'); parent.layout.mode = 'row';
+  const a = createNode('rect', { sizeX: 'fill', sizeY: 'fixed', h: 40 });
+  assert.equal(nodeStyle(a, parent).flex, '1 1 0%');
+  a.grow = 2;
+  assert.equal(nodeStyle(a, parent).flex, '2 1 0%');
+  a.grow = 1.5;
+  assert.equal(nodeStyle(a, parent).flex, '1.5 1 0%');
+  // item de tamanho fixo ignora o peso
+  const b = createNode('rect', { sizeX: 'fixed', w: 100, h: 40, grow: 3 });
+  assert.equal(nodeStyle(b, parent).flex, '0 0 auto');
+});
+
+test('grid com trilhas personalizadas: colsTemplate/rowsTemplate mandam sobre cols/rows', () => {
+  const g = createNode('frame');
+  g.layout = { ...g.layout, mode: 'grid', cols: 3, rows: 2 };
+  let s = nodeStyle(g, null);
+  assert.equal(s['grid-template-columns'], 'repeat(3, minmax(0, 1fr))');
+  assert.equal(s['grid-template-rows'], 'repeat(2, minmax(0, 1fr))');
+  g.layout.colsTemplate = '240px 1fr 2fr';
+  g.layout.rowsTemplate = 'auto 1fr';
+  s = nodeStyle(g, null);
+  assert.equal(s['grid-template-columns'], '240px 1fr 2fr');
+  assert.equal(s['grid-template-rows'], 'auto 1fr');
+  g.layout.colsTemplate = 'repeat(auto-fit, minmax(200px, 1fr))';
+  assert.equal(nodeStyle(g, null)['grid-template-columns'], 'repeat(auto-fit, minmax(200px, 1fr))');
+});
+
+test('cleanTrackList tira o que não é lista de trilhas (não dá para fechar a regra CSS)', () => {
+  assert.equal(cleanTrackList('  200px   1fr  '), '200px 1fr');
+  assert.equal(cleanTrackList('1fr; } body { color: red'), '1fr body color red');
+  assert.equal(cleanTrackList('a"b\'c{d}e;f:g@h'), 'abcdefgh');
+  assert.equal(cleanTrackList('repeat(3, minmax(0, 1fr))'), 'repeat(3, minmax(0, 1fr))');
+  assert.equal(cleanTrackList(null), '');
+  assert.equal(cleanTrackList('x'.repeat(500)).length, 160);
+  // o texto limpo vai para o CSS exportado sem caracteres que fechem a declaração
+  const g = createNode('frame');
+  g.layout = { ...g.layout, mode: 'grid', colsTemplate: '1fr; } .x { background: red' };
+  assert.ok(!/[;{}]/.test(nodeStyle(g, null)['grid-template-columns']));
 });
