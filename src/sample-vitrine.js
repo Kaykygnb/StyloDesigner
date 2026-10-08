@@ -130,11 +130,15 @@ export function buildSampleShowcase() {
     text('R$ 0', { name: 'Preço', fontSize: 44, fontWeight: 800, letterSpacing: -1.5, fill: bound('st-texto'), sizeX: 'fill' }),
     P('O que está incluso neste plano.', { name: 'Resumo', fontSize: 15 }),
   );
+  // os itens ficam numa lista <ul> própria DENTRO do card: um <li> só vale direto dentro de <ul>/<ol>
+  // (o card já é um <li> da "Lista de planos"; um <li> direto dentro dele desmontava o HTML exportado)
+  const planItems = frame('Itens do plano', { tag: 'ul', layout: flex('column', { gap: 14 }) });
   for (let i = 0; i < 3; i++) {
     const li = frame('Item da lista', { tag: 'li', layout: flex('row', { gap: 10, align: 'center' }) });
     li.children.push(icon('Check', ICONS.check.pts, { color: '#10B981', size: 18 }), text('Item incluído', { name: 'Texto do item', fontSize: 15, fill: bound('st-texto'), sizeX: 'fill' }));
-    planMain.children.push(li);
+    planItems.children.push(li);
   }
+  planMain.children.push(planItems);
   makeComponent(planMain);
 
   const library = createNode('frame', {
@@ -285,11 +289,11 @@ export function buildSampleShowcase() {
     const inst = createInstance(planMain, [{ children: [planMain] }]);
     inst.name = `Plano ${nome}`; inst.tag = 'li'; inst.x = 0; inst.y = 0; inst.sizeX = 'fixed';
     inst.children[0].text = nome; inst.children[1].text = preco; inst.children[2].text = resumo;
-    itens.forEach((t, k) => { inst.children[3 + k].children[1].text = t; });
+    itens.forEach((t, k) => { inst.children[3].children[k].children[1].text = t; });
     if (i === 1) {
       inst.fill = gradient(145, ['#1B1340', 0], ['#5B3DF5', 100]); inst.stroke = null; inst.shadows = [shadow(24, 50, '#5B3DF5', 0.4)];
       inst.children[0].fill = solid('#FFB3DA'); inst.children[1].fill = solid('#FFFFFF'); inst.children[2].fill = solid('#FFFFFF', 0.75);
-      for (let k = 3; k < 6; k++) { inst.children[k].children[1].fill = solid('#FFFFFF'); }
+      for (const li of inst.children[3].children) li.children[1].fill = solid('#FFFFFF');
       inst.note = 'Plano recomendado: destacado com gradiente e sombra. É uma instância com cores próprias (as sobrescritas não se perdem se o principal mudar).';
     }
     planRow.children.push(inst);

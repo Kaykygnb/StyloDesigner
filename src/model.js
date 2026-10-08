@@ -75,6 +75,28 @@ export function tagOf(node) {
   return node.type === 'text' ? 'p' : node.type === 'section' ? 'section' : 'div';
 }
 
+/** Etiquetas que não podem ficar uma dentro da outra (link/botão dentro de link/botão). */
+const INTERACTIVE_TAGS = ['a', 'button'];
+/**
+ * Etiqueta que a camada usa NO HTML EXPORTADO, conferindo onde ela está. O editor desenha tudo com <div> (montado pelo
+ * JavaScript), mas o arquivo exportado é LIDO pelo navegador, e a leitura do HTML tem regras: um <li> dentro de outro
+ * <li> fecha o primeiro sozinho, um link dentro de outro link também. Sem esta conferência, a página exportada
+ * desmontava (itens saindo de dentro do card). Quando a etiqueta escolhida não cabe ali, volta para a padrão.
+ * @param {object} node
+ * @param {string[]} ancestors  etiquetas dos pais, do mais externo ao pai direto
+ * @returns {{ tag: string, wanted: string, reason: string }}  `reason` vazio = a escolhida vale
+ */
+export function htmlTagIn(node, ancestors = []) {
+  const wanted = tagOf(node);
+  const fallback = node.type === 'text' ? 'p' : node.type === 'section' ? 'section' : 'div';
+  const parent = ancestors[ancestors.length - 1];
+  let reason = '';
+  if (wanted === 'li' && parent !== 'ul' && parent !== 'ol') reason = '<li> precisa estar direto dentro de uma lista (<ul> ou <ol>)';
+  else if (INTERACTIVE_TAGS.includes(wanted) && ancestors.some((t) => INTERACTIVE_TAGS.includes(t))) reason = `<${wanted}> não pode ficar dentro de outro link ou botão`;
+  else if (wanted === 'form' && ancestors.includes('form')) reason = '<form> não pode ficar dentro de outro <form>';
+  return reason ? { tag: fallback === wanted ? 'div' : fallback, wanted, reason } : { tag: wanted, wanted, reason };
+}
+
 /**
  * Nome padrão (em português) de cada tipo de camada. Usado para nomear camadas novas
  * ("Retângulo 3") e como fallback na lista de camadas.

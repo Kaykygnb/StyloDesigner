@@ -275,7 +275,13 @@ Se o principal sumiu (ou há ciclo), a instância vira uma camada comum.
 
 | Formato | Técnica |
 |---|---|
-| **HTML** | `generateCode` produz `<div>`/`<p>` com classes legíveis + regras CSS; `exportHtml` embrulha numa página. |
+| **HTML** | `generateCode` produz as etiquetas escolhidas (`<div>`, `<p>`, `<ul>`, `<a>`...) com classes legíveis + regras CSS; `exportHtml` embrulha numa página. |
+
+**Fidelidade do HTML exportado.** O editor desenha tudo com `<div>` montados pelo JavaScript, mas o arquivo exportado é *lido* pelo navegador, e duas coisas mudam nessa leitura:
+1. **Regras de leitura do HTML:** um `<li>` dentro de outro `<li>` fecha o primeiro sozinho, um link dentro de outro link também. `htmlTagIn` (`model.js`) confere cada etiqueta contra as dos pais e, quando ela não cabe ali, usa a padrão (o painel avisa na seção HTML).
+2. **Estilos padrão do navegador:** `<ul>` tem recuo e marcadores, `<button>` tem borda, `<a>` é sublinhado. `EXPORT_RESET` (`css.js`) zera isso antes das regras das camadas (HTML e PNG).
+
+`tests/e2e/exportacao-fiel.mjs` garante o resultado: exporta cada tela do projeto base (e um projeto com etiquetas erradas de propósito), abre como site e compara a caixa de **cada camada** com o editor, no Desktop, Tablet e Celular (±1,5 px).
 | **PNG** | Monta o HTML+CSS, embrulha num SVG com `<foreignObject>`, carrega como imagem e desenha num `<canvas>` na escala pedida. Limitação: fontes da web não carregam dentro de imagem SVG. |
 | **SVG** | `svg.js` **reescreve** a árvore como SVG (formas, `<text>`, gradientes, filtros, `clipPath`). A posição dos filhos vem de um callback (`boxOf`) que mede o DOM para respeitar flex/grid. |
 | **Projeto** | `JSON.stringify(doc)` em `.designer.json`. |

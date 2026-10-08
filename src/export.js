@@ -7,7 +7,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { exportHtml, generateCode, joinCss } from './css.js';
+import { EXPORT_RESET, exportHtml, generateCode, joinCss } from './css.js';
 import { toSvg } from './svg.js';
 import { slugify } from './model.js';
 
@@ -77,7 +77,7 @@ export async function exportPng(node, assets, scale = 2, styles = null) {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
     `<foreignObject width="100%" height="100%">` +
     `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px;display:grid;place-items:center">` +
-    `<style>*{margin:0;box-sizing:border-box}${css}</style>${html}</div></foreignObject></svg>`;
+    `<style>${EXPORT_RESET}${css}</style>${html}</div></foreignObject></svg>`;
   const img = new Image();
   await new Promise((resolve, reject) => {
     img.onload = resolve;

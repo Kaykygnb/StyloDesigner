@@ -434,7 +434,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 145 testes
+npm test      # 152 testes
 ```
 
 ### Testes de navegador

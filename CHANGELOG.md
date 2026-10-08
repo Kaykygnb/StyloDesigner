@@ -6,6 +6,23 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.14.1] — 2026-10-08 — HTML exportado igual ao editor
+
+Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava (os itens saíam de dentro dos cards e os do plano Pro ficavam invisíveis), embora o editor mostrasse tudo certo.
+
+### Corrigido
+- **Etiquetas que o navegador "conserta" sozinho.** O editor desenha com `<div>`, mas o arquivo exportado é lido pelo navegador: um `<li>` direto dentro de outro `<li>` fecha o primeiro, um link dentro de outro link também. Agora o gerador confere cada etiqueta contra as dos pais (`htmlTagIn`) e, quando ela não cabe ali, usa a padrão. O painel avisa na seção **HTML** ("No código vira `<div>`: `<li>` precisa estar direto dentro de uma lista").
+- **Estilos padrão do navegador no HTML e no PNG exportados:** `<ul>` com recuo de 40px, `<button>` com borda (4px a mais), links sublinhados e azuis. Um bloco de "reset" (`EXPORT_RESET`) zera isso antes das regras das camadas.
+- **Tela com altura "Hug"** saía com altura fixa no HTML e cortava o que cresceu (o "Guia de estilo" no celular: 817px em vez de 1252px).
+- **Tela fluida no celular:** o "Telas em 390px" deixava o site com no máximo 390px num celular maior (faixas dos lados); agora a tela fluida ocupa a janela em qualquer largura.
+- **Vitrine:** os itens dos planos ficam numa lista `<ul>` dentro de cada card.
+
+### Adicionado
+- `tests/e2e/exportacao-fiel.mjs`: exporta cada tela, abre como site e compara **cada camada** com o editor (Desktop, Tablet e Celular, ±1,5 px). Conferido que ele falha com a correção desligada.
+- `tests/exportacao.test.js` (7 testes) e a opção `ids` em `exportHtml`/`generateCode` (marca os elementos com o id da camada, para os testes).
+
+---
+
 ## [0.14.0] — 2026-10-08 — Exemplo "Vitrine completa"
 
 ### Adicionado

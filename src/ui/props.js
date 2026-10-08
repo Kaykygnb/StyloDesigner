@@ -17,7 +17,7 @@ import { nodeIcon } from './icons.js';
 import { ensureFonts, nearestWeight, weightsOf } from '../fonts.js';
 import {
   BLEND_MODES, FONT_WEIGHTS, OVERFLOWS, overflowOf, applyLimits, defaultFill, defaultShadow, defaultStroke, hasLayout, hasSizeLimits, isFlow, resizeNode,
-  constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView, TEXT_TAGS, BOX_TAGS, tagOf, TYPE_LABEL,
+  constraintsOf, round, cleanTrackList, STATE_LIST, canHaveStates, editState, hasStates, stateView, TEXT_TAGS, BOX_TAGS, tagOf, htmlTagIn, TYPE_LABEL,
   BREAKPOINTS, bpView, editBp, hasBps,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
@@ -327,6 +327,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const body = [
       capK('Etiqueta', 'html-tag', select(tags, () => tagOf(P()), (v) => each((n) => { delete n.tag; if (v !== tagOf(n)) n.tag = v; }), 'Etiqueta HTML')),
     ];
+    // etiqueta que não vale onde a camada está (ex.: <li> fora de uma lista): o HTML exportado usa a padrão; avisa o porquê
+    const chain = [];
+    for (let a = store.parentOf(n0.id); a; a = store.parentOf(a.id)) chain.unshift(a);
+    const anc = [];
+    for (const a of chain) anc.push(htmlTagIn(a, anc).tag); // como o gerador: a etiqueta EFETIVA de cada pai
+    const tagCheck = htmlTagIn(n0, anc);
+    if (tagCheck.reason) body.push(h('p.hint.warn', `No código vira <${tagCheck.tag}>: ${tagCheck.reason}.`));
     if (tagOf(n0) === 'a') {
       body.push(capK('Endereço do link', 'href', reg(textField({ get: () => P().href || '', set: (v) => each((n) => { if (v.trim()) n.href = v.trim(); else delete n.href; }), commit, placeholder: 'https://… ou #secao' }))));
     }

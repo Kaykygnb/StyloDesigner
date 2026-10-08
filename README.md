@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.14.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 145 testes unitários + 26 suítes de navegador
+`v0.14.1` · JavaScript puro (módulos ES) · sem dependências para rodar · 152 testes unitários + 27 suítes de navegador
 
 ---
 
@@ -110,8 +110,8 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **145 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
-- **26 suítes de navegador** com Playwright (mais de 500 verificações: desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
+- **152 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
+- **27 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 
 ---

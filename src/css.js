@@ -22,7 +22,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, tagOf, BREAKPOINTS, bpView, hasBps } from './model.js';
+import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, htmlTagIn, tagOf, BREAKPOINTS, bpView, hasBps } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 import { modesOf, styleValue, varsOf, varCssNames } from './modes.js';
 
@@ -142,8 +142,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       s['min-height'] = px(node.h);
       s.margin = '0 auto';
     } else {
-      s.width = px(node.w);
-      s.height = px(node.h);
+      // tela "Hug" (do tamanho do conteúdo) não pode sair com altura/largura fixa: cortaria o que cresceu
+      s.width = node.sizeX === 'hug' ? 'max-content' : px(node.w);
+      s.height = node.sizeY === 'hug' ? 'auto' : px(node.h);
     }
   } else if (flow && parent.layout.mode === 'grid') {
     // (b) Item de GRID: o tamanho 'fill' vira justify-self/align-self: stretch; colSpan/rowSpan viram `span N`.
@@ -676,7 +677,7 @@ const escapeHtml = (s) =>
  * @param {object} [assets]  imagens do documento
  * @param {{root?: boolean}} [opts]  root: a 1ª camada vira o elemento raiz (position:relative)
  */
-export function generateCode(nodes, parent, assets = {}, { root = false, styles = null } = {}) {
+export function generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = false } = {}) {
   const className = makeClassNamer();
   const rules = [];
   // VARIÁVEIS de CSS: camadas ligadas a um estilo de cor escrevem var(--cor-nome) em vez do hex; `tokens` guarda
@@ -713,7 +714,7 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
   const scan = (list) => list.forEach((n) => { if (hasBps(n)) anyBps = true; if (n.children) scan(n.children); });
   scan(nodes);
   const media = new Map(BREAKPOINTS.map((b) => [b.id, []]));
-  const build = (node, par, depth, isRoot) => {
+  const build = (node, par, depth, isRoot, ancestors) => {
     if (!node.visible) return '';
     const cls = className(node);
     const base = nodeStyle(node, par, assets, { root: isRoot, fluid: true });
@@ -730,6 +731,9 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
         const diff = {};
         for (const [k, v] of Object.entries(cur)) if (prev[k] !== v) diff[k] = v;
         for (const k of Object.keys(prev)) if (!(k in cur)) diff[k] = 'unset';
+        // tela FLUIDA: a largura que a tela tem no Tablet/Celular ("Telas em 390px") é só para VER no editor; no site
+        // ela continua ocupando a janela inteira (senão, num celular de 412px, o site ficaria com 390 e faixas dos lados)
+        if (isRoot && node.fluid) delete diff['max-width'];
         const hidden = view.visible === false;
         if (hidden && !prevHidden) diff.display = 'none';
         else if (!hidden && prevHidden) diff.display = cur.display || 'block';
@@ -752,14 +756,17 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     // elemento que tem estado de foco precisa poder receber foco pelo teclado
     const focusable = node.states?.focus && Object.keys(node.states.focus).length ? ' tabindex="0"' : '';
     // etiqueta escolhida no painel (HTML) e seus atributos: link, tipo de botão, descrição para leitor de tela
-    const tag = tagOf(node);
+    // etiqueta conferida contra os pais (htmlTagIn): um <li> fora de lista, por exemplo, vira <div>
+    const tag = htmlTagIn(node, ancestors).tag;
     const hasKids = node.type !== 'text' && node.type !== 'path' && (node.children || []).length > 0;
     const attrs = ` class="${cls}"`
       + (tag === 'a' ? ` href="${escapeHtml(node.href || '#')}"` : '')
       + (tag === 'button' ? ' type="button"' : '')
       + (node.alt ? ` aria-label="${escapeHtml(node.alt)}"` : '')
       + (node.alt && node.type !== 'text' && !hasKids ? ' role="img"' : '')
-      + focusable;
+      + focusable
+      // `ids` (só para os testes de fidelidade): marca cada elemento com o id da camada para comparar com o editor
+      + (ids ? ` data-node-id="${escapeHtml(node.id)}"` : '');
     const noteHtml = note ? `${pad}<!-- ${note} -->\n` : '';
     if (node.type === 'text') {
       return `${noteHtml}${pad}<${tag}${attrs}>${escapeHtml(node.text)}</${tag}>`;
@@ -767,11 +774,12 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     if (node.type === 'path') {
       return `${noteHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
     }
-    const kids = (node.children || []).map((c) => build(c, node, depth + 1, false)).filter(Boolean);
+    const kids = (node.children || []).map((c) => build(c, node, depth + 1, false, [...ancestors, tag])).filter(Boolean);
     if (!kids.length) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
     return `${noteHtml}${pad}<${tag}${attrs}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
-  const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0)).filter(Boolean).join('\n');
+  // o pai (quando há, ex.: o painel Código mostrando um item) conta para a conferência das etiquetas
+  const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0, parent ? [tagOf(parent)] : [])).filter(Boolean).join('\n');
   // blocos @media (do maior para o menor breakpoint, para o menor vencer na cascata)
   for (const bp of BREAKPOINTS) {
     const list = media.get(bp.id);
@@ -837,11 +845,24 @@ export function joinCss(parts) {
 }
 
 /**
+ * "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo
+ * próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto
+ * centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente
+ * do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+ */
+export const EXPORT_RESET = `*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li { display: block; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }`;
+
+/**
  * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
  * Abre direto no navegador; o CSS fica num <style> no <head>.
  */
-export function exportHtml(node, assets, title = 'Design', styles = null) {
-  const gen = generateCode([node], null, assets, { root: true, styles });
+export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {}) {
+  const gen = generateCode([node], null, assets, { root: true, styles, ids });
   const html = gen.html;
   const css = joinCss([gen]);
   // fontes do Google usadas nos textos: o HTML exportado já leva o <link> (sem ele, cairia na fonte padrão)
@@ -854,7 +875,7 @@ export function exportHtml(node, assets, title = 'Design', styles = null) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 ${fontLink}<style>
-* { margin: 0; box-sizing: border-box; }
+${EXPORT_RESET}
 body { display: grid; place-items: start center; padding: 24px; background: #f3f3f5; }
 ${css}
 </style>
