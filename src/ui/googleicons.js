@@ -15,7 +15,7 @@ import { h, ico } from './dom.js';
 import { MATERIAL_ICONS } from '../data/material-icons.js';
 
 /** Endereço do SVG de um ícone no servidor de arquivos do Google (responde com CORS liberado). */
-const iconUrl = (name, style, filled) =>
+export const iconUrl = (name, style, filled) =>
   `https://fonts.gstatic.com/s/i/short-term/release/materialsymbols${style}/${name}/${filled ? 'fill1' : 'default'}/24px.svg`;
 
 /** Os mais usados aparecem primeiro quando a busca está vazia. */
@@ -30,7 +30,7 @@ const POPULAR = ['home', 'search', 'menu', 'close', 'settings', 'person', 'favor
 const PAGE = 120;
 
 /** Sinônimos em português → termos em inglês da lista do Google (a busca aceita os dois). */
-const PT = {
+export const PT = {
   casa: 'home', inicio: 'home', buscar: 'search', busca: 'search', lupa: 'search', fechar: 'close', configuracoes: 'settings',
   pessoa: 'person', usuario: 'person', coracao: 'favorite', estrela: 'star', mais: 'add', lixo: 'delete', apagar: 'delete',
   lapis: 'edit', editar: 'edit', seta: 'arrow', carrinho: 'shopping_cart', sino: 'notifications', email: 'mail', telefone: 'call',
@@ -40,7 +40,31 @@ const PT = {
   dinheiro: 'payments', cartao: 'credit_card', carteira: 'wallet', loja: 'store', caminhao: 'local_shipping', grafico: 'chart',
   sol: 'light_mode', lua: 'dark_mode', idioma: 'language', mundo: 'public', musica: 'music', video: 'videocam', livro: 'book',
 };
-const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+export const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** Todos os nomes, com os mais usados primeiro. */
+const ORDERED = [...POPULAR.filter((n) => MATERIAL_ICONS.includes(n)), ...MATERIAL_ICONS.filter((n) => !POPULAR.includes(n))];
+
+/**
+ * Busca ícones pelo nome em inglês ou por um sinônimo em português ("casa" → home). Quem COMEÇA com o termo vem
+ * primeiro. Usada pelo painel e pelo agente de IA (ferramenta search_icons).
+ * @param {string} query
+ * @returns {string[]} nomes dos ícones (vazio = os mais usados)
+ */
+export function searchIcons(query) {
+  const q = fold(query || '').replace(/\s+/g, '_');
+  if (!q) return ORDERED;
+  const terms = [q, PT[q]].filter(Boolean);
+  const starts = [], has = [];
+  for (const n of ORDERED) {
+    if (terms.some((t) => n.startsWith(t))) starts.push(n);
+    else if (terms.some((t) => n.includes(t))) has.push(n);
+  }
+  return [...starts, ...has];
+}
+
+/** O ícone existe na lista do Google? */
+export const iconExists = (name) => MATERIAL_ICONS.includes(name);
 
 /**
  * Cria a aba "Ícones": busca nos Material Symbols (aceita palavras em português), escolha de estilo, cor e
@@ -55,20 +79,8 @@ export function createIconsPanel({ commands, container, toast }) {
   const opt = { query: '', style: 'outlined', filled: false, color: '#111111', size: 48, shown: PAGE };
   // SVGs já baixados (não baixa o mesmo ícone duas vezes)
   const cache = new Map();
-  const ordered = [...POPULAR.filter((n) => MATERIAL_ICONS.includes(n)), ...MATERIAL_ICONS.filter((n) => !POPULAR.includes(n))];
-
   /** Ícones que casam com a busca (em inglês ou pelos sinônimos em português). */
-  function matches() {
-    const q = fold(opt.query).replace(/\s+/g, '_');
-    if (!q) return ordered;
-    const terms = [q, PT[q]].filter(Boolean);
-    const starts = [], has = [];
-    for (const n of ordered) {
-      if (terms.some((t) => n.startsWith(t))) starts.push(n);
-      else if (terms.some((t) => n.includes(t))) has.push(n);
-    }
-    return [...starts, ...has]; // quem começa com o termo vem primeiro
-  }
+  const matches = () => searchIcons(opt.query);
 
   /** Baixa (ou pega do cache) e insere o ícone como vetor. */
   async function insert(name) {

@@ -55,7 +55,7 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `sample.js` | Dois projetos de exemplo | ✅ |
 | `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; **página inicial** (`home.js`); menus e janelas modais (`openModal`, `ask`, `askText`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
 | `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
-| `agent/schema.js` | As 11 ferramentas que uma IA pode usar (nome, descrição, parâmetros em JSON Schema) e as instruções da IA; uma lista só para o MCP e para a OpenAI | ✅ |
+| `agent/schema.js` | As 18 ferramentas que uma IA pode usar (nome, descrição, parâmetros em JSON Schema) e as instruções da IA; uma lista só para o MCP e para a OpenAI | ✅ |
 | `agent/runner.js` | Executa as ferramentas no editor aberto: leitura direta; alteração só com permissão (`approve`), um `commit` por alteração (Ctrl+Z), lista fechada de propriedades (`applyProps`) | ✅ (recebe store/commands) |
 | `agent/providers.js` | Provedores do Assistente (OpenAI, NVIDIA NIM, Ollama): endereço, modelo sugerido, variável de ambiente da chave | ✅ |
 | `agent/bridge.js` | Janela de permissão (fila, "permitir tudo nesta sessão" por programa) e a ponte do MCP (o editor ouve `/api/agent/events`) | — |

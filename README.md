@@ -6,7 +6,7 @@
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.15.2` · JavaScript puro (módulos ES) · sem dependências para rodar · 162 testes unitários + 28 suítes de navegador
+`v0.16.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 165 testes unitários + 28 suítes de navegador
 
 ---
 
@@ -127,7 +127,7 @@ As chaves também podem vir das variáveis de ambiente `OPENAI_API_KEY` e `NVIDI
 | Codex | em `~/.codex/config.toml`: `[mcp_servers.designer]` com `command = "node"` e `args = ["/caminho/do/projeto/scripts/mcp.mjs"]` |
 | Claude Desktop | Configurações → Desenvolvedor → Editar configuração → em `mcpServers`: `"designer": { "command": "node", "args": ["/caminho/do/projeto/scripts/mcp.mjs"] }` |
 
-A IA tem 11 ferramentas: ler o projeto, uma camada, o código (HTML/CSS), a seleção, procurar camadas, selecionar, e alterar/criar/apagar/mover camadas e desfazer. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta.
+A IA tem 18 ferramentas: ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; desfazer. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta.
 
 ---
 
@@ -141,7 +141,7 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **162 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
+- **165 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
 - **28 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 

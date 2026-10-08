@@ -23,11 +23,13 @@ import { ask } from '../ui/menus.js';
 export function createApprover() {
   /** Programas liberados até recarregar a página ("Permitir tudo nesta sessão"). */
   const allowed = new Set();
+  /** Programas em "fazer sem perguntar" (opção do painel do Assistente, lembrada nas preferências). */
+  const auto = new Set();
   /** Fila: cada pergunta espera a anterior terminar. */
   let queue = Promise.resolve();
   const approve = ({ client, summary }) => {
     const turn = queue.then(async () => {
-      if (allowed.has(client)) return true;
+      if (allowed.has(client) || auto.has(client)) return true;
       const choice = await ask({
         title: `${client} quer alterar o design`,
         message: [
@@ -47,6 +49,9 @@ export function createApprover() {
     return turn;
   };
   approve.reset = () => allowed.clear();
+  /** Liga/desliga "fazer sem perguntar" para um programa (as alterações continuam saindo com Ctrl+Z). */
+  approve.setAuto = (client, on) => (on ? auto.add(client) : auto.delete(client));
+  approve.isAuto = (client) => auto.has(client);
   return approve;
 }
 

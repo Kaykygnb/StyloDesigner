@@ -13,8 +13,11 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk } from '../model.js';
+import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid } from '../model.js';
 import { generateCode, joinCss } from '../css.js';
+import { importSvg } from '../svgimport.js';
+import { GOOGLE, SYSTEM_FONTS } from '../fonts.js';
+import { iconUrl, iconExists, searchIcons } from '../ui/googleicons.js';
 import { toolByName } from './schema.js';
 
 /** Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada. */
@@ -82,6 +85,11 @@ export function applyProps(node, props, ctx = {}) {
       if (!c) throw new Error('fill: use uma cor "#RRGGBB", "none" ou um objeto de preenchimento.');
       node.fill = { ...(node.fill || defaultFill()), type: 'solid', color: c, opacity: node.fill?.opacity ?? 1 };
       delete node.fill.styleId; // cor escolhida à mão desliga o estilo de cor
+    } else if (typeof f === 'object' && f.styleId) {
+      // ligar a um ESTILO de cor do projeto (vira var(--cor-...) no CSS): a cor vem do estilo
+      const st = ctx.colorStyle?.(f.styleId);
+      if (!st) throw new Error(`Estilo de cor "${f.styleId}" não existe. Veja colorStyles em get_document ou crie com create_color_styles.`);
+      node.fill = { ...(node.fill || defaultFill()), type: 'solid', color: st.color, opacity: st.opacity ?? 1, styleId: f.styleId };
     } else if (typeof f === 'object') {
       const next = { ...(node.fill || defaultFill()), ...f };
       if (f.color) next.color = hex(f.color) || next.color;
@@ -161,6 +169,15 @@ export function describeCall(tool, args, store) {
     case 'delete_layers': return `Apagar ${(args.ids || []).map(nm).join(', ')}`;
     case 'move_layer': return `Mover ${nm(args.id)}${args.parent_id ? ` para ${args.parent_id === 'root' ? 'a raiz da página' : `dentro de ${nm(args.parent_id)}`}` : ''}${Number.isInteger(args.index) ? ` (posição ${args.index})` : ''}`;
     case 'undo': return 'Desfazer a última alteração (Ctrl+Z)';
+    case 'build_layout': {
+      let count = 0;
+      const walkSpec = (s) => { if (s && typeof s === 'object') { count++; (s.children || []).forEach(walkSpec); } };
+      walkSpec(args.tree);
+      return `Montar “${args.tree?.props?.name || args.tree?.type || 'estrutura'}” (${count} camada${count === 1 ? '' : 's'})${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' como tela nova na página'}`;
+    }
+    case 'insert_icon': return `Inserir o ícone “${args.name}”${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
+    case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
+    case 'create_page': return `Criar a página “${args.name}”`;
     default: return tool;
   }
 }
@@ -232,12 +249,113 @@ export function createRunner({ store, commands, approve }) {
       store.setSelection(ok);
       return { selected: ok };
     },
+    search_icons({ query = '', limit = 20 }) {
+      const all = searchIcons(query);
+      return { count: all.length, icons: all.slice(0, Math.max(1, Math.min(60, Number(limit) || 20))) };
+    },
+    list_fonts({ query = '', category } = {}) {
+      const q = String(query).toLowerCase();
+      const out = [];
+      for (const [name, info] of GOOGLE) {
+        if (category && info.category !== category) continue;
+        if (q && !name.toLowerCase().includes(q)) continue;
+        out.push({ name, category: info.category, weights: info.weights });
+        if (out.length >= 40) break;
+      }
+      const system = SYSTEM_FONTS.filter((f) => !q || f.toLowerCase().includes(q));
+      return { google: out, system, hint: 'Use o nome exato em fontFamily e um peso da lista em fontWeight.' };
+    },
+    switch_page({ id }) {
+      const page = store.state.doc.pages.find((p) => p.id === id);
+      if (!page) throw new Error(`Página "${id}" não existe (veja pages em get_document).`);
+      store.switchPage(id);
+      return { page: { id: page.id, name: page.name } };
+    },
   };
+
+  // ------------------------------------------------------------------ ícones e estruturas
+  /** SVGs de ícones já baixados (não baixa o mesmo duas vezes). */
+  const iconCache = new Map();
+  /** Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto). */
+  async function fetchIcon(name, style = 'outlined', filled = false) {
+    if (!iconExists(name)) {
+      const like = searchIcons(name).slice(0, 5);
+      throw new Error(`Ícone "${name}" não existe.${like.length ? ` Parecidos: ${like.join(', ')}.` : ' Use search_icons.'}`);
+    }
+    const st = ['outlined', 'rounded', 'sharp'].includes(style) ? style : 'outlined';
+    const url = iconUrl(name, st, !!filled);
+    if (!iconCache.has(url)) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Não consegui baixar o ícone "${name}" (internet?).`);
+      iconCache.set(url, await r.text());
+    }
+    return iconCache.get(url);
+  }
+  /** Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos. */
+  function iconNode(svg, { name, color = '#111111', size = 24 }) {
+    const c = hex(color) || '#111111';
+    const { node } = importSvg(svg, { name, fill: c, currentColor: c, size: Math.max(8, Math.min(512, Number(size) || 24)) });
+    return node;
+  }
+  /** Cor e opacidade de um estilo de cor do projeto (ou null). */
+  const colorStyle = (id) => (store.state.doc.styles?.colors || []).find((c) => c.id === id) || null;
+  /** Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos. */
+  const targetList = (parent_id) => {
+    const parent = parent_id ? need(parent_id) : null;
+    if (parent && !parent.children) throw new Error(`“${parent.name}” não pode ter filhos (só frames, grupos e seções).`);
+    return parent ? parent.children : store.page().children;
+  };
+  /** Insere na posição pedida (ou no fim). */
+  const insertAt = (list, node, index) => list.splice(Number.isInteger(index) ? Math.max(0, Math.min(index, list.length)) : list.length, 0, node);
+  /** Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada). */
+  function placeBeside(node) {
+    const items = store.page().children;
+    if (!items.length) { node.x = 0; node.y = 0; return; }
+    node.x = Math.round(Math.max(...items.map((n) => n.x + n.w)) + 160);
+    node.y = Math.round(Math.min(...items.map((n) => n.y)));
+  }
+
+  /** Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados. */
+  function checkSpec(spec, depth = 0, acc = { count: 0, icons: [] }) {
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('Cada nó da árvore precisa ser um objeto {type, props, children}.');
+    if (depth > 10) throw new Error('Árvore funda demais (máximo 10 níveis).');
+    if (++acc.count > 400) throw new Error('Árvore grande demais (máximo 400 camadas por vez). Monte em partes.');
+    const types = ['frame', 'rect', 'ellipse', 'text', 'line', 'icon'];
+    if (!types.includes(spec.type)) throw new Error(`type "${spec.type}" inválido. Use: ${types.join(', ')}.`);
+    if (spec.type === 'icon') acc.icons.push(spec.props || {});
+    if (spec.children?.length && spec.type !== 'frame') throw new Error(`Só frame tem filhos (o nó "${spec.props?.name || spec.type}" tem children).`);
+    (spec.children || []).forEach((c) => checkSpec(c, depth + 1, acc));
+    return acc;
+  }
+  /** Cria as camadas da árvore (os ícones já baixados em `svgs`). */
+  function buildSpec(spec, svgs, nested) {
+    const props = { ...(spec.props || {}) };
+    if (spec.type === 'icon') {
+      const { name, color, size, style, filled, ...rest } = props;
+      const node = iconNode(svgs.get(`${name}|${style || 'outlined'}|${!!filled}`), { name, color, size });
+      if (Object.keys(rest).length) applyProps(node, rest, { colorStyle });
+      return node;
+    }
+    // caixas de estrutura DENTRO da árvore nascem transparentes e sem cortar (sombras e foco aparecem); a raiz fica branca
+    const base = spec.type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' }
+      : spec.type === 'frame' && nested ? { fill: { ...defaultFill(), type: 'none' }, clip: false } : {};
+    const node = createNode(spec.type, base);
+    applyProps(node, props, { colorStyle }); // layout.mode direto: camadas novas ainda não estão no canvas
+    if (spec.type === 'frame') {
+      // frame com layout e sem tamanho informado: do tamanho do conteúdo ("hug"), como no CSS (width/height: auto).
+      // A tela raiz sem altura informada também cresce com o conteúdo.
+      const hasLayout = node.layout.mode !== 'none';
+      if (!('w' in props) && !('sizeX' in props) && hasLayout && nested) node.sizeX = 'hug';
+      if (!('h' in props) && !('sizeY' in props) && (hasLayout || !nested)) node.sizeY = 'hug';
+      node.children = (spec.children || []).map((c) => buildSpec(c, svgs, true));
+    }
+    return node;
+  }
 
   const WRITE = {
     update_layer({ id, props }) {
       const n = need(id);
-      store.update(() => applyProps(n, props, { setLayoutMode }));
+      store.update(() => applyProps(n, props, { setLayoutMode, colorStyle }));
       return { updated: summarize(n, 0) };
     },
     create_layer({ type, parent_id, index, props = {} }) {
@@ -246,7 +364,7 @@ export function createRunner({ store, commands, approve }) {
       if (parent && !parent.children) throw new Error(`“${parent.name}” não pode ter filhos (só frames, grupos e seções).`);
       const node = createNode(type, type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' } : {});
       store.update((page) => {
-        applyProps(node, props, { setLayoutMode });
+        applyProps(node, props, { colorStyle });
         const list = parent ? parent.children : page.children;
         const at = Number.isInteger(index) ? Math.max(0, Math.min(index, list.length)) : list.length;
         list.splice(at, 0, node);
@@ -267,6 +385,45 @@ export function createRunner({ store, commands, approve }) {
       commands.reparent([n], target, Number.isInteger(index) ? index : null);
       if (store.parentOf(id) !== target) throw new Error('Não deu para mover para lá (uma camada não entra dentro dela mesma, e seções só guardam frames).');
       return { moved: summarize(n, 0), parent: target ? target.id : 'root' };
+    },
+    async build_layout({ parent_id, index, tree }) {
+      const { icons, count } = checkSpec(tree);
+      const list = targetList(parent_id);
+      // baixa todos os ícones ANTES de mexer no projeto (se um falhar, nada é criado pela metade)
+      const svgs = new Map();
+      await Promise.all(icons.map(async (ic) => {
+        const key = `${ic.name}|${ic.style || 'outlined'}|${!!ic.filled}`;
+        if (!svgs.has(key)) svgs.set(key, await fetchIcon(ic.name, ic.style, ic.filled));
+      }));
+      const root = buildSpec(tree, svgs, !!parent_id);
+      if (!parent_id) placeBeside(root);
+      store.update(() => insertAt(list, root, index));
+      store.setSelection([root.id]);
+      return { created: summarize(root, 3), count, hint: 'Use os ids acima para ajustes finos (update_layer).' };
+    },
+    async insert_icon({ name, parent_id, index, color, size, style, filled }) {
+      const list = targetList(parent_id);
+      const node = iconNode(await fetchIcon(name, style, filled), { name, color, size });
+      if (!parent_id) { const r = store.page().children; node.x = r.length ? Math.round(Math.max(...r.map((n) => n.x + n.w)) + 80) : 0; node.y = 0; }
+      store.update(() => insertAt(list, node, index));
+      store.setSelection([node.id]);
+      return { created: summarize(node, 0) };
+    },
+    create_color_styles({ colors = [] }) {
+      if (!Array.isArray(colors) || !colors.length) throw new Error('Mande a lista: colors: [{name, color: "#RRGGBB"}].');
+      const made = colors.map(({ name, color }) => {
+        const c = hex(color);
+        if (!c) throw new Error(`Cor inválida em "${name}": use "#RRGGBB".`);
+        return { id: uid(), name: String(name || 'Cor').trim().slice(0, 40), color: c, opacity: 1 };
+      });
+      store.update(() => { store.state.doc.styles.colors.push(...made); });
+      return { created: made.map(({ id, name, color }) => ({ id, name, color })), hint: 'Ligue as camadas com fill: {"styleId": id}.' };
+    },
+    create_page({ name }) {
+      store.addPage();
+      const page = store.page();
+      store.update(() => { page.name = String(name || page.name).trim().slice(0, 60) || page.name; });
+      return { page: { id: page.id, name: page.name } };
     },
     undo() {
       if (!store.canUndo()) throw new Error('Não há nada para desfazer.');
@@ -289,12 +446,14 @@ export function createRunner({ store, commands, approve }) {
       // alteração: confere o pedido ANTES de perguntar (não adianta pedir permissão para algo que vai falhar)
       if (tool === 'update_layer' || tool === 'move_layer') need(args?.id);
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);
+      if (tool === 'build_layout') checkSpec(args?.tree);
+      if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
       const summary = describeCall(tool, args || {}, store);
       const ok = approve ? await approve({ client, tool, args, summary }) : false;
       if (!ok) return { refused: true, message: 'A pessoa recusou esta alteração. Pergunte o que ela prefere.' };
       const before = JSON.stringify(store.state.doc);
       try {
-        const out = WRITE[tool](args || {});
+        const out = await WRITE[tool](args || {});
         if (tool !== 'undo') store.commit();
         return { ok: true, ...out };
       } catch (err) {

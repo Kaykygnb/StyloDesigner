@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-50 arquivos · 759 funções e constantes documentadas.
+50 arquivos · 773 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1337,12 +1337,13 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`createApprover()`** · [L23](../src/agent/bridge.js#L23) — Cria a função de permissão.
   - ↩︎ `(req: {client: string, tool: string, summary: string` ) => Promise<boolean>}
 - **`allowed`** <sub>interna</sub> · [L25](../src/agent/bridge.js#L25) — Programas liberados até recarregar a página ("Permitir tudo nesta sessão").
-- **`queue`** <sub>interna</sub> · [L27](../src/agent/bridge.js#L27) — Fila: cada pergunta espera a anterior terminar.
-- **`connectMcpBridge({ runner, toast })`** · [L60](../src/agent/bridge.js#L60) — Liga o editor à ponte do servidor (MCP).
+- **`auto`** <sub>interna</sub> · [L27](../src/agent/bridge.js#L27) — Programas em "fazer sem perguntar" (opção do painel do Assistente, lembrada nas preferências).
+- **`queue`** <sub>interna</sub> · [L29](../src/agent/bridge.js#L29) — Fila: cada pergunta espera a anterior terminar.
+- **`connectMcpBridge({ runner, toast })`** · [L65](../src/agent/bridge.js#L65) — Liga o editor à ponte do servidor (MCP).
   - `deps` <sub>object</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
   - ↩︎ `{ close: () => void ` }
-- **`greeted`** <sub>interna</sub> · [L64](../src/agent/bridge.js#L64) — Avisa (uma vez por programa) que uma IA externa começou a usar o editor.
+- **`greeted`** <sub>interna</sub> · [L69](../src/agent/bridge.js#L69) — Avisa (uma vez por programa) que uma IA externa começou a usar o editor.
 
 ---
 
@@ -1381,29 +1382,38 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Erros viram mensagens em português devolvidas à IA (ela lê e corrige), nunca quebram o editor.
 ```
 
-- **`SIMPLE`** <sub>do módulo</sub> · [L21](../src/agent/runner.js#L21) — Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada.
-- **`SPECIAL`** <sub>do módulo</sub> · [L29](../src/agent/runner.js#L29) — Campos com tratamento próprio (ver applyProps).
-- **`PROPS`** · [L31](../src/agent/runner.js#L31) — Tudo que update_layer / create_layer aceitam.
-- **`ENUMS`** <sub>do módulo</sub> · [L33](../src/agent/runner.js#L33) — Valores válidos de alguns campos (o resto é conferido pelo tipo).
-- **`hex(v)`** <sub>do módulo</sub> · [L41](../src/agent/runner.js#L41) — "#abc" / "#AABBCC" → "#AABBCC"; outra coisa → null.
-- **`four(v, what)`** <sub>do módulo</sub> · [L48](../src/agent/runner.js#L48) — Número ou lista de 4 → lista de 4 (padding, margin, radius).
-- **`applyProps(node, props, ctx = {})`** · [L61](../src/agent/runner.js#L61) — Aplica `props` numa camada (dentro de um store.update). Lança Error com mensagem clara se algo não vale.
+- **`SIMPLE`** <sub>do módulo</sub> · [L24](../src/agent/runner.js#L24) — Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada.
+- **`SPECIAL`** <sub>do módulo</sub> · [L32](../src/agent/runner.js#L32) — Campos com tratamento próprio (ver applyProps).
+- **`PROPS`** · [L34](../src/agent/runner.js#L34) — Tudo que update_layer / create_layer aceitam.
+- **`ENUMS`** <sub>do módulo</sub> · [L36](../src/agent/runner.js#L36) — Valores válidos de alguns campos (o resto é conferido pelo tipo).
+- **`hex(v)`** <sub>do módulo</sub> · [L44](../src/agent/runner.js#L44) — "#abc" / "#AABBCC" → "#AABBCC"; outra coisa → null.
+- **`four(v, what)`** <sub>do módulo</sub> · [L51](../src/agent/runner.js#L51) — Número ou lista de 4 → lista de 4 (padding, margin, radius).
+- **`applyProps(node, props, ctx = {})`** · [L64](../src/agent/runner.js#L64) — Aplica `props` numa camada (dentro de um store.update). Lança Error com mensagem clara se algo não vale.
   - `node` <sub>object</sub> — 
   - `props` <sub>object</sub> — 
-- **`summarize(n, depth = 0)`** · [L129](../src/agent/runner.js#L129) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
-- **`describeCall(tool, args, store)`** · [L153](../src/agent/runner.js#L153) — Descrição em português de uma alteração, para a janela de permissão.
-- **`createRunner({ store, commands, approve })`** · [L177](../src/agent/runner.js#L177) — Cria o executor.
+- **`summarize(n, depth = 0)`** · [L137](../src/agent/runner.js#L137) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
+- **`describeCall(tool, args, store)`** · [L161](../src/agent/runner.js#L161) — Descrição em português de uma alteração, para a janela de permissão.
+- **`createRunner({ store, commands, approve })`** · [L194](../src/agent/runner.js#L194) — Cria o executor.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.commands` <sub>object</sub> — 
   - ↩︎ `{ run: (tool: string, args: object, client?: string) => Promise<object> ` }
-- **`need(id)`** <sub>interna</sub> · [L179](../src/agent/runner.js#L179) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
-- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L185](../src/agent/runner.js#L185) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
-- **`run(tool, args = {}, client = 'Assistente')`** <sub>interna</sub> · [L284](../src/agent/runner.js#L284) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
+- **`need(id)`** <sub>interna</sub> · [L196](../src/agent/runner.js#L196) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
+- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L202](../src/agent/runner.js#L202) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
+- **`iconCache`** <sub>interna</sub> · [L278](../src/agent/runner.js#L278) — SVGs de ícones já baixados (não baixa o mesmo duas vezes).
+- **`fetchIcon(name, style = 'outlined', filled = false)`** <sub>interna</sub> · [L280](../src/agent/runner.js#L280) — Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto).
+- **`iconNode(svg, { name, color = '#111111', size = 24 })`** <sub>interna</sub> · [L295](../src/agent/runner.js#L295) — Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos.
+- **`colorStyle(id)`** <sub>interna</sub> · [L301](../src/agent/runner.js#L301) — Cor e opacidade de um estilo de cor do projeto (ou null).
+- **`targetList(parent_id)`** <sub>interna</sub> · [L303](../src/agent/runner.js#L303) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
+- **`insertAt(list, node, index)`** <sub>interna</sub> · [L309](../src/agent/runner.js#L309) — Insere na posição pedida (ou no fim).
+- **`placeBeside(node)`** <sub>interna</sub> · [L311](../src/agent/runner.js#L311) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
+- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L319](../src/agent/runner.js#L319) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
+- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L331](../src/agent/runner.js#L331) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
+- **`run(tool, args = {}, client = 'Assistente')`** <sub>interna</sub> · [L441](../src/agent/runner.js#L441) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
   - `tool` <sub>string</sub> — 
   - `args` <sub>object</sub> — 
   - `[client]` <sub>string</sub> — quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
-- **`restoreDoc(json)`** <sub>interna</sub> · [L310](../src/agent/runner.js#L310) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
+- **`restoreDoc(json)`** <sub>interna</sub> · [L469](../src/agent/runner.js#L469) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
 
 ---
 
@@ -1425,10 +1435,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`PROP_HELP`** · [L18](../src/agent/schema.js#L18) — Propriedades que as ferramentas de criar/alterar aceitam (o resto é recusado com uma mensagem clara).
 - **`AGENT_TOOLS`** · [L31](../src/agent/schema.js#L31) — As ferramentas. `write: true` = altera o projeto (pede permissão e vira um passo do Ctrl+Z). `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
-- **`toolByName(name)`** · [L130](../src/agent/schema.js#L130) — Procura uma ferramenta pelo nome.
-- **`openAiTools()`** · [L133](../src/agent/schema.js#L133) — As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`).
-- **`mcpTools()`** · [L139](../src/agent/schema.js#L139) — As ferramentas no formato do MCP (`tools/list`).
-- **`AGENT_INSTRUCTIONS`** · [L150](../src/agent/schema.js#L150) — Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o que a ferramenta é e as regras de trabalho, para a IA agir do jeito certo desde a primeira mensagem.
+- **`toolByName(name)`** · [L202](../src/agent/schema.js#L202) — Procura uma ferramenta pelo nome.
+- **`openAiTools()`** · [L205](../src/agent/schema.js#L205) — As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`).
+- **`mcpTools()`** · [L211](../src/agent/schema.js#L211) — As ferramentas no formato do MCP (`tools/list`).
+- **`AGENT_INSTRUCTIONS`** · [L222](../src/agent/schema.js#L222) — Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o que a ferramenta é e as regras de trabalho, para a IA agir do jeito certo desde a primeira mensagem.
 
 ---
 
@@ -1475,20 +1485,21 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`looksLikeTextToolCall(text)`** · [L35](../src/ui/assistant.js#L35) — O modelo "escreveu" a chamada de ferramenta como texto em vez de usar o formato certo? (Acontece com modelos sem suporte bom a ferramentas: a documentação da NVIDIA avisa desse caso.) Aí a ferramenta não roda e avisamos.
 - **`parseArgs(raw)`** · [L37](../src/ui/assistant.js#L37) — Argumentos da chamada: texto JSON (OpenAI) ou objeto pronto (alguns servidores compatíveis). null = inválido.
 - **`TOOL_LABEL`** <sub>do módulo</sub> · [L44](../src/ui/assistant.js#L44) — Nome amigável de cada ferramenta na conversa.
-- **`createAssistant({ store, runner, openSettings, stage })`** · [L59](../src/ui/assistant.js#L59) — Cria o painel.
+- **`createAssistant({ store, runner, openSettings, stage, approve, prefs = {}, savePref…)`** · [L63](../src/ui/assistant.js#L63) — Cria o painel.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.openSettings` <sub>() => void</sub> — abre as Configurações (para pôr a chave)
   - `deps.stage` <sub>HTMLElement</sub> — onde o painel flutua
+  - `[deps.prefs]` <sub>object</sub> — preferências (lembra a opção) · @param {() => void} [deps.savePrefs]
   - ↩︎ `{ el: HTMLElement, toggle: () => void, open: () => void, close: () => void, isOpen: () => boolean ` }
-- **`messages`** <sub>interna</sub> · [L61](../src/ui/assistant.js#L61) — Conversa no formato da API (sem a mensagem de sistema, que é montada a cada envio).
-- **`add(node)`** <sub>interna</sub> · [L88](../src/ui/assistant.js#L88) — Acrescenta uma linha na conversa e rola até ela.
-- **`rich(text)`** <sub>interna</sub> · [L90](../src/ui/assistant.js#L90) — Texto da IA → parágrafos, com `código` destacado (sem HTML vindo da IA: tudo vira texto).
-- **`refreshConfig()`** <sub>interna</sub> · [L94](../src/ui/assistant.js#L94) — Mostra a configuração atual (modelo) e, sem chave, o convite para configurar.
-- **`reset()`** <sub>interna</sub> · [L116](../src/ui/assistant.js#L116) — Começa do zero (esquece a conversa).
-- **`context()`** <sub>interna</sub> · [L126](../src/ui/assistant.js#L126) — Contexto do editor anexado a cada pedido (onde a pessoa está e o que selecionou), sem aparecer na conversa.
-- **`submit()`** <sub>interna</sub> · [L133](../src/ui/assistant.js#L133) — Envia a mensagem digitada e roda o laço do agente.
-- **`stepLine(name, args, result)`** <sub>interna</sub> · [L188](../src/ui/assistant.js#L188) — Linha discreta mostrando o que a IA fez com cada ferramenta (✓ feito, ✗ erro, ⊘ recusado).
+- **`messages`** <sub>interna</sub> · [L65](../src/ui/assistant.js#L65) — Conversa no formato da API (sem a mensagem de sistema, que é montada a cada envio).
+- **`add(node)`** <sub>interna</sub> · [L101](../src/ui/assistant.js#L101) — Acrescenta uma linha na conversa e rola até ela.
+- **`rich(text)`** <sub>interna</sub> · [L103](../src/ui/assistant.js#L103) — Texto da IA → parágrafos, com `código` destacado (sem HTML vindo da IA: tudo vira texto).
+- **`refreshConfig()`** <sub>interna</sub> · [L107](../src/ui/assistant.js#L107) — Mostra a configuração atual (modelo) e, sem chave, o convite para configurar.
+- **`reset()`** <sub>interna</sub> · [L129](../src/ui/assistant.js#L129) — Começa do zero (esquece a conversa).
+- **`context()`** <sub>interna</sub> · [L139](../src/ui/assistant.js#L139) — Contexto do editor anexado a cada pedido (onde a pessoa está e o que selecionou), sem aparecer na conversa.
+- **`submit()`** <sub>interna</sub> · [L151](../src/ui/assistant.js#L151) — Envia a mensagem digitada e roda o laço do agente.
+- **`stepLine(name, args, result)`** <sub>interna</sub> · [L206](../src/ui/assistant.js#L206) — Linha discreta mostrando o que a IA fez com cada ferramenta (✓ feito, ✗ erro, ⊘ recusado).
 
 ---
 
@@ -1662,17 +1673,23 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Licença: Material Symbols são do Google, sob Apache 2.0 — pode usar em qualquer projeto, inclusive comercial.
 ```
 
-- **`iconUrl(name, style, filled)`** <sub>do módulo</sub> · [L18](../src/ui/googleicons.js#L18) — Endereço do SVG de um ícone no servidor de arquivos do Google (responde com CORS liberado).
+- **`iconUrl(name, style, filled)`** · [L18](../src/ui/googleicons.js#L18) — Endereço do SVG de um ícone no servidor de arquivos do Google (responde com CORS liberado).
 - **`POPULAR`** <sub>do módulo</sub> · [L22](../src/ui/googleicons.js#L22) — Os mais usados aparecem primeiro quando a busca está vazia.
 - **`PAGE`** <sub>do módulo</sub> · [L30](../src/ui/googleicons.js#L30) — Quantos ícones mostrar por vez (a lista toda são milhares de imagens).
-- **`PT`** <sub>do módulo</sub> · [L33](../src/ui/googleicons.js#L33) — Sinônimos em português → termos em inglês da lista do Google (a busca aceita os dois).
-- **`createIconsPanel({ commands, container, toast })`** · [L53](../src/ui/googleicons.js#L53) — Cria a aba "Ícones": busca nos Material Symbols (aceita palavras em português), escolha de estilo, cor e tamanho, e insere o ícone escolhido como vetor editável (commands.insertSvg).
+- **`PT`** · [L33](../src/ui/googleicons.js#L33) — Sinônimos em português → termos em inglês da lista do Google (a busca aceita os dois).
+- **`fold(s)`** · [L43](../src/ui/googleicons.js#L43) — _(sem comentário)_
+- **`ORDERED`** <sub>do módulo</sub> · [L46](../src/ui/googleicons.js#L46) — Todos os nomes, com os mais usados primeiro.
+- **`searchIcons(query)`** · [L54](../src/ui/googleicons.js#L54) — Busca ícones pelo nome em inglês ou por um sinônimo em português ("casa" → home). Quem COMEÇA com o termo vem primeiro. Usada pelo painel e pelo agente de IA (ferramenta search_icons).
+  - `query` <sub>string</sub> — 
+  - ↩︎ `string[]` nomes dos ícones (vazio = os mais usados)
+- **`iconExists(name)`** · [L67](../src/ui/googleicons.js#L67) — O ícone existe na lista do Google?
+- **`createIconsPanel({ commands, container, toast })`** · [L77](../src/ui/googleicons.js#L77) — Cria a aba "Ícones": busca nos Material Symbols (aceita palavras em português), escolha de estilo, cor e tamanho, e insere o ícone escolhido como vetor editável (commands.insertSvg).
   - `deps` <sub>object</sub> — 
   - `deps.commands` <sub>object</sub> — usa commands.insertSvg
   - `deps.container` <sub>HTMLElement</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
-- **`matches()`** <sub>interna</sub> · [L61](../src/ui/googleicons.js#L61) — Ícones que casam com a busca (em inglês ou pelos sinônimos em português).
-- **`insert(name)`** <sub>interna</sub> · [L74](../src/ui/googleicons.js#L74) — Baixa (ou pega do cache) e insere o ícone como vetor.
+- **`matches()`** <sub>interna</sub> · [L83](../src/ui/googleicons.js#L83) — Ícones que casam com a busca (em inglês ou pelos sinônimos em português).
+- **`insert(name)`** <sub>interna</sub> · [L86](../src/ui/googleicons.js#L86) — Baixa (ou pega do cache) e insere o ícone como vetor.
 
 ---
 

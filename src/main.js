@@ -505,7 +505,7 @@ requestAnimationFrame(() => {
 // o Assistente (painel flutuante, com a sua chave da OpenAI) e programas externos via MCP (Claude Code, Codex...).
 const approve = createApprover();
 const runner = createRunner({ store, commands, approve });
-const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage') });
+const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage'), approve, prefs, savePrefs });
 aiBtn.addEventListener('click', () => assistant.toggle());
 // o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
 if (ui.server) connectMcpBridge({ runner, toast });

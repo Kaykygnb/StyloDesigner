@@ -88,7 +88,7 @@ try {
   ok('aviso (notification) recebe 202 sem corpo', note.status === 202);
   const list = await mcp('tools/list');
   const names = list.body.result.tools.map((t) => t.name);
-  ok('tools/list traz as 11 ferramentas', names.length === 11 && names.includes('update_layer') && names.includes('get_code'), names.join());
+  ok('tools/list traz as 18 ferramentas', names.length === 18 && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
   const docOut = await callTool('get_document', {});
   ok('get_document lê o projeto aberto (camadas da página)', !docOut.isError && docOut.data.page.layers[0].name === 'Tela' && docOut.data.page.layers[0].children[0].name === 'Card', JSON.stringify(docOut.data).slice(0, 300));
   const code = await callTool('get_code', { id: ids.card });
@@ -124,6 +124,30 @@ try {
   const order = await ev((id) => designer.store.get(id).children.map((c) => c.name).join(), ids.card);
   ok('create_layer entra no flex na posição pedida', order === 'Título,Subtítulo,Botão', order);
   ok('layout.gap mesclado (padding continua)', (await ev((id) => { const L = designer.store.get(id).layout; return `${L.gap}|${L.padding.join()}`; }, ids.card)) === '24|16,16,16,16');
+  // ferramentas de criação grande: paleta, estrutura inteira de uma vez, ícones e fontes
+  const icons = await callTool('search_icons', { query: 'carrinho', limit: 3 });
+  ok('search_icons entende português (carrinho → shopping_cart)', icons.data.icons[0] === 'shopping_cart', JSON.stringify(icons.data));
+  const fonts = await callTool('list_fonts', { query: 'fraunces' });
+  ok('list_fonts devolve nome e pesos', fonts.data.google[0]?.name === 'Fraunces' && fonts.data.google[0].weights.includes(700), JSON.stringify(fonts.data).slice(0, 200));
+  const pal = await callTool('create_color_styles', { colors: [{ name: 'Primária', color: '#b91c1c' }, { name: 'Texto', color: '#111827' }] });
+  ok('create_color_styles cria a paleta e devolve os ids', pal.data.created?.length === 2 && pal.data.created[0].color === '#B91C1C');
+  const histBefore = await ev(() => designer.store.page().children.length);
+  const built = await callTool('build_layout', { tree: { type: 'frame', props: { name: 'Landing teste', w: 1200, fluid: true, layout: { mode: 'column' } }, children: [
+    { type: 'frame', props: { name: 'Topo', tag: 'header', sizeX: 'fill', layout: { mode: 'row', justify: 'space-between', align: 'center', padding: [20, 48] } }, children: [
+      { type: 'text', props: { text: 'Marca', fontSize: 24, fontWeight: 700, fill: { styleId: pal.data.created[0].id } } },
+      { type: 'frame', props: { name: 'Botão', tag: 'button', fill: '#111827', radius: 999, layout: { mode: 'row', padding: [12, 24] } }, children: [{ type: 'text', props: { text: 'Entrar', fill: '#FFFFFF' } }] }] },
+    { type: 'frame', props: { name: 'Cards', sizeX: 'fill', layout: { mode: 'grid', cols: 3, colGap: 24, rowGap: 24, padding: 48 } }, children: [1, 2, 3].map((i) => ({ type: 'frame', props: { name: `Card ${i}`, sizeX: 'fill', fill: '#F7F7FA', radius: 16, layout: { mode: 'column', gap: 8, padding: 24 } }, children: [{ type: 'text', props: { text: `Item ${i}`, tag: 'h3', fontSize: 20 } }] })) }] } });
+  const landing = await ev(() => { const s = designer.store; const t = s.page().children.find((n) => n.name === 'Landing teste'); const others = s.page().children.filter((n) => n !== t); const right = Math.max(...others.map((n) => n.x + n.w)); const topo = t.children[0], botao = topo.children[1], marca = topo.children[0];
+    return { n: t.children.length, cards: t.children[1].children.length, gridCols: t.children[1].layout.cols, botaoSize: `${botao.sizeX}/${botao.sizeY}`, alturaTela: t.sizeY, ladoALado: t.x >= right, estilo: marca.fill.styleId, cor: marca.fill.color, sel: s.ui.selection[0] === t.id }; });
+  ok('build_layout monta a estrutura inteira de uma vez (tela nova, sem seleção)', built.data.ok && built.data.count === 12 && landing.n === 2 && landing.cards === 3 && landing.gridCols === 3, JSON.stringify({ count: built.data.count, ...landing }));
+  ok('a tela nova nasce AO LADO das existentes, cresce com o conteúdo e frames com layout ficam "hug"', landing.ladoALado && landing.alturaTela === 'hug' && landing.botaoSize === 'hug/hug', JSON.stringify(landing));
+  ok('fill {styleId} liga o texto ao estilo de cor (cor vem do estilo)', landing.estilo === pal.data.created[0].id && landing.cor === '#B91C1C');
+  await ev(() => designer.store.undo());
+  ok('a estrutura inteira sai com UM Ctrl+Z', (await ev(() => designer.store.page().children.length)) === histBefore);
+  const badTree = await callTool('build_layout', { tree: { type: 'frame', children: [{ type: 'botao' }] } });
+  ok('árvore inválida é recusada antes de criar qualquer coisa', badTree.isError && /type "botao" inválido/.test(badTree.data.error) && (await ev(() => designer.store.page().children.length)) === histBefore);
+  const badIcon = await callTool('insert_icon', { name: 'carrinho_de_compras' });
+  ok('ícone com nome errado sugere parecidos', badIcon.isError && /não existe/.test(badIcon.data.error));
   const wrong = await callTool('update_layer', { id: ids.card, props: { corDeFundo: 'azul' } });
   ok('propriedade desconhecida é recusada com a lista das aceitas', wrong.isError && /desconhecida: corDeFundo/.test(wrong.data.error));
   const evil = await mcp('tools/list', {}, { Origin: 'https://site-malicioso.com' });
@@ -228,11 +252,21 @@ try {
   ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
-  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 11 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 18 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
   ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Projeto Designer/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');
   ok('o "contexto" não aparece na conversa da pessoa', !logText.includes('[Contexto do editor'));
+  ok('o contexto leva as telas da página (para criar sem seleção)', /telas na página: “Tela”/.test(first.data.messages[1].content));
+  // FAZER SEM PERGUNTAR: liga a opção; a próxima alteração vale direto (e sai com Ctrl+Z)
+  await p.locator('.ai-auto input').check();
+  await ev((id) => designer.store.update(() => { designer.store.get(id).radius = [0, 0, 0, 0]; }, { commit: true }), ids.botao);
+  await p.fill('.ai-input', 'arredonda de novo');
+  await p.keyboard.press('Enter');
+  await p.waitForFunction(() => document.querySelectorAll('.ai-msg.bot').length >= 2, null, { timeout: 10000 });
+  ok('"Fazer sem perguntar": altera sem abrir a janela de permissão', (await p.locator('.ask-modal').count()) === 0 && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
+  ok('a opção fica lembrada nas preferências', (await ev(() => JSON.parse(localStorage.getItem('projeto-designer:prefs') || '{}').agentAuto)) === true);
+  await p.locator('.ai-auto input').uncheck();
 } catch (err) {
   ok('cenário terminou sem exceção', false, err.stack);
 } finally {

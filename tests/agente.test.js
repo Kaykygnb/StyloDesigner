@@ -133,3 +133,30 @@ test('MCP usa as instruções recebidas (o servidor lê de docs/AGENTE.md)', asy
   const r = await handleMcp(rpc('initialize', {}), { callTool: null, instructions: 'Você é um teste.' });
   assert.match(r.result.instructions, /^Você é um teste\./);
 });
+
+test('applyProps: fill ligado a um estilo de cor do projeto; estilo inexistente é recusado', () => {
+  const r = createNode('rect');
+  const styles = { c1: { id: 'c1', color: '#B91C1C', opacity: 1 } };
+  applyProps(r, { fill: { styleId: 'c1' } }, { colorStyle: (id) => styles[id] || null });
+  assert.equal(r.fill.styleId, 'c1');
+  assert.equal(r.fill.color, '#B91C1C');
+  assert.equal(r.fill.type, 'solid');
+  assert.throws(() => applyProps(r, { fill: { styleId: 'nao-existe' } }, { colorStyle: () => null }), /Estilo de cor "nao-existe" não existe/);
+  applyProps(r, { fill: '#00ff00' });
+  assert.equal(r.fill.styleId, undefined); // cor escolhida à mão desliga o estilo
+});
+
+test('ícones do Google: busca em português e conferência do nome (o agente usa isso)', async () => {
+  const { searchIcons, iconExists } = await import('../src/ui/googleicons.js');
+  assert.equal(searchIcons('carrinho')[0], 'shopping_cart');
+  assert.equal(searchIcons('casa')[0], 'home');
+  assert.ok(iconExists('local_pizza'));
+  assert.ok(!iconExists('carrinho_de_compras'));
+});
+
+test('ferramentas de criação grande existem e estão marcadas certo (escrita × leitura)', () => {
+  const byName = Object.fromEntries(AGENT_TOOLS.map((t) => [t.name, t]));
+  for (const n of ['build_layout', 'insert_icon', 'create_color_styles', 'create_page']) assert.equal(byName[n].write, true, n);
+  for (const n of ['search_icons', 'list_fonts', 'switch_page']) assert.equal(byName[n].write, false, n);
+  assert.match(byName.build_layout.description, /UMA permissão/);
+});

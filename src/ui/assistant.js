@@ -20,7 +20,7 @@ import { h, ico } from './dom.js';
 import { openAiTools } from '../agent/schema.js';
 
 /** Máximo de rodadas "IA pede ferramenta → editor responde" por mensagem (evita laço infinito e gasto à toa). */
-const MAX_STEPS = 12;
+const MAX_STEPS = 30;
 /** Resultados de ferramenta maiores que isso são cortados antes de voltar à IA (economiza tokens). */
 const MAX_RESULT = 24000;
 /**
@@ -44,7 +44,9 @@ export const parseArgs = (raw) => {
 const TOOL_LABEL = {
   get_document: 'Leu o projeto', get_layer: 'Leu uma camada', get_code: 'Leu o código', find_layers: 'Procurou camadas',
   get_selection: 'Leu a seleção', select_layers: 'Selecionou camadas', update_layer: 'Alterou', create_layer: 'Criou',
-  delete_layers: 'Apagou', move_layer: 'Moveu', undo: 'Desfez',
+  delete_layers: 'Apagou', move_layer: 'Moveu', undo: 'Desfez', build_layout: 'Montou', search_icons: 'Procurou ícones',
+  insert_icon: 'Inseriu o ícone', list_fonts: 'Consultou fontes', create_color_styles: 'Criou estilos de cor', create_page: 'Criou a página',
+  switch_page: 'Abriu a página',
 };
 
 /**
@@ -54,9 +56,11 @@ const TOOL_LABEL = {
  * @param {{ run: Function }} deps.runner
  * @param {() => void} deps.openSettings  abre as Configurações (para pôr a chave)
  * @param {HTMLElement} deps.stage  onde o painel flutua
+ * @param {{ setAuto: Function, isAuto: Function }} [deps.approve]  para a opção "Fazer sem perguntar"
+ * @param {object} [deps.prefs]  preferências (lembra a opção) · @param {() => void} [deps.savePrefs]
  * @returns {{ el: HTMLElement, toggle: () => void, open: () => void, close: () => void, isOpen: () => boolean }}
  */
-export function createAssistant({ store, runner, openSettings, stage }) {
+export function createAssistant({ store, runner, openSettings, stage, approve, prefs = {}, savePrefs = () => {} }) {
   /** Conversa no formato da API (sem a mensagem de sistema, que é montada a cada envio). */
   let messages = [];
   let busy = false;
@@ -66,11 +70,20 @@ export function createAssistant({ store, runner, openSettings, stage }) {
   const sendBtn = h('button.icon-btn.ai-send', { type: 'button', title: 'Enviar (Enter)', 'aria-label': 'Enviar', onclick: () => submit() }, ico('send', 16));
   const stopBtn = h('button.btn.small.ai-stop', { type: 'button', hidden: true, onclick: () => aborter?.abort() }, 'Parar');
   const modelEl = h('span.ai-model');
+  // FAZER SEM PERGUNTAR: as alterações do Assistente valem direto (sem a janela de permissão); Ctrl+Z continua
+  // desfazendo cada uma. Lembrada nas preferências. Não vale para programas do MCP (esses sempre perguntam).
+  const autoInput = h('input', { type: 'checkbox', checked: !!prefs.agentAuto });
+  const syncAuto = () => approve?.setAuto?.('Assistente', autoInput.checked);
+  autoInput.addEventListener('change', () => { prefs.agentAuto = autoInput.checked; savePrefs(); syncAuto(); });
+  syncAuto();
+  const autoEl = h('label.ai-auto', { title: 'Ligado: o assistente altera o design direto, sem perguntar (Ctrl+Z desfaz cada alteração). Desligado: pede permissão a cada alteração.' },
+    autoInput, h('span', 'Fazer sem perguntar'));
   const el = h('section.ai-panel', { hidden: true, 'aria-label': 'Assistente de IA' },
     h('header.ai-head',
       h('span.ai-title', ico('sparkle', 15), 'Assistente'),
       modelEl,
       h('div.spacer'),
+      autoEl,
       h('button.icon-btn.small', { type: 'button', title: 'Nova conversa', 'aria-label': 'Nova conversa', onclick: () => reset() }, ico('trash', 14)),
       h('button.icon-btn.small', { type: 'button', title: 'Configurar (chave, modelo)', 'aria-label': 'Configurar assistente', onclick: () => openSettings() }, ico('settings', 14)),
       h('button.icon-btn.small', { type: 'button', title: 'Fechar', 'aria-label': 'Fechar assistente', onclick: () => close() }, ico('x', 14))),
@@ -126,7 +139,12 @@ export function createAssistant({ store, runner, openSettings, stage }) {
   function context() {
     const sel = store.ui.selection.map((id) => store.get(id)).filter(Boolean);
     const page = store.page();
-    return `\n\n[Contexto do editor — página “${page.name}”; seleção: ${sel.length ? sel.map((n) => `“${n.name}” (${n.type}, id ${n.id})`).join(', ') : 'nada selecionado'}${store.ui.bp ? `; modo responsivo: ${store.ui.bp}` : ''}]`;
+    const screens = page.children.filter((n) => n.type === 'frame' || n.type === 'section').slice(0, 12)
+      .map((n) => `“${n.name}” (${n.type}, ${Math.round(n.w)}×${Math.round(n.h)}, id ${n.id})`);
+    const colors = (store.state.doc.styles?.colors || []).slice(0, 16).map((c) => `${c.name} ${c.color} (id ${c.id})`);
+    return `\n\n[Contexto do editor — página “${page.name}”; telas na página: ${screens.length ? screens.join(', ') : 'nenhuma (página vazia)'}`
+      + `; seleção: ${sel.length ? sel.map((n) => `“${n.name}” (${n.type}, id ${n.id})`).join(', ') : 'nada selecionado (se o pedido é criar algo, crie uma tela nova com build_layout)'}`
+      + `${colors.length ? `; estilos de cor: ${colors.join(', ')}` : ''}${store.ui.bp ? `; modo responsivo: ${store.ui.bp}` : ''}]`;
   }
 
   /** Envia a mensagem digitada e roda o laço do agente. */
@@ -187,7 +205,12 @@ export function createAssistant({ store, runner, openSettings, stage }) {
   /** Linha discreta mostrando o que a IA fez com cada ferramenta (✓ feito, ✗ erro, ⊘ recusado). */
   function stepLine(name, args, result) {
     const target = args?.id && store.get(args.id)?.name;
-    const label = `${TOOL_LABEL[name] || name}${target ? ` “${target}”` : ''}${name === 'update_layer' && args?.props ? `: ${Object.keys(args.props).join(', ')}` : ''}${name === 'create_layer' ? ` ${args?.props?.name ? `“${args.props.name}”` : args?.type || ''}` : ''}`;
+    const extra = name === 'update_layer' && args?.props ? `: ${Object.keys(args.props).join(', ')}`
+      : name === 'create_layer' ? ` ${args?.props?.name ? `“${args.props.name}”` : args?.type || ''}`
+        : name === 'build_layout' ? ` “${args?.tree?.props?.name || 'estrutura'}”${result?.count ? ` (${result.count} camadas)` : ''}`
+          : name === 'insert_icon' || name === 'search_icons' ? ` ${args?.name || args?.query || ''}`
+            : name === 'create_page' ? ` “${args?.name || ''}”` : '';
+    const label = `${TOOL_LABEL[name] || name}${target ? ` “${target}”` : ''}${extra}`;
     const state = result?.error ? 'err' : result?.refused ? 'refused' : 'ok';
     const mark = { ok: '✓', err: '✗', refused: '⊘' }[state];
     return h(`div.ai-step.${state}`, { title: result?.error || result?.message || '' }, `${mark} ${label}${state === 'refused' ? ' (recusado)' : ''}${state === 'err' ? ` — ${result.error}` : ''}`);

@@ -18,7 +18,7 @@
 export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS gerado está entre parênteses):
 - geral: name, x, y, w, h (px), rotation (graus), opacity (0..1), visible, locked, blend (mix-blend-mode), note (nota da camada)
 - tamanho: sizeX/sizeY: "fixed" | "hug" (do tamanho do conteúdo) | "fill" (preenche o pai em flex/grid); minW, maxW, minH, maxH (px); aspect (largura/altura, aspect-ratio)
-- aparência: fill: "#RRGGBB" | "none" | objeto {type:"solid"|"linear"|"radial", color, opacity, angle, stops:[{color, opacity, pos}]}; stroke: null | "#RRGGBB" | {color, width, style, position}; radius: número ou [tl,tr,br,bl] (border-radius); shadows: [{x,y,blur,spread,color,opacity,inset}] (box-shadow); blur, bgBlur (filter/backdrop-filter, px); clip (overflow: hidden, só frame)
+- aparência: fill: "#RRGGBB" | "none" | {styleId: "id de um estilo de cor"} (liga ao estilo: vira var(--cor) no CSS) | objeto {type:"solid"|"linear"|"radial", color, opacity, angle, stops:[{color, opacity, pos}]}; stroke: null | "#RRGGBB" | {color, width, style, position}; radius: número ou [tl,tr,br,bl] (border-radius); shadows: [{x,y,blur,spread,color,opacity,inset}] (box-shadow); blur, bgBlur (filter/backdrop-filter, px); clip (overflow: hidden, só frame)
 - layout de um FRAME: layout: {mode:"none"|"row"|"column"|"grid", gap, padding: número ou [t,r,b,l], justify:"flex-start"|"center"|"flex-end"|"space-between"|"space-around"|"space-evenly"|"stretch", align:"flex-start"|"center"|"flex-end"|"stretch"|"baseline", wrap, cols, rows, colGap, rowGap}
 - item dentro de flex/grid: absolute (sai do fluxo: position absolute), alignSelf, justifySelf, grow (flex-grow), margin: número ou [t,r,b,l], colSpan, rowSpan
 - texto: text, fontFamily, fontSize, fontWeight, fontStyle, lineHeight (multiplicador, ex.: 1.4), letterSpacing (px), textAlign, textDecoration, textTransform, truncate ("ellipsis"|"clamp"), lines
@@ -119,6 +119,78 @@ export const AGENT_TOOLS = [
     },
   },
   {
+    name: 'build_layout',
+    write: true,
+    description: `Cria uma ESTRUTURA INTEIRA de uma vez (uma tela, uma seção, um card com tudo dentro): uma árvore de camadas aninhadas, com UMA permissão e UM passo do Ctrl+Z. Use para "faça uma página/seção/cabeçalho...". Sem parent_id, a árvore vira uma tela nova na página, posicionada ao lado das que já existem (não precisa selecionar nada).
+Cada nó: {"type": "frame"|"rect"|"ellipse"|"text"|"line"|"icon", "props": {...}, "children": [...]}. Para "icon", props = {"name": "nome do Material Symbol (use search_icons)", "color": "#RRGGBB", "size": 24, "style": "outlined"|"rounded"|"sharp", "filled": false}.
+Dica: tela de site = frame com props {"name":"Início","w":1440,"fluid":true,"sizeY":"hug","layout":{"mode":"column"}} e seções dentro com sizeX "fill".
+${PROP_HELP}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        parent_id: { type: 'string', description: 'id do frame onde a árvore entra (opcional; sem ele, vira uma tela nova)' },
+        index: { type: 'integer', description: 'posição entre os irmãos (padrão: no fim)' },
+        tree: { type: 'object', description: 'o nó raiz: {type, props, children}', additionalProperties: true },
+      },
+      required: ['tree'],
+    },
+  },
+  {
+    name: 'search_icons',
+    write: false,
+    description: 'Procura ícones do Google (Material Symbols, mais de 4 mil) pelo nome em inglês ou por um sinônimo em português (casa, carrinho, seta, sino...). Devolve os nomes para usar em insert_icon ou em build_layout.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'integer', description: 'máximo de resultados (padrão 20)' } }, required: ['query'] },
+  },
+  {
+    name: 'insert_icon',
+    write: true,
+    description: 'Insere um ícone do Google (Material Symbols) como vetor editável, dentro de um frame (na posição index) ou na página.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'nome exato do ícone (use search_icons)' },
+        parent_id: { type: 'string' }, index: { type: 'integer' },
+        color: { type: 'string', description: '#RRGGBB' }, size: { type: 'integer', description: 'px (padrão 24)' },
+        style: { type: 'string', enum: ['outlined', 'rounded', 'sharp'] }, filled: { type: 'boolean' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'list_fonts',
+    write: false,
+    description: 'Lista fontes disponíveis (Google Fonts, carregadas sozinhas, e as do sistema) com os pesos de cada uma. Use antes de mudar fontFamily/fontWeight: o nome precisa ser exato.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'parte do nome (vazio = as mais usadas)' },
+        category: { type: 'string', enum: ['sans', 'serif', 'display', 'handwriting', 'mono'] },
+      },
+    },
+  },
+  {
+    name: 'create_color_styles',
+    write: true,
+    description: 'Cria estilos de cor do projeto (a paleta: viram variáveis de CSS, ex.: --cor-primaria). Devolve os ids para ligar as camadas com fill: {"styleId": id}. Antes, veja os que já existem em get_document (colorStyles) para não repetir.',
+    inputSchema: {
+      type: 'object',
+      properties: { colors: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, color: { type: 'string', description: '#RRGGBB' } }, required: ['name', 'color'] } } },
+      required: ['colors'],
+    },
+  },
+  {
+    name: 'create_page',
+    write: true,
+    description: 'Cria uma página nova no projeto (as abas de página do painel esquerdo) e abre ela.',
+    inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+  },
+  {
+    name: 'switch_page',
+    write: false,
+    description: 'Abre outra página do projeto (ids em get_document → pages). Não altera nada.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
     name: 'undo',
     write: true,
     description: 'Desfaz a última alteração do projeto (o mesmo que Ctrl+Z).',
@@ -152,6 +224,6 @@ Regras:
 - Responda em português do Brasil, de forma simples e direta.
 - Antes de alterar, LEIA: get_document, get_selection ou get_layer. Use os ids que essas ferramentas devolvem; nunca invente ids.
 - Prefira layout (flex/grid com gap e padding) a posicionar com x/y. Use os nomes do CSS ao explicar.
-- Faça mudanças pequenas e certeiras. Se o pedido for ambíguo ou grande, pergunte antes (responda sem chamar ferramentas).
+- Pedido claro = FAÇA, sem pedir confirmação nem descrever o plano antes. Só pergunte se for impossível decidir. Para criar estruturas (página, seção, card), use build_layout numa chamada só; sem seleção, ela vira uma tela nova.
 - Toda alteração passa pela permissão da pessoa; se ela recusar, não insista: pergunte o que ela prefere.
-- Ao terminar, diga em poucas linhas o que mudou.`;
+- Ao terminar, diga em no máximo 3 frases o que ficou pronto.`;

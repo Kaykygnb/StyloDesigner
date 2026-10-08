@@ -6,6 +6,24 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [0.16.0] — 2026-10-08 — Um agente que faz (e sabe design)
+
+Relato do teste real com a NVIDIA (Nemotron): "conversa demais e faz pouco", "não sabe trocar fonte nem pôr ícone", "por que preciso selecionar algo?", "a cor dele é burra".
+
+### Adicionado
+- **`build_layout`**: a IA monta uma **estrutura inteira numa chamada** (página, seção, card, formulário, com ícones dentro), com UMA permissão e UM Ctrl+Z. Sem seleção, vira uma tela nova ao lado das existentes. Frames com layout sem tamanho nascem "hug"; a tela cresce com o conteúdo.
+- **Ícones e fontes para a IA**: `search_icons` (aceita "carrinho", "casa"...), `insert_icon` (e nós `icon` dentro do `build_layout`) e `list_fonts` (nomes e pesos exatos).
+- **Paleta**: `create_color_styles` cria os estilos de cor (variáveis de CSS) e `fill: {styleId}` liga as camadas a eles.
+- **Páginas**: `create_page` e `switch_page`. A IA agora tem 18 ferramentas.
+- **"Fazer sem perguntar"** no painel do Assistente (lembrado nas preferências): as alterações valem direto, sem a janela de permissão; cada uma continua saindo com Ctrl+Z. Programas do MCP continuam perguntando.
+- Contexto de cada mensagem leva as **telas da página** e a **paleta**, para criar sem precisar selecionar.
+
+### Alterado
+- **`docs/AGENTE.md` reescrito**: "você FAZ, não conversa" (pedido claro = executa; resposta final em até 3 frases), as regras de layout da plataforma em detalhe (telas, flex/grid, x/y ignorados no fluxo, hug/fill, texto que quebra linha, padding/gap), **habilidades de design** (hierarquia, escala de espaçamento 4/8, tipografia, cor com paleta e 60-30-10, contraste, padrões de página, ícones, lugares de imagem) e uma receita completa de página.
+- Até 30 rodadas de ferramenta por mensagem (eram 12), para trabalhos grandes.
+
+---
+
 ## [0.15.2] — 2026-10-08 — Escolher o modelo da NVIDIA de verdade
 
 Relato do teste real: "não consegui selecionar os modelos da NVIDIA nas configurações".
