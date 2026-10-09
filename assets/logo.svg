@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 32" role="img" aria-label="Stylo">
+  <!-- Logo completa: o símbolo (dois blocos encaixados formando um "S") + o nome -->
+  <rect width="32" height="32" rx="8" fill="#0b0c0e"/>
+  <path d="M8 7h16v4.5H12.5v2.25H18v4.5H8z" fill="#4c8dff"/>
+  <path d="M19.5 13.75H24V25H8v-4.5h11.5z" fill="#a9c6ff"/>
+  <text x="42" y="23.5" font-family="'IBM Plex Sans', 'Segoe UI', Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="-0.4" fill="#0b0c0e">Stylo</text>
+</svg>

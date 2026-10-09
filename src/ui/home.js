@@ -106,7 +106,8 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
 
   /** Esc fecha (volta ao editor); "/" foca a busca, como em muitos apps. */
   function onKey(e) {
-    if (document.querySelector('.modal-backdrop') || document.querySelector('.menu')) return;
+    // com a página de Configurações por cima, o Esc é dela
+    if (document.querySelector('.modal-backdrop, .menu, .settings-page')) return;
     const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
     // codex: a busca deve permitir que Esc volte ao editor mesmo enquanto mantém o foco.
     if (e.key === 'Escape' && (!typing || e.target.matches?.('.home-search input'))) { e.preventDefault(); close(); }
@@ -151,13 +152,13 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
     });
     const top = h('header.home-top',
       h('div.brand',
-        h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0b0c0e" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M16.5 7.2C15.6 6.2 14.1 5.6 12.4 5.6c-2.5 0-4.2 1.3-4.2 3.2 0 4.2 8.6 2.2 8.6 6.3 0 1.9-1.8 3.3-4.4 3.3-1.9 0-3.5-.7-4.5-1.9"/></svg>' }),
+        h('img.logo-img', { src: 'assets/logo-mark.svg', alt: '', width: 32, height: 32 }),
         h('span.brand-name', 'Stylo'),
         h('span.home-version', 'v' + VERSION)),
       h('div.spacer'),
       h('label.home-search', ico('search', 15), search, h('kbd', '/')),
       iconButton(ui.theme === 'dark' ? 'sun' : 'moon', 'Alternar tema claro/escuro', () => { store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'); renderShell(); }),
-      iconButton('settings', 'Configurações (Ctrl+,)', () => openSettings()),
+      iconButton('settings', 'Configurações (Ctrl+,)', () => openSettings('folder')),
       // em telas estreitas o texto encurta para "Editor" (as duas versões existem; o CSS mostra uma)
       h('button.btn.home-to-editor', { type: 'button', onclick: close, 'aria-label': 'Ir para o editor' },
         h('span.wide-only', 'Ir para o editor'), h('span.narrow-only', 'Editor'), h('kbd', 'Esc')));
@@ -166,7 +167,7 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
       h('div',
         h('span.home-eyebrow', 'Seu espaço de trabalho'),
         h('h1', 'Seus projetos'),
-        h('p.muted', server ? ['Salvos em ', h('span.mono', server.folder), ' · ', h('button.link', { type: 'button', onclick: () => openSettings() }, 'trocar pasta')]
+        h('p.muted', server ? ['Salvos em ', h('span.mono', server.folder), ' · ', h('button.link', { type: 'button', onclick: () => openSettings('folder') }, 'trocar pasta')]
           : 'Sem servidor: os projetos ficam só no navegador. Rode npm start para salvar numa pasta do computador.')),
       h('div.home-actions',
         h('button.btn.primary', { type: 'button', onclick: () => replaceWith('Começar um projeto novo em branco?', async () => create.blank()) }, ico('plus', 14), ' Novo projeto'),
