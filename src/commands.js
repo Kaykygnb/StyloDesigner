@@ -672,6 +672,17 @@ export function createCommands(store, canvas) {
     return node;
   }
 
+  /**
+   * Cria uma camada "Código HTML" (HTML escrito à mão, ver html.js → sanitizeHtml) no frame selecionado ou no meio da
+   * tela e abre a aba Código já no modo de edição do HTML.
+   */
+  function addHtmlEmbed(at) {
+    const node = placeNew(createNode('html', { name: 'Código HTML' }), at);
+    ui.codeOpen = { tab: 'html', edit: true };
+    ui.setRightTab?.('code');
+    return node;
+  }
+
   /** Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas). */
   function addText(textValue, at) {
     const r = canvas.vpRect();
@@ -1136,7 +1147,7 @@ export function createCommands(store, canvas) {
   const api = {
     insertSvg, placeNew, booleanOp,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
-    setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
+    setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, addHtmlEmbed, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle,
     addColorMode, renameColorMode, setModeScheme, deleteColorMode, addSizeVar, setSizeVar, deleteSizeVar, bindSizeVar, removeStyle,
     addGuide, removeGuide, addPathFromWorld, updatePathFromWorld, newIcon, normalizePath, addShapePath, syncInstances,

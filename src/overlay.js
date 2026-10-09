@@ -245,7 +245,7 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     }
 
     // enquanto as medidas do Alt estão visíveis, a etiqueta de tamanho some (as duas se sobreporiam)
-    const measuring = ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds;
+    const measuring = ui.altDown && ui.hoverId && !ui.dragIds && ((sel.length && !sel.includes(ui.hoverId)) || ui.tool === 'inspect');
     // ---- seleção: 1 camada = caixa (girada se preciso) com alças e etiqueta "L × A"; várias = contorno fino de cada
     // uma + caixa geral (sem rotação) com alças que escalam o conjunto
     if (sel.length === 1) {
@@ -389,8 +389,15 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
     } else root.style.backgroundSize = '';
 
     // ---- medidas: com Alt pressionado e o mouse sobre OUTRA camada, mostra as distâncias até ela (função measures)
-    if (ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds) {
-      const A = canvas.unionAabb(sel), B = canvas.aabb(ui.hoverId);
+    // no INSPECIONAR, quando não há o que medir contra a seleção (sem seleção, mouse sobre ela ou sobre um filho dela):
+    // distâncias da camada sob o mouse até o PAI, como as margens que o DevTools mostra
+    const pairSel = ui.altDown && sel.length && ui.hoverId && !sel.includes(ui.hoverId) && !ui.dragIds;
+    let A = pairSel ? canvas.unionAabb(sel) : null, B = pairSel ? canvas.aabb(ui.hoverId) : null;
+    if (ui.tool === 'inspect' && ui.altDown && ui.hoverId && !ui.dragIds && (!A || !B || !measures(A, B).length)) {
+      const par = store.parentOf(ui.hoverId);
+      if (par) { A = canvas.aabb(ui.hoverId); B = canvas.aabb(par.id); }
+    }
+    {
       if (A && B) {
         const ms = measures(A, B);
         if (ms.length) {

@@ -20,6 +20,7 @@ import { createTools } from './tools.js';
 import { createLayersPanel } from './ui/layers.js';
 import { createDesignPanel } from './ui/props.js';
 import { createCodePanel } from './ui/code.js';
+import { createInspectorPanel } from './ui/inspector.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
 import { createCommentsPanel } from './ui/comments.js';
@@ -178,6 +179,8 @@ setLeftTab('layers');
 // PAINEL DIREITO: abas "Design", "Protótipo" e "Código". Os 3 painéis são criados uma vez e só trocados de lugar.
 const design = createDesignPanel({ store, canvas, commands, tools, toast });
 const code = createCodePanel({ store, commands, toast });
+// painel flutuante do Inspecionar (propriedades computadas, box model, regras) — aparece com a ferramenta I
+createInspectorPanel({ store, canvas, commands, toast, stage: $('.stage') });
 const present = createPresent({ store, canvas });
 const proto = createProtoPanel({ store, present, toast });
 const comments = createCommentsPanel({ store, canvas, prefs, toast });
@@ -431,7 +434,8 @@ $('#toolbar').append(
   toolGroup('Estruturar', toolBtns[1], toolBtns[2]),
   toolGroup('Desenhar formas', ...toolBtns.slice(3, 8)),
   toolGroup('Criar conteúdo', toolBtns[8], toolBtns[9], toolBtns[10],
-    h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18))),
+    h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18)),
+    h('button.tool', { type: 'button', title: 'Código HTML (⇧E): escreva o HTML à mão', 'aria-label': 'Inserir código HTML', onclick: () => commands.addHtmlEmbed() }, ico('code', 18))),
   toolGroup('Revisar', toolBtns[11], toolBtns[12]),
   imgInput,
 );

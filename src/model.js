@@ -66,8 +66,10 @@ export const BLEND_MODES = [
  * Etiquetas HTML que a camada pode virar no código exportado (campo opcional `tag`). A lista é FECHADA de propósito:
  * o valor vai para o HTML gerado, então só entram nomes conhecidos e seguros.
  */
-export const TEXT_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'a', 'label', 'li', 'button'];
-export const BOX_TAGS = ['div', 'section', 'header', 'footer', 'nav', 'main', 'aside', 'article', 'ul', 'ol', 'li', 'button', 'a', 'form'];
+export const TEXT_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'a', 'label', 'li', 'button',
+  'blockquote', 'figcaption', 'legend', 'dt', 'dd', 'strong', 'em', 'small', 'cite', 'code', 'pre', 'time'];
+export const BOX_TAGS = ['div', 'section', 'header', 'footer', 'nav', 'main', 'aside', 'article', 'ul', 'ol', 'li', 'button', 'a', 'form',
+  'figure', 'blockquote', 'fieldset', 'dl', 'address', 'label'];
 /** Etiqueta HTML efetiva da camada: a escolhida (se válida) ou a padrão (p para texto, section para seção, div para o resto). */
 export function tagOf(node) {
   const list = node.type === 'text' ? TEXT_TAGS : BOX_TAGS;
@@ -103,7 +105,7 @@ export function htmlTagIn(node, ancestors = []) {
  */
 export const TYPE_LABEL = {
   frame: 'Frame', rect: 'Retângulo', ellipse: 'Elipse', text: 'Texto', group: 'Grupo',
-  line: 'Linha', path: 'Vetor', section: 'Seção',
+  line: 'Linha', path: 'Vetor', section: 'Seção', html: 'Código HTML',
 };
 
 /**
@@ -298,6 +300,15 @@ export function createNode(type, props = {}) {
     });
   } else if (type === 'ellipse') {
     node.fill = defaultFill('#D9D9D9');
+  } else if (type === 'html') {
+    // Código HTML: HTML escrito à mão (campo `html`), limpo por html.js → sanitizeHtml antes de ir ao canvas e ao
+    // arquivo exportado. A camada é a caixa (tamanho, posição, fundo); o HTML fica dentro dela.
+    node.w = 320; node.h = 160;
+    node.fill = { ...defaultFill(), type: 'none' };
+    node.clip = true;
+    node.html = `<h3>Olá!</h3>
+<p>Escreva o seu HTML na aba <b>Código</b>.</p>
+<button type="button">Botão</button>`;
   }
   // os `props` do chamador vencem os padrões acima
   Object.assign(node, props);
