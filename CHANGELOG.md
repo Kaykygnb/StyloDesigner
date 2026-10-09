@@ -8,6 +8,17 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+### Adicionado (fotos e IA de foto, fase 3)
+- **Fotos grátis** (Recursos → Fotos; feito pelo Codex, revisado pelo Claude): busca no Openverse (sem chave, só licenças de uso comercial e com derivação permitida) e no Pexels (com chave guardada só no servidor). Clique ou arraste para inserir, "usar como preenchimento", crédito do autor guardado na camada e exportado no HTML quando a licença pede. O servidor baixa as fotos só de provedores permitidos, só bitmaps (sem SVG) e até 8 MB.
+- **Editor de imagem** ("Editar imagem" numa camada com foto): recortar com proporções, girar e espelhar, ajustes, filtros com prévia, remover fundo (automático pelas bordas, varinha e pincel), tamanho/formato/qualidade com o peso final, "Restaurar original". Tudo no navegador, sem chave; "Aplicar" vira um passo do Ctrl+Z.
+- **IA generativa de foto**: preencher área, trocar objeto e expandir, pela API de imagens do provedor (padrão OpenAI `gpt-image-1`; outro endereço em Configurações → Modelo de imagem). A chave não sai do servidor.
+- Ferramentas do agente `edit_image` e `generate_image_edit` (esta só aparece com modelo de imagem configurado).
+
+### Corrigido
+- Salvar acusa conflito também em discos exFAT/FAT (data grosseira): o servidor compara o conteúdo, não só a data.
+- Depois de editar o CSS à mão, o painel Design volta a funcionar na mesma propriedade.
+- Traço padrão de vetores e linhas novos em cinza visível (#808080) no canvas escuro e em fundo branco.
+
 ### Adicionado (agente, fase 2)
 - **Resposta em tempo real (streaming)**: o `/api/agent/chat` pede `stream: true` à API (OpenAI, NVIDIA NIM, Ollama) e repassa ao navegador em NDJSON. O texto aparece enquanto o modelo escreve; o raciocínio (`reasoning_content`, `reasoning` ou `<think>…</think>`) vai para um bloco recolhível "Pensando… 12 s" → "Pensou por 12 s"; as chamadas de ferramenta são montadas a partir dos pedaços.
 - **Nunca mais travado**: tempo para o 1º pedaço (padrão 60 s) e tempo máximo só pensando (padrão 120 s), configuráveis, com erro claro e sugestão. O botão **Parar** fecha a conexão e o servidor aborta o pedido à API na hora.
