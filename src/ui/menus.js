@@ -153,6 +153,7 @@ export const SHORTCUTS = [
   ['Vista', [['Ctrl R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Ctrl + / − / 0', 'Aproximar / afastar / 100%'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
   ['Ao redimensionar / mover', [['⇧', 'Mantém proporção / trava eixo'], ['Alt', 'A partir do centro'], ['Ctrl', 'Sem snap']]],
   ['Seleção', [['Ctrl + clique', 'Seleciona através de grupos'], ['Tab / ⇧ Tab', 'Próxima / anterior camada'], ['Alt + mouse', 'Mostra distâncias até outra camada'], ['Ctrl Alt C / V', 'Copiar / colar propriedades'], ['Ctrl B / I / U', 'Negrito / itálico / sublinhado (editando texto)'], ['Ctrl \\', 'Esconder/mostrar painéis']]],
+  ['Editor de código', [['Ctrl ⇧ E', 'Abrir/fechar o editor grande'], ['F11 / Esc', 'Tela cheia / sair'], ['Ctrl S / Ctrl Enter', 'Aplicar'], ['Ctrl Espaço', 'Sugestões (autocompletar)'], ['Tab', 'Aceitar sugestão · expandir Emmet (div.card>h2+p)'], ['Ctrl /', 'Comentar linha'], ['Ctrl F', 'Procurar']]],
   ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar na pasta (escolhe o nome na 1ª vez)'], ['Ctrl ⇧ S', 'Salvar como… (novo nome na pasta)'], ['Ctrl O', 'Abrir projeto da pasta'], ['Ctrl ,', 'Configurações (onde salvar, tema...)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Central de ajuda'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 

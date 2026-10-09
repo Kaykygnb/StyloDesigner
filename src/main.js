@@ -20,6 +20,7 @@ import { createTools } from './tools.js';
 import { createLayersPanel } from './ui/layers.js';
 import { createDesignPanel } from './ui/props.js';
 import { createCodePanel } from './ui/code.js';
+import { createCodeDock } from './ui/codedock.js';
 import { createInspectorPanel } from './ui/inspector.js';
 import { createAssetsPanel } from './ui/assets.js';
 import { createProtoPanel } from './ui/proto.js';
@@ -178,7 +179,10 @@ setLeftTab('layers');
 // ---------------------------------------------------------------- painel direito
 // PAINEL DIREITO: abas "Design", "Protótipo" e "Código". Os 3 painéis são criados uma vez e só trocados de lugar.
 const design = createDesignPanel({ store, canvas, commands, tools, toast });
-const code = createCodePanel({ store, commands, toast });
+// editor de código GRANDE (embaixo do canvas / tela cheia): é onde se escreve CSS e HTML à mão (ui/codedock.js)
+const codeDock = createCodeDock({ store, commands, toast, prefs, savePrefs });
+$('#app').append(codeDock.el);
+const code = createCodePanel({ store, commands, toast, dock: codeDock });
 // painel flutuante do Inspecionar (propriedades computadas, box model, regras) — aparece com a ferramenta I
 createInspectorPanel({ store, canvas, commands, toast, stage: $('.stage') });
 const present = createPresent({ store, canvas });
@@ -547,6 +551,8 @@ window.addEventListener('keydown', (e) => {
   if (mod && key === 'o') { e.preventDefault(); openProjects('open'); }
   if (mod && e.key === ',') { e.preventDefault(); openSettings(); }
   if (e.key === '?' && !typing) showHelp('keys', VERSION);
+  // Ctrl+Shift+E: abre/fecha o editor de código grande (vale também com o foco dentro dele)
+  if (mod && e.shiftKey && !e.altKey && key === 'e') { e.preventDefault(); codeDock.toggle(); }
 });
 // ao esconder a aba (trocar de aba, minimizar, fechar) e ao sair, grava na hora, sem esperar o atraso do auto-salvar.
 // `visibilitychange` é o mais confiável: o IndexedDB é assíncrono e pode não terminar dentro do `beforeunload`.
