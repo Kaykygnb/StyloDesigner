@@ -174,6 +174,25 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         btn('distV', 'Distribuir na vertical', () => commands.distribute('v'), !many)));
   }
 
+  /**
+   * Botões das operações BOOLEANAS (unir, subtrair, interseção, excluir) — aparecem com 2+ formas selecionadas
+   * (vetores, retângulos, elipses ou frames vazios). Atalhos: Ctrl+Alt+U / S / I / X.
+   */
+  function booleanRow() {
+    const ok = nodes().every((n) => ['path', 'rect', 'ellipse'].includes(n.type) || (n.type === 'frame' && !n.children?.length));
+    if (!ok) return null;
+    const btn = (op, icon, title, key, text) => tip(h('button.icon-btn', {
+      type: 'button', 'aria-label': title, dataset: { bool: op },
+      onclick: () => { const r = commands.booleanOp(op); if (r?.error) toast(r.error); },
+    }, ico(icon)), { title, key, text });
+    return h('div.align-row',
+      h('div.seg-group',
+        btn('union', 'boolUnion', 'Unir', 'Ctrl Alt U', 'Junta as formas numa só, pelo contorno de fora.'),
+        btn('subtract', 'boolSubtract', 'Subtrair', 'Ctrl Alt S', 'Recorta da forma de BAIXO tudo o que as de cima cobrem.'),
+        btn('intersect', 'boolIntersect', 'Interseção', 'Ctrl Alt I', 'Fica só a parte em que TODAS as formas se sobrepõem.'),
+        btn('exclude', 'boolExclude', 'Excluir sobreposição', 'Ctrl Alt X', 'Fica tudo, menos onde as formas se sobrepõem.')));
+  }
+
   /** Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA". */
   const PRESETS = [
     ['', 'Tamanhos predefinidos…'], ['393x852', 'iPhone 15 — 393×852'], ['360x800', 'Android — 360×800'],
@@ -197,6 +216,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const parent = parentOf(n0.id);
     const inFlow = isFlow(n0, parent);
     const body = ui.bp ? [] : [cap('Alinhamento', alignRow())];
+    if (!single && !ui.bp) { const b = booleanRow(); if (b) body.push(cap('Combinar formas', b)); }
     if (!single && ui.bp) return section('Posição', [h('p.hint', 'No modo Tablet/Celular, ajuste uma camada por vez.')]);
     if (!single) {
       // várias camadas: X/Y da caixa que envolve todas
@@ -585,6 +605,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'stroke-position': ['Onde fica o contorno', 'box-sizing: border-box;\noutline-offset: -2px;', 'DENTRO: a linha fica por dentro da caixa (o tamanho não muda). CENTRO: metade dentro, metade fora. FORA: toda por fora, como um halo.', 'outline-offset'],
     'stroke-linecap': ['Ponta do traço', 'stroke-linecap: round;', 'O formato das PONTAS de uma linha aberta: redondas, retas ou quadradas (que passam um pouco do fim).'],
     'stroke-linejoin': ['Quina do traço', 'stroke-linejoin: round;', 'O formato das CURVAS e QUINAS onde o traço muda de direção: arredondada, pontuda ou chanfrada.'],
+    'stroke-dasharray': ['Tracejado personalizado', 'stroke-dasharray: 8 4;', 'Comprimentos (px) alternando TRAÇO e ESPAÇO: "8 4" = traços de 8 com 4 de intervalo; "12 4 2 4" = traço-ponto. Vazio usa o Estilo (sólido/tracejado/pontilhado).'],
+    'fill-rule': ['Regra de preenchimento', 'fill-rule: evenodd;', 'Decide o que vira FURO quando contornos se sobrepõem. "Diferente de zero" depende do sentido de cada contorno; "Par-ímpar" fura toda área coberta um número par de vezes (bom para letras como "o").'],
     'border-sides': ['Lados do contorno', 'border-top: 1px solid;\nborder-bottom: 1px solid;', 'Escolha quais lados da caixa têm linha: só embaixo (como um sublinhado de campo), só em cima, nas laterais... Clique nos lados para ligar e desligar.', 'border-top · right · bottom · left'],
     'html-tag': ['Etiqueta HTML', '<button class="botao">Comprar</button>', 'A etiqueta diz ao navegador, ao leitor de tela e ao Google O QUE a camada é: botão, título, link, cabeçalho... Escolher a certa não muda o visual, mas muda a acessibilidade e o SEO.', 'tag'],
     href: ['Endereço do link', '<a href="https://exemplo.com">', 'Para onde o clique leva. Pode ser um site (https://…), uma âncora dentro da página (#contato) ou um e-mail (mailto:oi@exemplo.com).', 'href'],
@@ -1141,14 +1163,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     }
     if (editing && count) {
       const typeBtn = (v, label, doc) => {
-        const b = h('button.seg-btn.wide', { type: 'button', onclick: () => pen.setPointType(v) }, label);
+        const b = h('button.seg-btn.wide', { type: 'button', dataset: { ptmode: v }, onclick: () => pen.setPointType(v) }, label);
         updaters.push(() => b.classList.toggle('on', pen.pointType() === v));
         return tip(b, doc);
       };
       body.push(
         cap(count > 1 ? `${count} pontos selecionados` : `Ponto ${ui.editPt + 1} de ${P().points.length}`, h('div.segmented.wide',
-          typeBtn('corner', 'Canto', { title: 'Ponto de canto', css: 'L x y', text: 'Sem alças: o traço chega e sai em linha reta, formando uma quina.' }),
-          typeBtn('smooth', 'Suave', { title: 'Ponto suave', css: 'C x1 y1, x2 y2, x y', text: 'Duas alças iguais e opostas: a curva passa sem quebra pelo ponto. Arraste uma alça para curvar (Alt quebra o espelho).' }))),
+          typeBtn('corner', 'Canto', { title: 'Ponto de canto', css: 'L x y', text: 'Sem alças: o traço chega e sai em linha reta, formando uma quina. Duplo clique (ou Alt+clique) no ponto alterna canto/curva.' }),
+          typeBtn('mirror', 'Espelhada', { title: 'Alças espelhadas', css: 'C x1 y1, x2 y2, x y', text: 'As duas alças ficam opostas e do MESMO tamanho: a curva passa simétrica pelo ponto.' }),
+          typeBtn('asym', 'Assim.', { title: 'Alças assimétricas', text: 'As alças continuam alinhadas (curva sem quebra), mas cada uma tem o seu comprimento.' }),
+          typeBtn('free', 'Livre', { title: 'Alças independentes', text: 'Cada alça vai para onde você quiser: forma um bico. Alt ao arrastar uma alça também deixa o ponto assim.' }))),
         count === 1 ? row(
           num('X', () => pen.pointPos()?.x ?? 0, (v) => pen.setPointPos('x', v), { decimals: 1, title: 'Posição X do ponto (relativa ao pai)' }),
           num('Y', () => pen.pointPos()?.y ?? 0, (v) => pen.setPointPos('y', v), { decimals: 1, title: 'Posição Y do ponto (relativa ao pai)' })) : null,
@@ -1163,9 +1187,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     // ---- caminho ----
     body.push(
       h('div.row',
-        check('Caminho fechado', () => P().closed, (v) => each((n) => { n.closed = v; if (v && n.fill.type === 'none') n.fill = defaultFill('#D9D9D9'); })),
+        check('Caminho fechado', () => P().closed, (v) => pen.setClosed(P().id, v)),
         tip(h('button.btn.small', { type: 'button', onclick: () => pen.reverse(P().id) }, ico('flipH', 13), ' Inverter'),
-          { title: 'Inverter direção', text: 'O primeiro ponto vira o último. O desenho fica igual; muda o sentido em que o traço é percorrido.' })));
+          { title: 'Inverter direção', text: 'O primeiro ponto vira o último. O desenho fica igual; muda o sentido em que o traço é percorrido.' })),
+      capK('Preenchimento', 'fill-rule', select([['nonzero', 'Diferente de zero'], ['evenodd', 'Par-ímpar (furos)']], () => P().fillRule || 'nonzero',
+        (v) => each((n) => { if (v === 'evenodd') n.fillRule = 'evenodd'; else delete n.fillRule; }), 'fill-rule')));
 
     // ---- código SVG do caminho ----
     const ta = h('textarea.svg-d', { spellcheck: false, rows: 4, placeholder: 'M 0 0 L 10 10 …' });
@@ -1180,7 +1206,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         } }, ico('copy', 13), ' Copiar'),
         h('button.btn.primary', { type: 'button', onclick: () => { if (pen.applyPathD(P().id, ta.value)) toast('Forma aplicada.'); else toast('Não achei um caminho nesse texto.'); } }, ico('check', 13), ' Aplicar'))));
 
-    body.push(h('p.hint', 'Arraste pontos e alças (Shift trava em 45°). Alt+clique no traço adiciona ponto; Alt+clique num ponto alterna canto/suave. Com a caneta (P), clique na ponta de um caminho aberto para continuar desenhando. Setas movem os pontos.'));
+    body.push(h('p.hint', 'Arraste pontos e alças (Shift trava em 45°, Alt solta as alças). Clique no traço para adicionar um ponto; duplo clique (ou Alt+clique) num ponto alterna canto/curva; Delete remove. Com a caneta (P), clique na ponta de um caminho aberto para continuar. Setas movem os pontos (Shift = 10px).'));
     return section('Vetor', body);
   }
 
@@ -1443,12 +1469,19 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
             : capK('Estilo', 'border-style', select([['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']], () => st().style, (v) => each((n) => { if (n.stroke) n.stroke.style = v; }), 'outline-style'))),
         n0.type === 'text' || sidesOn()
           ? null
-          : capK('Posição', 'stroke-position', select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno')));
+          : n0.type === 'path'
+            // vetor: o traço do SVG é centrado; dentro/fora só valem em caminho fechado (stroke.align, ver css.js → strokeAlign)
+            ? capK('Posição', 'stroke-position', select([['center', 'Centro'], ['inside', 'Dentro'], ['outside', 'Fora']], () => st().align || 'center', (v) => each((n) => { if (n.stroke) { if (v === 'center') delete n.stroke.align; else n.stroke.align = v; } }), 'Posição do contorno (dentro/fora: só caminho fechado)'))
+            : capK('Posição', 'stroke-position', select([['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']], () => st().position, (v) => each((n) => { if (n.stroke) n.stroke.position = v; }), 'Posição do contorno')));
       // vetores: extremidade (stroke-linecap) e quina (stroke-linejoin) do traço, essenciais para desenhar ícones
       if (n0.type === 'path') {
         body.push(row(
           capK('Extremidade', 'stroke-linecap', select([['round', 'Redonda'], ['butt', 'Reta'], ['square', 'Quadrada']], () => st().cap || 'round', (v) => each((n) => { if (n.stroke) n.stroke.cap = v; }), 'stroke-linecap')),
           capK('Quina', 'stroke-linejoin', select([['round', 'Redonda'], ['miter', 'Pontuda'], ['bevel', 'Chanfrada']], () => st().join || 'round', (v) => each((n) => { if (n.stroke) n.stroke.join = v; }), 'stroke-linejoin'))));
+        // tracejado PERSONALIZADO (stroke-dasharray): "traço espaço traço espaço…" em px; vazio = usa o Estilo acima
+        const dash = textField({ get: () => st().dash || '', set: (v) => each((n) => { if (!n.stroke) return; if (v.trim()) n.stroke.dash = v; else delete n.stroke.dash; }), commit, placeholder: 'ex.: 8 4  ·  12 4 2 4', mono: true });
+        updaters.push(dash.update);
+        body.push(capK('Tracejado', 'stroke-dasharray', dash.el));
       }
       // LADOS (só retângulo e frame): todos (outline) ou só alguns (border-top/right/bottom/left do CSS)
       if (['rect', 'frame'].includes(n0.type)) body.push(...strokeSidesRows(st));

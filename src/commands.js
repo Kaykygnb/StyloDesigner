@@ -12,6 +12,7 @@ import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName,
 import { generateCode, joinCss } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 import { importSvg } from './svgimport.js';
+import { booleanPolygons, ellipseContour, flattenContour, polygonsToContours, rectContour } from './geom.js';
 import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
 
 /**
@@ -910,7 +911,7 @@ export function createCommands(store, canvas) {
     const node = createNode('path', {
       name: nextName(store.page(), 'path'),
       x: Math.round(box.x0 - po.x), y: Math.round(box.y0 - po.y), w, h, vw: w, vh: h, closed,
-      points: pts.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout) })),
+      points: pts.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout), ...(p.mode ? { mode: p.mode } : {}) })),
     });
     if (closed) node.fill = { ...defaultFill('#D9D9D9') };
     store.update((page) => (parent ? parent.children : page.children).push(node));
@@ -934,7 +935,7 @@ export function createCommands(store, canvas) {
     store.update(() => {
       Object.assign(node, {
         x: round(box.x0 - po.x), y: round(box.y0 - po.y), w, h, vw: w, vh: h, closed,
-        points: pts.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout) })),
+        points: pts.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout), ...(p.mode ? { mode: p.mode } : {}) })),
       });
       if (closed && node.fill.type === 'none') node.fill = { ...defaultFill('#D9D9D9') };
     });
@@ -979,7 +980,7 @@ export function createCommands(store, canvas) {
     const nw = Math.max(1, (box.x1 - box.x0) * sx), nh = Math.max(1, (box.y1 - box.y0) * sy);
     const shiftX = box.x0, shiftY = box.y0;
     const sh = (p) => (p ? { x: round(p.x - shiftX), y: round(p.y - shiftY) } : null);
-    const shiftAll = (pts) => pts.map((p) => ({ x: round(p.x - shiftX), y: round(p.y - shiftY), hin: sh(p.hin), hout: sh(p.hout) }));
+    const shiftAll = (pts) => pts.map((p) => ({ x: round(p.x - shiftX), y: round(p.y - shiftY), hin: sh(p.hin), hout: sh(p.hout), ...(p.mode ? { mode: p.mode } : {}) }));
     node.points = shiftAll(node.points);
     if (node.contours) node.contours = node.contours.map((c) => ({ ...c, points: shiftAll(c.points) }));
     node.x = round(node.x + shiftX * sx);
@@ -1010,6 +1011,101 @@ export function createCommands(store, canvas) {
     return node;
   }
 
+  // ------------------------------------------------------------------ booleanas
+  /** Tipos que entram numa operação booleana. */
+  const BOOL_TYPES = ['path', 'rect', 'ellipse', 'frame'];
+  const BOOL_NAMES = { union: 'União', subtract: 'Subtração', intersect: 'Interseção', exclude: 'Exclusão' };
+
+  /**
+   * Contornos de uma camada em coordenadas do MUNDO (rotação e espelhamento aplicados), ainda com curvas.
+   * Retângulo/frame (com cantos arredondados), elipse e vetor (com todos os contornos). Devolve { contours, rule }.
+   */
+  function worldContours(n) {
+    const b = canvas.worldBox(n.id);
+    if (!b) return null;
+    const { w, h } = b;
+    let local, rule = 'nonzero';
+    if (n.type === 'ellipse') local = [ellipseContour(w, h)];
+    else if (n.type === 'path') {
+      const sx = w / (n.vw || 1), sy = h / (n.vh || 1);
+      const S = (p) => p && { x: p.x * sx, y: p.y * sy };
+      const conv = (pts) => pts.map((p) => ({ ...S(p), hin: S(p.hin), hout: S(p.hout) }));
+      local = [conv(n.points), ...(n.contours || []).map((c) => conv(c.points))];
+      rule = n.fillRule === 'evenodd' ? 'evenodd' : 'nonzero';
+    } else local = [rectContour(w, h, n.radius)];
+    const rad = ((b.rot || 0) * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+    const T = (p) => {
+      if (!p) return null;
+      const lx = (n.flipX ? w - p.x : p.x) - w / 2, ly = (n.flipY ? h - p.y : p.y) - h / 2;
+      return { x: b.cx + lx * cos - ly * sin, y: b.cy + lx * sin + ly * cos };
+    };
+    return { rule, contours: local.map((pts) => pts.map((p) => ({ ...T(p), hin: T(p.hin), hout: T(p.hout) }))) };
+  }
+
+  /**
+   * OPERAÇÃO BOOLEANA com a seleção (2+ vetores/retângulos/elipses/frames): 'union' unir, 'subtract' subtrair (a camada
+   * de BAIXO menos as de cima, como no Figma), 'intersect' interseção, 'exclude' excluir a sobreposição.
+   * As curvas são achatadas em polígonos (geom.js) e o resultado é reajustado em curvas onde era curvo: o vetor final
+   * pode ter alguns pontos a mais que o original. O resultado fica no lugar da camada de baixo, com o estilo dela.
+   * @returns {{node?: object, error?: string}}
+   */
+  function booleanOp(op) {
+    if (!BOOL_NAMES[op]) return { error: 'Operação desconhecida.' };
+    const sel = topSelection().filter((n) => n.type !== 'section');
+    if (sel.length < 2) return { error: 'Selecione duas ou mais formas para combinar.' };
+    const bad = sel.find((n) => !BOOL_TYPES.includes(n.type) || (n.type === 'frame' && n.children?.length));
+    if (bad) return { error: `“${bad.name}” não pode entrar na operação: use vetores, retângulos, elipses ou frames vazios.` };
+    // ordem de empilhamento: a de baixo primeiro (mesmo pai: pela posição na lista; senão, pela ordem da seleção)
+    const order = (n) => { const l = store.listOf(n.id); return l ? l.indexOf(n) : 0; };
+    const sameParent = sel.every((n) => store.parentOf(n.id) === store.parentOf(sel[0].id));
+    const nodes = sameParent ? [...sel].sort((a, b) => order(a) - order(b)) : sel;
+    const z = canvas.getView().zoom || 1;
+    const tol = Math.max(0.05, 0.25 / z);
+    const shapes = [];
+    for (const n of nodes) {
+      const wc = worldContours(n);
+      if (!wc) return { error: 'Não consegui medir as formas (estão visíveis?).' };
+      const closedOf = (i) => (n.type !== 'path' ? true : i === 0 ? true : n.contours[i - 1].closed !== false);
+      shapes.push({ rule: wc.rule, rings: wc.contours.map((pts, i) => flattenContour(pts, closedOf(i), tol)) });
+    }
+    const rings = booleanPolygons(shapes, op);
+    if (!rings.length) return { error: 'O resultado ficou vazio: as formas não se sobrepõem.' };
+    const contours = polygonsToContours(rings, { tol: tol * 0.6, smooth: true });
+    // caixa do desenho e conversão para o espaço do vetor novo
+    const boxes = contours.map((c) => pathBounds(c.points, true));
+    const box = { x0: Math.min(...boxes.map((q) => q.x0)), y0: Math.min(...boxes.map((q) => q.y0)), x1: Math.max(...boxes.map((q) => q.x1)), y1: Math.max(...boxes.map((q) => q.y1)) };
+    const loc = (p) => (p ? { x: round(p.x - box.x0), y: round(p.y - box.y0) } : null);
+    const conv = (c) => ({ closed: true, points: c.points.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout), ...(p.mode ? { mode: p.mode } : {}) })) });
+    const [main, ...rest] = contours.map(conv);
+    const base = nodes[0];
+    const parent = store.parentOf(base.id);
+    const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
+    const w = Math.max(1, round(box.x1 - box.x0)), h = Math.max(1, round(box.y1 - box.y0));
+    const node = createNode('path', {
+      name: nextName(store.page(), 'path').replace('Vetor', BOOL_NAMES[op]),
+      x: round(box.x0 - po.x), y: round(box.y0 - po.y), w, h, vw: w, vh: h, closed: true,
+      points: main.points, fillRule: 'nonzero',
+    });
+    if (rest.length) node.contours = rest;
+    // estilo da camada de baixo (preenchimento, contorno, sombras, opacidade)
+    node.fill = JSON.parse(JSON.stringify(base.fill || defaultFill('#D9D9D9')));
+    if (node.fill.type === 'none') node.fill = defaultFill('#D9D9D9');
+    node.stroke = base.stroke ? JSON.parse(JSON.stringify(base.stroke)) : null;
+    if (node.stroke && base.type !== 'path') node.stroke.align = base.stroke.position || 'inside';
+    if (base.shadows) node.shadows = JSON.parse(JSON.stringify(base.shadows));
+    if (base.opacity != null) node.opacity = base.opacity;
+    if (hasLayout(parent) && !base.absolute) node.absolute = true; // a forma final continua onde estava
+    store.update(() => {
+      const list = store.listOf(base.id);
+      const at = list.indexOf(base);
+      for (const n of nodes) { const l = store.listOf(n.id); const i = l?.indexOf(n); if (i >= 0) l.splice(i, 1); }
+      list.splice(Math.min(at, list.length), 0, node);
+    });
+    store.setSelection([node.id]);
+    store.commit();
+    return { node };
+  }
+
   /** Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG. */
   function localBox(node) {
     const parent = store.parentOf(node.id);
@@ -1038,7 +1134,7 @@ export function createCommands(store, canvas) {
 
   // API pública dos comandos
   const api = {
-    insertSvg, placeNew,
+    insertSvg, placeNew, booleanOp,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle,

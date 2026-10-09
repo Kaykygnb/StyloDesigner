@@ -60,7 +60,7 @@ const r = await ev(() => {
 ok('Ctrl+A / selectAll pega todos os pontos', r.count === 4, JSON.stringify(r));
 ok('tipo canto/suave aplica a todos os selecionados', r.smooth && r.corner, JSON.stringify(r));
 ok('Shift soma ponto; Excluir remove os 2 e o caminho fica com 2', r.two === 2 && r.del && r.left === 2, JSON.stringify(r));
-ok('Alt+clique converte o ponto (canto → suave)', r.alt === 'smooth', JSON.stringify(r));
+ok('Alt+clique converte o ponto (canto → curva espelhada)', r.alt === 'mirror', JSON.stringify(r));
 ok('Abrir aqui corta o caminho fechado', r.opened, JSON.stringify(r));
 
 // extremidade e quina no SVG

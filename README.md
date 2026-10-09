@@ -43,7 +43,7 @@ O app abre com a **Vitrine completa**: uma landing page responsiva (a fictícia 
 ## O que dá para fazer
 
 **Desenhar e organizar**
-- Frames, seções, retângulos, elipses, linhas, polígonos, estrelas, texto, imagens e a **caneta** com curvas de Bézier (dá para desenhar os próprios ícones SVG, ou importar SVG do Figma e do Illustrator).
+- Frames, seções, retângulos, elipses, linhas, polígonos, estrelas, texto, imagens e a **caneta** com curvas de Bézier (dá para desenhar os próprios ícones SVG, ou importar SVG do Figma e do Illustrator): alças espelhadas, assimétricas ou livres por ponto, clicar no traço para adicionar ponto, **lápis** à mão livre com suavização (`Shift+P`), contorno com tracejado próprio, pontas, quinas e posição dentro/fora, e **booleanas** (unir, subtrair, interseção, excluir) entre vetores, retângulos e elipses.
 - Páginas, camadas com busca, grupos, máscaras, réguas e guias (`Ctrl+R`), grades de layout, alinhar e distribuir, desfazer até 200 passos.
 
 **Layout em CSS**
@@ -96,7 +96,8 @@ Abra **http://localhost:5173**. O app abre com a Vitrine completa: clique em uma
 
 | | |
 |---|---|
-| `F` frame · `R` retângulo · `E` elipse · `T` texto · `P` caneta | Desenhar |
+| `F` frame · `R` retângulo · `E` elipse · `T` texto · `P` caneta · `Shift+P` lápis | Desenhar |
+| `Ctrl+Alt+U` / `S` / `I` / `X` | Unir / subtrair / interseção / excluir (2+ formas) |
 | `Shift+A` | Ligar o auto layout |
 | `Ctrl+R` | Réguas |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Desfazer / refazer |
@@ -166,7 +167,8 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 Sem enrolação, para você decidir se serve:
 
 - **Edição em equipe em tempo real:** vários agentes de IA trabalham juntos no mesmo editor (com travas por camada) e a presença mostra quem está no projeto, mas duas PESSOAS em navegadores diferentes ainda não editam o mesmo projeto ao mesmo tempo (o app detecta conflito e para de gravar, mas não junta edições). Não há login: o perfil (nome e cor) é local.
-- **Variantes de componente**, operações booleanas em formas, mais de um preenchimento/contorno por camada e unidades além de `px` (`%`, `rem`, `calc()`).
+- **Variantes de componente**, mais de um preenchimento/contorno por camada e unidades além de `px` (`%`, `rem`, `calc()`).
+- **Booleanas destrutivas e aproximadas:** o resultado vira UM vetor novo (não dá para reeditar as formas originais depois, só desfazer). As curvas são achatadas em polígonos e depois reajustadas em curvas, então o vetor final pode ganhar alguns pontos a mais e desvios de fração de pixel. Texto, grupos, linhas e frames com filhos não entram; espelhamento/rotação de um frame PAI não é considerado.
 - **Responsivo** só com `max-width` (desktop primeiro) e a mesma estrutura de camadas em todas as larguras (dá para reordenar com `order` e ocultar por breakpoint).
 - **Plugins** (a IA já entra pelo MCP e pelo Assistente; extensões próprias, não).
 

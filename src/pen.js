@@ -11,6 +11,7 @@
 import { nodePathData, pathData } from './css.js';
 import { defaultFill, round } from './model.js';
 import { contoursBounds, parsePathD } from './svgimport.js';
+import { cornerPoint, dragHandle, pointMode, reversePoints, smoothPoint, smoothStroke } from './geom.js';
 
 /**
  * Cria a CANETA. Dois modos, que não ficam ativos ao mesmo tempo:
@@ -22,6 +23,11 @@ import { contoursBounds, parsePathD } from './svgimport.js';
  *     altera a forma; Alt+clique no traço adiciona ponto (SEGUINDO a curva, sem deformá-la); duplo clique no ponto
  *     alterna canto↔suave; Delete remove; setas movem o ponto (Shift = 10); Shift ao arrastar/desenhar trava em 45°.
  *     O painel Design (seção Vetor) edita o ponto selecionado (tipo, X/Y) e mostra/aceita o `d` do SVG.
+ *     Clicar no traço (sem Alt) também adiciona um ponto e já permite arrastá-lo.
+ *  C) LÁPIS (ui.pencil, ferramenta 'pencil', Shift+P): arrastar desenha à mão livre; ao soltar, o traço é simplificado
+ *     (Ramer–Douglas–Peucker) e vira curvas de Bézier (ajuste de Schneider), com o nível de suavização ui.pencilSmooth.
+ *
+ *  Modos das alças por ponto (`pt.mode`, ver geom.js): 'mirror' espelhadas, 'asym' assimétricas, 'free' independentes.
  *
  * Este módulo não desenha: `overlaySvg()` devolve o SVG (em px de tela) que o overlay.js exibe.
  *
@@ -32,6 +38,8 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   const ui = store.ui;
   // gesto em andamento do ponteiro: { kind: 'pen' } criando um ponto, ou { kind: 'pt'|'hin'|'hout', idx } editando
   let drag = null;
+  // último clique num ponto em edição ({ id, idx, t }): para reconhecer o duplo clique (ver downEdit)
+  let lastPtDown = null;
 
   /** Distância entre dois pontos (px). */
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -101,7 +109,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     const p01 = lerp(a, c1), p12 = lerp(c1, c2), p23 = lerp(c2, b), p012 = lerp(p01, p12), p123 = lerp(p12, p23), m = lerp(p012, p123);
     if (a.hout) a.hout = p01;
     if (b.hin) b.hin = p23;
-    return { x: m.x, y: m.y, hin: p012, hout: p123 };
+    return { x: m.x, y: m.y, hin: p012, hout: p123, mode: 'asym' }; // alças alinhadas, comprimentos diferentes
   }
 
   // ------------------------------------------------------------------ criar com a caneta
@@ -120,6 +128,16 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     }
     store.setTool('move');
     store.emit('overlay');
+  }
+
+  /** Backspace durante o desenho: tira o ÚLTIMO ponto (sem pontos, cancela o caminho). Devolve true se tratou. */
+  function removeLast() {
+    const pen = ui.pen;
+    if (!pen) return false;
+    pen.pts.pop();
+    if (!pen.pts.length) { ui.pen = null; drag = null; }
+    store.emit('overlay');
+    return true;
   }
 
   /**
@@ -169,8 +187,11 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     if (drag?.kind === 'pen') {
       if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 3) {
         const pt = ui.pen.pts[drag.idx];
-        pt.hout = { x: p.x, y: p.y };
-        pt.hin = { x: 2 * pt.x - p.x, y: 2 * pt.y - p.y };
+        const q = e.shiftKey ? snap45(pt, p) : p; // Shift: alça em múltiplos de 45°
+        pt.hout = { x: q.x, y: q.y };
+        // Alt durante o arraste QUEBRA a simetria: a alça de entrada congela onde estava e só a de saída segue o mouse
+        if (e.altKey && pt.hin) pt.mode = 'free';
+        else if (pt.mode !== 'free') { pt.hin = { x: 2 * pt.x - q.x, y: 2 * pt.y - q.y }; pt.mode = 'mirror'; }
       }
     } else if (drag) {
       moveEditHandle(p, e);
@@ -245,6 +266,11 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     const n = editNode();
     if (!n) return;
     const cur = selPts();
+    // DUPLO CLIQUE no ponto (2 cliques no mesmo ponto em <400ms): alterna canto ↔ curva
+    const now = Date.now();
+    const dbl = kind === 'pt' && !e.altKey && !e.shiftKey && lastPtDown && lastPtDown.idx === idx && lastPtDown.id === n.id && now - lastPtDown.t < 400;
+    lastPtDown = dbl ? null : { idx, id: n.id, t: now };
+    if (dbl) { setSel([idx], idx); togglePointType(idx); store.emit('overlay'); store.emit('selection'); return; }
     if (kind === 'pt' && e.altKey) { setSel([idx], idx); togglePointType(idx); store.emit('selection'); return; }
     if (kind === 'pt' && e.shiftKey) {
       setSel(cur.includes(idx) ? cur.filter((i) => i !== idx) : [...cur, idx], idx);
@@ -263,7 +289,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   /**
    * Arrasta ponto ou alça (converte o mouse para o espaço do vetor).
    *  - Ponto: leva as próprias alças junto.
-   *  - Alça: a alça oposta é espelhada (curva suave) — segure Alt para quebrar o espelho e fazer um bico.
+   *  - Alça: a alça oposta segue o modo do ponto (espelhada, assimétrica ou independente) — Alt torna independente.
    */
   function moveEditHandle(world, e) {
     const n = editNode();
@@ -286,9 +312,8 @@ export function createPen({ store, canvas, commands, frameUnder }) {
           if (q.hout) { q.hout.x += dx; q.hout.y += dy; }
         }
       } else {
-        pt[drag.kind] = { x: l.x, y: l.y };
-        const other = drag.kind === 'hin' ? 'hout' : 'hin';
-        if (!e.altKey && pt[other]) pt[other] = { x: 2 * pt.x - l.x, y: 2 * pt.y - l.y }; // alças espelhadas (Alt quebra)
+        // a outra alça segue o MODO do ponto (espelhada/assimétrica/independente); Alt torna o ponto independente
+        dragHandle(pt, drag.kind, l, e.altKey);
       }
     });
   }
@@ -302,12 +327,8 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     if (!n) return;
     store.update(() => {
       const pt = n.points[idx];
-      if (pt.hin || pt.hout) { pt.hin = null; pt.hout = null; return; }
-      const prev = n.points[(idx - 1 + n.points.length) % n.points.length];
-      const next = n.points[(idx + 1) % n.points.length];
-      const vx = (next.x - prev.x) / 4, vy = (next.y - prev.y) / 4;
-      pt.hout = { x: pt.x + vx, y: pt.y + vy };
-      pt.hin = { x: pt.x - vx, y: pt.y - vy };
+      if (pt.hin || pt.hout) cornerPoint(pt);
+      else smoothPoint(n.points, idx, n.closed);
     });
     commands.normalizePath(editNode());
     store.commit();
@@ -330,11 +351,11 @@ export function createPen({ store, canvas, commands, frameUnder }) {
    * Alt+clique no traço: insere um ponto no lugar do traço mais perto do clique, MEDINDO NA CURVA (nearestOnPath) e
    * dividindo o segmento (splitSegment): num trecho curvo o ponto novo nasce com as alças certas e o desenho não muda.
    */
-  function addPointAt(e) {
+  function addPointAt(e, { drag: startDrag = false } = {}) {
     const n = editNode();
-    if (!n) return;
+    if (!n) return null;
     const hit = nearestOnPath(n, toLocal(n, canvas.toWorld(e.clientX, e.clientY)));
-    if (!hit) return;
+    if (!hit) return null;
     const pts = n.points;
     store.update(() => {
       const m = splitSegment(pts[hit.i], pts[(hit.i + 1) % pts.length], hit.t);
@@ -344,18 +365,35 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     commands.normalizePath(n);
     store.commit();
     store.emit('selection');
+    // clicar-e-arrastar no traço: o ponto novo já sai andando junto com o mouse
+    if (startDrag) drag = { kind: 'pt', idx: hit.i + 1, collapseTo: null, moved: false, origin: { x: n.points[hit.i + 1].x, y: n.points[hit.i + 1].y } };
+    ui.penGhost = null;
+    store.emit('overlay');
+    return hit.i + 1;
   }
 
-  /** Com Alt pressionado, mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar). */
+  /** O clique (px de tela) caiu em cima do traço do vetor em edição (a menos de 6px)? */
+  function onSegment(e) {
+    const n = editNode();
+    if (!n) return false;
+    const w = canvas.toWorld(e.clientX, e.clientY);
+    const hit = nearestOnPath(n, toLocal(n, w));
+    return !!hit && dist(screenOf(toWorld(n, hit.pt)), screenOf(w)) < 6;
+  }
+
+  /**
+   * Mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar): perto do traço (6px),
+   * ou num raio maior (18px) com Alt. Não aparece em cima de um ponto ou alça.
+   */
   function hover(e) {
     const n = editNode();
     let ghost = null;
-    if (n && e.altKey) {
+    if (n && !e.target?.dataset?.edit) {
       const w = canvas.toWorld(e.clientX, e.clientY);
       const hit = nearestOnPath(n, toLocal(n, w));
       if (hit) {
         const gw = toWorld(n, hit.pt);
-        if (dist(screenOf(gw), screenOf(w)) < 18) ghost = gw;
+        if (dist(screenOf(gw), screenOf(w)) < (e.altKey ? 18 : 6)) ghost = gw;
       }
     }
     if (ghost || ui.penGhost) { ui.penGhost = ghost; store.emit('overlay'); }
@@ -365,37 +403,38 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   /** Escala do espaço do vetor (vw×vh) para px da camada. */
   const scaleOf = (n) => ({ sx: n.w / (n.vw || 1), sy: n.h / (n.vh || 1) });
 
-  /** Tipo do ponto selecionado: 'corner' (sem alças), 'smooth' (alças alinhadas e iguais) ou 'free' (qualquer outra). */
+  /**
+   * Tipo do ponto selecionado: 'corner' (sem alças), 'mirror' (espelhadas), 'asym' (assimétricas) ou 'free'
+   * (independentes). Ver geom.js → pointMode.
+   */
   function pointType() {
     const n = editNode();
-    const pt = n && ui.editPt != null ? n.points[ui.editPt] : null;
-    if (!pt) return null;
-    if (!pt.hin && !pt.hout) return 'corner';
-    if (pt.hin && pt.hout) {
-      const a = { x: pt.hout.x - pt.x, y: pt.hout.y - pt.y }, b = { x: pt.x - pt.hin.x, y: pt.y - pt.hin.y };
-      if (Math.hypot(a.x - b.x, a.y - b.y) < 0.01 * (Math.hypot(a.x, a.y) || 1)) return 'smooth';
-    }
-    return 'free';
+    return pointMode(n && ui.editPt != null ? n.points[ui.editPt] : null);
   }
 
-  /** Define o tipo dos pontos selecionados: 'corner' tira as alças; 'smooth' deixa as duas alças iguais e opostas. */
+  /**
+   * Define o tipo dos pontos selecionados: 'corner' tira as alças; 'mirror' deixa as duas alças iguais e opostas;
+   * 'asym' alinha as alças mantendo os comprimentos; 'free' marca o ponto como independente (cria alças se não houver).
+   * ('smooth' é aceito como sinônimo de 'mirror', por compatibilidade.)
+   */
   function setPointType(type) {
     const n = editNode();
     if (!n || ui.editPt == null) return;
+    if (type === 'smooth') type = 'mirror';
     store.update(() => {
       for (const idx of selPts()) {
         const pt = n.points[idx];
         if (!pt) continue;
-        if (type === 'corner') { pt.hin = null; pt.hout = null; continue; }
-        let v;
-        if (pt.hout) v = { x: pt.hout.x - pt.x, y: pt.hout.y - pt.y };
-        else if (pt.hin) v = { x: pt.x - pt.hin.x, y: pt.y - pt.hin.y };
-        else {
-          const prev = n.points[(idx - 1 + n.points.length) % n.points.length], next = n.points[(idx + 1) % n.points.length];
-          v = { x: (next.x - prev.x) / 4, y: (next.y - prev.y) / 4 };
+        if (type === 'corner') { cornerPoint(pt); continue; }
+        if (!pt.hin && !pt.hout) { smoothPoint(n.points, idx, n.closed, type); continue; }
+        if (!pt.hin || !pt.hout) { // só uma alça: cria a que falta, oposta
+          const hv = pt.hout || { x: 2 * pt.x - pt.hin.x, y: 2 * pt.y - pt.hin.y };
+          pt.hout = hv;
+          pt.hin = pt.hin || { x: 2 * pt.x - hv.x, y: 2 * pt.y - hv.y };
         }
-        pt.hout = { x: pt.x + v.x, y: pt.y + v.y };
-        pt.hin = { x: pt.x - v.x, y: pt.y - v.y };
+        pt.mode = type;
+        // alinha as alças conforme o modo novo (mirror/asym), partindo da alça de saída
+        if (type !== 'free') dragHandle(pt, 'hout', pt.hout);
       }
       commands.normalizePath(n);
     });
@@ -455,7 +494,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     const n = store.get(id || ui.editPathId);
     if (!n || n.type !== 'path') return;
     store.update(() => {
-      n.points = n.points.reverse().map((p) => ({ x: p.x, y: p.y, hin: p.hout, hout: p.hin }));
+      n.points = reversePoints(n.points);
       if (ui.editPt != null && ui.editPathId === n.id) {
         const last = n.points.length - 1;
         setSel(selPts().map((i) => last - i), last - ui.editPt);
@@ -514,13 +553,13 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     const click = canvas.toWorld(e.clientX, e.clientY);
     for (const n of store.selected()) {
       if (n.type !== 'path' || n.closed || n.rotation || n.contours?.length || n.points.length < 2 || !n.visible || n.locked) continue;
-      const W = (pt) => ({ ...toWorld(n, pt), hin: pt.hin && toWorld(n, pt.hin), hout: pt.hout && toWorld(n, pt.hout) });
+      const W = (pt) => ({ ...toWorld(n, pt), hin: pt.hin && toWorld(n, pt.hin), hout: pt.hout && toWorld(n, pt.hout), ...(pt.mode ? { mode: pt.mode } : {}) });
       const pts = n.points.map(W);
       const parent = store.parentOf(n.id);
       if (dist(screenOf(pts[pts.length - 1]), screenOf(click)) < 9) return { pts, cursor: null, parent, replaceId: n.id };
       if (dist(screenOf(pts[0]), screenOf(click)) < 9) {
         // clicou no INÍCIO: inverte a ordem (e troca hin/hout) para a ponta clicada ficar no fim
-        return { pts: pts.reverse().map((p) => ({ x: p.x, y: p.y, hin: p.hout, hout: p.hin })), cursor: null, parent, replaceId: n.id };
+        return { pts: reversePoints(pts), cursor: null, parent, replaceId: n.id };
       }
     }
     return null;
@@ -590,6 +629,76 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     store.emit('selection');
   }
 
+  /** Fecha ou abre o caminho (liga/desliga o segmento do último ponto ao primeiro). */
+  function setClosed(id, closed) {
+    const n = store.get(id || ui.editPathId);
+    if (!n || n.type !== 'path' || n.points.length < 2) return;
+    store.update(() => {
+      n.closed = !!closed;
+      if (n.closed && n.fill.type === 'none') n.fill = defaultFill('#D9D9D9');
+      commands.normalizePath(n);
+    });
+    store.commit();
+    store.emit('selection');
+  }
+
+  // ------------------------------------------------------------------ lápis (mão livre)
+  /** Começa um traço do lápis. O frame sob o clique vira o pai do vetor. */
+  function pencilDown(e) {
+    const p = canvas.toWorld(e.clientX, e.clientY);
+    ui.pencil = { raw: [p], parent: frameUnder(e.clientX, e.clientY) };
+    store.emit('overlay');
+  }
+  /** Arrastando o lápis: guarda os pontos (só os que andaram ≥1px de tela, para não acumular repetidos). */
+  function pencilMove(e) {
+    const pc = ui.pencil;
+    if (!pc) return;
+    const p = canvas.toWorld(e.clientX, e.clientY);
+    const last = pc.raw[pc.raw.length - 1];
+    if (dist(screenOf(last), screenOf(p)) >= 1) { pc.raw.push(p); store.emit('overlay'); }
+  }
+  /**
+   * Soltou o lápis: simplifica e ajusta curvas (geom.js → smoothStroke) e cria o vetor. Se o traço termina perto do
+   * começo (<12px de tela), o caminho é FECHADO. Traço curto demais (um clique) não cria nada.
+   */
+  function pencilUp() {
+    const pc = ui.pencil;
+    ui.pencil = null;
+    if (!pc || pc.raw.length < 2) { store.emit('overlay'); return null; }
+    const z = canvas.getView().zoom || 1;
+    const raw = pc.raw;
+    const first = raw[0], last = raw[raw.length - 1];
+    let total = 0;
+    for (let i = 1; i < raw.length; i++) total += dist(raw[i - 1], raw[i]);
+    if (total * z < 4) { store.emit('overlay'); return null; }
+    const close = raw.length > 6 && dist(screenOf(first), screenOf(last)) < 12 && total * z > 40;
+    const src = close ? [...raw, first] : raw;
+    const pts = smoothStroke(src, ui.pencilSmooth ?? 50, z);
+    if (close && pts.length > 2) {
+      const end = pts.pop();
+      const p0 = pts[0];
+      p0.hin = end.hin;
+      delete p0.mode;
+      // a emenda (início = fim) costuma sair com um "bico" pequeno: se as alças quase se alinham, alinha de vez
+      if (p0.hin && p0.hout) {
+        const a = Math.atan2(p0.hout.y - p0.y, p0.hout.x - p0.x), b = Math.atan2(p0.y - p0.hin.y, p0.x - p0.hin.x);
+        const diff = Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+        if (diff < Math.PI / 3) {
+          const mid = Math.atan2(Math.sin(a) + Math.sin(b), Math.cos(a) + Math.cos(b));
+          const lo = Math.hypot(p0.hout.x - p0.x, p0.hout.y - p0.y), li = Math.hypot(p0.hin.x - p0.x, p0.hin.y - p0.y);
+          p0.hout = { x: p0.x + Math.cos(mid) * lo, y: p0.y + Math.sin(mid) * lo };
+          p0.hin = { x: p0.x - Math.cos(mid) * li, y: p0.y - Math.sin(mid) * li };
+        }
+      }
+      const m = pointMode(p0);
+      if (m !== 'corner') p0.mode = m;
+    }
+    if (pts.length < 2) { store.emit('overlay'); return null; }
+    const node = commands.addPathFromWorld(pts, close, pc.parent);
+    store.emit('overlay');
+    return node;
+  }
+
   // ------------------------------------------------------------------ desenho do overlay (SVG em px de tela)
   /**
    * Markup SVG (em px de tela) do que a caneta mostra: o caminho em construção com o "elástico" até o cursor, os pontos
@@ -611,12 +720,20 @@ export function createPen({ store, canvas, commands, frameUnder }) {
         out.push(`<rect x="${p.x - 4}" y="${p.y - 4}" width="8" height="8" class="pen-pt${i === 0 ? ' first' : ''}"/>`);
       });
     }
+    if (ui.pencil?.raw.length > 1) {
+      const d = ui.pencil.raw.map((p, i) => { const s = canvas.toScreen(p.x, p.y); return `${i ? 'L' : 'M'} ${s.x} ${s.y}`; }).join(' ');
+      out.push(`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`);
+    }
     if (ui.penGhost) {
       const g = S(ui.penGhost);
       out.push(`<circle cx="${g.x}" cy="${g.y}" r="5" class="pen-ghost"/>`);
     }
     const n = editNode();
     if (n) {
+      // contorno do caminho em destaque (como no Figma): mostra os segmentos mesmo sem traço/preenchimento
+      const scr = (pts) => pts.map((pt) => S({ ...toWorld(n, pt), hin: pt.hin && toWorld(n, pt.hin), hout: pt.hout && toWorld(n, pt.hout) }));
+      const outline = [pathData(scr(n.points), n.closed), ...(n.contours || []).map((c) => pathData(scr(c.points), c.closed))].join(' ');
+      out.push(`<path d="${outline}" class="pen-outline"/>`);
       n.points.forEach((pt, i) => {
         const p = S(toWorld(n, pt));
         const hin = pt.hin && S(toWorld(n, pt.hin)), hout = pt.hout && S(toWorld(n, pt.hout));
@@ -638,9 +755,10 @@ export function createPen({ store, canvas, commands, frameUnder }) {
 
   // API pública
   return {
-    down, move, up, finish, startEdit, exitEdit, downEdit, togglePointType, deletePoint, addPointAt, hover,
-    pointType, setPointType, pointPos, setPointPos, nudge, reverse, pathD, applyPathD,
+    down, move, up, finish, removeLast, startEdit, exitEdit, downEdit, togglePointType, deletePoint, addPointAt, onSegment, hover,
+    pointType, setPointType, pointPos, setPointPos, nudge, reverse, setClosed, pathD, applyPathD,
     marqueeStart, marqueeMove, marqueeEnd, selectAll, selectedCount, openAfter,
+    pencilDown, pencilMove, pencilUp,
     overlaySvg, isDrawing, isEditing,
   };
 }
