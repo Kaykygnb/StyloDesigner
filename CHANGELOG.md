@@ -21,7 +21,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ### Documentação
 - `docs/AGENTE.md`: quando usar subagentes e o Jev; streaming e tempos.
-### Adicionado
+
+### Adicionado (editor de código)
 - **Editor de código grande**: "Editar" na aba Código (ou `Ctrl+Shift+E`) abre um editor embaixo do canvas, com abas *CSS da camada*, *CSS da página* e *HTML*. Arraste a borda para mudar a altura (fica lembrada), `F11`/botão para tela cheia e `Esc` para voltar. O canvas mostra o resultado **ao vivo** enquanto você digita (sem entrar no histórico); `Ctrl+S`/`Ctrl+Enter` aplica com um passo de desfazer.
 - **Autocompletar de verdade** (sem dependências): propriedades CSS modernas com busca fuzzy (`jc` → `justify-content`), valores por propriedade, unidades depois de números, funções (`var()`, `calc()`, `clamp()`, `repeat()`, `minmax()`, gradientes...), variáveis do projeto (estilos de cor e variáveis de tamanho com prévia da cor), seletores com as classes e ids das camadas, pseudo-classes e `@media` com os breakpoints do projeto. No HTML: etiquetas, atributos por etiqueta, valores comuns, fechamento automático e **Emmet** (`div.card>h2+p` + `Tab`).
 - No editor: linha atual destacada, colchetes e aspas fecham sozinhos, Enter abre o bloco entre `{ }`, `Ctrl+/` comenta a linha e `Ctrl+F` procura.
@@ -41,7 +42,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - O projeto agora se chama **Stylo**: novo nome, logo e ícone da aba. O identificador do servidor MCP continua `projeto-designer` para não quebrar integrações já configuradas.
 - Nova identidade visual: grafite neutro com azul de destaque (#4c8dff) e âmbar para medidas e guias, sem degradês; a interface usa IBM Plex Sans. Tema claro reajustado com a mesma lógica.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Central de ajuda** (botão ? ou tecla ?): primeiros passos, atalhos, problemas comuns e suporte, com diagnóstico do ambiente para copiar e link para abrir um chamado.
 - CSS: `position: sticky` ("Fixar ao rolar") e `pointer-events: none` na seção Estados → Normal. O sticky só vale para itens em fluxo e aparece na apresentação e no HTML exportado.
 
@@ -66,7 +68,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [0.17.0] — 2026-10-08 — MCP completo, acesso de administrador e plugin do Claude
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **15 ferramentas novas** (33 no total): `get_image` (a IA **vê** a tela como PNG, enviado como imagem pelo MCP), `export_html`, `set_responsive` (Tablet/Celular → `@media`), `set_state` (hover/pressionado/foco), `create_component`, `create_instance`, `duplicate_layers`, `add_interaction` (protótipo), `add_comment`, `delete_page`, `redo` e, para projetos, `list_projects`, `open_project`, `save_project`, `new_project`.
 - **Acesso de administrador** (Configurações → Assistente de IA e MCP): os programas de IA **deste computador** alteram sem a janela de permissão (um aviso mostra cada alteração; Ctrl+Z desfaz) e podem abrir, salvar e criar projetos. Sem ele, as ferramentas de projeto são recusadas. O `/mcp` continua aceitando só pedidos desta máquina.
 - **Plugin do Claude Code**: o repositório é um marketplace (`.claude-plugin/marketplace.json`) com o plugin `projeto-designer` (`integrations/claude-code`): MCP configurado + skill com o ciclo de trabalho (ler → montar → olhar a imagem → corrigir → responsivo). Instalação: `/plugin marketplace add Kaykygnb/projetodesigner2` e `/plugin install projeto-designer@projeto-designer`.
@@ -83,7 +86,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 Relato do teste real com a NVIDIA (Nemotron): "conversa demais e faz pouco", "não sabe trocar fonte nem pôr ícone", "por que preciso selecionar algo?", "a cor dele é burra".
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **`build_layout`**: a IA monta uma **estrutura inteira numa chamada** (página, seção, card, formulário, com ícones dentro), com UMA permissão e UM Ctrl+Z. Sem seleção, vira uma tela nova ao lado das existentes. Frames com layout sem tamanho nascem "hug"; a tela cresce com o conteúdo.
 - **Ícones e fontes para a IA**: `search_icons` (aceita "carrinho", "casa"...), `insert_icon` (e nós `icon` dentro do `build_layout`) e `list_fonts` (nomes e pesos exatos).
 - **Paleta**: `create_color_styles` cria os estilos de cor (variáveis de CSS) e `fill: {styleId}` liga as camadas a eles.
@@ -110,7 +114,8 @@ Relato do teste real: "não consegui selecionar os modelos da NVIDIA nas configu
 
 ## [0.15.1] — 2026-10-08 — NVIDIA NIM, instruções da IA e linhas do inspetor
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Provedores no Assistente**: OpenAI, **NVIDIA NIM** (`https://integrate.api.nvidia.com/v1`, chave `nvapi-...`), Ollama (grátis, no PC) ou outro compatível. Cada provedor guarda a sua chave (trocar e voltar não apaga nada); também aceita `OPENAI_API_KEY` / `NVIDIA_API_KEY`.
 - **"Ver modelos"** em Configurações: lista os modelos da sua conta (e testa a chave), para escolher sem adivinhar o nome.
 - **`docs/AGENTE.md`**: as instruções da IA (quem ela é, como a ferramenta funciona, o que cada ferramenta faz, como trabalhar, exemplos e limites). O servidor lê a cada conversa: editar o arquivo muda o comportamento na hora, no Assistente e no MCP.
@@ -127,7 +132,8 @@ Relato do teste real: "não consegui selecionar os modelos da NVIDIA nas configu
 
 Versão de fechamento antes de estudar o código: as três últimas peças pedidas.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Assistente de IA** (botão ✦ no topo): conversa dentro do editor que lê o design e faz alterações. Usa a **sua** chave da OpenAI, guardada só no servidor local (Configurações → Assistente de IA e MCP), ou qualquer servidor compatível (Ollama, LM Studio, de graça no seu PC). Mostra cada passo ("✓ Alterou “Botão”: radius") e tem "Parar".
 - **MCP**: `http://localhost:5173/mcp` (Claude Code: `claude mcp add --transport http designer http://localhost:5173/mcp`) e `scripts/mcp.mjs` para quem usa stdio (Codex, Claude Desktop). Sem limite de chamadas: é tudo local. Protocolo implementado sem dependências em `server/mcp.js`.
 - **11 ferramentas** para a IA (`src/agent/schema.js`): ler projeto, camada, código, seleção, procurar, selecionar; alterar, criar, apagar, mover e desfazer. A mesma lista vale para o Assistente e para o MCP.
@@ -151,7 +157,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 - **Tela fluida no celular:** o "Telas em 390px" deixava o site com no máximo 390px num celular maior (faixas dos lados); agora a tela fluida ocupa a janela em qualquer largura.
 - **Vitrine:** os itens dos planos ficam numa lista `<ul>` dentro de cada card.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - `tests/e2e/exportacao-fiel.mjs`: exporta cada tela, abre como site e compara **cada camada** com o editor (Desktop, Tablet e Celular, ±1,5 px). Conferido que ele falha com a correção desligada.
 - `tests/exportacao.test.js` (7 testes) e a opção `ids` em `exportHtml`/`generateCode` (marca os elementos com o id da camada, para os testes).
 
@@ -159,7 +166,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 
 ## [0.14.0] — 2026-10-08 — Exemplo "Vitrine completa"
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Exemplo "Vitrine completa"** (`src/sample-vitrine.js`): uma landing page responsiva inteira, na página inicial (com miniatura) e em Arquivo → Exemplo. Usa auto layout (flex e grade), Tablet/Celular (grade 3 → 2 → 1, hero em coluna, menu que some, fontes menores), tela raiz de largura fluida, modo escuro, variáveis de tamanho e estilos de texto, estados com transição e cursor, três componentes com instâncias, ícones vetoriais, gradientes linear/radial/cônico, vidro, HTML semântico, limite de linhas, faixa com rolagem horizontal, protótipo (botão → "Obrigado" → volta), notas, comentários (um com resposta, um resolvido), grade de layout, seção do canvas e a 2ª página "Guia de estilo".
 - `scripts/gerar-miniatura-vitrine.mjs` gera a miniatura (`assets/example-vitrine.png`).
 - Testes: `vitrine.test.js` (a estrutura promete e entrega) e a suíte de navegador `vitrine.mjs` (abre pela página inicial, 3 → 2 → 1 colunas, modo escuro, código, apresentar).
@@ -216,7 +224,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 
 ## [0.12.0] — 2026-10-08 — Painel Design explicativo, notas, HTML semântico e paletas
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Painel Design que explica**: cada seção ganhou ícone, cabeçalho clicável que **recolhe/abre** (lembrado) e uma explicação curta em português simples; o botão **Explicações** (topo do painel) liga/desliga esses textos. Novo **cabeçalho da seleção** com ícone, nome, tipo, a etiqueta HTML (`<div>`) e atalhos para ocultar/travar.
 - **Todos os campos com legenda + nome do CSS + dica rica**: posição (`left · top`), dimensões, modo de largura/altura (fixo/hug/fill), rotação, restrições, opacidade, mesclagem, cantos, fonte, peso, tamanho, altura da linha, espaçamento, alinhamento e caixa do texto, tipo de preenchimento, contorno (espessura, estilo, posição, extremidade, quina, lados) e sombras (deslocamento X/Y, desfoque, espalhar).
 - **Empilhamento** (`z-index`): botões trazer para frente / avançar / recuar / enviar para trás na seção Posição.
@@ -285,13 +294,15 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 - **Texto — espaço entre palavras** (`word-spacing`), também em estilos de texto compartilhados e no SVG. `truncate`, `lines` e `wordSpacing` sincronizam do componente para as instâncias e entram em copiar/colar estilo.
 - No **SVG exportado**: tamanho próprio e posição ficam **exatos** (o editor guarda o tamanho original da imagem ao escolhê-la) e a repetição vira `<pattern>`; em cobrir/conter a posição é aproximada em 3 alinhamentos (o SVG não tem posição em %). Repetir junto com "conter" não é exportado.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Seletor de cor próprio** (no lugar do seletor feio do navegador): área de saturação/brilho, barra de matiz, campo HEX, conta-gotas e **grupos de cores**: "Neste projeto" (as mais usadas), "Estilos de cor" e paletas prontas (Neutros, Vivas, Suaves). Aplica ao vivo, grava o histórico ao soltar, fecha com Esc ou clicando fora e rola se a tela for baixa. Vale para preenchimento, contorno, gradiente, sombras e grades.
 - **Contorno por lado em ÍCONES**: Todos · Cima · Direita · Baixo · Esquerda · Espessura por lado. Cada lado liga/desliga sozinho e dá para combinar (ex.: cima e baixo); de "Todos", o clique escolhe só aquele lado; com os quatro ligados volta a "Todos". Substitui a lista de opções, e cada ícone tem dica com o CSS (`border-top`...).
 
 ## [0.10.0] — 2026-10-07 — Seção, auto layout com cara de produto e caneta para ícones SVG
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Seção** (`Shift+S`, como no Figma): contêiner de organização do canvas. Só existe na raiz, guarda frames, tem o nome em destaque acima dela e leva as telas junto ao ser movida. Desenhar uma seção em volta de telas da raiz **adota** as que ficaram totalmente dentro. Clicar no nome ou no corpo seleciona e arrasta a seção. Telas podem entrar e sair arrastando. Painel Design mostra só Posição, Tamanho, Preenchimento e Exportar. Exportada como `<section>`; `Ctrl+Shift+G` desfaz a seção.
 ### Adicionado (caneta para criar ícones SVG)
 - **Arquivo → Novo ícone (24×24)**: cria um frame de ícone no centro da vista, com a **grade de pixels de 1px**, enquadra com zoom grande, liga o **encaixe de 1px** e deixa a caneta pronta. Exporte pelo painel (SVG) como qualquer frame.
@@ -353,7 +364,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 - **CSS Grid não alinhava os itens**: todo item de grid recebia `justify-self: start` / `align-self: start` fixos, e no CSS isso anula o `justify-items` / `align-items` do grid pai. Agora o item só escreve `*-self` quando você escolhe (ou quando o tamanho é "Fill" = `stretch`), então o alinhamento do grid vale de verdade.
 - **Trocar de flex para grid** com `space-between` (que não existe no grid) caía num valor inválido; agora vira `start`. E `stretch` (que não existe em `justify-content`) vira `flex-start` ao voltar para flex.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Snap ao redimensionar**: a borda que você puxa gruda (até 6 px de tela) nas bordas do frame pai, dos vizinhos e das guias da régua, com a linha rosa. `Ctrl` ou `Alt` desligam. Só bordas: centros não puxam, para não atrapalhar um tamanho livre.
 - **Contorno por lado** em retângulos e frames: todos, só em cima, só embaixo, só esquerda, só direita, cima+baixo, esquerda+direita ou personalizado (espessura por lado). Vira `border-top/right/bottom/left` no CSS e linhas no SVG exportado.
 - **Grid**: opção `stretch` em `justify-items`/`align-items`, `justify-self` por item e o botão "Itens preenchem as células".
@@ -375,7 +387,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 - **Frame alto e vazio + `Shift+A` virava linha**: agora vira coluna (uma sidebar vazia), como já acontecia com um filho só.
 - **Cinza sobre cinza ao arrastar**: a cor que o app escolheu sozinho (e que você nunca mexeu) se ajusta quando a camada vai para um fundo da mesma cor. Cor escolhida por você nunca é alterada.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - 5 verificações em `tests/e2e/auto-layout-intencao.mjs` com o caso relatado.
 
 ---
@@ -388,7 +401,8 @@ Achado na revisão: na Vitrine, a seção "Planos" do HTML exportado desmontava 
 - **Forma desenhada dentro de um frame com auto layout ia para o FIM da fila** já durante o desenho, longe do mouse (a caixa de seleção e o retângulo apareciam em lugares diferentes). Agora ela fica sob o mouse enquanto você arrasta e, ao soltar, entra na fila **na posição onde foi desenhada**. Vale para retângulo, elipse, frame e linha; texto entra onde você clicou.
 - **Nomes repetidos** ("Retângulo 4" duas vezes): o nome novo agora usa o maior número existente + 1.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - 5 verificações em `tests/e2e/auto-layout-intencao.mjs` (desenhar entre itens, texto entre itens, nome único) e 1 teste unitário de nomes.
 
 ---
@@ -405,14 +419,16 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 - Frame criado em volta de camadas soltas agora abraça o conteúdo (hug): nada transborda.
 - **Formas nasciam invisíveis** (cinza sobre cinza, frame branco dentro de frame branco, texto preto sobre fundo escuro); agora nascem num tom que contrasta com o que está embaixo do cursor.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - `tests/e2e/auto-layout-intencao.mjs` (16 verificações) reproduz o caso relatado.
 
 ---
 
 ## [0.8.1] — 2026-10-07 — SVG do Figma e do Illustrator
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Sombras do Figma** (o filtro que ele exporta, inclusive várias sombras com spread) e `<feDropShadow>` viram sombras de verdade ao importar SVG.
 - **Nomes de fonte do Illustrator** ("Poppins-Bold", "OpenSans-SemiBoldItalic", "ArialMT") viram família + peso + itálico.
 - O aviso da importação diz **o que** ficou de fora ("sombra interna", "máscara", "imagem"...) em vez de só quantos.
@@ -425,7 +441,8 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 
 ## [0.8.0] — 2026-10-07 — SVG editável, ícones do Google e Google Fonts
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Importar SVG como vetores editáveis**: arrastar/abrir um `.svg` ou colar SVG como texto (Figma "Copiar como SVG", sites de ícones). Suporta `path` (M L H V C S Q T A Z, absolutos e relativos; arcos e quadráticas viram cúbicas), `rect` (cantos arredondados), `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text` simples, grupos, `transform`, `viewBox`, `<use>`, estilos herdados, `<style>` por classe/tag/id, cores com nome e gradientes. O que não é suportado é ignorado e contado num aviso.
 - **Vetores com vários contornos e furos** (`contours` + `fillRule: 'evenodd'`), desenhados no canvas, na máscara e no SVG exportado.
 - **Aba Ícones** com os **4.299 Material Symbols** do Google: busca (inglês e palavras comuns em português), estilo contorno/arredondado/reto, preenchido, cor e tamanho; insere como vetor (dentro do frame selecionado).
@@ -439,7 +456,8 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 
 ## [0.7.0] — 2026-10-07 — Página inicial e polimentos
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Página inicial** com os seus projetos: "continuar de onde parou" (miniatura ao vivo e onde está salvo), projetos da pasta com **miniaturas**, busca (`/`), ordenação, menu ⋯ (abrir, renomear, duplicar, versões) e cards dos exemplos. Abre ao iniciar (configurável) e pelo logo do editor ou Arquivo → Página inicial.
 - **Miniaturas**: geradas a partir do exportador SVG depois de salvar na pasta (no máximo 1 a cada 15 s) e servidas com política que bloqueia scripts.
 - **Renomear e duplicar** projetos da pasta (versões e miniatura vão junto ao renomear).
@@ -463,7 +481,8 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 
 ## [0.6.0] — 2026-10-07 — Salvamento na pasta do computador
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Salvar numa pasta do computador.** O `server.js` ganhou uma API (`/api`) que grava os projetos como arquivos `.json` numa pasta escolhida por você. Com o projeto ligado a um arquivo, **cada mudança é gravada lá sozinha**.
   - `Ctrl+S` na 1ª vez pede o nome; `Ctrl+Shift+S` salva com outro nome; `Ctrl+O` abre da pasta.
   - **Versões antigas** de cada projeto (no máximo uma a cada 10 min, até 20 por padrão), que podem ser abertas na janela Projetos.
@@ -502,7 +521,8 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 ### Alterado
 - Medição de desempenho separa o tempo do *handler* do app (p95 ≈ 7 ms com 400 camadas) da latência da automação.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - `tests/server.test.js` (assets 200; `package.json`, `.git`, traversal 404), `npm run test:e2e` e `npm run test:all`.
 
 ---
@@ -511,7 +531,8 @@ Relatado no primeiro teste real: "desenhei um retângulo grande (sidebar) e um p
 
 Documentação completa, capturas de tela e correções achadas ao fotografar o produto.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Novo projeto de exemplo "app mobile"** (Arquivo → *Exemplo: app mobile*): tela de carteira digital que mostra **CSS Grid**, **componente com 4 instâncias** (texto/ícone sobrescritos), **estilos de cor e texto** ligados a camadas e **protótipo navegável** (Enviar → Sucesso → Voltar). O exemplo antigo virou *Exemplo: landing page*.
 - **12 capturas de tela** do produto em `docs/screenshots/` e o script que as gera (`scripts/gerar-capturas.mjs`).
 - `CONTRIBUTING.md` com a **convenção de commits** (Conventional Commits em português), estilo de código e checklist de PR.
@@ -536,7 +557,8 @@ Documentação completa, capturas de tela e correções achadas ao fotografar o 
 ### Desempenho
 - Arrastar com **400 camadas**: de ~150 ms para ~20 ms por movimento (1000 camadas: de 350 ms para ~33 ms). Causas corrigidas: o painel de camadas se reconstruía a cada movimento e o índice interno era refeito mesmo quando só um valor mudava.
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Camadas**: começam recolhidas (abrem o caminho da seleção sozinhas), `Shift`+clique seleciona intervalo, `Alt`+clique na setinha abre/fecha tudo, busca por nome, menu da página (renomear, **duplicar**, excluir).
 - **Seleção**: `Ctrl`+clique atravessa grupos, `Tab`/`Shift+Tab` percorrem camadas, **X/Y/W/H do conjunto** para várias camadas.
 - **Medidas**: segurar `Alt` sobre outra camada mostra as distâncias.
@@ -552,7 +574,8 @@ Documentação completa, capturas de tela e correções achadas ao fotografar o 
 
 ## [0.3.0] — 2026-10-06 — Protótipo e SVG
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **Protótipo**: aba com interações (ao clicar / ao passar o mouse → navegar, voltar, abrir link), **transições** (dissolver e deslizar), ponto de partida do fluxo, **setas de fluxo** no canvas e modo **Apresentar** em tela cheia (`Ctrl+Alt+Enter`).
 - **Exportação SVG vetorial** (formas, textos, gradientes, sombras, máscaras, vetores).
 - `Ctrl+Alt+G` envolve a seleção em um frame.
@@ -562,7 +585,8 @@ Documentação completa, capturas de tela e correções achadas ao fotografar o 
 
 ## [0.2.0] — 2026-10-06 — Layout, vetores e biblioteca
 
-### Adicionado
+
+### Adicionado (editor de código)
 - **CSS Grid** como modo de auto layout (colunas, linhas, gaps, `span` por item).
 - **Constraints** dos filhos ao redimensionar frames; travar proporção; espelhar.
 - **Vetores**: ferramentas **Linha**, **Polígono**, **Estrela** e **Caneta** (curvas de Bézier, edição de pontos e alças).
@@ -578,7 +602,8 @@ Documentação completa, capturas de tela e correções achadas ao fotografar o 
 
 ## [0.1.0] — 2026-10-06 — Primeira versão
 
-### Adicionado
+
+### Adicionado (editor de código)
 - Editor local em JavaScript puro, com canvas em **HTML/CSS real**.
 - Ferramentas Mover, Frame, Retângulo, Elipse, Texto, Imagem e Mão.
 - **Auto layout em flexbox** (direção, gap, padding, justify, align, wrap) e tamanhos fixo/hug/fill.
