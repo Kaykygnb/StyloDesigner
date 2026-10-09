@@ -8,7 +8,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { nodePathData, rgba, hasStrokeSides } from './css.js';
+import { nodePathData, rgba, hasStrokeSides, dashAttr, strokeAlign } from './css.js';
 import { round } from './model.js';
 
 /** Arredonda para 2 casas decimais (mantém o SVG enxuto). */
@@ -108,7 +108,8 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
   /** Atributos de contorno SVG (cor, espessura, opacidade e tracejado/pontilhado via stroke-dasharray). */
   function strokeAttr(st) {
     if (!st || !(st.width > 0)) return '';
-    const dash = st.style === 'dashed' ? ` stroke-dasharray="${st.width * 3} ${st.width * 2}"` : st.style === 'dotted' ? ` stroke-dasharray="0 ${st.width * 2}" stroke-linecap="round"` : '';
+    // tracejado personalizado (stroke.dash) tem prioridade; pontilhado precisa de pontas redondas para virar bolinhas
+    const dash = dashAttr(st) + (st.style === 'dotted' && !st.dash ? ' stroke-linecap="round"' : '');
     return ` stroke="${rgba(st.color, 1)}" stroke-width="${st.width}"${st.opacity < 1 ? ` stroke-opacity="${st.opacity}"` : ''}${dash}`;
   }
 
@@ -215,8 +216,22 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
       if (node.type === 'path') {
         // vetores: traço centrado, com espessura constante ao esticar
         // extremidade e quina como no editor (padrão: redondas); tracejado "pontilhado" já define a própria extremidade
-        const cap = st.style === 'dotted' ? '' : ` stroke-linecap="${st.cap || 'round'}"`;
-        out.push(`<path d="${shapeD(node, w, h)}" fill="none"${strokeAttr(st)}${cap} stroke-linejoin="${st.join || 'round'}" vector-effect="non-scaling-stroke"/>`);
+        const cap = st.style === 'dotted' && !st.dash ? '' : ` stroke-linecap="${st.cap || 'round'}"`;
+        const miter = st.join === 'miter' && st.miter ? ` stroke-miterlimit="${n2(st.miter)}"` : '';
+        // contorno DENTRO/FORA (só caminho fechado): traço com o dobro da espessura, cortado pela forma
+        const align = strokeAlign(node);
+        const d = shapeD(node, w, h);
+        let cut = '';
+        if (align !== 'center') {
+          const cid = id('s');
+          const rule = node.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : '';
+          defs.push(align === 'inside'
+            ? `<clipPath id="${cid}"><path d="${d}"${rule.replace('fill-rule', 'clip-rule')}/></clipPath>`
+            : `<mask id="${cid}" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff"/><path d="${d}"${rule} fill="#000"/></mask>`);
+          cut = align === 'inside' ? ` clip-path="url(#${cid})"` : ` mask="url(#${cid})"`;
+        }
+        const sw = align === 'center' ? st : { ...st, width: st.width * 2 };
+        out.push(`<path d="${d}" fill="none"${strokeAttr(sw)}${cap} stroke-linejoin="${st.join || 'round'}"${miter}${cut} vector-effect="non-scaling-stroke"/>`);
       } else {
         // "dentro/fora": encolhe/expande a forma em metade da espessura (o SVG só tem traço centrado)
         const inset = { inside: -st.width / 2, outside: st.width / 2, center: 0 }[st.position] ?? 0;

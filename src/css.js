@@ -587,16 +587,56 @@ export function pathSvg(node, assets = {}) {
   const rule = node.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : '';
   const st = node.stroke;
   const w = st && st.width > 0 ? st.width : 0;
-  const dash = !w ? '' : st.style === 'dashed' ? ` stroke-dasharray="${w * 3} ${w * 2}"` : st.style === 'dotted' ? ` stroke-dasharray="0 ${w * 2}"` : '';
+  const align = strokeAlign(node);
+  // dentro/fora: o SVG só tem traço centrado, então desenha o DOBRO da espessura e corta metade (clipPath = só o
+  // que cai dentro da forma; máscara = só o que cai fora)
+  const sw = align === 'center' ? w : w * 2;
+  const dash = !w ? '' : dashAttr(st, w);
   const stroke = w
-    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${st.opacity}" stroke-width="${w}" stroke-linecap="${st.cap || 'round'}" stroke-linejoin="${st.join || 'round'}"${dash}`
+    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${st.opacity}" stroke-width="${sw}" stroke-linecap="${st.cap || 'round'}" stroke-linejoin="${st.join || 'round'}"${st.join === 'miter' && st.miter ? ` stroke-miterlimit="${num(st.miter)}"` : ''}${dash}`
     : '';
   const fo = opacity != null && opacity < 1 ? ` fill-opacity="${opacity}"` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${num(node.vw)} ${num(node.vh)}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible">` +
-    `${defs ? `<defs>${defs}</defs>` : ''}` +
-    `<path d="${d}" fill="${node.closed || paint !== 'none' ? paint : 'none'}"${fo}${rule}${stroke} vector-effect="non-scaling-stroke" data-vis="1"/>` +
-    `<path d="${d}" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/>` +
-    `</svg>`;
+  const fillAttr = node.closed || paint !== 'none' ? paint : 'none';
+  const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${num(node.vw)} ${num(node.vh)}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible">`;
+  const hit = `<path d="${d}" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/>`;
+  if (align === 'center') {
+    return head + `${defs ? `<defs>${defs}</defs>` : ''}` +
+      `<path d="${d}" fill="${fillAttr}"${fo}${rule}${stroke} vector-effect="non-scaling-stroke" data-vis="1"/>` + hit + `</svg>`;
+  }
+  const cid = `sk-${node.id}`;
+  const cut = align === 'inside'
+    ? `<clipPath id="${cid}"><path d="${d}"${rule.replace('fill-rule', 'clip-rule')}/></clipPath>`
+    : `<mask id="${cid}" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff"/><path d="${d}"${rule} fill="#000"/></mask>`;
+  const ref = align === 'inside' ? `clip-path="url(#${cid})"` : `mask="url(#${cid})"`;
+  return head + `<defs>${defs}${cut}</defs>` +
+    `<path d="${d}" fill="${fillAttr}"${fo}${rule} data-vis="1"/>` +
+    `<path d="${d}" fill="none"${stroke} ${ref} vector-effect="non-scaling-stroke" data-vis="2"/>` + hit + `</svg>`;
+}
+
+/**
+ * Onde fica o contorno de um VETOR: 'center' (padrão), 'inside' ou 'outside' (`stroke.align`). Dentro/fora só valem em
+ * caminho fechado; num caminho aberto o traço é sempre centrado. (Retângulos e frames usam `stroke.position`.)
+ */
+export function strokeAlign(node) {
+  const st = node.stroke;
+  if (!st || !(st.width > 0) || !node.closed) return 'center';
+  return st.align === 'inside' || st.align === 'outside' ? st.align : 'center';
+}
+
+/**
+ * `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade;
+ * senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
+ */
+export function dashAttr(st, w = st?.width) {
+  const custom = dashList(st?.dash);
+  if (custom) return ` stroke-dasharray="${custom}"`;
+  return st?.style === 'dashed' ? ` stroke-dasharray="${w * 3} ${w * 2}"` : st?.style === 'dotted' ? ` stroke-dasharray="0 ${w * 2}"` : '';
+}
+
+/** "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → ''). */
+export function dashList(text) {
+  const nums = String(text ?? '').match(/\d*\.?\d+/g)?.map(Number).filter((v) => Number.isFinite(v) && v >= 0) || [];
+  return nums.some((v) => v > 0) ? nums.map((v) => num(v)).join(' ') : '';
 }
 
 /**
