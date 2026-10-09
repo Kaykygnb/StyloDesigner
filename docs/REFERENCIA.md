@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-67 arquivos · 1054 funções e constantes documentadas.
+70 arquivos · 1149 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -26,6 +26,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/fonts.js`](#srcfontsjs) | Fontes do Google Fonts (lista, carregamento sob demanda e prévia) |
 | [`src/geom.js`](#srcgeomjs) | Geometria dos vetores (sem DOM, sem dependências; testável no node) |
 | [`src/html.js`](#srchtmljs) | HTML e CSS escritos à mão (sanitização, CSS da página, atributos HTML) |
+| [`src/imagefx.js`](#srcimagefxjs) | Matemática da IA de foto (funções puras sobre pixels, sem DOM) |
 | [`src/main.js`](#srcmainjs) | Ponto de entrada: monta o app |
 | [`src/model.js`](#srcmodeljs) | Modelo de dados do documento |
 | [`src/modes.js`](#srcmodesjs) | Modos de cor (claro/escuro...) e variáveis de tamanho (módulo puro, testado em tests/modes.test.js) |
@@ -63,6 +64,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/guides.js`](#srcuiguidesjs) |  |
 | [`src/ui/home.js`](#srcuihomejs) | Página inicial (os seus projetos) |
 | [`src/ui/icons.js`](#srcuiiconsjs) | Ícones SVG (inline, sem dependências) |
+| [`src/ui/imageai.js`](#srcuiimageaijs) | IA de foto: o editor de imagem (painel grande) e as edições usadas pelo agente |
 | [`src/ui/info.js`](#srcuiinfojs) |  |
 | [`src/ui/inspector.js`](#srcuiinspectorjs) | Painel do inspecionar (como a aba "elements" do F12) |
 | [`src/ui/layers.js`](#srcuilayersjs) | Painel de páginas e camadas |
@@ -76,6 +78,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/settings.js`](#srcuisettingsjs) | Página "configurações" (tela cheia dentro do app, não é janela modal) |
 | [`server.js`](#serverjs) | Servidor local: entrega o app e salva os projetos numa pasta do seu computador |
 | [`server/account.js`](#serveraccountjs) | Conta local (o seu perfil neste computador) |
+| [`server/imageai.js`](#serverimageaijs) | Edição generativa de foto (preencher área, expandir, trocar objeto, gerar) |
 | [`server/mcp.js`](#servermcpjs) | O protocolo MCP (model context protocol), sem dependências |
 | [`server/photos.js`](#serverphotosjs) |  |
 | [`server/presence.js`](#serverpresencejs) | Quem está no projeto (pessoas e agentes) e as travas por camada |
@@ -781,6 +784,85 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/imagefx.js
+
+**MATEMÁTICA DA IA DE FOTO (funções puras sobre pixels, sem DOM)** · [abrir o código](../src/imagefx.js)
+
+```text
+ Tudo aqui trabalha com arrays de pixels RGBA (Uint8ClampedArray, 4 bytes por pixel, o mesmo formato do
+ `ImageData` do canvas) e devolve arrays NOVOS (nunca altera a entrada). Por não depender do navegador, os
+ testes do Node (tests/imagefx.test.js) conferem cada conta. Quem desenha na tela é ui/imageai.js.
+
+ Conteúdo:
+  - AJUSTES: brilho, contraste, saturação, exposição, temperatura, nitidez e desfoque (adjustPixels)
+  - FILTROS prontos (FILTERS / applyFilter): combinações de ajustes + P&B, sépia e vinheta
+  - REMOVER FUNDO: estimativa automática pelas bordas (autoBackground), varinha mágica (magicWand),
+    pincel de apagar/restaurar (paintMask) e aplicação da máscara no canal alfa (applyMask)
+  - GEOMETRIA: recorte por proporção, redimensionar e o "plano" da edição generativa (planGenerative)
+  - MULTIPART: monta o corpo multipart/form-data que a API de imagens recebe (buildMultipart, usado no servidor)
+```
+
+- **`clamp(v, lo, hi)`** <sub>do módulo</sub> · [L20](../src/imagefx.js#L20) — Limita v a [lo, hi].
+- **`num(v, d = 0)`** <sub>do módulo</sub> · [L22](../src/imagefx.js#L22) — Número válido ou o padrão.
+- **`ADJ_DEFAULTS`** · [L26](../src/imagefx.js#L26) — Ajustes neutros (nada muda). Faixas: -100..100, exceto nitidez 0..100 e desfoque 0..40 (px).
+- **`ADJ_FIELDS`** · [L28](../src/imagefx.js#L28) — Rótulos e faixas dos controles (a tela monta os controles a partir desta lista).
+- **`normalizeAdj(adj = {})`** · [L39](../src/imagefx.js#L39) — Ajustes completos e dentro da faixa (aceita objeto parcial ou com lixo).
+- **`isNeutral(adj)`** · [L45](../src/imagefx.js#L45) — true se nenhum ajuste muda a imagem.
+- **`toneLut({ exposure = 0, brightness = 0, contrast = 0 } = {})`** · [L53](../src/imagefx.js#L53) — Tabela (LUT) de 256 valores com exposição, brilho e contraste: a mesma conta para os três canais, feita uma vez só.
+
+   - exposição: multiplica (como abrir o diafragma): 2^(e/50) → +100 = ×4, -100 = ×¼
+   - brilho: soma até ±128
+   - contraste: fórmula clássica de contraste em torno do cinza médio (128)
+- **`boxBlur(src, w, h, radius)`** · [L67](../src/imagefx.js#L67) — Desfoque em caixa (box blur) separável, 3 passadas (fica parecido com o gaussiano). Raio em px. Funciona no RGBA inteiro. Devolve um array novo.
+- **`adjustPixels(src, w, h, adj = {})`** · [L104](../src/imagefx.js#L104) — Aplica os ajustes a uma imagem RGBA (w × h). Ordem: tom (exposição/brilho/contraste) → saturação → temperatura → desfoque → nitidez (máscara de nitidez: realça a diferença entre a imagem e ela mesma desfocada). O alfa não muda.
+  - `src` <sub>Uint8ClampedArray</sub> — 
+  - `w` <sub>number</sub> — @param {number} h
+  - `adj` <sub>object</sub> — ver ADJ_DEFAULTS
+  - ↩︎ `Uint8ClampedArray`
+- **`keepAlpha(to, from)`** <sub>do módulo</sub> · [L137](../src/imagefx.js#L137) — Copia o alfa de `from` para `to` (o desfoque não deve mexer na transparência).
+- **`FILTERS`** · [L147](../src/imagefx.js#L147) — Filtros: cada um é uma combinação de ajustes (adj) e, se quiser, P&B (mono), sépia (0..1) e vinheta (0..1). A tela mostra uma miniatura de cada um aplicada à foto.
+- **`filterById(id)`** · [L160](../src/imagefx.js#L160) — Filtro pelo id (ou o "Original").
+- **`applyFilter(src, w, h, id, strength = 1)`** · [L166](../src/imagefx.js#L166) — Aplica um filtro pronto. `strength` (0..1) mistura com a imagem de entrada (1 = filtro inteiro).
+  - ↩︎ `Uint8ClampedArray`
+- **`vignette(src, w, h, amount)`** · [L190](../src/imagefx.js#L190) — Escurece os cantos: multiplica por 1 − força·(distância ao centro)².
+- **`renderPixels(src, w, h, { filter = 'none', adj = null, mask = null } = {})`** · [L209](../src/imagefx.js#L209) — Pipeline completo dos pixels: filtro → ajustes → máscara (fundo removido). É o que a prévia e o "Aplicar" usam.
+- **`dist2(d, i, r, g, b)`** <sub>do módulo</sub> · [L218](../src/imagefx.js#L218) — Distância de cor ao quadrado (RGB).
+- **`tolToDist2(tol)`** · [L220](../src/imagefx.js#L220) — Tolerância 0..100 → distância máxima ao quadrado no espaço RGB (100 = 441,7, a diagonal do cubo).
+- **`magicWand(src, w, h, x, y, tolerance = 32, contiguous = true)`** · [L228](../src/imagefx.js#L228) — VARINHA MÁGICA: seleciona os pixels com cor parecida com a do ponto clicado. `contiguous` (padrão) = só os que estão ligados ao ponto (preenchimento por inundação, 4 vizinhos); senão, todos da imagem com cor parecida. Pixels já transparentes (alfa < 8) contam como "parecidos" (o fundo já removido não para a varinha).
+  - ↩︎ `Uint8Array` 1 = selecionado
+- **`borderColors(src, w, h)`** · [L258](../src/imagefx.js#L258) — Cores dominantes da BORDA da imagem (o que provavelmente é fundo): agrupa as cores da moldura de 1 px em "caixas" de 32 níveis por canal e devolve a média das caixas que somam pelo menos 8% da borda (até 4 cores).
+  - ↩︎ `{r:number,g:number,b:number,share:number` []}
+- **`autoBackground(src, w, h, { tolerance = 28, feather = 1, shrink = 1 } = {})`** · [L287](../src/imagefx.js#L287) — REMOVER FUNDO AUTOMÁTICO (sem IA): estima as cores do fundo pela borda (borderColors) e "inunda" a partir de todos os pixels da borda que têm essas cores, avançando para vizinhos parecidos com alguma cor de fundo. O que a inundação alcança é fundo (alfa 0); o resto é o objeto. Ilhas de fundo fechadas (ex.: o miolo de um "O") ficam: use a varinha. No fim tira `shrink` px da borda do objeto (a mistura com o fundo) e suaviza o recorte (`feather` px) para não ficar serrilhado.
+  - ↩︎ `{mask: Uint8Array, colors: object[], removed: number` }  mask: 0..255 por pixel (255 = mantém)
+- **`erodeMask(mask, w, h)`** · [L320](../src/imagefx.js#L320) — Tira 1 px do objeto em volta de tudo que já é fundo (4 vizinhos). Altera `mask` no lugar; devolve quantos saíram.
+- **`featherMask(mask, w, h, radius)`** · [L332](../src/imagefx.js#L332) — Suaviza a máscara (desfoque em caixa só no canal da máscara).
+- **`combineSelection(mask, sel, mode = 'erase')`** · [L349](../src/imagefx.js#L349) — Junta uma seleção (da varinha) à máscara: modo "erase" apaga (vira fundo) e "keep" restaura (volta a aparecer).
+  - ↩︎ `Uint8Array` máscara nova
+- **`paintMask(mask, w, h, x, y, r, value, hardness = 0.6)`** · [L361](../src/imagefx.js#L361) — PINCEL na máscara: círculo de raio `r` em (x, y). `value` 0 = apagar, 255 = restaurar. `hardness` (0..1) é a parte do raio com força total; dali até a borda, a força cai até zero (borda macia). Altera `mask` NO LUGAR (o pincel roda a cada movimento do mouse; copiar a máscara inteira a cada passo ficaria lento) e devolve ela.
+- **`paintStroke(mask, w, h, a, b, r, value, hardness)`** · [L379](../src/imagefx.js#L379) — Pinta uma linha do pincel (de a até b), com passos de ¼ do raio: o traço sai contínuo mesmo com o mouse rápido.
+- **`applyMask(src, mask)`** · [L387](../src/imagefx.js#L387) — Multiplica o alfa de cada pixel pela máscara (0..255). Devolve um array novo.
+- **`maskCoverage(mask)`** · [L394](../src/imagefx.js#L394) — Quanto da imagem a máscara tira (0..1).
+- **`resizeMask(mask, w, h, nw, nh)`** · [L401](../src/imagefx.js#L401) — Máscara redimensionada (vizinho mais próximo): para levar a máscara da prévia ao tamanho real e vice-versa.
+- **`CROP_RATIOS`** · [L412](../src/imagefx.js#L412) — Proporções do recorte (rótulo, largura/altura; null = livre).
+- **`cropForRatio(w, h, ratio)`** · [L415](../src/imagefx.js#L415) — Maior retângulo centralizado com a proporção `ratio` (largura/altura) dentro de w × h. Sem ratio, a imagem toda.
+- **`clampCrop(c, w, h, ratio = null, min = 8)`** · [L426](../src/imagefx.js#L426) — Ajusta um recorte para caber na imagem, com tamanho mínimo e (se pedido) a proporção. Usado ao arrastar as alças. `anchor` = canto oposto ao que está sendo arrastado ('nw' | 'ne' | 'sw' | 'se'), para manter a proporção a partir dele.
+- **`fitWidth(w, h, maxW)`** · [L439](../src/imagefx.js#L439) — Tamanho final com largura máxima (mantém a proporção; nunca aumenta).
+- **`formatBytes(n)`** · [L446](../src/imagefx.js#L446) — "184 KB", "1,2 MB" (base 1024, vírgula decimal).
+- **`dataUrlBytes(url)`** · [L453](../src/imagefx.js#L453) — Bytes de um data URL base64 (sem decodificar).
+- **`planGenerative({ w, h, size = 1024, expand = null })`** · [L469](../src/imagefx.js#L469) — PLANO DA EDIÇÃO GENERATIVA. A API de imagens trabalha num quadrado (ex.: 1024 × 1024). Para qualquer proporção:
+
+   - a área de saída E (a imagem, ou a imagem + as margens de "Expandir") é encaixada no quadrado, centralizada;
+   - a imagem original ocupa o retângulo R dentro de E;
+   - depois, o servidor devolve o quadrado e a tela recorta E de volta, no tamanho outW × outH.
+  - ↩︎ `{size:number, scale:number, out:{x,y,w,h` , image:{x,y,w,h}, outW:number, outH:number}}
+- **`buildMultipart(parts, boundary = `----stylo${Math.random().toString(16).slice(2)}$…)`** · [L489](../src/imagefx.js#L489) — Monta um corpo multipart/form-data (o formato de envio de arquivos por formulário), que o POST /images/edits das APIs compatíveis com a OpenAI exige. Sem dependências: concatena as partes em bytes.
+  - `[]` <sub>{name:string, value?:string, data?:Uint8Array, filename?:string, type?:string</sub> — } parts texto (value) ou arquivo (data + filename + type)
+  - `[boundary]` <sub>string</sub> — separador (precisa não aparecer no conteúdo; o padrão é aleatório o bastante)
+  - ↩︎ `{body: Uint8Array, contentType: string, boundary: string` }
+- **`parseDataUrl(url)`** · [L509](../src/imagefx.js#L509) — Lê um data URL de imagem: { type, bytes } ou null se não for imagem base64.
+
+---
+
 ## src/main.js
 
 **PONTO DE ENTRADA: MONTA O APP** · [abrir o código](../src/main.js)
@@ -797,28 +879,28 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`toast(msg)`** <sub>do módulo</sub> · [L61](../src/main.js#L61) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
 - **`savePrefs()`** <sub>do módulo</sub> · [L75](../src/main.js#L75) — Grava as preferências (falhas silenciosas: é só conveniência).
 - **`openSettings(section)`** <sub>do módulo</sub> · [L103](../src/main.js#L103) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
-- **`quickSave()`** <sub>do módulo</sub> · [L106](../src/main.js#L106) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L137](../src/main.js#L137) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L161](../src/main.js#L161) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L201](../src/main.js#L201) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L334](../src/main.js#L334) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`quickSave()`** <sub>do módulo</sub> · [L108](../src/main.js#L108) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L139](../src/main.js#L139) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L163](../src/main.js#L163) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L203](../src/main.js#L203) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L336](../src/main.js#L336) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L380](../src/main.js#L380) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L397](../src/main.js#L397) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L382](../src/main.js#L382) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L399](../src/main.js#L399) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L409](../src/main.js#L409) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L490](../src/main.js#L490) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L528](../src/main.js#L528) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L576](../src/main.js#L576) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L666](../src/main.js#L666) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L729](../src/main.js#L729) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L411](../src/main.js#L411) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L492](../src/main.js#L492) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L530](../src/main.js#L530) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L578](../src/main.js#L578) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L668](../src/main.js#L668) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L731](../src/main.js#L731) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1720,29 +1802,31 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `props` <sub>object</sub> — 
 - **`summarize(n, depth = 0)`** · [L140](../src/agent/runner.js#L140) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
 - **`describeCall(tool, args, store)`** · [L164](../src/agent/runner.js#L164) — Descrição em português de uma alteração, para a janela de permissão.
-- **`createRunner({ store, commands, approve, saving = null, folder = null })`** · [L210](../src/agent/runner.js#L210) — Cria o executor.
+- **`createRunner({ store, commands, approve, saving = null, folder = null })`** · [L218](../src/agent/runner.js#L218) — Cria o executor.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.commands` <sub>object</sub> — 
   - `[deps.saving]` <sub>object</sub> — salvamento (abrir/salvar projetos da pasta) · @param {object} [deps.folder]  API da pasta (listar)
   - ↩︎ `{ run: (tool: string, args: object, client?: string, opts?: {external?: boolean, admin?: boolean` ) => Promise<object> }}
-- **`need(id)`** <sub>interna</sub> · [L212](../src/agent/runner.js#L212) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
-- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L218](../src/agent/runner.js#L218) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
-- **`iconCache`** <sub>interna</sub> · [L317](../src/agent/runner.js#L317) — SVGs de ícones já baixados (não baixa o mesmo duas vezes).
-- **`fetchIcon(name, style = 'outlined', filled = false)`** <sub>interna</sub> · [L319](../src/agent/runner.js#L319) — Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto).
-- **`iconNode(svg, { name, color = '#111111', size = 24 })`** <sub>interna</sub> · [L334](../src/agent/runner.js#L334) — Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos.
-- **`colorStyle(id)`** <sub>interna</sub> · [L340](../src/agent/runner.js#L340) — Cor e opacidade de um estilo de cor do projeto (ou null).
-- **`targetList(parent_id)`** <sub>interna</sub> · [L342](../src/agent/runner.js#L342) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
-- **`insertAt(list, node, index)`** <sub>interna</sub> · [L348](../src/agent/runner.js#L348) — Insere na posição pedida (ou no fim).
-- **`placeBeside(node)`** <sub>interna</sub> · [L350](../src/agent/runner.js#L350) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
-- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L358](../src/agent/runner.js#L358) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
-- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L370](../src/agent/runner.js#L370) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
-- **`guardSwitch()`** <sub>interna</sub> · [L395](../src/agent/runner.js#L395) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
-- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L582](../src/agent/runner.js#L582) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
+- **`need(id)`** <sub>interna</sub> · [L220](../src/agent/runner.js#L220) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
+- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L226](../src/agent/runner.js#L226) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
+- **`iconCache`** <sub>interna</sub> · [L325](../src/agent/runner.js#L325) — SVGs de ícones já baixados (não baixa o mesmo duas vezes).
+- **`fetchIcon(name, style = 'outlined', filled = false)`** <sub>interna</sub> · [L327](../src/agent/runner.js#L327) — Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto).
+- **`iconNode(svg, { name, color = '#111111', size = 24 })`** <sub>interna</sub> · [L342](../src/agent/runner.js#L342) — Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos.
+- **`colorStyle(id)`** <sub>interna</sub> · [L348](../src/agent/runner.js#L348) — Cor e opacidade de um estilo de cor do projeto (ou null).
+- **`targetList(parent_id)`** <sub>interna</sub> · [L350](../src/agent/runner.js#L350) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
+- **`insertAt(list, node, index)`** <sub>interna</sub> · [L356](../src/agent/runner.js#L356) — Insere na posição pedida (ou no fim).
+- **`placeBeside(node)`** <sub>interna</sub> · [L358](../src/agent/runner.js#L358) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
+- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L366](../src/agent/runner.js#L366) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
+- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L378](../src/agent/runner.js#L378) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
+- **`guardSwitch()`** <sub>interna</sub> · [L403](../src/agent/runner.js#L403) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
+- **`imageLayer(id)`** <sub>interna</sub> · [L412](../src/agent/runner.js#L412) — Camada com preenchimento de imagem (ou erro claro).
+- **`imageInfo(n)`** <sub>interna</sub> · [L418](../src/agent/runner.js#L418) — Resumo da imagem gravada (tamanho e peso).
+- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L625](../src/agent/runner.js#L625) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
   - `tool` <sub>string</sub> — 
   - `args` <sub>object</sub> — 
   - `[client]` <sub>string</sub> — quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
-- **`restoreDoc(json)`** <sub>interna</sub> · [L613](../src/agent/runner.js#L613) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
+- **`restoreDoc(json)`** <sub>interna</sub> · [L664](../src/agent/runner.js#L664) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
 
 ---
 
@@ -1764,10 +1848,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`PROP_HELP`** · [L18](../src/agent/schema.js#L18) — Propriedades que as ferramentas de criar/alterar aceitam (o resto é recusado com uma mensagem clara).
 - **`AGENT_TOOLS`** · [L34](../src/agent/schema.js#L34) — As ferramentas. `write: true` = altera o projeto (pede permissão e vira um passo do Ctrl+Z). `admin: true` = mexe nos ARQUIVOS de projeto (abrir, salvar, criar): para programas externos (MCP), só funciona com o "Acesso de administrador" ligado em Configurações. O Assistente interno pode usar (com permissão). `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
-- **`toolByName(name)`** · [L318](../src/agent/schema.js#L318) — Procura uma ferramenta pelo nome.
-- **`openAiTools()`** · [L321](../src/agent/schema.js#L321) — As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`).
-- **`mcpTools()`** · [L327](../src/agent/schema.js#L327) — As ferramentas no formato do MCP (`tools/list`).
-- **`AGENT_INSTRUCTIONS`** · [L338](../src/agent/schema.js#L338) — Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o que a ferramenta é e as regras de trabalho, para a IA agir do jeito certo desde a primeira mensagem.
+- **`toolByName(name)`** · [L358](../src/agent/schema.js#L358) — Procura uma ferramenta pelo nome.
+- **`openAiTools()`** · [L361](../src/agent/schema.js#L361) — As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`).
+- **`mcpTools()`** · [L367](../src/agent/schema.js#L367) — As ferramentas no formato do MCP (`tools/list`).
+- **`AGENT_INSTRUCTIONS`** · [L378](../src/agent/schema.js#L378) — Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o que a ferramenta é e as regras de trabalho, para a IA agir do jeito certo desde a primeira mensagem.
 
 ---
 
@@ -2261,10 +2345,91 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **ÍCONES SVG (inline, sem dependências)** · [abrir o código](../src/ui/icons.js)
 
 - **`P`** <sub>do módulo</sub> · [L11](../src/ui/icons.js#L11) — Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto). Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
-- **`icon(name, size = 16)`** · [L123](../src/ui/icons.js#L123) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+- **`icon(name, size = 16)`** · [L128](../src/ui/icons.js#L128) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
   - `name` <sub>string</sub> — 
   - `[size=16]` <sub>number</sub> — px
-- **`nodeIcon(type)`** · [L127](../src/ui/icons.js#L127) — Ícone usado na lista de camadas para cada tipo de camada.
+- **`nodeIcon(type)`** · [L132](../src/ui/icons.js#L132) — Ícone usado na lista de camadas para cada tipo de camada.
+
+---
+
+## src/ui/imageai.js
+
+**IA DE FOTO: o EDITOR DE IMAGEM (painel grande) e as edições usadas pelo agente** · [abrir o código](../src/ui/imageai.js)
+
+```text
+ Modelo HÍBRIDO:
+  - EDIÇÕES LOCAIS, no navegador e sem chave: recortar (livre, 1:1, 4:3, 16:9, 3:2), girar e espelhar; ajustes
+    (brilho, contraste, saturação, exposição, temperatura, nitidez, desfoque); filtros prontos com miniatura;
+    REMOVER FUNDO (automático pelas bordas, varinha mágica e pincel de apagar/restaurar); tamanho e compressão
+    (largura máxima, formato WebP/PNG/JPEG, qualidade, mostrando o tamanho final). A matemática está em ../imagefx.js.
+  - EDIÇÃO GENERATIVA, pelo servidor (server/imageai.js, com a chave guardada lá): preencher uma área pintada,
+    expandir para os lados e trocar objeto/gerar variação.
+
+ O editor tem o PRÓPRIO desfazer (Ctrl+Z dentro dele). "Aplicar" grava uma imagem NOVA em doc.assets, troca a
+ imagem da camada (guardando a original em fill.origAssetId, para "Restaurar original") e vira UM passo do Ctrl+Z
+ do documento.
+
+ O agente usa as mesmas funções sem abrir o painel: editImageLocal (ferramenta edit_image) e generativeEdit
+ (ferramenta generate_image_edit), ver agent/runner.js.
+```
+
+- **`canvasOf(w, h)`** <sub>do módulo</sub> · [L33](../src/ui/imageai.js#L33) — Canvas novo w × h.
+- **`ctx2d(c)`** <sub>do módulo</sub> · [L35](../src/ui/imageai.js#L35) — Contexto 2D (com leitura frequente: getImageData é usado o tempo todo aqui).
+- **`loadImage(src)`** · [L37](../src/ui/imageai.js#L37) — Carrega uma imagem (data URL) e espera ela estar pronta.
+- **`toCanvas(img)`** <sub>do módulo</sub> · [L46](../src/ui/imageai.js#L46) — Imagem → canvas do mesmo tamanho.
+- **`pixelsOf(c)`** <sub>do módulo</sub> · [L52](../src/ui/imageai.js#L52) — Pixels (ImageData) do canvas inteiro.
+- **`fromPixels(data, w, h)`** <sub>do módulo</sub> · [L54](../src/ui/imageai.js#L54) — Canvas a partir de um array RGBA.
+- **`resized(src, w, h)`** <sub>do módulo</sub> · [L60](../src/ui/imageai.js#L60) — Redimensiona com boa qualidade (reduções grandes em etapas de metade, para não serrilhar).
+- **`rotated(src, deg)`** <sub>do módulo</sub> · [L72](../src/ui/imageai.js#L72) — Gira 90° (sentido horário com dir=1, anti-horário com -1) ou 180°.
+- **`flipped(src, axis)`** <sub>do módulo</sub> · [L83](../src/ui/imageai.js#L83) — Espelha na horizontal ('h') ou vertical ('v').
+- **`cropped(src, r)`** <sub>do módulo</sub> · [L91](../src/ui/imageai.js#L91) — Recorta um retângulo.
+- **`mimeOf(url)`** <sub>do módulo</sub> · [L97](../src/ui/imageai.js#L97) — Tipo MIME de um data URL.
+- **`FORMAT_MIME`** <sub>do módulo</sub> · [L99](../src/ui/imageai.js#L99) — Formato de saída → MIME.
+- **`hasAlpha(c)`** <sub>do módulo</sub> · [L101](../src/ui/imageai.js#L101) — A imagem tem algum pixel não opaco?
+- **`encodeCanvas(c, format = 'png', quality = 0.9)`** · [L110](../src/ui/imageai.js#L110) — Codifica o canvas no formato pedido. JPEG não tem transparência: o fundo vira branco. Devolve o data URL, os bytes e o formato que o navegador realmente gerou (se ele não souber WebP, cai para PNG).
+- **`maskCanvas(mask, w, h, invert = false)`** <sub>do módulo</sub> · [L124](../src/ui/imageai.js#L124) — Desenha a máscara (0..255, 255 = mantém) num canvas cujo ALFA é a máscara (para usar com drawImage/composição).
+- **`imageNodeOf(store, id)`** · [L132](../src/ui/imageai.js#L132) — A camada tem imagem de preenchimento (com o arquivo presente)?
+- **`applyImageToNode(store, id, { dataUrl, w, h }, { commit = true } = {})`** · [L141](../src/ui/imageai.js#L141) — Grava a imagem nova como ARQUIVO NOVO em doc.assets e troca a imagem da camada. A original fica guardada em fill.origAssetId (só a primeira: editar de novo não perde a original). Com `commit` (padrão) vira um passo do Ctrl+Z.
+- **`hasOriginal(n)`** · [L158](../src/ui/imageai.js#L158) — A camada tem uma imagem original guardada (e a imagem atual é uma edição dela)?
+- **`restoreOriginal(store, id, { commit = true } = {})`** · [L161](../src/ui/imageai.js#L161) — Volta para a imagem original (antes de qualquer edição). Devolve false se não houver original guardada.
+- **`editImageLocal(src, ops = {})`** · [L186](../src/ui/imageai.js#L186) — EDIÇÃO LOCAL em lote (ferramenta edit_image do agente). Ordem: girar/espelhar → recortar → remover fundo → filtro → ajustes → largura máxima → codificar.
+  - `src` <sub>string</sub> — data URL da imagem
+  - `ops` <sub>object</sub> — { rotate: 90\|180\|270\|-90, flip_h, flip_v, crop: {x,y,w,h} (px) \| ratio: '1:1'\|'4:3'\|'16:9'\|'3:2', remove_background: true \| {tolerance, feather}, filter, adjust: {...}, max_width, format, quality }
+  - ↩︎ `Promise<{dataUrl:string, w:number, h:number, bytes:number, removed?:number` >}
+- **`imageAiConfig()`** · [L223](../src/ui/imageai.js#L223) — Configuração do modelo de imagem do servidor ({ available, reason, model, ... }) ou null sem servidor.
+- **`postImageAi(path, body, signal)`** <sub>do módulo</sub> · [L232](../src/ui/imageai.js#L232) — POST na API de imagem do servidor; erro com a mensagem que o servidor mandou.
+- **`generativeEdit({ src, mode, prompt, mask = null, area = null, expand = null, signal })`** · [L259](../src/ui/imageai.js#L259) — EDIÇÃO GENERATIVA (servidor + modelo de imagem). Monta o quadrado que a API espera (planGenerative), a máscara (transparente = a IA pode mudar), manda, recorta a resposta de volta e cola a imagem original por cima do que não era para mudar (assim o resto fica idêntico, sem perder nitidez).
+  - `o` <sub>object</sub> — 
+  - `o.src` <sub>string</sub> — data URL da imagem atual
+  - `o.mode` <sub>'fill'\|'replace'\|'variation'\|'expand'\|'generate'</sub> — 
+  - `o.prompt` <sub>string</sub> — 
+  - `[o.mask]` <sub>Uint8Array</sub> — área pintada (w×h, >0 = mudar) — editor
+  - `[o.signal]` <sub>AbortSignal</sub> — 
+  - ↩︎ `Promise<{dataUrl:string, w:number, h:number` >}
+- **`TOOLS`** <sub>do módulo</sub> · [L332](../src/ui/imageai.js#L332) — Ferramentas da barra da esquerda: id, ícone, nome.
+- **`current`** <sub>do módulo</sub> · [L341](../src/ui/imageai.js#L341) — Editor aberto agora (só um por vez).
+- **`openImageEditor({ store, nodeId, toast = () => {}, tool = 'adjust' })`** · [L351](../src/ui/imageai.js#L351) — Abre o editor de imagem da camada `nodeId` (precisa ter preenchimento de imagem).
+  - `deps` <sub>object</sub> — 
+  - `deps.store` <sub>object</sub> — 
+  - `deps.nodeId` <sub>string</sub> — 
+  - `[deps.toast]` <sub>(msg: string) => void</sub> — 
+  - `[deps.tool]` <sub>string</sub> — ferramenta inicial ('crop', 'adjust', 'filters', 'background', 'ai', 'size')
+- **`hist`** <sub>interna</sub> · [L365](../src/ui/imageai.js#L365) — Histórico do editor: cada item é uma foto do estado (canvases não mudam depois de criados: são compartilhados).
+- **`commit()`** <sub>interna</sub> · [L368](../src/ui/imageai.js#L368) — Fecha uma alteração: entra no desfazer do editor.
+- **`workResized()`** <sub>interna</sub> · [L430](../src/ui/imageai.js#L430) — Recalcula a escala da prévia (tamanho do palco) e a cópia reduzida.
+- **`maskChanged()`** <sub>interna</sub> · [L445](../src/ui/imageai.js#L445) — A máscara de fundo mudou: refaz a versão reduzida.
+- **`schedule()`** <sub>interna</sub> · [L447](../src/ui/imageai.js#L447) — Agenda um redesenho (no máximo um por quadro).
+- **`summary()`** <sub>interna</sub> · [L449](../src/ui/imageai.js#L449) — Resumo do estado em data-state (testes automáticos e depuração leem daqui).
+- **`drawOverlay()`** <sub>interna</sub> · [L464](../src/ui/imageai.js#L464) — Camada por cima da prévia: a área pintada da IA generativa (vermelho) e o contorno do Expandir.
+- **`afterMask()`** <sub>interna</sub> · [L561](../src/ui/imageai.js#L561) — A máscara de fundo terminou de mudar: prévia, histórico, formato com transparência e painel.
+- **`rendered()`** <sub>interna</sub> · [L572](../src/ui/imageai.js#L572) — Imagem de trabalho com filtro, ajustes e fundo removido já aplicados (tamanho real).
+- **`setWork(c, { bake = false } = {})`** <sub>interna</sub> · [L577](../src/ui/imageai.js#L577) — Troca a imagem de trabalho (giro, recorte, resultado da IA). `bake` = aplica antes os ajustes/filtro/fundo.
+- **`geometry(fn)`** <sub>interna</sub> · [L586](../src/ui/imageai.js#L586) — Giro/espelho: o fundo removido é aplicado antes (a máscara é do tamanho antigo).
+- **`slider(label, value, min, max, step, onInput, onDone, fmt = (v) => String(v))`** <sub>interna</sub> · [L596](../src/ui/imageai.js#L596) — Controle deslizante com valor: `onInput` ao vivo, `onDone` ao soltar (histórico).
+- **`finalImage()`** <sub>interna</sub> · [L784](../src/ui/imageai.js#L784) — A imagem final (tudo aplicado, no tamanho e formato escolhidos).
+- **`dirty()`** <sub>interna</sub> · [L835](../src/ui/imageai.js#L835) — Houve alguma mudança (para perguntar antes de fechar e para o Aplicar não gravar uma cópia igual).
+- **`imageEditorOpen()`** · [L908](../src/ui/imageai.js#L908) — O editor de imagem está aberto?
+- **`imageModelCard({ card, row, toast })`** · [L916](../src/ui/imageai.js#L916) — Cartão "Modelo de imagem" da seção Agente de IA e modelos (ui/settings.js). Mostra se a edição generativa está disponível e permite escolher outro endereço/modelo/chave só para imagens.
 
 ---
 
@@ -2423,7 +2588,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  quem usa o painel aprende CSS sem perceber, e o código gerado bate com o que está escrito aqui.
 ```
 
-- **`createDesignPanel({ store, canvas, commands, tools, toast })`** · [L40](../src/ui/props.js#L40) — Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
+- **`createDesignPanel({ store, canvas, commands, tools, toast })`** · [L41](../src/ui/props.js#L41) — Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
 
   COMO FUNCIONA (importante para entender o arquivo):
    - Cada seção (alinhar, camada, auto layout, texto, preenchimento, contorno, efeitos, exportar) é uma função que
@@ -2432,79 +2597,79 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
      detectado pela `signature()`. Em qualquer outra mudança só roda os `updaters` — assim digitar num campo nunca
      perde o foco por o painel ter sido refeito.
    - Campos usam `each(fn)` para aplicar a mudança a TODAS as camadas selecionadas (valores mostrados vêm da 1ª).
-- **`plainStyle(n)`** <sub>interna</sub> · [L72](../src/ui/props.js#L72) — Estilo gerado pelo modelo, sem o CSS livre (para saber o que uma edição do painel mudou).
-- **`parentOf(id)`** <sub>interna</sub> · [L82](../src/ui/props.js#L82) — Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular).
-- **`commit()`** <sub>interna</sub> · [L84](../src/ui/props.js#L84) — Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar.
-- **`reg(ctl)`** <sub>interna</sub> · [L86](../src/ui/props.js#L86) — Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho).
-- **`row(...c)`** <sub>interna</sub> · [L88](../src/ui/props.js#L88) — Linha horizontal de campos.
-- **`SECTION_INFO`** <sub>interna</sub> · [L93](../src/ui/props.js#L93) — Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do CSS por trás. A explicação abre pelo ícone de informação ao lado do título.
-- **`cap(label, ...c)`** <sub>interna</sub> · [L145](../src/ui/props.js#L145) — Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...).
-- **`check(label, get, set)`** <sub>interna</sub> · [L153](../src/ui/props.js#L153) — Caixa de seleção (checkbox) estilizada: `get` lê, `set` aplica; grava no histórico ao alternar.
-- **`pickImage(cb)`** <sub>interna</sub> · [L161](../src/ui/props.js#L161) — Abre o seletor de arquivos, importa a imagem escolhida (reduzida) e entrega { assetId, w, h } ao callback.
-- **`alignRow()`** <sub>interna</sub> · [L172](../src/ui/props.js#L172) — Linha de alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). Fica dentro da seção Posição.
-- **`booleanRow()`** <sub>interna</sub> · [L191](../src/ui/props.js#L191) — Botões das operações BOOLEANAS (unir, subtrair, interseção, excluir) — aparecem com 2+ formas selecionadas (vetores, retângulos, elipses ou frames vazios). Atalhos: Ctrl+Alt+U / S / I / X.
-- **`PRESETS`** <sub>interna</sub> · [L207](../src/ui/props.js#L207) — Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA".
-- **`H_CONS`** <sub>interna</sub> · [L214](../src/ui/props.js#L214) — Opções de constraint horizontal e vertical (ver model.js → applyConstraints).
-- **`NO_RADIUS`** <sub>interna</sub> · [L217](../src/ui/props.js#L217) — Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos).
-- **`positionSection()`** <sub>interna</sub> · [L223](../src/ui/props.js#L223) — Seção "Posição": X/Y (ou a caixa do conjunto, com várias camadas), constraints (em frame sem auto layout), rotação e espelhar. Dentro de um auto layout, X/Y ficam apagados: quem posiciona é o navegador (flex/grid).
-- **`headerBlock()`** <sub>interna</sub> · [L274](../src/ui/props.js#L274) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
-- **`bpBanner(ns)`** <sub>interna</sub> · [L303](../src/ui/props.js#L303) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
-- **`noteSection()`** <sub>interna</sub> · [L322](../src/ui/props.js#L322) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
-- **`htmlSection()`** <sub>interna</sub> · [L352](../src/ui/props.js#L352) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
-- **`sizeSection()`** <sub>interna</sub> · [L381](../src/ui/props.js#L381) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
-- **`ASPECTS`** <sub>interna</sub> · [L439](../src/ui/props.js#L439) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
-- **`limitsBlock(n0)`** <sub>interna</sub> · [L448](../src/ui/props.js#L448) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
-- **`appearanceSection()`** <sub>interna</sub> · [L484](../src/ui/props.js#L484) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
-- **`componentSection()`** <sub>interna</sub> · [L519](../src/ui/props.js#L519) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
-- **`A_START`** <sub>interna</sub> · [L539](../src/ui/props.js#L539) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
-- **`CSS_DOC`** <sub>interna</sub> · [L542](../src/ui/props.js#L542) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
-- **`cssTip(key)`** <sub>interna</sub> · [L630](../src/ui/props.js#L630) — Monta o objeto de dica de uma propriedade do CSS_DOC.
-- **`varButton(prop)`** <sub>interna</sub> · [L636](../src/ui/props.js#L636) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
-- **`autoLayoutSection()`** <sub>interna</sub> · [L685](../src/ui/props.js#L685) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
+- **`plainStyle(n)`** <sub>interna</sub> · [L73](../src/ui/props.js#L73) — Estilo gerado pelo modelo, sem o CSS livre (para saber o que uma edição do painel mudou).
+- **`parentOf(id)`** <sub>interna</sub> · [L83](../src/ui/props.js#L83) — Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular).
+- **`commit()`** <sub>interna</sub> · [L85](../src/ui/props.js#L85) — Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar.
+- **`reg(ctl)`** <sub>interna</sub> · [L87](../src/ui/props.js#L87) — Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho).
+- **`row(...c)`** <sub>interna</sub> · [L89](../src/ui/props.js#L89) — Linha horizontal de campos.
+- **`SECTION_INFO`** <sub>interna</sub> · [L94](../src/ui/props.js#L94) — Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do CSS por trás. A explicação abre pelo ícone de informação ao lado do título.
+- **`cap(label, ...c)`** <sub>interna</sub> · [L146](../src/ui/props.js#L146) — Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...).
+- **`check(label, get, set)`** <sub>interna</sub> · [L154](../src/ui/props.js#L154) — Caixa de seleção (checkbox) estilizada: `get` lê, `set` aplica; grava no histórico ao alternar.
+- **`pickImage(cb)`** <sub>interna</sub> · [L162](../src/ui/props.js#L162) — Abre o seletor de arquivos, importa a imagem escolhida (reduzida) e entrega { assetId, w, h } ao callback.
+- **`alignRow()`** <sub>interna</sub> · [L173](../src/ui/props.js#L173) — Linha de alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). Fica dentro da seção Posição.
+- **`booleanRow()`** <sub>interna</sub> · [L192](../src/ui/props.js#L192) — Botões das operações BOOLEANAS (unir, subtrair, interseção, excluir) — aparecem com 2+ formas selecionadas (vetores, retângulos, elipses ou frames vazios). Atalhos: Ctrl+Alt+U / S / I / X.
+- **`PRESETS`** <sub>interna</sub> · [L208](../src/ui/props.js#L208) — Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA".
+- **`H_CONS`** <sub>interna</sub> · [L215](../src/ui/props.js#L215) — Opções de constraint horizontal e vertical (ver model.js → applyConstraints).
+- **`NO_RADIUS`** <sub>interna</sub> · [L218](../src/ui/props.js#L218) — Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos).
+- **`positionSection()`** <sub>interna</sub> · [L224](../src/ui/props.js#L224) — Seção "Posição": X/Y (ou a caixa do conjunto, com várias camadas), constraints (em frame sem auto layout), rotação e espelhar. Dentro de um auto layout, X/Y ficam apagados: quem posiciona é o navegador (flex/grid).
+- **`headerBlock()`** <sub>interna</sub> · [L275](../src/ui/props.js#L275) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
+- **`bpBanner(ns)`** <sub>interna</sub> · [L304](../src/ui/props.js#L304) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
+- **`noteSection()`** <sub>interna</sub> · [L323](../src/ui/props.js#L323) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
+- **`htmlSection()`** <sub>interna</sub> · [L353](../src/ui/props.js#L353) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
+- **`sizeSection()`** <sub>interna</sub> · [L382](../src/ui/props.js#L382) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
+- **`ASPECTS`** <sub>interna</sub> · [L440](../src/ui/props.js#L440) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
+- **`limitsBlock(n0)`** <sub>interna</sub> · [L449](../src/ui/props.js#L449) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
+- **`appearanceSection()`** <sub>interna</sub> · [L485](../src/ui/props.js#L485) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
+- **`componentSection()`** <sub>interna</sub> · [L520](../src/ui/props.js#L520) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
+- **`A_START`** <sub>interna</sub> · [L540](../src/ui/props.js#L540) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
+- **`CSS_DOC`** <sub>interna</sub> · [L543](../src/ui/props.js#L543) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
+- **`cssTip(key)`** <sub>interna</sub> · [L631](../src/ui/props.js#L631) — Monta o objeto de dica de uma propriedade do CSS_DOC.
+- **`varButton(prop)`** <sub>interna</sub> · [L637](../src/ui/props.js#L637) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
+- **`autoLayoutSection()`** <sub>interna</sub> · [L686](../src/ui/props.js#L686) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
 
    - FLEX: gap, flex-wrap, padding, justify-content (eixo principal) e align-items (eixo cruzado);
    - GRID: colunas/linhas, gap, padding e justify-items/align-items (onde o item fica DENTRO da célula).
-- **`pad(labels)`** <sub>interna</sub> · [L738](../src/ui/props.js#L738) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
-- **`paddingBlock()`** <sub>interna</sub> · [L744](../src/ui/props.js#L744) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
-- **`matrix(jName, aName)`** <sub>interna</sub> · [L761](../src/ui/props.js#L761) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
-- **`opts(list, grid)`** <sub>interna</sub> · [L784](../src/ui/props.js#L784) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
-- **`subTip(text, key)`** <sub>interna</sub> · [L786](../src/ui/props.js#L786) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
-- **`gridPicker()`** <sub>interna</sub> · [L792](../src/ui/props.js#L792) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
-- **`autoSection(body)`** <sub>interna</sub> · [L976](../src/ui/props.js#L976) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
-- **`STATE_DOC`** <sub>interna</sub> · [L982](../src/ui/props.js#L982) — Dicas dos estados.
-- **`statesSection()`** <sub>interna</sub> · [L1001](../src/ui/props.js#L1001) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
-- **`stateScaleBlock()`** <sub>interna</sub> · [L1041](../src/ui/props.js#L1041) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
-- **`marginBlock()`** <sub>interna</sub> · [L1049](../src/ui/props.js#L1049) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
-- **`flowItemSection()`** <sub>interna</sub> · [L1074](../src/ui/props.js#L1074) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
+- **`pad(labels)`** <sub>interna</sub> · [L739](../src/ui/props.js#L739) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
+- **`paddingBlock()`** <sub>interna</sub> · [L745](../src/ui/props.js#L745) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
+- **`matrix(jName, aName)`** <sub>interna</sub> · [L762](../src/ui/props.js#L762) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
+- **`opts(list, grid)`** <sub>interna</sub> · [L785](../src/ui/props.js#L785) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
+- **`subTip(text, key)`** <sub>interna</sub> · [L787](../src/ui/props.js#L787) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
+- **`gridPicker()`** <sub>interna</sub> · [L793](../src/ui/props.js#L793) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
+- **`autoSection(body)`** <sub>interna</sub> · [L977](../src/ui/props.js#L977) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
+- **`STATE_DOC`** <sub>interna</sub> · [L983](../src/ui/props.js#L983) — Dicas dos estados.
+- **`statesSection()`** <sub>interna</sub> · [L1002](../src/ui/props.js#L1002) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+- **`stateScaleBlock()`** <sub>interna</sub> · [L1042](../src/ui/props.js#L1042) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
+- **`marginBlock()`** <sub>interna</sub> · [L1050](../src/ui/props.js#L1050) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+- **`flowItemSection()`** <sub>interna</sub> · [L1075](../src/ui/props.js#L1075) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
 
    - position: absolute (ignora o layout do pai);
    - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
    - flex → align-self (sobrescreve o align-items do pai).
   "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
-- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1089](../src/ui/props.js#L1089) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
-- **`commandsOrigin(n)`** <sub>interna</sub> · [L1123](../src/ui/props.js#L1123) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
-- **`GRID_KINDS`** <sub>interna</sub> · [L1131](../src/ui/props.js#L1131) — Tipos de grade de layout (só guia visual).
-- **`layoutGridsSection()`** <sub>interna</sub> · [L1133](../src/ui/props.js#L1133) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
-- **`vectorSection()`** <sub>interna</sub> · [L1161](../src/ui/props.js#L1161) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
-- **`textSection()`** <sub>interna</sub> · [L1224](../src/ui/props.js#L1224) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
-- **`gradientBar()`** <sub>interna</sub> · [L1290](../src/ui/props.js#L1290) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1300](../src/ui/props.js#L1300) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
-- **`colorGroups()`** <sub>interna</sub> · [L1312](../src/ui/props.js#L1312) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L1318](../src/ui/props.js#L1318) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1330](../src/ui/props.js#L1330) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
-- **`fillSection()`** <sub>interna</sub> · [L1368](../src/ui/props.js#L1368) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1458](../src/ui/props.js#L1458) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1503](../src/ui/props.js#L1503) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1509](../src/ui/props.js#L1509) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1515](../src/ui/props.js#L1515) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1539](../src/ui/props.js#L1539) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1571](../src/ui/props.js#L1571) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1597](../src/ui/props.js#L1597) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`customCssSection()`** <sub>interna</sub> · [L1616](../src/ui/props.js#L1616) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
-- **`exportSection()`** <sub>interna</sub> · [L1642](../src/ui/props.js#L1642) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1668](../src/ui/props.js#L1668) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1688](../src/ui/props.js#L1688) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1716](../src/ui/props.js#L1716) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1090](../src/ui/props.js#L1090) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
+- **`commandsOrigin(n)`** <sub>interna</sub> · [L1124](../src/ui/props.js#L1124) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
+- **`GRID_KINDS`** <sub>interna</sub> · [L1132](../src/ui/props.js#L1132) — Tipos de grade de layout (só guia visual).
+- **`layoutGridsSection()`** <sub>interna</sub> · [L1134](../src/ui/props.js#L1134) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
+- **`vectorSection()`** <sub>interna</sub> · [L1162](../src/ui/props.js#L1162) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+- **`textSection()`** <sub>interna</sub> · [L1225](../src/ui/props.js#L1225) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
+- **`gradientBar()`** <sub>interna</sub> · [L1291](../src/ui/props.js#L1291) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1301](../src/ui/props.js#L1301) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L1313](../src/ui/props.js#L1313) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L1319](../src/ui/props.js#L1319) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1331](../src/ui/props.js#L1331) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
+- **`fillSection()`** <sub>interna</sub> · [L1369](../src/ui/props.js#L1369) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1461](../src/ui/props.js#L1461) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1506](../src/ui/props.js#L1506) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1512](../src/ui/props.js#L1512) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1518](../src/ui/props.js#L1518) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1542](../src/ui/props.js#L1542) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1574](../src/ui/props.js#L1574) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1600](../src/ui/props.js#L1600) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`customCssSection()`** <sub>interna</sub> · [L1619](../src/ui/props.js#L1619) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+- **`exportSection()`** <sub>interna</sub> · [L1645](../src/ui/props.js#L1645) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1671](../src/ui/props.js#L1671) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1691](../src/ui/props.js#L1691) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1719](../src/ui/props.js#L1719) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
@@ -2567,13 +2732,13 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  "Mostrar detalhes": quem não precisa delas não as vê.
 ```
 
-- **`formatBytes(b)`** · [L31](../src/ui/settings.js#L31) — "12345678" bytes → "11,8 MB".
-- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L35](../src/ui/settings.js#L35) — Caixa de seleção no estilo do app (a mesma de props.js).
-- **`formatSecs(ms)`** · [L41](../src/ui/settings.js#L41) — "1234" ms → "1,2 s".
-- **`testBadge(t)`** · [L43](../src/ui/settings.js#L43) — Selo curto do teste de um modelo (para a lista de modelos): "✓ ferramentas · 1,2 s", "✗ sem ferramentas"...
-- **`SECTIONS`** <sub>do módulo</sub> · [L47](../src/ui/settings.js#L47) — Seções da página: [id, ícone, nome, descrição curta no cabeçalho].
-- **`current`** <sub>do módulo</sub> · [L59](../src/ui/settings.js#L59) — A página aberta agora (só existe uma).
-- **`openSettings({ store, saving, prefs, savePrefs, toast, account, section = 'accou…)`** · [L73](../src/ui/settings.js#L73) — Abre a página de Configurações (ou, se já está aberta, só troca de seção).
+- **`formatBytes(b)`** · [L32](../src/ui/settings.js#L32) — "12345678" bytes → "11,8 MB".
+- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L36](../src/ui/settings.js#L36) — Caixa de seleção no estilo do app (a mesma de props.js).
+- **`formatSecs(ms)`** · [L42](../src/ui/settings.js#L42) — "1234" ms → "1,2 s".
+- **`testBadge(t)`** · [L44](../src/ui/settings.js#L44) — Selo curto do teste de um modelo (para a lista de modelos): "✓ ferramentas · 1,2 s", "✗ sem ferramentas"...
+- **`SECTIONS`** <sub>do módulo</sub> · [L48](../src/ui/settings.js#L48) — Seções da página: [id, ícone, nome, descrição curta no cabeçalho].
+- **`current`** <sub>do módulo</sub> · [L60](../src/ui/settings.js#L60) — A página aberta agora (só existe uma).
+- **`openSettings({ store, saving, prefs, savePrefs, toast, account, section = 'accou…)`** · [L74](../src/ui/settings.js#L74) — Abre a página de Configurações (ou, se já está aberta, só troca de seção).
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.saving` <sub>object</sub> — ver saving.js (refresh, server)
@@ -2583,20 +2748,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `deps.account` <sub>object</sub> — conta local (account.js)
   - `[deps.section]` <sub>string</sub> — seção para mostrar ('account', 'folder', 'ai'...)
   - ↩︎ `{ close: () => void ` }
-- **`show(id, focus = false)`** <sub>interna</sub> · [L94](../src/ui/settings.js#L94) — Mostra uma seção (as outras ficam escondidas, mas continuam montadas: campos não salvos não se perdem).
-- **`onKey(e)`** <sub>interna</sub> · [L105](../src/ui/settings.js#L105) — Esc fecha (se não houver janela, menu ou balão de informação por cima).
-- **`sectionEl(id, ...cards)`** <sub>interna</sub> · [L135](../src/ui/settings.js#L135) — Cabeçalho + cartões de uma seção.
-- **`card(title, desc, info, ...body)`** <sub>interna</sub> · [L142](../src/ui/settings.js#L142) — Cartão: título (com "i" opcional), descrição curta e o conteúdo.
-- **`row(label, hint, ...control)`** <sub>interna</sub> · [L148](../src/ui/settings.js#L148) — Linha rótulo/descrição à esquerda e controle à direita.
-- **`details(summary, ...body)`** <sub>interna</sub> · [L150](../src/ui/settings.js#L150) — Bloco recolhido "Mostrar detalhes".
-- **`queue(patch, wait = 450)`** <sub>interna</sub> · [L167](../src/ui/settings.js#L167) — Junta mudanças e grava depois de uma pausa curta (indicador "Salvando…" → "Salvo").
-- **`aiSections(ai)`** <sub>interna</sub> · [L298](../src/ui/settings.js#L298) — Monta as seções de IA e de chaves juntas: "Ver modelos" usa a chave digitada na seção de chaves.
-- **`save(patch, done = 'Agente configurado.', out = msg)`** <sub>interna</sub> · [L304](../src/ui/settings.js#L304) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
-- **`putConfig(patch)`** <sub>interna</sub> · [L312](../src/ui/settings.js#L312) — Grava sem redesenhar a página (para não sumir com a lista de modelos aberta).
-- **`jevCard()`** <sub>interna</sub> · [L472](../src/ui/settings.js#L472) — CHAVE DO JEV (TypeSafe): liga as ferramentas jev_choose / jev_score / jev_check do agente.
-- **`pexelsCard()`** <sub>interna</sub> · [L484](../src/ui/settings.js#L484) — Chave opcional do Pexels: usada só pelo servidor na busca da biblioteca de fotos.
-- **`render()`** <sub>interna</sub> · [L568](../src/ui/settings.js#L568) — Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma).
-- **`settingsOpen()`** · [L597](../src/ui/settings.js#L597) — A página de Configurações está aberta?
+- **`show(id, focus = false)`** <sub>interna</sub> · [L95](../src/ui/settings.js#L95) — Mostra uma seção (as outras ficam escondidas, mas continuam montadas: campos não salvos não se perdem).
+- **`onKey(e)`** <sub>interna</sub> · [L106](../src/ui/settings.js#L106) — Esc fecha (se não houver janela, menu ou balão de informação por cima).
+- **`sectionEl(id, ...cards)`** <sub>interna</sub> · [L136](../src/ui/settings.js#L136) — Cabeçalho + cartões de uma seção.
+- **`card(title, desc, info, ...body)`** <sub>interna</sub> · [L143](../src/ui/settings.js#L143) — Cartão: título (com "i" opcional), descrição curta e o conteúdo.
+- **`row(label, hint, ...control)`** <sub>interna</sub> · [L149](../src/ui/settings.js#L149) — Linha rótulo/descrição à esquerda e controle à direita.
+- **`details(summary, ...body)`** <sub>interna</sub> · [L151](../src/ui/settings.js#L151) — Bloco recolhido "Mostrar detalhes".
+- **`queue(patch, wait = 450)`** <sub>interna</sub> · [L168](../src/ui/settings.js#L168) — Junta mudanças e grava depois de uma pausa curta (indicador "Salvando…" → "Salvo").
+- **`aiSections(ai)`** <sub>interna</sub> · [L299](../src/ui/settings.js#L299) — Monta as seções de IA e de chaves juntas: "Ver modelos" usa a chave digitada na seção de chaves.
+- **`save(patch, done = 'Agente configurado.', out = msg)`** <sub>interna</sub> · [L305](../src/ui/settings.js#L305) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
+- **`putConfig(patch)`** <sub>interna</sub> · [L313](../src/ui/settings.js#L313) — Grava sem redesenhar a página (para não sumir com a lista de modelos aberta).
+- **`jevCard()`** <sub>interna</sub> · [L474](../src/ui/settings.js#L474) — CHAVE DO JEV (TypeSafe): liga as ferramentas jev_choose / jev_score / jev_check do agente.
+- **`pexelsCard()`** <sub>interna</sub> · [L486](../src/ui/settings.js#L486) — Chave opcional do Pexels: usada só pelo servidor na busca da biblioteca de fotos.
+- **`render()`** <sub>interna</sub> · [L570](../src/ui/settings.js#L570) — Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma).
+- **`settingsOpen()`** · [L599](../src/ui/settings.js#L599) — A página de Configurações está aberta?
 
 ---
 
@@ -2627,34 +2792,34 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     escapar da pasta com "../" nem sobrescrever outros tipos de arquivo.
 ```
 
-- **`root`** <sub>do módulo</sub> · [L45](../server.js#L45) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
-- **`port`** <sub>do módulo</sub> · [L47](../server.js#L47) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
-- **`allowed`** <sub>do módulo</sub> · [L49](../server.js#L49) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
-- **`configFile`** <sub>do módulo</sub> · [L51](../server.js#L51) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
-- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L57](../server.js#L57) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
-- **`MAX_BODY`** <sub>do módulo</sub> · [L59](../server.js#L59) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
-- **`FILE_RE`** <sub>do módulo</sub> · [L61](../server.js#L61) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
-- **`types`** <sub>do módulo</sub> · [L64](../server.js#L64) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
-- **`loadConfig()`** <sub>do módulo</sub> · [L76](../server.js#L76) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
-- **`config`** <sub>do módulo</sub> · [L85](../server.js#L85) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
-- **`loadAccount()`** <sub>do módulo</sub> · [L89](../server.js#L89) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
-- **`expandHome(p)`** <sub>do módulo</sub> · [L94](../server.js#L94) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
-- **`useFolder(input)`** <sub>do módulo</sub> · [L100](../server.js#L100) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
-- **`publicConfig()`** <sub>do módulo</sub> · [L112](../server.js#L112) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
-- **`httpError(status, message)`** <sub>do módulo</sub> · [L116](../server.js#L116) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`knownContent`** <sub>do módulo</sub> · [L121](../server.js#L121) — Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo).
-- **`hashOf(data)`** <sub>do módulo</sub> · [L123](../server.js#L123) — Hash curto do conteúdo de um arquivo de projeto.
-- **`readBody(req)`** <sub>do módulo</sub> · [L130](../server.js#L130) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L141](../server.js#L141) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L143](../server.js#L143) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L146](../server.js#L146) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L148](../server.js#L148) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L150](../server.js#L150) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L152](../server.js#L152) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L154](../server.js#L154) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L160](../server.js#L160) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L176](../server.js#L176) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L210](../server.js#L210) — Rotas da API (todas respondem JSON):
+- **`root`** <sub>do módulo</sub> · [L46](../server.js#L46) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
+- **`port`** <sub>do módulo</sub> · [L48](../server.js#L48) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
+- **`allowed`** <sub>do módulo</sub> · [L50](../server.js#L50) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
+- **`configFile`** <sub>do módulo</sub> · [L52](../server.js#L52) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
+- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L58](../server.js#L58) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
+- **`MAX_BODY`** <sub>do módulo</sub> · [L60](../server.js#L60) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
+- **`FILE_RE`** <sub>do módulo</sub> · [L62](../server.js#L62) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
+- **`types`** <sub>do módulo</sub> · [L65](../server.js#L65) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
+- **`loadConfig()`** <sub>do módulo</sub> · [L77](../server.js#L77) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
+- **`config`** <sub>do módulo</sub> · [L86](../server.js#L86) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
+- **`loadAccount()`** <sub>do módulo</sub> · [L90](../server.js#L90) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
+- **`expandHome(p)`** <sub>do módulo</sub> · [L95](../server.js#L95) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`useFolder(input)`** <sub>do módulo</sub> · [L101](../server.js#L101) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
+- **`publicConfig()`** <sub>do módulo</sub> · [L113](../server.js#L113) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
+- **`httpError(status, message)`** <sub>do módulo</sub> · [L117](../server.js#L117) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
+- **`knownContent`** <sub>do módulo</sub> · [L122](../server.js#L122) — Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo).
+- **`hashOf(data)`** <sub>do módulo</sub> · [L124](../server.js#L124) — Hash curto do conteúdo de um arquivo de projeto.
+- **`readBody(req)`** <sub>do módulo</sub> · [L131](../server.js#L131) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L142](../server.js#L142) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L144](../server.js#L144) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L147](../server.js#L147) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L149](../server.js#L149) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L151](../server.js#L151) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L153](../server.js#L153) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L155](../server.js#L155) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L161](../server.js#L161) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L177](../server.js#L177) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L211](../server.js#L211) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
@@ -2671,26 +2836,27 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
-- **`editors`** <sub>do módulo</sub> · [L350](../server.js#L350) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
-- **`pending`** <sub>do módulo</sub> · [L352](../server.js#L352) — Pedidos esperando resposta do editor: id → { resolve, timer }.
-- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L355](../server.js#L355) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
-- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L358](../server.js#L358) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
-- **`presence`** <sub>do módulo</sub> · [L375](../server.js#L375) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
-- **`mcpSessions`** <sub>do módulo</sub> · [L377](../server.js#L377) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
-- **`broadcastPresence()`** <sub>do módulo</sub> · [L379](../server.js#L379) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
-- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L387](../server.js#L387) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
-- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L415](../server.js#L415) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
-- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L441](../server.js#L441) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
-- **`agentConfig()`** <sub>do módulo</sub> · [L447](../server.js#L447) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
-- **`jevConfig()`** <sub>do módulo</sub> · [L469](../server.js#L469) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
-- **`agentInstructions()`** <sub>do módulo</sub> · [L478](../server.js#L478) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
-- **`authHeader(a)`** <sub>do módulo</sub> · [L480](../server.js#L480) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
-- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L483](../server.js#L483) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
-- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L492](../server.js#L492) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
-- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L570](../server.js#L570) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
-- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L583](../server.js#L583) — Frase para a tela a partir do erro de chat (com o que fazer).
-- **`PING_TOOL`** <sub>do módulo</sub> · [L597](../server.js#L597) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
-- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L615](../server.js#L615) — Rotas da IA:
+- **`editors`** <sub>do módulo</sub> · [L353](../server.js#L353) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L355](../server.js#L355) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L358](../server.js#L358) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L361](../server.js#L361) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`presence`** <sub>do módulo</sub> · [L378](../server.js#L378) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+- **`mcpSessions`** <sub>do módulo</sub> · [L380](../server.js#L380) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
+- **`broadcastPresence()`** <sub>do módulo</sub> · [L382](../server.js#L382) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
+- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L390](../server.js#L390) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L418](../server.js#L418) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`imageAi`** <sub>do módulo</sub> · [L444](../server.js#L444) — IA de foto (server/imageai.js): lê a configuração atual e grava as mudanças no mesmo arquivo.
+- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L447](../server.js#L447) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
+- **`agentConfig()`** <sub>do módulo</sub> · [L453](../server.js#L453) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+- **`jevConfig()`** <sub>do módulo</sub> · [L475](../server.js#L475) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
+- **`agentInstructions()`** <sub>do módulo</sub> · [L484](../server.js#L484) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+- **`authHeader(a)`** <sub>do módulo</sub> · [L486](../server.js#L486) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
+- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L489](../server.js#L489) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
+- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L498](../server.js#L498) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
+- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L576](../server.js#L576) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
+- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L589](../server.js#L589) — Frase para a tela a partir do erro de chat (com o que fazer).
+- **`PING_TOOL`** <sub>do módulo</sub> · [L603](../server.js#L603) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L621](../server.js#L621) — Rotas da IA:
 
     GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
     POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
@@ -2727,6 +2893,47 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`line(v, max)`** <sub>do módulo</sub> · [L24](../server/account.js#L24) — Texto de uma linha, sem caracteres de controle, cortado em `max`.
 - **`mergeAccount(current, patch = {})`** · [L30](../server/account.js#L30) — Aplica `patch` (vindo do navegador) sobre a conta `current`. Campos desconhecidos são ignorados. Lança Error com mensagem legível quando um valor é inválido (o servidor responde 400 com ela).
 - **`normalizeAccount(saved)`** · [L61](../server/account.js#L61) — Lê uma conta salva (pode estar velha ou corrompida): devolve sempre um objeto completo e válido.
+
+---
+
+## server/imageai.js
+
+**EDIÇÃO GENERATIVA DE FOTO (preencher área, expandir, trocar objeto, gerar)** · [abrir o código](../server/imageai.js)
+
+```text
+ O editor de imagem (src/ui/imageai.js) faz as edições LOCAIS sozinho, no navegador. As GENERATIVAS precisam de um
+ modelo de imagem: o navegador manda a imagem (e a máscara) para cá, e ESTE arquivo fala com a API de imagens
+ compatível com a OpenAI usando a chave guardada no servidor (config.agent.keys[endereço]). A chave nunca vai ao
+ navegador.
+
+   POST {endereço}/images/edits        multipart: model, prompt, image (PNG), mask (PNG), size, n
+   POST {endereço}/images/generations  JSON: model, prompt, size, n
+
+ Qual endereço/modelo: o de Configurações → Agente de IA e modelos → Modelo de imagem (config.imageai) ou, sem
+ escolha, o do provedor do Agente — se ele tiver API de imagem (a OpenAI tem; NVIDIA NIM e Ollama não).
+
+ Rotas (ligadas em server.js → api(), que já confere Host, Origin e Content-Type JSON):
+   GET  /api/imageai/config   → { available, reason, baseUrl, model, provider, hasKey, custom, maxMB, timeoutSec }
+   PUT  /api/imageai/config   { baseUrl?, model?, apiKey? } → grava ("" volta ao padrão / apaga a chave)
+   POST /api/imageai/edit     { image, mask?, prompt, size? } → { image } (data URLs PNG)
+   POST /api/imageai/generate { prompt, size? } → { image }
+```
+
+- **`IMAGE_MODELS`** · [L28](../server/imageai.js#L28) — Modelo de imagem padrão por provedor (provedor fora da lista = sem API de imagem até alguém escolher um modelo).
+- **`MAX_REQUEST`** <sub>do módulo</sub> · [L30](../server/imageai.js#L30) — Limite do pedido inteiro (imagem + máscara em base64) e de cada imagem decodificada.
+- **`SIZES`** <sub>do módulo</sub> · [L33](../server/imageai.js#L33) — Tamanhos aceitos (os da API da OpenAI).
+- **`fail(status, message, code = 'error')`** <sub>do módulo</sub> · [L36](../server/imageai.js#L36) — Erro com status e mensagem para a tela (o mesmo formato do server.js: expose = pode mostrar).
+- **`imageConfigOf(config = {}, env = process.env)`** · [L43](../server/imageai.js#L43) — Endereço, modelo e chave do modelo de imagem a partir da configuração do servidor.
+  - `config` <sub>object</sub> — configuração inteira (designer.config.json)
+  - `[env]` <sub>object</sub> — variáveis de ambiente (testes passam outras)
+- **`apiErrorText(status, detail, { baseUrl = '', model = '' } = {})`** · [L62](../server/imageai.js#L62) — Texto claro para um erro HTTP da API de imagens.
+- **`readImageResult(json, { timeoutMs = 60000, fetchImpl = fetch } = {})`** · [L76](../server/imageai.js#L76) — Lê a resposta da API ({ data: [{ b64_json } | { url }] }) e devolve um data URL. Se vier só a URL, baixa a imagem (com tempo e tamanho limitados).
+- **`readJson(req)`** <sub>do módulo</sub> · [L96](../server/imageai.js#L96) — Lê o corpo JSON com limite próprio (imagens em base64 são grandes, mas não tanto).
+- **`imageBytes(url, label)`** <sub>do módulo</sub> · [L108](../server/imageai.js#L108) — Data URL de imagem → bytes (com limite e só PNG/JPEG/WebP).
+- **`promptOf(v)`** <sub>do módulo</sub> · [L118](../server/imageai.js#L118) — Texto do pedido (prompt): obrigatório, até 1000 caracteres.
+- **`callApi(ic, path, init)`** <sub>do módulo</sub> · [L125](../server/imageai.js#L125) — Chama a API de imagens com tempo limite e transforma qualquer falha numa mensagem clara.
+- **`sizeOf(s, model)`** <sub>do módulo</sub> · [L145](../server/imageai.js#L145) — Tamanho pedido (só os aceitos); dall-e-2 só faz quadrado.
+- **`createImageAi({ getConfig, saveConfig })`** · [L154](../server/imageai.js#L154) — Cria o tratador das rotas /api/imageai/...
 
 ---
 

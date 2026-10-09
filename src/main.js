@@ -101,6 +101,8 @@ store.onSaveError = () => {
 const account = createAccount({ prefs, savePrefs, server: !!ui.server });
 /** Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção. */
 const openSettings = (section) => openSettingsDialog({ store, saving, prefs, savePrefs, toast, account, section: typeof section === 'string' ? section : undefined });
+// o editor de imagem (ui/imageai.js) pede para abrir as Configurações quando falta o modelo de imagem
+document.addEventListener('stylo:abrir-configuracoes', (e) => openSettings(e.detail));
 const openProjects = (mode = 'open') => openProjectsDialog({ store, saving, canvas, toast, openSettings, confirmReplace, mode });
 /** Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome. */
 const quickSave = async () => { if (!(await saving.quickSave())) openProjects('save'); };

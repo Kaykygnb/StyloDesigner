@@ -193,6 +193,14 @@ export function describeCall(tool, args, store) {
     case 'open_project': return `Abrir o projeto “${args.file}” (troca o projeto aberto)`;
     case 'save_project': return args.name ? `Salvar o projeto como “${args.name}”` : 'Salvar o projeto na pasta';
     case 'new_project': return `Começar um projeto novo${args.name ? ` “${args.name}”` : ''} (troca o projeto aberto)`;
+    case 'edit_image': {
+      if (args.restore_original) return `Voltar ${nm(args.id)} para a imagem original`;
+      const what = [args.rotate && `girar ${args.rotate}°`, args.flip_h && 'espelhar ↔', args.flip_v && 'espelhar ↕', (args.ratio || args.crop) && `recortar${args.ratio ? ` ${args.ratio}` : ''}`,
+        args.remove_background && 'remover o fundo', args.filter && args.filter !== 'none' && `filtro ${args.filter}`, args.adjust && `ajustes (${Object.keys(args.adjust).join(', ')})`,
+        args.max_width && `largura máx. ${args.max_width}px`, args.format && `formato ${args.format}`].filter(Boolean);
+      return `Editar a foto de ${nm(args.id)}: ${what.join(', ') || 'nada'}`;
+    }
+    case 'generate_image_edit': return `IA de imagem em ${nm(args.id)} (${({ fill: 'preencher área', replace: 'trocar objeto', expand: 'expandir', generate: 'imagem nova' })[args.mode] || args.mode}): “${String(args.prompt || '').slice(0, 80)}” — a imagem vai para o modelo de imagem configurado`;
     default: return tool;
   }
 }
@@ -400,6 +408,18 @@ export function createRunner({ store, commands, approve, saving = null, folder =
     }
   }
 
+  /** Camada com preenchimento de imagem (ou erro claro). */
+  const imageLayer = (id) => {
+    const n = need(id);
+    if (n.fill?.type !== 'image' || !store.state.doc.assets?.[n.fill.assetId]) throw new Error(`“${n.name}” não tem imagem (preenchimento de imagem). Use em uma camada com foto.`);
+    return n;
+  };
+  /** Resumo da imagem gravada (tamanho e peso). */
+  const imageInfo = (n) => {
+    const url = store.state.doc.assets[n.fill.assetId] || '';
+    return { w: n.fill.natW, h: n.fill.natH, kb: Math.round((url.length * 0.75) / 1024), format: (/^data:image\/(\w+)/.exec(url) || [])[1] };
+  };
+
   const WRITE = {
     update_layer({ id, props }) {
       const n = need(id);
@@ -566,6 +586,29 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (name) store.update(() => { store.state.doc.name = String(name).slice(0, 80); });
       return { project: store.state.doc.name };
     },
+    async edit_image(args) {
+      const n = imageLayer(args.id);
+      // o editor de imagem só é carregado quando usado (ele mexe com canvas; o resto do executor roda até no Node)
+      const ia = await import('../ui/imageai.js');
+      if (args.restore_original) {
+        if (!(await ia.restoreOriginal(store, n.id, { commit: false }))) throw new Error('Esta camada não tem imagem original guardada (ela ainda não foi editada pelo editor de imagem).');
+        return { restored: true, image: imageInfo(n) };
+      }
+      const ops = ['rotate', 'flip_h', 'flip_v', 'crop', 'ratio', 'remove_background', 'filter', 'adjust', 'max_width', 'format'];
+      if (!ops.some((k) => args[k] !== undefined && args[k] !== false && args[k] !== null)) throw new Error(`Diga o que mudar: ${ops.join(', ')} ou restore_original.`);
+      const res = await ia.editImageLocal(store.state.doc.assets[n.fill.assetId], {
+        ...args, remove_background: args.remove_background ? { tolerance: args.background_tolerance ?? 28 } : false,
+      });
+      ia.applyImageToNode(store, n.id, res, { commit: false });
+      return { image: imageInfo(n), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
+    },
+    async generate_image_edit({ id, mode, prompt, area, expand }) {
+      const n = imageLayer(id);
+      const ia = await import('../ui/imageai.js');
+      const res = await ia.generativeEdit({ src: store.state.doc.assets[n.fill.assetId], mode, prompt: String(prompt || '').trim(), area, expand });
+      ia.applyImageToNode(store, n.id, res, { commit: false });
+      return { image: imageInfo(n), hint: 'Confira com get_image. A original fica guardada (edit_image com restore_original volta para ela).' };
+    },
     undo() {
       if (!store.canUndo()) throw new Error('Não há nada para desfazer.');
       store.undo();
@@ -591,6 +634,14 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
+      if (tool === 'edit_image' || tool === 'generate_image_edit') imageLayer(args?.id);
+      if (tool === 'generate_image_edit') {
+        if (!String(args?.prompt || '').trim()) throw new Error('prompt: diga o que a IA de imagem deve fazer.');
+        // sem modelo de imagem configurado: avisa ANTES de pedir permissão
+        const cfg = await fetch('/api/imageai/config').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        if (!cfg) throw new Error('A edição generativa precisa do servidor (npm start).');
+        if (!cfg.available) throw new Error(cfg.reason);
+      }
       const summary = describeCall(tool, args || {}, store);
       // administrador: o programa externo age sem perguntar (a pessoa ligou isso de propósito em Configurações)
       const ok = admin || (approve ? await approve({ client, tool, args, summary }) : false);

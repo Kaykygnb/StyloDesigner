@@ -23,6 +23,7 @@ import {
 import { fillCss, nodeStyle } from '../css.js';
 import { releaseOverrides } from '../cssedit.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
+import { openImageEditor } from './imageai.js';
 
 /**
  * Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
@@ -1427,7 +1428,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     } else if (t === 'image') {
       const fitVal = () => fill().fit || 'cover';
       body.push(
-        h('button.btn.wide', { type: 'button', onclick: () => pickImage(({ assetId, w, h }) => { each((n) => { n.fill.assetId = assetId; n.fill.natW = w; n.fill.natH = h; }); commit(); }) }, ico('image', 14), ' Trocar imagem'),
+        // editor de imagem (ui/imageai.js): recortar, ajustes, filtros, remover fundo, IA generativa, tamanho
+        h('div.row', h('button.btn.wide', { type: 'button', onclick: () => openImageEditor({ store, nodeId: ids()[0], toast }) }, ico('sliders', 14), ' Editar imagem'),
+          h('button.btn.wide', { type: 'button', onclick: () => pickImage(({ assetId, w, h }) => { each((n) => { n.fill.assetId = assetId; n.fill.natW = w; n.fill.natH = h; }); commit(); }) }, ico('image', 14), ' Trocar imagem')),
         capK('Ajuste da imagem', 'background-size', select([['cover', 'Cobrir (cover)'], ['contain', 'Conter (contain)'], ['fill', 'Esticar (100% 100%)'], ['size', 'Tamanho próprio (%)']], fitVal, (v) => each((n) => { n.fill.fit = v; }), 'background-size')));
       if (fitVal() === 'size') {
         body.push(capK('Largura', 'background-size', num('%', () => fill().size ?? 100, (v) => each((n) => { n.fill.size = Math.max(1, v); }), { min: 1, decimals: 0, title: 'Largura da imagem em % da camada' })));
