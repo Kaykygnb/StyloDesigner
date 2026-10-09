@@ -1,4 +1,4 @@
-import { h } from './dom.js';
+import { h, ico } from './dom.js';
 
 const suggestions = ['pessoas', 'escritório', 'natureza', 'comida', 'textura'];
 const safeExternalUrl = (value) => {
@@ -68,7 +68,7 @@ export function createPhotosPanel({ store, commands, canvas, toast }) {
         h('div.photo-meta', h('span.photo-provider', item.provider), h('span.photo-license', item.license),
           h('span.photo-author', item.author),
           safeExternalUrl(item.sourceUrl || item.authorUrl || item.licenseUrl) ? h('a.photo-source', { href: safeExternalUrl(item.sourceUrl || item.authorUrl || item.licenseUrl), target: '_blank', rel: 'noopener noreferrer', onclick: (e) => e.stopPropagation() }, 'Crédito e licença') : null),
-        h('button.btn.small.photo-fill', { type: 'button', title: 'Usar a foto como preenchimento da camada selecionada', onclick: () => useAsFill(item) }, 'Usar como preenchimento'));
+        h('button.photo-fill', { type: 'button', title: 'Usar como preenchimento da camada selecionada', 'aria-label': `Usar foto de ${item.author} como preenchimento`, onclick: () => useAsFill(item) }, ico('image', 13)));
       return card;
     }));
     more.hidden = !hasMore;

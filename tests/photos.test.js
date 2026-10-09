@@ -108,3 +108,14 @@ test('licenças sem derivação (nd) ou não comerciais (nc) ficam de fora', asy
   assert.equal(commercialLicense({ license: 'by-sa' }), true);
   assert.equal(commercialLicense({ license: 'cc0' }), true);
 });
+
+test('busca no Openverse pede no máximo 20 por página (limite sem login)', async () => {
+  const { createPhotosHandler, OPENVERSE_PAGE } = await import('../server/photos.js');
+  assert.ok(OPENVERSE_PAGE <= 20);
+  let asked = '';
+  const fetchImpl = async (u) => { asked = String(u); return new Response(JSON.stringify({ results: [] }), { headers: { 'content-type': 'application/json' } }); };
+  const handler = createPhotosHandler({ fetchImpl });
+  const res = { writeHead() {}, end() {} };
+  await handler({ method: 'GET', url: '/api/photos/search?q=mesa-teste-limite' }, res, {});
+  assert.match(asked, /page_size=20\b/);
+});

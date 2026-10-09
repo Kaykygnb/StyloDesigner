@@ -1,4 +1,6 @@
 const CACHE_MS = 4 * 60 * 1000;
+/** Openverse sem login aceita no máximo 20 por página (com 24 responde 401). */
+export const OPENVERSE_PAGE = 20;
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const cache = new Map();
 
@@ -126,7 +128,7 @@ export function createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now 
     const cacheKey = JSON.stringify([q.toLowerCase(), page, orientation, !!key]);
     const saved = cache.get(cacheKey);
     if (saved && saved.until > now()) return json(res, 200, saved.value);
-    const common = new URLSearchParams({ q, page: String(page), page_size: '24', license_type: 'commercial' });
+    const common = new URLSearchParams({ q, page: String(page), page_size: String(OPENVERSE_PAGE), license_type: 'commercial' });
     if (orientation) common.set('aspect_ratio', ({ landscape: 'wide', portrait: 'tall', square: 'square' })[orientation]);
     const tasks = [fetchImpl(`https://api.openverse.org/v1/images/?${common}`, { signal: AbortSignal.timeout(10000), headers: { Accept: 'application/json' } }).then(async (r) => {
       if (!r.ok) throw new Error(`Openverse respondeu ${r.status}.`);
@@ -148,7 +150,7 @@ export function createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now 
       const reasons = settled.filter((x) => x.status === 'rejected').map((x) => x.reason?.message).filter(Boolean);
       return json(res, 502, { error: reasons.join(' ') || 'Nenhuma imagem encontrada.' });
     }
-    const value = { results: results.slice(0, 48), page, hasMore: results.length >= 24, hasPexels: !!key };
+    const value = { results: results.slice(0, 48), page, hasMore: results.length >= OPENVERSE_PAGE, hasPexels: !!key };
     for (const [entry, item] of cache) if (item.until <= now()) cache.delete(entry);
     if (cache.size >= 200) cache.delete(cache.keys().next().value);
     cache.set(cacheKey, { until: now() + CACHE_MS, value });

@@ -2157,3 +2157,19 @@ body.ai-open .toolbar { left: calc((100% - 400px) / 2); }
 .photo-credit-panel { display: grid; gap: 5px; padding: 9px 11px; color: var(--muted); font-size: 11px; }
 .photo-credit-panel strong { color: var(--text); }
 .photo-credit-panel a { color: var(--accent); }
+
+/* fotos grátis: card só com a foto; autor, licença e ações aparecem por cima ao passar o mouse (ou com foco) */
+.photo-card { position: relative; border: 0; background: var(--panel); }
+.photo-image { aspect-ratio: 1 / 1; border-radius: var(--radius); }
+.photo-meta { position: absolute; left: 0; right: 0; bottom: 0; gap: 2px; padding: 22px 7px 6px; border-radius: 0 0 var(--radius) var(--radius);
+  background: linear-gradient(transparent, rgba(0, 0, 0, .78)); opacity: 0; transition: opacity .15s; pointer-events: none; }
+.photo-meta a { pointer-events: auto; }
+.photo-card:hover .photo-meta, .photo-card:focus-within .photo-meta { opacity: 1; }
+.photo-author { color: #fff; font-weight: 600; }
+.photo-source { color: rgba(255, 255, 255, .8); }
+.photo-provider { display: none; }
+.photo-license { display: none; }
+.photo-fill { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; margin: 0; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px;
+  background: rgba(0, 0, 0, .6); color: #fff; opacity: 0; transition: opacity .15s; cursor: pointer; }
+.photo-card:hover .photo-fill, .photo-card:focus-within .photo-fill { opacity: 1; }
+.photo-fill:hover { background: var(--primary); }

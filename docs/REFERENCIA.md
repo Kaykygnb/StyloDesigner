@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-67 arquivos · 1053 funções e constantes documentadas.
+67 arquivos · 1054 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -2763,15 +2763,16 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ## server/photos.js
 
-- **`MAX_PHOTO_BYTES`** · [L2](../server/photos.js#L2) — _(sem comentário)_
-- **`commercialLicense(result)`** · [L10](../server/photos.js#L10) — _(sem comentário)_
-- **`normalizeOpenverse(item)`** · [L18](../server/photos.js#L18) — _(sem comentário)_
-- **`normalizePexels(item)`** · [L34](../server/photos.js#L34) — _(sem comentário)_
-- **`normalizeResults(openverse = [], pexels = [])`** · [L47](../server/photos.js#L47) — _(sem comentário)_
-- **`validateProxyUrl(value)`** · [L54](../server/photos.js#L54) — _(sem comentário)_
-- **`validateImageResponse(contentType, contentLength)`** · [L64](../server/photos.js#L64) — _(sem comentário)_
-- **`boundedPhotoBytes(response)`** · [L71](../server/photos.js#L71) — _(sem comentário)_
-- **`createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {})`** · [L94](../server/photos.js#L94) — _(sem comentário)_
+- **`OPENVERSE_PAGE`** · [L3](../server/photos.js#L3) — Openverse sem login aceita no máximo 20 por página (com 24 responde 401).
+- **`MAX_PHOTO_BYTES`** · [L4](../server/photos.js#L4) — _(sem comentário)_
+- **`commercialLicense(result)`** · [L12](../server/photos.js#L12) — _(sem comentário)_
+- **`normalizeOpenverse(item)`** · [L20](../server/photos.js#L20) — _(sem comentário)_
+- **`normalizePexels(item)`** · [L36](../server/photos.js#L36) — _(sem comentário)_
+- **`normalizeResults(openverse = [], pexels = [])`** · [L49](../server/photos.js#L49) — _(sem comentário)_
+- **`validateProxyUrl(value)`** · [L56](../server/photos.js#L56) — _(sem comentário)_
+- **`validateImageResponse(contentType, contentLength)`** · [L66](../server/photos.js#L66) — _(sem comentário)_
+- **`boundedPhotoBytes(response)`** · [L73](../server/photos.js#L73) — _(sem comentário)_
+- **`createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {})`** · [L96](../server/photos.js#L96) — _(sem comentário)_
 
 ---
 
