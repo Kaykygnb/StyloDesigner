@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-60 arquivos · 929 funções e constantes documentadas.
+60 arquivos · 932 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1038,59 +1038,65 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`gridOrigin(n)`** <sub>interna</sub> · [L58](../src/pen.js#L58) — Origem (mundo) do pai do vetor em edição, ou do caminho em desenho: é daqui que a grade de encaixe conta.
 - **`snapW(w, o)`** <sub>interna</sub> · [L63](../src/pen.js#L63) — Arredonda um ponto do mundo para a grade de encaixe (sem encaixe ligado, devolve o próprio ponto).
 - **`snap45(from, p)`** <sub>interna</sub> · [L68](../src/pen.js#L68) — Com Shift: trava `p` em múltiplos de 45° a partir de `from` (mantém a distância).
-- **`cubicAt(a, c1, c2, b, t)`** <sub>interna</sub> · [L75](../src/pen.js#L75) — Ponto da curva de Bézier cúbica (a, c1, c2, b) no parâmetro t (0..1).
-- **`nearestOnPath(n, l)`** <sub>interna</sub> · [L86](../src/pen.js#L86) — Ponto do traço MAIS PERTO de `l` (espaço do vetor), medindo na curva de verdade (não na corda reta). Amostra 48 pontos por segmento. Devolve { i: segmento, t, d: distância, pt: ponto } ou null.
-- **`splitSegment(a, b, t)`** <sub>interna</sub> · [L105](../src/pen.js#L105) — Divide o segmento a→b em `t` (algoritmo de De Casteljau) e devolve o ponto novo JÁ com as alças certas; ajusta as alças de a e b. O desenho não muda: só ganha um ponto a mais no meio da curva.
-- **`finish(close = false)`** <sub>interna</sub> · [L120](../src/pen.js#L120) — Termina o desenho: cria a camada-vetor se há 2+ pontos e volta para a ferramenta Mover.
+- **`layerRects(skipId)`** <sub>interna</sub> · [L80](../src/pen.js#L80) — Bordas e centros das camadas visíveis da página (raiz e um nível abaixo), menos o vetor em edição.
+- **`magnet(p, pts, e, skipId)`** <sub>interna</sub> · [L104](../src/pen.js#L104) — Gruda `p` (mundo) no candidato mais próximo de cada eixo e grava as linhas-guia em ui.guides.
+  - `[]` <sub>{x:number,y:number</sub> — } pts  outros pontos do caminho (já no mundo)
+  - `e` <sub>MouseEvent</sub> — 
+  - `[skipId]` <sub>string</sub> — vetor em edição (não gruda nele mesmo)
+- **`editWorldPts(n, skip)`** <sub>interna</sub> · [L131](../src/pen.js#L131) — Pontos (mundo) do vetor em edição, menos os índices dados.
+- **`cubicAt(a, c1, c2, b, t)`** <sub>interna</sub> · [L134](../src/pen.js#L134) — Ponto da curva de Bézier cúbica (a, c1, c2, b) no parâmetro t (0..1).
+- **`nearestOnPath(n, l)`** <sub>interna</sub> · [L145](../src/pen.js#L145) — Ponto do traço MAIS PERTO de `l` (espaço do vetor), medindo na curva de verdade (não na corda reta). Amostra 48 pontos por segmento. Devolve { i: segmento, t, d: distância, pt: ponto } ou null.
+- **`splitSegment(a, b, t)`** <sub>interna</sub> · [L164](../src/pen.js#L164) — Divide o segmento a→b em `t` (algoritmo de De Casteljau) e devolve o ponto novo JÁ com as alças certas; ajusta as alças de a e b. O desenho não muda: só ganha um ponto a mais no meio da curva.
+- **`finish(close = false)`** <sub>interna</sub> · [L179](../src/pen.js#L179) — Termina o desenho: cria a camada-vetor se há 2+ pontos e volta para a ferramenta Mover.
   - `[close=false]` <sub>boolean</sub> — true fecha o caminho (liga o último ponto ao primeiro)
-- **`removeLast()`** <sub>interna</sub> · [L134](../src/pen.js#L134) — Backspace durante o desenho: tira o ÚLTIMO ponto (sem pontos, cancela o caminho). Devolve true se tratou.
-- **`down(e)`** <sub>interna</sub> · [L150](../src/pen.js#L150) — Clique da caneta. Clicar perto (<9px de tela) do 1º ponto, com 2+ pontos, FECHA o caminho. Senão adiciona um ponto de canto e começa um possível arrasto (que viraria alças de Bézier). O frame sob o primeiro clique vira o pai da camada final. Clicar na PONTA de um vetor aberto selecionado CONTINUA aquele caminho (como a caneta do Illustrator).
+- **`removeLast()`** <sub>interna</sub> · [L194](../src/pen.js#L194) — Backspace durante o desenho: tira o ÚLTIMO ponto (sem pontos, cancela o caminho). Devolve true se tratou.
+- **`down(e)`** <sub>interna</sub> · [L210](../src/pen.js#L210) — Clique da caneta. Clicar perto (<9px de tela) do 1º ponto, com 2+ pontos, FECHA o caminho. Senão adiciona um ponto de canto e começa um possível arrasto (que viraria alças de Bézier). O frame sob o primeiro clique vira o pai da camada final. Clicar na PONTA de um vetor aberto selecionado CONTINUA aquele caminho (como a caneta do Illustrator).
   - ↩︎ o gesto de arrasto, ou null se o caminho foi fechado
-- **`move(e)`** <sub>interna</sub> · [L180](../src/pen.js#L180) — Movimento do mouse: atualiza o "elástico" até o cursor (preview do próximo segmento) e, se está arrastando após o clique, define as alças: hout segue o mouse e hin é o ESPELHO em torno do ponto (curva suave). Só vira arrasto após 3px (cliques tremidos continuam sendo pontos de canto).
-- **`up()`** <sub>interna</sub> · [L203](../src/pen.js#L203) — Soltou o mouse: se estava editando um ponto/alça, ajusta a caixa do vetor e grava no histórico (1 desfazer).
-- **`editNode()`** <sub>interna</sub> · [L219](../src/pen.js#L219) — Vetor em edição (ou null).
-- **`toLocal(n, w)`** <sub>interna</sub> · [L225](../src/pen.js#L225) — Mundo → espaço do vetor (o "viewBox" vw×vh). Desfaz a rotação da camada (rotação inversa em torno do centro) e converte a posição na caixa para o sistema de coordenadas dos pontos.
-- **`toWorld(n, p)`** <sub>interna</sub> · [L233](../src/pen.js#L233) — Espaço do vetor → mundo (o inverso de toLocal), considerando a rotação da camada. Usado para desenhar os pontos na tela.
-- **`startEdit(id)`** <sub>interna</sub> · [L241](../src/pen.js#L241) — Entra no modo de edição de pontos de um vetor (duplo clique ou Enter).
-- **`exitEdit()`** <sub>interna</sub> · [L251](../src/pen.js#L251) — Sai da edição de pontos.
-- **`downEdit(e, kind, idx)`** <sub>interna</sub> · [L265](../src/pen.js#L265) — Clicou num ponto ou alça. `kind`: 'pt' (ponto), 'hin' ou 'hout' (alças).
+- **`move(e)`** <sub>interna</sub> · [L241](../src/pen.js#L241) — Movimento do mouse: atualiza o "elástico" até o cursor (preview do próximo segmento) e, se está arrastando após o clique, define as alças: hout segue o mouse e hin é o ESPELHO em torno do ponto (curva suave). Só vira arrasto após 3px (cliques tremidos continuam sendo pontos de canto).
+- **`up()`** <sub>interna</sub> · [L265](../src/pen.js#L265) — Soltou o mouse: se estava editando um ponto/alça, ajusta a caixa do vetor e grava no histórico (1 desfazer).
+- **`editNode()`** <sub>interna</sub> · [L283](../src/pen.js#L283) — Vetor em edição (ou null).
+- **`toLocal(n, w)`** <sub>interna</sub> · [L289](../src/pen.js#L289) — Mundo → espaço do vetor (o "viewBox" vw×vh). Desfaz a rotação da camada (rotação inversa em torno do centro) e converte a posição na caixa para o sistema de coordenadas dos pontos.
+- **`toWorld(n, p)`** <sub>interna</sub> · [L297](../src/pen.js#L297) — Espaço do vetor → mundo (o inverso de toLocal), considerando a rotação da camada. Usado para desenhar os pontos na tela.
+- **`startEdit(id)`** <sub>interna</sub> · [L305](../src/pen.js#L305) — Entra no modo de edição de pontos de um vetor (duplo clique ou Enter).
+- **`exitEdit()`** <sub>interna</sub> · [L315](../src/pen.js#L315) — Sai da edição de pontos.
+- **`downEdit(e, kind, idx)`** <sub>interna</sub> · [L329](../src/pen.js#L329) — Clicou num ponto ou alça. `kind`: 'pt' (ponto), 'hin' ou 'hout' (alças).
 
    - Shift+clique num ponto: soma/tira o ponto da seleção (sem arrastar).
    - Alt+clique num ponto: converte canto ↔ suave (como a ferramenta "converter ponto" do Illustrator).
    - Clique/arrasto: seleciona o ponto (se já está num grupo selecionado, o grupo todo vai junto).
-- **`moveEditHandle(world, e)`** <sub>interna</sub> · [L294](../src/pen.js#L294) — Arrasta ponto ou alça (converte o mouse para o espaço do vetor).
+- **`moveEditHandle(world, e)`** <sub>interna</sub> · [L358](../src/pen.js#L358) — Arrasta ponto ou alça (converte o mouse para o espaço do vetor).
 
    - Ponto: leva as próprias alças junto.
    - Alça: a alça oposta segue o modo do ponto (espelhada, assimétrica ou independente) — Alt torna independente.
-- **`togglePointType(idx)`** <sub>interna</sub> · [L325](../src/pen.js#L325) — Alterna o ponto entre CANTO (sem alças) e SUAVE. Ao suavizar, cria alças opostas e proporcionais à direção entre o ponto anterior e o próximo (quarto da distância), que dá uma curva natural.
-- **`deletePoint()`** <sub>interna</sub> · [L338](../src/pen.js#L338) — Remove os pontos selecionados (o caminho mantém no mínimo 2 pontos).
-- **`addPointAt(e, { drag: startDrag = false } = {})`** <sub>interna</sub> · [L354](../src/pen.js#L354) — Alt+clique no traço: insere um ponto no lugar do traço mais perto do clique, MEDINDO NA CURVA (nearestOnPath) e dividindo o segmento (splitSegment): num trecho curvo o ponto novo nasce com as alças certas e o desenho não muda.
-- **`onSegment(e)`** <sub>interna</sub> · [L376](../src/pen.js#L376) — O clique (px de tela) caiu em cima do traço do vetor em edição (a menos de 6px)?
-- **`hover(e)`** <sub>interna</sub> · [L388](../src/pen.js#L388) — Mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar): perto do traço (6px), ou num raio maior (18px) com Alt. Não aparece em cima de um ponto ou alça.
-- **`scaleOf(n)`** <sub>interna</sub> · [L404](../src/pen.js#L404) — Escala do espaço do vetor (vw×vh) para px da camada.
-- **`pointType()`** <sub>interna</sub> · [L410](../src/pen.js#L410) — Tipo do ponto selecionado: 'corner' (sem alças), 'mirror' (espelhadas), 'asym' (assimétricas) ou 'free' (independentes). Ver geom.js → pointMode.
-- **`setPointType(type)`** <sub>interna</sub> · [L420](../src/pen.js#L420) — Define o tipo dos pontos selecionados: 'corner' tira as alças; 'mirror' deixa as duas alças iguais e opostas; 'asym' alinha as alças mantendo os comprimentos; 'free' marca o ponto como independente (cria alças se não houver). ('smooth' é aceito como sinônimo de 'mirror', por compatibilidade.)
-- **`pointPos()`** <sub>interna</sub> · [L446](../src/pen.js#L446) — Posição do ponto selecionado em px, relativa ao PAI da camada (como o X/Y da camada): { x, y } ou null.
-- **`setPointPos(axis, v)`** <sub>interna</sub> · [L458](../src/pen.js#L458) — Move o ponto selecionado para X ou Y (px relativos ao pai), levando as alças junto. NÃO grava no histórico: quem chama (o campo numérico do painel) faz o commit ao terminar.
-- **`nudge(dx, dy)`** <sub>interna</sub> · [L473](../src/pen.js#L473) — Setas movem o ponto selecionado (px do pai; Shift = 10). Devolve true se tratou a tecla.
-- **`reverse(id)`** <sub>interna</sub> · [L493](../src/pen.js#L493) — Inverte a direção do caminho (o primeiro ponto vira o último). O desenho não muda; setas de preenchimento e animações de traço sim.
-- **`pathD(id)`** <sub>interna</sub> · [L509](../src/pen.js#L509) — O atributo `d` do SVG deste vetor (todos os contornos), no espaço próprio dele (viewBox 0 0 vw vh).
-- **`applyPathD(id, d)`** <sub>interna</sub> · [L519](../src/pen.js#L519) — Substitui o desenho do vetor pelo `d` de um SVG (aceita M L H V C S Q T A Z, absolutos e relativos). Só mexe na geometria: cor, contorno, nome e posição continuam. A caixa passa a ter o tamanho do desenho colado.
+- **`togglePointType(idx)`** <sub>interna</sub> · [L392](../src/pen.js#L392) — Alterna o ponto entre CANTO (sem alças) e SUAVE. Ao suavizar, cria alças opostas e proporcionais à direção entre o ponto anterior e o próximo (quarto da distância), que dá uma curva natural.
+- **`deletePoint()`** <sub>interna</sub> · [L405](../src/pen.js#L405) — Remove os pontos selecionados (o caminho mantém no mínimo 2 pontos).
+- **`addPointAt(e, { drag: startDrag = false } = {})`** <sub>interna</sub> · [L421](../src/pen.js#L421) — Alt+clique no traço: insere um ponto no lugar do traço mais perto do clique, MEDINDO NA CURVA (nearestOnPath) e dividindo o segmento (splitSegment): num trecho curvo o ponto novo nasce com as alças certas e o desenho não muda.
+- **`onSegment(e)`** <sub>interna</sub> · [L443](../src/pen.js#L443) — O clique (px de tela) caiu em cima do traço do vetor em edição (a menos de 6px)?
+- **`hover(e)`** <sub>interna</sub> · [L455](../src/pen.js#L455) — Mostra um pontinho no traço onde o clique adicionaria um ponto (feedback antes de clicar): perto do traço (6px), ou num raio maior (18px) com Alt. Não aparece em cima de um ponto ou alça.
+- **`scaleOf(n)`** <sub>interna</sub> · [L471](../src/pen.js#L471) — Escala do espaço do vetor (vw×vh) para px da camada.
+- **`pointType()`** <sub>interna</sub> · [L477](../src/pen.js#L477) — Tipo do ponto selecionado: 'corner' (sem alças), 'mirror' (espelhadas), 'asym' (assimétricas) ou 'free' (independentes). Ver geom.js → pointMode.
+- **`setPointType(type)`** <sub>interna</sub> · [L487](../src/pen.js#L487) — Define o tipo dos pontos selecionados: 'corner' tira as alças; 'mirror' deixa as duas alças iguais e opostas; 'asym' alinha as alças mantendo os comprimentos; 'free' marca o ponto como independente (cria alças se não houver). ('smooth' é aceito como sinônimo de 'mirror', por compatibilidade.)
+- **`pointPos()`** <sub>interna</sub> · [L513](../src/pen.js#L513) — Posição do ponto selecionado em px, relativa ao PAI da camada (como o X/Y da camada): { x, y } ou null.
+- **`setPointPos(axis, v)`** <sub>interna</sub> · [L525](../src/pen.js#L525) — Move o ponto selecionado para X ou Y (px relativos ao pai), levando as alças junto. NÃO grava no histórico: quem chama (o campo numérico do painel) faz o commit ao terminar.
+- **`nudge(dx, dy)`** <sub>interna</sub> · [L540](../src/pen.js#L540) — Setas movem o ponto selecionado (px do pai; Shift = 10). Devolve true se tratou a tecla.
+- **`reverse(id)`** <sub>interna</sub> · [L560](../src/pen.js#L560) — Inverte a direção do caminho (o primeiro ponto vira o último). O desenho não muda; setas de preenchimento e animações de traço sim.
+- **`pathD(id)`** <sub>interna</sub> · [L576](../src/pen.js#L576) — O atributo `d` do SVG deste vetor (todos os contornos), no espaço próprio dele (viewBox 0 0 vw vh).
+- **`applyPathD(id, d)`** <sub>interna</sub> · [L586](../src/pen.js#L586) — Substitui o desenho do vetor pelo `d` de um SVG (aceita M L H V C S Q T A Z, absolutos e relativos). Só mexe na geometria: cor, contorno, nome e posição continuam. A caixa passa a ter o tamanho do desenho colado.
   - ↩︎ `boolean` false se o texto não tem nenhum caminho
-- **`continueAt(e)`** <sub>interna</sub> · [L552](../src/pen.js#L552) — Cliques da caneta na PONTA de um vetor aberto que está selecionado CONTINUAM aquele caminho: devolve um caminho em desenho (ui.pen) já com os pontos do vetor, com a ponta clicada no fim. Não vale para vetor girado ou com furos.
-- **`marqueeStart(e, onBody)`** <sub>interna</sub> · [L569](../src/pen.js#L569) — Começa um retângulo de seleção de PONTOS (arrastar no vazio durante a edição). Shift soma à seleção atual.
-- **`marqueeMove(e, d)`** <sub>interna</sub> · [L576](../src/pen.js#L576) — Atualiza o retângulo e seleciona os pontos que caem dentro dele.
-- **`marqueeEnd(d)`** <sub>interna</sub> · [L594](../src/pen.js#L594) — Soltou: sem arrastar, clicar no vazio limpa os pontos (e, fora do vetor, sai da edição e desmarca).
-- **`selectAll()`** <sub>interna</sub> · [L603](../src/pen.js#L603) — Seleciona todos os pontos do vetor em edição (Ctrl+A).
-- **`selectedCount()`** <sub>interna</sub> · [L611](../src/pen.js#L611) — Quantos pontos estão selecionados.
-- **`openAfter()`** <sub>interna</sub> · [L617](../src/pen.js#L617) — "Abrir aqui": num caminho FECHADO, corta o segmento logo DEPOIS do ponto selecionado e o caminho vira aberto (o ponto seguinte passa a ser o início). É a tesoura do Illustrator, em versão simples.
-- **`setClosed(id, closed)`** <sub>interna</sub> · [L633](../src/pen.js#L633) — Fecha ou abre o caminho (liga/desliga o segmento do último ponto ao primeiro).
-- **`pencilDown(e)`** <sub>interna</sub> · [L647](../src/pen.js#L647) — Começa um traço do lápis. O frame sob o clique vira o pai do vetor.
-- **`pencilMove(e)`** <sub>interna</sub> · [L653](../src/pen.js#L653) — Arrastando o lápis: guarda os pontos (só os que andaram ≥1px de tela, para não acumular repetidos).
-- **`pencilUp()`** <sub>interna</sub> · [L664](../src/pen.js#L664) — Soltou o lápis: simplifica e ajusta curvas (geom.js → smoothStroke) e cria o vetor. Se o traço termina perto do começo (<12px de tela), o caminho é FECHADO. Traço curto demais (um clique) não cria nada.
-- **`overlaySvg()`** <sub>interna</sub> · [L708](../src/pen.js#L708) — Markup SVG (em px de tela) do que a caneta mostra: o caminho em construção com o "elástico" até o cursor, os pontos (o primeiro em rosa, indica onde fechar) e as alças; ou, na edição, os pontos do vetor (e as alças do ponto selecionado). Elementos com data-edit/data-idx são clicáveis (tools.js os reconhece).
-- **`isDrawing()`** <sub>interna</sub> · [L752](../src/pen.js#L752) — Está desenhando um caminho novo?
-- **`isEditing()`** <sub>interna</sub> · [L754](../src/pen.js#L754) — Está editando os pontos de um vetor?
+- **`continueAt(e)`** <sub>interna</sub> · [L619](../src/pen.js#L619) — Cliques da caneta na PONTA de um vetor aberto que está selecionado CONTINUAM aquele caminho: devolve um caminho em desenho (ui.pen) já com os pontos do vetor, com a ponta clicada no fim. Não vale para vetor girado ou com furos.
+- **`marqueeStart(e, onBody)`** <sub>interna</sub> · [L636](../src/pen.js#L636) — Começa um retângulo de seleção de PONTOS (arrastar no vazio durante a edição). Shift soma à seleção atual.
+- **`marqueeMove(e, d)`** <sub>interna</sub> · [L643](../src/pen.js#L643) — Atualiza o retângulo e seleciona os pontos que caem dentro dele.
+- **`marqueeEnd(d)`** <sub>interna</sub> · [L661](../src/pen.js#L661) — Soltou: sem arrastar, clicar no vazio limpa os pontos (e, fora do vetor, sai da edição e desmarca).
+- **`selectAll()`** <sub>interna</sub> · [L670](../src/pen.js#L670) — Seleciona todos os pontos do vetor em edição (Ctrl+A).
+- **`selectedCount()`** <sub>interna</sub> · [L678](../src/pen.js#L678) — Quantos pontos estão selecionados.
+- **`openAfter()`** <sub>interna</sub> · [L684](../src/pen.js#L684) — "Abrir aqui": num caminho FECHADO, corta o segmento logo DEPOIS do ponto selecionado e o caminho vira aberto (o ponto seguinte passa a ser o início). É a tesoura do Illustrator, em versão simples.
+- **`setClosed(id, closed)`** <sub>interna</sub> · [L700](../src/pen.js#L700) — Fecha ou abre o caminho (liga/desliga o segmento do último ponto ao primeiro).
+- **`pencilDown(e)`** <sub>interna</sub> · [L714](../src/pen.js#L714) — Começa um traço do lápis. O frame sob o clique vira o pai do vetor.
+- **`pencilMove(e)`** <sub>interna</sub> · [L720](../src/pen.js#L720) — Arrastando o lápis: guarda os pontos (só os que andaram ≥1px de tela, para não acumular repetidos).
+- **`pencilUp()`** <sub>interna</sub> · [L731](../src/pen.js#L731) — Soltou o lápis: simplifica e ajusta curvas (geom.js → smoothStroke) e cria o vetor. Se o traço termina perto do começo (<12px de tela), o caminho é FECHADO. Traço curto demais (um clique) não cria nada.
+- **`overlaySvg()`** <sub>interna</sub> · [L775](../src/pen.js#L775) — Markup SVG (em px de tela) do que a caneta mostra: o caminho em construção com o "elástico" até o cursor, os pontos (o primeiro em rosa, indica onde fechar) e as alças; ou, na edição, os pontos do vetor (e as alças do ponto selecionado). Elementos com data-edit/data-idx são clicáveis (tools.js os reconhece).
+- **`isDrawing()`** <sub>interna</sub> · [L819](../src/pen.js#L819) — Está desenhando um caminho novo?
+- **`isEditing()`** <sub>interna</sub> · [L821](../src/pen.js#L821) — Está editando os pontos de um vetor?
 
 ---
 
@@ -1133,10 +1139,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`RULER`** · [L8](../src/rulers.js#L8) — Espessura das réguas em px (a de cima tem 20px de altura; a da esquerda, 20px de largura).
 - **`createRulers({ store, canvas, stage, commands, onManageGuides })`** · [L16](../src/rulers.js#L16) — Cria as RÉGUAS (topo e esquerda) e a criação de GUIAS: arrastar a partir da régua cria uma linha-guia que o snap enxerga; arrastar a guia de volta para a régua a apaga. As réguas são <canvas> 2D desenhados com a vista atual (pan/zoom) e destacam a faixa da seleção em azul. Guias são dados da página (page.guides: [{axis, pos}]); quem as DESENHA é o overlay.js.
-- **`css(name)`** <sub>interna</sub> · [L38](../src/rulers.js#L38) — Lê uma variável CSS do tema atual (as réguas usam as mesmas cores dos painéis, claro ou escuro).
-- **`step(zoom)`** <sub>interna</sub> · [L44](../src/rulers.js#L44) — Escolhe o intervalo entre marcações (1, 2, 5, 10, 20, 50, 100…) para que fiquem a ≥60px uma da outra na tela, qualquer que seja o zoom — a régua nunca fica poluída nem vazia.
-- **`draw()`** <sub>interna</sub> · [L55](../src/rulers.js#L55) — Redesenha as duas réguas: fundo, faixa translúcida da seleção, marcas e números. Rótulos da régua da esquerda ficam girados em −90°. Considera o devicePixelRatio para ficar nítida em telas HiDPI.
-- **`bind(el, axis)`** <sub>interna</sub> · [L125](../src/rulers.js#L125) — Liga o arrasto numa régua: durante o arrasto mostra a guia + a posição; ao soltar, cria a guia — mas só se o mouse estiver DENTRO da área do canvas (soltar em cima da régua cancela).
+- **`css(name)`** <sub>interna</sub> · [L39](../src/rulers.js#L39) — Lê uma variável CSS do tema atual (as réguas usam as mesmas cores dos painéis, claro ou escuro).
+- **`step(zoom)`** <sub>interna</sub> · [L45](../src/rulers.js#L45) — Escolhe o intervalo entre marcações (1, 2, 5, 10, 20, 50, 100…) para que fiquem a ≥60px uma da outra na tela, qualquer que seja o zoom — a régua nunca fica poluída nem vazia.
+- **`draw()`** <sub>interna</sub> · [L56](../src/rulers.js#L56) — Redesenha as duas réguas: fundo, faixa translúcida da seleção, marcas e números. Rótulos da régua da esquerda ficam girados em −90°. Considera o devicePixelRatio para ficar nítida em telas HiDPI.
+- **`bind(el, axis)`** <sub>interna</sub> · [L126](../src/rulers.js#L126) — Liga o arrasto numa régua: durante o arrasto mostra a guia + a posição; ao soltar, cria a guia — mas só se o mouse estiver DENTRO da área do canvas (soltar em cima da régua cancela).
   - `el` <sub>HTMLElement</sub> — régua
   - `axis` <sub>'x'\|'y'</sub> — eixo da guia criada: a régua de cima cria guias horizontais ('y'); a da esquerda, verticais ('x')
 

@@ -29,22 +29,22 @@ await ev(async () => {
 await page.waitForTimeout(400);
 
 // ---------------------------------------------------------------- réguas
-ok('as réguas começam escondidas', !(await rulerVisible()));
+ok('as réguas começam visíveis (as guias saem arrastando delas)', await rulerVisible());
 await ev(() => { window.__nao_recarregou = true; });
 await page.locator('#viewport').click({ position: { x: 600, y: 500 } });
 await page.keyboard.press('Control+r');
 await page.waitForTimeout(300);
-ok('Ctrl+R liga as réguas sem recarregar a página', (await rulerVisible()) && (await ev(() => window.__nao_recarregou === true)));
+ok('Ctrl+R desliga as réguas sem recarregar a página', !(await rulerVisible()) && (await ev(() => window.__nao_recarregou === true)));
 await page.keyboard.press('Control+r');
 await page.waitForTimeout(300);
-ok('Ctrl+R de novo desliga', !(await rulerVisible()));
+ok('Ctrl+R de novo liga', await rulerVisible());
 await page.keyboard.press('Shift+r');
 await page.waitForTimeout(300);
-ok('Shift+R continua funcionando', await rulerVisible());
+ok('Shift+R continua funcionando (desliga de novo)', !(await rulerVisible()));
 await page.waitForTimeout(500);
 await page.reload();
 await page.waitForTimeout(900);
-ok('a escolha das réguas é lembrada ao recarregar', await rulerVisible());
+ok('a escolha das réguas (desligadas) é lembrada ao recarregar', !(await rulerVisible()));
 await ev(() => designer.store.toggleRulers());
 
 // ---------------------------------------------------------------- topo: largura da tela e modo de cor

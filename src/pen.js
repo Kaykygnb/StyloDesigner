@@ -71,6 +71,65 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     const len = Math.hypot(dx, dy);
     return { x: from.x + Math.cos(ang) * len, y: from.y + Math.sin(ang) * len };
   };
+  // ---- ÍMÃ INTELIGENTE (como no Figma): o ponto gruda, a menos de 6px de tela, nas guias da régua, nos outros pontos
+  // do caminho (alinhamento horizontal/vertical) e nas bordas/centros das camadas. As linhas rosa mostram com quem
+  // alinhou. Ctrl (⌘ no Mac) segura o ímã desligado. Os retângulos das camadas são medidos uma vez por gesto.
+  let snapRects = null;
+  const resetSnap = () => { snapRects = null; if (ui.guides?.length) ui.guides = []; };
+  /** Bordas e centros das camadas visíveis da página (raiz e um nível abaixo), menos o vetor em edição. */
+  function layerRects(skipId) {
+    if (snapRects) return snapRects;
+    const out = [];
+    for (const n of store.page().children) {
+      if (!n.visible || n.id === skipId) continue;
+      const r = canvas.aabb(n.id);
+      if (r) out.push(r);
+      for (const c of n.children || []) {
+        if (out.length > 400) break;
+        if (!c.visible || c.id === skipId) continue;
+        const rc = canvas.aabb(c.id);
+        if (rc) out.push(rc);
+      }
+    }
+    snapRects = out;
+    return out;
+  }
+  /**
+   * Gruda `p` (mundo) no candidato mais próximo de cada eixo e grava as linhas-guia em ui.guides.
+   * @param {{x:number,y:number}} p
+   * @param {{x:number,y:number}[]} pts  outros pontos do caminho (já no mundo)
+   * @param {MouseEvent} e
+   * @param {string} [skipId]  vetor em edição (não gruda nele mesmo)
+   */
+  function magnet(p, pts, e, skipId) {
+    if (e?.ctrlKey || e?.metaKey || ui.penMagnet === false) { if (ui.guides?.length) ui.guides = []; return p; }
+    const thr = 6 / canvas.getView().zoom;
+    const xs = [], ys = []; // { v, from, to }: valor no eixo e trecho da linha-guia
+    if (ui.showGuides !== false && ui.showRulers !== false) {
+      for (const g of store.page().guides || []) (g.axis === 'x' ? xs : ys).push({ v: g.pos, guide: true });
+    }
+    for (const q of pts) { xs.push({ v: q.x, at: q.y }); ys.push({ v: q.y, at: q.x }); }
+    for (const r of layerRects(skipId)) {
+      for (const v of [r.x, r.x + r.w / 2, r.x + r.w]) xs.push({ v, from: r.y, to: r.y + r.h });
+      for (const v of [r.y, r.y + r.h / 2, r.y + r.h]) ys.push({ v, from: r.x, to: r.x + r.w });
+    }
+    const pick = (list, val) => {
+      let best = null;
+      for (const c of list) { const d = Math.abs(c.v - val); if (d < thr && (!best || d < Math.abs(best.v - val))) best = c; }
+      return best;
+    };
+    const bx = pick(xs, p.x), by = pick(ys, p.y);
+    const out = { x: bx ? bx.v : p.x, y: by ? by.v : p.y };
+    const guides = [];
+    const span = (c, along) => (c.guide ? null : c.at != null ? [Math.min(c.at, along), Math.max(c.at, along)] : [Math.min(c.from, along), Math.max(c.to, along)]);
+    if (bx) { const sp = span(bx, out.y); if (sp) guides.push({ axis: 'x', pos: bx.v, from: sp[0], to: sp[1] }); }
+    if (by) { const sp = span(by, out.x); if (sp) guides.push({ axis: 'y', pos: by.v, from: sp[0], to: sp[1] }); }
+    ui.guides = guides;
+    return out;
+  }
+  /** Pontos (mundo) do vetor em edição, menos os índices dados. */
+  const editWorldPts = (n, skip) => n.points.filter((_, i) => !skip.has(i)).map((q) => toWorld(n, q));
+
   /** Ponto da curva de Bézier cúbica (a, c1, c2, b) no parâmetro t (0..1). */
   const cubicAt = (a, c1, c2, b, t) => {
     const u = 1 - t;
@@ -120,6 +179,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   function finish(close = false) {
     const pen = ui.pen;
     ui.pen = null;
+    resetSnap();
     drag = null;
     if (pen && pen.pts.length >= 2) {
       // caminho CONTINUADO (partiu da ponta de um vetor existente): atualiza aquele vetor em vez de criar outro
@@ -166,6 +226,7 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     }
     if (e.shiftKey && pen.pts.length) p = snap45(pen.pts[pen.pts.length - 1], p); // Shift: segmento em múltiplos de 45°
     p = snapW(p, gridOrigin(null)); // encaixe na grade de pixels (se ligado)
+    if (!e.shiftKey) p = magnet(p, pen.pts, e); // ímã: guias, pontos do caminho e camadas
     pen.pts.push({ x: p.x, y: p.y, hin: null, hout: null });
     drag = { kind: 'pen', idx: pen.pts.length - 1, sx: e.clientX, sy: e.clientY };
     store.emit('overlay');
@@ -182,12 +243,13 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     if (ui.pen) {
       const c = e.shiftKey && ui.pen.pts.length && drag?.kind !== 'pen' ? snap45(ui.pen.pts[ui.pen.pts.length - 1], p) : p;
       ui.pen.cursor = drag?.kind === 'pen' ? c : snapW(c, gridOrigin(null)); // o "elástico" também gruda na grade
+      if (drag?.kind !== 'pen' && !e.shiftKey) ui.pen.cursor = magnet(ui.pen.cursor, ui.pen.pts, e);
     }
     if (drag?.kind === 'cont') { store.emit('overlay'); return; }
     if (drag?.kind === 'pen') {
       if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 3) {
         const pt = ui.pen.pts[drag.idx];
-        const q = e.shiftKey ? snap45(pt, p) : p; // Shift: alça em múltiplos de 45°
+        const q = e.shiftKey ? snap45(pt, p) : magnet(p, ui.pen.pts, e); // Shift: alça em 45°; senão, ímã
         pt.hout = { x: q.x, y: q.y };
         // Alt durante o arraste QUEBRA a simetria: a alça de entrada congela onde estava e só a de saída segue o mouse
         if (e.altKey && pt.hin) pt.mode = 'free';
@@ -203,6 +265,8 @@ export function createPen({ store, canvas, commands, frameUnder }) {
   function up() {
     const was = drag;
     drag = null;
+    resetSnap();
+    store.emit('overlay');
     if (was?.collapseTo != null && !was.moved) {
       setSel([was.collapseTo], was.collapseTo);
       store.emit('overlay');
@@ -296,6 +360,9 @@ export function createPen({ store, canvas, commands, frameUnder }) {
     if (!n || !drag) return;
     drag.moved = true;
     // pontos encaixam na grade de pixels (alças ficam livres); com vários selecionados, o principal é quem encaixa
+    // ímã: o ponto (ou a alça) gruda nas guias, nos outros pontos e nas camadas
+    const skip = drag.kind === 'pt' ? new Set(selPts()) : new Set();
+    if (!e.shiftKey) world = magnet(world, editWorldPts(n, skip), e, n.id);
     let l = toLocal(n, drag.kind === 'pt' ? snapW(world, gridOrigin(n)) : world);
     const ref = drag.kind === 'pt' ? drag.origin : n.points[drag.idx];
     if (e.shiftKey && ref) l = snap45(ref, l); // Shift: trava em múltiplos de 45° (ponto: a partir de onde estava; alça: a partir do ponto)

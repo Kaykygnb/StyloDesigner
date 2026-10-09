@@ -16,7 +16,8 @@ export const RULER = 20;
 export function createRulers({ store, canvas, stage, commands, onManageGuides }) {
   const ui = store.ui;
   // réguas começam ESCONDIDAS (Ctrl+R ou Shift+R alternam; a escolha fica lembrada); guias aparecem quando as réguas estão ligadas
-  try { ui.showRulers = localStorage.getItem('pd.rulers') === '1'; } catch { ui.showRulers = false; }
+  // ligada por padrão (as guias saem arrastando da régua); quem desligou continua desligado
+  try { ui.showRulers = localStorage.getItem('pd.rulers') !== '0'; } catch { ui.showRulers = true; }
   ui.showGuides = true;
   try { ui.guidesLocked = localStorage.getItem('pd.guidesLocked') === '1'; } catch { ui.guidesLocked = false; }
 
