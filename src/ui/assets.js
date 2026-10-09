@@ -12,6 +12,7 @@ import { ask, askText, showMenu } from './menus.js';
 import { getPalettes, onPalettes, changePalette, createPalette, deletePalette, addColor as addToPalette, removeColor, parseColors, docColors, paletteCss } from '../palettes.js';
 import { rgba } from '../css.js';
 import { walk, defaultFill, defaultStroke, slugify } from '../model.js';
+import { toSvg } from '../svg.js';
 /** Nome da variável de CSS (o mesmo do código gerado). */
 const cssSlug = (s) => slugify(s || 'variavel');
 
@@ -38,6 +39,59 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     return list;
   }
 
+  /** Busca da biblioteca de componentes (lembrada entre redesenhos). */
+  let compQuery = '';
+  /** Quantas cópias (instâncias) de cada componente existem no documento. */
+  function usage() {
+    const count = new Map();
+    for (const page of store.state.doc.pages) walk(page.children, (x) => { if (x.instanceOf) count.set(x.instanceOf, (count.get(x.instanceOf) || 0) + 1); });
+    return count;
+  }
+  /** Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas. */
+  function thumb(n, page) {
+    if (page.id !== store.ui.pageId) return null;
+    try {
+      const svg = toSvg(n, { assets: store.state.doc.assets, boxOf: (c) => (c === n ? { x: 0, y: 0, w: n.w, h: n.h } : commands.localBox(c)) });
+      return svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : null;
+    } catch { return null; }
+  }
+  /** Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também. */
+  function componentGrid(comps) {
+    const used = usage();
+    const insert = (n, at) => commands.insertInstance(n.id, at || (() => { const r = canvas.vpRect(); return canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2); })());
+    const search = h('input.comp-search', { type: 'search', placeholder: 'Buscar componente', 'aria-label': 'Buscar componente', value: compQuery,
+      oninput: (e) => { compQuery = e.target.value; filter(); }, onkeydown: (e) => e.stopPropagation() });
+    const cards = comps.map(({ n, page }) => {
+      const src = thumb(n, page);
+      const uses = used.get(n.id) || 0;
+      const card = h('button.comp-card', {
+        type: 'button', draggable: true, dataset: { name: n.name.toLowerCase() },
+        title: `Inserir “${n.name}” no centro da tela (ou arraste para o canvas)`,
+        onclick: () => insert(n),
+        ondragstart: (e) => { e.dataTransfer.setData('text/plain', n.name); e.dataTransfer.effectAllowed = 'copy'; card.dataset.dragging = '1'; },
+        ondragend: (e) => {
+          delete card.dataset.dragging;
+          const vp = canvas.vpRect();
+          if (e.clientX >= vp.left && e.clientX <= vp.right && e.clientY >= vp.top && e.clientY <= vp.bottom) insert(n, canvas.toWorld(e.clientX, e.clientY));
+        },
+      },
+      h('span.comp-thumb', src ? h('img', { src, alt: '' }) : ico('component', 20)),
+      h('span.comp-name', n.name),
+      h('span.comp-meta', `${uses ? `${uses} ${uses === 1 ? 'uso' : 'usos'}` : 'sem usos'} · ${page.name}`));
+      return card;
+    });
+    const grid = h('div.comp-grid', cards);
+    const empty = h('p.hint', { hidden: true }, 'Nenhum componente com esse nome.');
+    const filter = () => {
+      const q = compQuery.trim().toLowerCase();
+      let shown = 0;
+      for (const c of cards) { const ok = !q || c.dataset.name.includes(q); c.hidden = !ok; if (ok) shown++; }
+      empty.hidden = shown > 0;
+    };
+    filter();
+    return h('div.comp-lib', comps.length > 4 ? search : null, grid, empty);
+  }
+
   /** Reconstrói as três listas a partir do documento (só roda com a aba aberta). */
   function render() {
     // com o seletor de cor aberto a partir de uma amostra daqui, não reconstrói a lista (o seletor fecharia)
@@ -47,15 +101,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     const comps = components();
     const sel = () => store.selected();
 
-    const compRows = comps.length
-      ? comps.map(({ n, page }) => h('div.asset-row', {
-        title: 'Clique para inserir uma instância no centro da tela',
-        onclick: () => {
-          const r = canvas.vpRect();
-          commands.insertInstance(n.id, canvas.toWorld(r.left + r.width / 2, r.top + r.height / 2));
-        },
-      }, h('span.asset-ico.comp', ico('component', 14)), h('span.asset-name', n.name), h('span.muted', page.name)))
-      : [h('p.hint', 'Selecione um frame e aperte Ctrl+Alt+K para criar um componente reutilizável.')];
+    const compRows = comps.length ? [componentGrid(comps)] : [h('p.hint', 'Selecione um frame e aperte Ctrl+Alt+K para criar um componente reutilizável.')];
 
     const colorRows = doc.styles.colors.map((c) => h('div.asset-row', {
       title: 'Clique para aplicar à seleção',

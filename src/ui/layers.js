@@ -74,6 +74,7 @@ export function createLayersPanel({ store, commands, container }) {
             ]);
           },
         }, ico('page', 14), h('span.page-name', p.name),
+        h('span.page-count', { title: 'Telas nesta página' }, String(screensOf(p))),
         store.state.doc.pages.length > 1
           ? h('button.icon-btn.small.row-action', {
             title: 'Excluir página',
@@ -83,6 +84,23 @@ export function createLayersPanel({ store, commands, container }) {
         return row;
       }),
     );
+  }
+
+  /** Quantas telas (frames da raiz, também dentro de seções) a página tem. */
+  function screensOf(page) {
+    let n = 0;
+    for (const c of page.children) { if (c.type === 'frame') n++; else if (c.type === 'section') n += c.children.filter((x) => x.type === 'frame').length; }
+    return n;
+  }
+  /** Ícone do frame pelo layout (linha, coluna, grade), para ler a estrutura sem abrir o painel. */
+  const layoutIcon = (node) => (node.type === 'frame' && !node.component && !node.instanceOf ? { row: 'row', column: 'column', grid: 'grid' }[node.layout?.mode] : null);
+  /** Selo discreto com o CSS do layout ("flex", "grid 3") e "sticky". */
+  function layoutBadge(node) {
+    const m = node.type === 'frame' ? node.layout?.mode : null;
+    const txt = m === 'grid' ? `grid ${node.layout.cols || ''}`.trim() : m === 'row' || m === 'column' ? 'flex' : '';
+    const extra = node.sticky != null ? 'sticky' : '';
+    const label = [txt, extra].filter(Boolean).join(' · ');
+    return label ? h('span.layer-badge', { title: m ? `display: ${m === 'grid' ? 'grid' : 'flex'}${m === 'column' ? '; flex-direction: column' : ''}` : 'position: sticky' }, label) : null;
   }
 
   // --------------------------------------------------------------- árvore
@@ -153,8 +171,9 @@ export function createLayersPanel({ store, commands, container }) {
       },
     }, ico('chevron', 10)),
     h('span.layer-icon' + (node.component || node.instanceOf ? '.comp' : (node.type === 'section' || isBoard(node, store.parentOf(node.id))) ? '.board' : ''),
-      ico(node.component || node.instanceOf ? 'component' : nodeIcon(node.type), 14)),
+      ico(node.component || node.instanceOf ? 'component' : layoutIcon(node) || nodeIcon(node.type), 14)),
     nameEl,
+    layoutBadge(node),
     hasBps(node)
       ? tip(h('span.layer-bp', ico('phone', 11)), { title: 'Ajustes responsivos', text: `Esta camada muda em: ${BREAKPOINTS.filter((b) => hasBps(node, b.id)).map((b) => b.name).join(', ')}. Escolha o modo na barra no topo do canvas para ver e editar.` })
       : null,

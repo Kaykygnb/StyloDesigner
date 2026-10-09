@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-53 arquivos · 811 funções e constantes documentadas.
+53 arquivos · 818 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1459,18 +1459,22 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 **ABA "RECURSOS" (COMPONENTES E ESTILOS)** · [abrir o código](../src/ui/assets.js)
 
-- **`cssSlug(s)`** <sub>do módulo</sub> · [L16](../src/ui/assets.js#L16) — Nome da variável de CSS (o mesmo do código gerado).
-- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L25](../src/ui/assets.js#L25) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
+- **`cssSlug(s)`** <sub>do módulo</sub> · [L17](../src/ui/assets.js#L17) — Nome da variável de CSS (o mesmo do código gerado).
+- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L26](../src/ui/assets.js#L26) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
 
    - Componentes: clicar insere uma instância no centro da tela
    - Cores: estilos de cor; clicar aplica à seleção; +, renomear e excluir
    - Tipografia: estilos de texto; idem
   Mudar um estilo muda todas as camadas ligadas a ele (ver components.js → syncStyles).
-- **`section(title, add, body)`** <sub>interna</sub> · [L31](../src/ui/assets.js#L31) — Seção da lista: título, botão "+" opcional e linhas.
-- **`components()`** <sub>interna</sub> · [L35](../src/ui/assets.js#L35) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
-- **`render()`** <sub>interna</sub> · [L42](../src/ui/assets.js#L42) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
-- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L154](../src/ui/assets.js#L154) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
-- **`askColors(title)`** <sub>interna</sub> · [L168](../src/ui/assets.js#L168) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
+- **`section(title, add, body)`** <sub>interna</sub> · [L32](../src/ui/assets.js#L32) — Seção da lista: título, botão "+" opcional e linhas.
+- **`components()`** <sub>interna</sub> · [L36](../src/ui/assets.js#L36) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
+- **`compQuery`** <sub>interna</sub> · [L43](../src/ui/assets.js#L43) — Busca da biblioteca de componentes (lembrada entre redesenhos).
+- **`usage()`** <sub>interna</sub> · [L45](../src/ui/assets.js#L45) — Quantas cópias (instâncias) de cada componente existem no documento.
+- **`thumb(n, page)`** <sub>interna</sub> · [L51](../src/ui/assets.js#L51) — Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas.
+- **`componentGrid(comps)`** <sub>interna</sub> · [L59](../src/ui/assets.js#L59) — Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também.
+- **`render()`** <sub>interna</sub> · [L96](../src/ui/assets.js#L96) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
+- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L200](../src/ui/assets.js#L200) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
+- **`askColors(title)`** <sub>interna</sub> · [L214](../src/ui/assets.js#L214) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
 
 ---
 
@@ -1794,17 +1798,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   (abrir/fechar), ícone, nome (duplo clique renomeia), cadeado e olho. Dá para ARRASTAR linhas para reordenar ou
   aninhar (soltar no meio de um frame coloca dentro dele; na borda de cima/baixo põe antes/depois).
 - **`renderPages()`** <sub>interna</sub> · [L45](../src/ui/layers.js#L45) — Desenha a lista de páginas. Clique abre; duplo clique renomeia; botão direito abre o menu (renomear, duplicar, excluir). A última página não pode ser excluída (todo projeto tem ao menos uma).
-- **`expandAncestors(ids)`** <sub>interna</sub> · [L93](../src/ui/layers.js#L93) — Abre as pastas que contêm as camadas selecionadas, para que a seleção fique visível na lista. Devolve true se algo mudou. (Guardamos `false` explicitamente: o padrão de "fechado" só vale para pastas nunca abertas.)
-- **`isCollapsed(node, depth)`** <sub>interna</sub> · [L104](../src/ui/layers.js#L104) — Camadas dentro de frames começam FECHADAS (só os níveis de cima aparecem); selecionar abre o caminho. `ui.collapsed[id]` tem prioridade.
-- **`rowFor(node, depth)`** <sub>interna</sub> · [L111](../src/ui/layers.js#L111) — Cria a linha de UMA camada (com todos os ouvintes: seleção, renomear, menu, arrastar e soltar).
+- **`screensOf(page)`** <sub>interna</sub> · [L90](../src/ui/layers.js#L90) — Quantas telas (frames da raiz, também dentro de seções) a página tem.
+- **`layoutIcon(node)`** <sub>interna</sub> · [L96](../src/ui/layers.js#L96) — Ícone do frame pelo layout (linha, coluna, grade), para ler a estrutura sem abrir o painel.
+- **`layoutBadge(node)`** <sub>interna</sub> · [L98](../src/ui/layers.js#L98) — Selo discreto com o CSS do layout ("flex", "grid 3") e "sticky".
+- **`expandAncestors(ids)`** <sub>interna</sub> · [L111](../src/ui/layers.js#L111) — Abre as pastas que contêm as camadas selecionadas, para que a seleção fique visível na lista. Devolve true se algo mudou. (Guardamos `false` explicitamente: o padrão de "fechado" só vale para pastas nunca abertas.)
+- **`isCollapsed(node, depth)`** <sub>interna</sub> · [L122](../src/ui/layers.js#L122) — Camadas dentro de frames começam FECHADAS (só os níveis de cima aparecem); selecionar abre o caminho. `ui.collapsed[id]` tem prioridade.
+- **`rowFor(node, depth)`** <sub>interna</sub> · [L129](../src/ui/layers.js#L129) — Cria a linha de UMA camada (com todos os ouvintes: seleção, renomear, menu, arrastar e soltar).
   - `node` <sub>object</sub> — a camada
   - `depth` <sub>number</sub> — nível de aninhamento (recuo de 14px por nível)
-- **`setAll(node, value)`** <sub>interna</sub> · [L250](../src/ui/layers.js#L250) — Alt+clique na setinha: abre ou fecha tudo dentro (recursivo).
-- **`dropZone(e, row, node)`** <sub>interna</sub> · [L259](../src/ui/layers.js#L259) — Em qual "zona" da linha o mouse está: nos 25% de cima 'above', nos 25% de baixo 'below' e no meio 'inside' (só para frames/grupos, que aceitam filhos).
-- **`clearDrop()`** <sub>interna</sub> · [L266](../src/ui/layers.js#L266) — Remove os indicadores visuais de soltura de todas as linhas.
-- **`renderTree()`** <sub>interna</sub> · [L273](../src/ui/layers.js#L273) — Reconstrói a árvore. Percorre cada lista de trás para a frente (para a camada da frente ficar no topo) e só desce em pastas abertas. Com texto na busca, mostra uma lista plana das camadas cujo nome contém o texto. Preserva a posição de rolagem.
-- **`signature()`** <sub>interna</sub> · [L307](../src/ui/layers.js#L307) — "Impressão digital" do que a lista MOSTRA (ids, nomes, visibilidade, trava, pastas abertas, seleção...). Se não mudou desde o último desenho (ex.: só a posição de uma camada mudou durante um arrasto), pulamos a reconstrução da lista — foi isso que tornou o arrastar fluido com centenas de camadas.
-- **`render(reasons)`** <sub>interna</sub> · [L326](../src/ui/layers.js#L326) — Atualiza o painel só se algo visível mudou. Se a seleção mudou, abre as pastas dela; ao selecionar pelo canvas, rola a lista até a camada.
+- **`setAll(node, value)`** <sub>interna</sub> · [L269](../src/ui/layers.js#L269) — Alt+clique na setinha: abre ou fecha tudo dentro (recursivo).
+- **`dropZone(e, row, node)`** <sub>interna</sub> · [L278](../src/ui/layers.js#L278) — Em qual "zona" da linha o mouse está: nos 25% de cima 'above', nos 25% de baixo 'below' e no meio 'inside' (só para frames/grupos, que aceitam filhos).
+- **`clearDrop()`** <sub>interna</sub> · [L285](../src/ui/layers.js#L285) — Remove os indicadores visuais de soltura de todas as linhas.
+- **`renderTree()`** <sub>interna</sub> · [L292](../src/ui/layers.js#L292) — Reconstrói a árvore. Percorre cada lista de trás para a frente (para a camada da frente ficar no topo) e só desce em pastas abertas. Com texto na busca, mostra uma lista plana das camadas cujo nome contém o texto. Preserva a posição de rolagem.
+- **`signature()`** <sub>interna</sub> · [L326](../src/ui/layers.js#L326) — "Impressão digital" do que a lista MOSTRA (ids, nomes, visibilidade, trava, pastas abertas, seleção...). Se não mudou desde o último desenho (ex.: só a posição de uma camada mudou durante um arrasto), pulamos a reconstrução da lista — foi isso que tornou o arrastar fluido com centenas de camadas.
+- **`render(reasons)`** <sub>interna</sub> · [L345](../src/ui/layers.js#L345) — Atualiza o painel só se algo visível mudou. Se a seleção mudou, abre as pastas dela; ao selecionar pelo canvas, rola a lista até a camada.
 
 ---
 

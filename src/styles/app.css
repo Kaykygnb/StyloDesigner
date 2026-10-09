@@ -1575,3 +1575,25 @@ body.ai-open .toolbar { left: calc((100% - 400px) / 2); }
 .custom-css:focus { border-color: var(--accent); }
 .custom-css-status { margin: 4px 0 0; }
 .custom-css-status.bad { color: var(--warn); }
+
+/* camadas: selo do layout e telas por página */
+.layer-badge { display: none; margin-left: 6px; padding: 0 5px; border-radius: 4px; font: 10px/16px var(--mono); color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent); white-space: nowrap; flex: none; }
+.layer-row.selected .layer-badge { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.page-count { margin-left: auto; font: 10.5px var(--mono); color: var(--muted); padding: 0 6px; }
+.page-row .row-action { margin-left: 0; }
+
+/* biblioteca de componentes */
+.comp-lib { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 4px; }
+.comp-search { height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; }
+.comp-search:focus { border-color: var(--accent); }
+.comp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.comp-card { display: flex; flex-direction: column; gap: 2px; padding: 0 0 8px; border-radius: 9px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); text-align: left; overflow: hidden; cursor: grab; transition: border-color .12s, transform .12s; }
+.comp-card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); transform: translateY(-1px); }
+.comp-card[hidden] { display: none; }
+.comp-card[data-dragging] { opacity: .5; }
+.comp-thumb { height: 72px; display: grid; place-items: center; margin-bottom: 4px; background: color-mix(in srgb, #fff 88%, var(--panel-2)); color: #8b5cf6; }
+:root[data-theme="dark"] .comp-thumb, :root:not([data-theme]) .comp-thumb { background: #f3f2ee; }
+.comp-thumb img { max-width: 88%; max-height: 62px; object-fit: contain; }
+.comp-name { padding: 0 8px; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comp-meta { padding: 0 8px; font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-row:hover .layer-badge, .layer-row.selected .layer-badge { display: inline-block; }
