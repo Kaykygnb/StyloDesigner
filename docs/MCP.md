@@ -34,7 +34,7 @@ Cada conexão MCP é uma **sessão** com nome próprio (cabeçalho `Mcp-Session-
 - **Travas**: quem altera uma camada fica com ela por 10 s. Outro agente que tentar mexer nela recebe um erro claro ("está sendo alterada por Layout, espere uns 10s") e pode seguir em outra parte.
 - **Presença**: os avatares no topo do editor mostram as pessoas com o editor aberto e os agentes conectados; o painel "No projeto agora" lista o que cada um fez e o que está travando. `GET /api/presence` devolve o mesmo em JSON.
 
-## 3. O que a IA consegue fazer (33 ferramentas)
+## 3. O que a IA consegue fazer (35 ferramentas)
 
 | Grupo | Ferramentas |
 |---|---|

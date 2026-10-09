@@ -142,7 +142,7 @@ As chaves também podem vir das variáveis de ambiente `OPENAI_API_KEY` e `NVIDI
 | **Codex (GPT)** | copie [`integrations/codex/config.toml`](integrations/codex/config.toml) para `~/.codex/config.toml` e [`integrations/codex/AGENTS.md`](integrations/codex/AGENTS.md) para `~/.codex/AGENTS.md` |
 | Claude Desktop | Configurações → Desenvolvedor → Editar configuração → em `mcpServers`: `"designer": { "command": "node", "args": ["/caminho/do/projeto/scripts/mcp.mjs"] }` |
 
-A IA tem 33 ferramentas (guia completo em [`docs/MCP.md`](docs/MCP.md)): ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; **ver a tela como imagem** (`get_image`); responsivo (`@media`), hover/foco, componentes, protótipo e comentários; desfazer/refazer; e, com o **Acesso de administrador**, abrir, salvar e criar projetos sem perguntar. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta: veja [`integrations/chatgpt/README.md`](integrations/chatgpt/README.md).
+A IA tem 35 ferramentas (guia completo em [`docs/MCP.md`](docs/MCP.md)): ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; **ver a tela como imagem** (`get_image`); responsivo (`@media`), hover/foco, componentes, protótipo e comentários; desfazer/refazer; e, com o **Acesso de administrador**, abrir, salvar e criar projetos sem perguntar. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta: veja [`integrations/chatgpt/README.md`](integrations/chatgpt/README.md).
 
 ---
 
@@ -182,9 +182,10 @@ A lista completa, com os detalhes, está na [seção de limitações do guia](do
 |---|---|
 | [`docs/GUIA-COMPLETO.md`](docs/GUIA-COMPLETO.md) | Tudo que o editor faz, onde o trabalho é salvo, atalhos, estrutura, testes e limitações |
 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Como as peças se encaixam |
-| [`docs/MCP.md`](docs/MCP.md) | Ligar Claude Code (plugin), Codex/GPT, Claude Desktop; acesso de administrador; as 33 ferramentas |
+| [`docs/MCP.md`](docs/MCP.md) | Ligar Claude Code (plugin), Codex/GPT, Claude Desktop; acesso de administrador; as 35 ferramentas; vários agentes juntos |
 | [`docs/AGENTE.md`](docs/AGENTE.md) | As instruções da IA (Assistente e MCP): edite para mudar como ela trabalha |
 | [`docs/GUIA-DO-CODIGO.md`](docs/GUIA-DO-CODIGO.md) · [`docs/REFERENCIA.md`](docs/REFERENCIA.md) | Para quem vai mexer no código |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Planejamento: o que já foi feito e o que vem (com as issues abertas) |
 | [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
 | [`tests/e2e/README.md`](tests/e2e/README.md) | Como rodar os testes de navegador |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Como contribuir (e o padrão de commits) |
