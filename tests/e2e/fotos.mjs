@@ -1,0 +1,40 @@
+import { chromium } from 'playwright';
+
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } });
+const page = await ctx.newPage();
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pZsAAAAASUVORK5CYII=', 'base64');
+const photo = { id: 'openverse:fake-1', provider: 'Openverse', thumb: 'https://media.openverse.org/fake.jpg', full: 'https://upload.wikimedia.org/fake.jpg', width: 1, height: 1, author: 'Ana Fotógrafa', authorUrl: 'https://example.test/ana', sourceUrl: 'https://example.test/foto', license: 'by', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', attribution: 'Ana Fotógrafa · by · https://creativecommons.org/licenses/by/4.0/', attributionRequired: true };
+await page.route('**/api/photos/search*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [photo], page: 1, hasMore: false, hasPexels: false }) }));
+await page.route('**/api/photos/fetch*', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
+await page.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href);
+await page.waitForTimeout(700);
+await page.evaluate(() => designer.store.newDoc());
+await page.getByRole('tab', { name: /Recursos/ }).click();
+await page.getByRole('searchbox', { name: 'Buscar fotos' }).fill('natureza');
+await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+await page.locator('.photo-card').waitFor();
+
+let failures = 0;
+const ok = (name, value) => { if (!value) failures++; console.log(`${value ? 'PASS' : 'FAIL'} ${name}`); };
+await page.getByRole('button', { name: 'Inserir foto de Ana Fotógrafa' }).click();
+await page.waitForFunction(() => designer.store.page().children.length === 1 && !!designer.store.page().children[0].photoCredit);
+let credit = await page.evaluate(() => designer.store.page().children[0].photoCredit);
+ok('clique insere imagem com crédito persistido', credit?.author === 'Ana Fotógrafa' && credit?.license === 'by');
+ok('crédito aparece no painel da camada', await page.locator('.photo-credit-panel').innerText().then((t) => t.includes('Ana Fotógrafa') && t.includes('by')));
+
+await page.evaluate(() => designer.store.newDoc());
+const src = await page.locator('.photo-image').boundingBox();
+const vp = await page.locator('#viewport').boundingBox();
+await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2);
+await page.mouse.down();
+await page.mouse.move(vp.x + vp.width / 2, vp.y + vp.height / 2, { steps: 8 });
+await page.mouse.up();
+await page.waitForFunction(() => designer.store.page().children.length === 1 && !!designer.store.page().children[0].photoCredit, null, { timeout: 5000 });
+credit = await page.evaluate(() => designer.store.page().children[0].photoCredit);
+ok('arrastar para o canvas insere no ponto solto com crédito', credit?.author === 'Ana Fotógrafa' && credit?.attributionRequired === true);
+ok('sem erros no navegador', errors.length === 0, errors.join('; '));
+await browser.close();
+if (failures) process.exitCode = 1;
