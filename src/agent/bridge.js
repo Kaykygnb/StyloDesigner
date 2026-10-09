@@ -28,8 +28,10 @@ export function createApprover() {
   /** Fila: cada pergunta espera a anterior terminar. */
   let queue = Promise.resolve();
   const approve = ({ client, summary }) => {
+    // subagentes do Assistente ("Assistente · Rodapé") seguem a escolha do Assistente ("Fazer sem perguntar", "Permitir tudo")
+    const base = String(client || '').split(' · ')[0];
     const turn = queue.then(async () => {
-      if (allowed.has(client) || auto.has(client)) return true;
+      if (allowed.has(base) || auto.has(base)) return true;
       const choice = await ask({
         title: `${client} quer alterar o design`,
         message: [
@@ -42,7 +44,7 @@ export function createApprover() {
           { label: 'Permitir', value: 'yes', primary: true },
         ],
       });
-      if (choice === 'all') allowed.add(client);
+      if (choice === 'all') allowed.add(base);
       return choice === 'yes' || choice === 'all';
     });
     queue = turn.catch(() => false);
