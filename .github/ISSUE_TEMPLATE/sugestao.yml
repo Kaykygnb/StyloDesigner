@@ -1,0 +1,22 @@
+name: Sugestão
+description: Uma ideia de recurso ou melhoria
+title: "[sugestão] "
+labels: ["melhoria"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve?
+    validations:
+      required: true
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Como você imagina que funcione?
+      description: Se tiver, diga qual propriedade de CSS/HTML isso gera.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas ou referências (Figma, Penpot, DevTools…)
