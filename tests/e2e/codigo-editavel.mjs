@@ -1,5 +1,5 @@
-// Aba Código editável: CSS da camada (com desfazer), CSS da página (canvas + exportação), camada "Código HTML"
-// (sanitizada), atributos HTML e o Inspecionar. Com CAPTURAS=<pasta>, salva capturas 1440×900 das telas.
+// Aba Código editável (pelo editor grande embaixo do canvas): CSS da camada (com desfazer), CSS da página (canvas +
+// exportação), camada "Código HTML" (sanitizada), atributos HTML e o Inspecionar. Com CAPTURAS=<pasta>, salva capturas 1440×900 das telas.
 import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -41,10 +41,10 @@ try {
   ok('editor de CSS abre com as declarações da camada', (await ta.inputValue()).includes('display: flex'), await ta.inputValue());
   const lines = (await ta.inputValue()).replace(/background-color: [^;]+;/, 'background-color: #ffeedd;').replace(/gap: [^;]+;/, 'gap: 20px;');
   await ta.fill(lines + '\ncursor: pointer;\nbox-shadow: 0 8px 24px rgba(0,0,0,.15);\nbordr: 1px;');
-  await page.waitForTimeout(300);
-  ok('aviso de propriedade desconhecida com linha', (await page.locator('.code-diags li.warn').count()) >= 1 && (await page.locator('.ce-ln.warn').count()) >= 1);
+  await page.waitForTimeout(700);
+  ok('aviso de propriedade desconhecida com linha', (await page.locator('.cd-problems li.warn').count()) >= 1 && (await page.locator('.ce-ln.warn').count()) >= 1);
   await shot('01-codigo-css-editando');
-  await page.locator('.code-editbar .btn.primary').click();
+  await page.locator('.cd-apply').click();
   await page.waitForTimeout(200);
   let card = await ev(() => { const n = designer.store.selected()[0]; return { fill: n.fill.color, gap: n.layout.gap, css: n.customCss || '' }; });
   ok('cor e gap viraram propriedades do modelo', card.fill === '#FFEEDD' && card.gap === 20, JSON.stringify(card));
@@ -59,25 +59,25 @@ try {
   // ---- autocompletar
   await ev(() => designer.store.setSelection([designer.store.page().children[0].children[0].id]));
   await page.waitForTimeout(100);
-  if (!(await page.locator('.ce-input').count())) await page.locator('.code-edit-btn').click();
+  if (!(await page.locator('.ce-input').isVisible())) await page.locator('.code-edit-btn').click();
   await ta.click();
   await page.keyboard.press('Control+End');
   await page.keyboard.press('Enter');
   await page.keyboard.type('justify-con');
   await page.waitForTimeout(100);
-  ok('autocompletar sugere propriedades', await page.locator('.ce-complete:not([hidden]) .ce-opt').first().textContent().catch(() => '') === 'justify-content');
+  ok('autocompletar sugere propriedades', await page.locator('.ce-complete:not([hidden]) .ce-opt .ce-label').first().textContent().catch(() => '') === 'justify-content');
   await page.keyboard.press('Tab');
   ok('Tab aceita a sugestão', (await ta.inputValue()).includes('justify-content: '));
-  await page.locator('.code-editbar .btn:not(.primary)').click(); // descartar
+  await page.locator('.cd-discard').click();
 
-  // ---- CSS da página
-  await page.locator('[data-code-tab="page"]').click();
+  // ---- CSS da página (aba do editor grande)
+  await page.locator('[data-dock-tab="page"]').click();
   const pageCss = `.card:hover { transform: translateY(-2px); }\n.titulo { color: rgb(200, 30, 90); letter-spacing: 2px; }\n#destaque { outline: 3px solid rgb(0, 128, 0); }\n@media (max-width: 600px) {\n  .titulo { font-size: 18px; }\n}\n@keyframes surgir { from { opacity: 0 } to { opacity: 1 } }`;
   await page.locator('.ce-input').fill(pageCss);
   await page.waitForTimeout(250);
   await page.locator('.ce-input').press('Control+Home');
   await shot('02-codigo-css-pagina');
-  await page.locator('.code-editbar .btn.primary').click();
+  await page.locator('.cd-apply').click();
   await page.waitForTimeout(200);
   const tit = await ev(() => { const t = designer.store.page().children[0].children[0].children[0]; return getComputedStyle(designer.canvas.els.get(t.id)).color; });
   ok('CSS da página vale no canvas (classe gerada)', tit === 'rgb(200, 30, 90)', tit);
@@ -111,10 +111,10 @@ try {
   ok('Shift+E cria a camada Código HTML e abre o editor de HTML', await ev(() => designer.store.selected()[0]?.type === 'html') && (await page.locator('.ce[data-lang="html"]').count()) === 1);
   const evil = '<div class="banner">\n  <h2>Promoção</h2>\n  <p>Até <strong>50%</strong> off</p>\n  <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="" onerror="window.__xss=1">\n  <a href="javascript:window.__xss=2">link</a>\n  <script>window.__xss=3</script>\n  <button type="button">Comprar</button>\n</div>';
   await page.locator('.ce-input').fill(evil);
-  await page.waitForTimeout(250);
-  ok('avisa o que será removido', (await page.locator('.code-diags li.warn').count()) === 1);
+  await page.waitForTimeout(700);
+  ok('avisa o que será removido', (await page.locator('.cd-problems li.warn').count()) === 1);
   await shot('03-camada-html');
-  await page.locator('.code-editbar .btn.primary').click();
+  await page.locator('.cd-apply').click();
   await page.waitForTimeout(300);
   const emb = await ev(() => { const n = designer.store.selected()[0]; const el = designer.canvas.els.get(n.id); return { inner: el.innerHTML, xss: window.__xss || 0 }; });
   ok('HTML renderizado no canvas', emb.inner.includes('<h2>Promoção</h2>') && emb.inner.includes('<button'), emb.inner);
@@ -122,6 +122,7 @@ try {
   const exp = await ev(async () => (await import('/src/css.js')).exportHtml(designer.store.page().children[0], {}, 'T', designer.store.state.doc.styles));
   ok('HTML à mão vai limpo para a exportação', exp.includes('<h2>Promoção</h2>') && !/onerror|javascript:|<script>window/.test(exp));
   await page.locator('[data-code-tab="css"]').click();
+  await page.locator('.cd-close').click();
 
   // ---- Inspecionar
   await ev(() => designer.store.setSelection([]));
