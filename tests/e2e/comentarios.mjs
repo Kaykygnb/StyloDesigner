@@ -7,7 +7,12 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE ' + m.text()); });
-await page.goto(new URL('?editor', process.env.APP_URL || 'http://localhost:5173/').href);
+const APP = process.env.APP_URL || 'http://localhost:5173/';
+// a conta local (nome do autor) fica no servidor: guarda o nome atual, começa sem nome e devolve no fim
+const accountApi = (body) => fetch(new URL('/api/account', APP), body ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined).then((r) => r.json()).catch(() => null);
+const originalName = (await accountApi())?.name;
+if (originalName != null) await accountApi({ name: '' });
+await page.goto(new URL('?editor', APP).href);
 await page.waitForTimeout(800);
 let fails = 0;
 const ok = (name, cond, extra = '') => { if (!cond) fails++; console.log((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : '  ' + extra)); };
@@ -153,10 +158,9 @@ await page.waitForTimeout(300);
 ok('"Comentar" no menu abre o painel com a caixa focada', (await page.locator('.comments-panel').count()) === 1 && (await page.locator('.cm-composer .cm-input').first().evaluate((el) => el === document.activeElement)));
 await page.keyboard.press('Escape');
 await page.keyboard.press('Control+,');
-await page.waitForSelector('input[aria-label="Seu nome nos comentários"]');
-await page.fill('input[aria-label="Seu nome nos comentários"]', 'Kayky');
-await page.keyboard.press('Tab');
-await page.waitForTimeout(200);
+await page.waitForSelector('#settings-account input[aria-label="Nome"]');
+await page.fill('#settings-account input[aria-label="Nome"]', 'Kayky');
+await page.waitForSelector('.sp-saved[data-state="saved"]');
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 await ev((id) => designer.store.setSelection([id]), ids.a);
@@ -165,7 +169,7 @@ await page.locator('.cm-composer .cm-input').first().fill('Comentário com meu n
 await page.locator('.cm-composer .cm-input').first().press('Control+Enter');
 await page.waitForTimeout(300);
 cs = await comentarios();
-ok('o nome definido nas Configurações vira o autor', cs[cs.length - 1].author === 'Kayky', JSON.stringify(cs[cs.length - 1]));
+ok('o nome da conta (Configurações → Conta) vira o autor', cs[cs.length - 1].author === 'Kayky', JSON.stringify(cs[cs.length - 1]));
 
 // ---------------------------------------------------------------- recarregar
 await page.waitForTimeout(700);
@@ -176,5 +180,6 @@ ok('os comentários sobrevivem a recarregar (salvos com o projeto)', cs.length =
 ok('o selo da aba volta a mostrar os 3 abertos', (await page.locator('.cm-badge').innerText()) === '3');
 
 ok('sem erros no console', errors.length === 0, errors.join(' | '));
+if (originalName != null) await accountApi({ name: originalName });
 await browser.close();
 process.exit(fails ? 1 : 0);

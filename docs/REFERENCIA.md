@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-53 arquivos · 820 funções e constantes documentadas.
+55 arquivos · 842 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -13,6 +13,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 | Arquivo | O que é |
 |---|---|
+| [`src/account.js`](#srcaccountjs) | Conta local no navegador (espelho do perfil guardado pelo servidor) |
 | [`src/canvas.js`](#srccanvasjs) | Desenha o documento em HTML/CSS + pan, zoom e geometria |
 | [`src/color.js`](#srccolorjs) | Matemática de cor (puro): hex ↔ rgb ↔ hsl ↔ hsv, harmonias, tons e contraste |
 | [`src/commands.js`](#srccommandsjs) | Comandos de edição |
@@ -61,11 +62,37 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/props.js`](#srcuipropsjs) | Painel "design" (propriedades da seleção) |
 | [`src/ui/proto.js`](#srcuiprotojs) | Aba "protótipo" (interações entre telas) |
 | [`src/ui/responsive.js`](#srcuiresponsivejs) | Largura da tela (Desktop · tablet · celular) e modo de cor |
-| [`src/ui/settings.js`](#srcuisettingsjs) | Janela "configurações" (onde salvar, versões, cópia no navegador, aparência) |
+| [`src/ui/settings.js`](#srcuisettingsjs) | Página "configurações" (tela cheia dentro do app, não é janela modal) |
 | [`server.js`](#serverjs) | Servidor local: entrega o app e salva os projetos numa pasta do seu computador |
+| [`server/account.js`](#serveraccountjs) | Conta local (o seu perfil neste computador) |
 | [`server/mcp.js`](#servermcpjs) | O protocolo MCP (model context protocol), sem dependências |
 | [`server/presence.js`](#serverpresencejs) | Quem está no projeto (pessoas e agentes) e as travas por camada |
 | [`scripts/mcp.mjs`](#scriptsmcpmjs) | Servidor MCP por "stdio" (para Claude Desktop, Codex e outros) |
+
+---
+
+## src/account.js
+
+**CONTA LOCAL NO NAVEGADOR (espelho do perfil guardado pelo servidor)** · [abrir o código](../src/account.js)
+
+```text
+ A conta mora no servidor (GET/PUT /api/account, ver server/account.js). Este módulo:
+   - carrega a conta ao abrir o app e MIGRA o nome antigo (prefs.author/authorColor, de antes da conta existir)
+     quando a conta do servidor ainda está vazia;
+   - mantém prefs.author e prefs.authorColor sincronizados a partir da conta, porque comentários (ui/comments.js)
+     e presença (ui/presence.js) leem dali;
+   - avisa quem estiver ouvindo (avatar do topo, página de Configurações) quando o perfil muda.
+ Sem servidor, a conta funciona só com as preferências do navegador (nome e cor).
+```
+
+- **`ACCOUNT_COLORS`** · [L16](../src/account.js#L16) — Cores de avatar (as mesmas do servidor e da presença).
+- **`initials(name)`** · [L19](../src/account.js#L19) — "Kayky Silva" → "KS"; "Ana" → "A"; vazio → "?".
+- **`createAccount({ prefs, savePrefs, server })`** · [L28](../src/account.js#L28) — _(sem comentário)_
+- **`mirror()`** <sub>interna</sub> · [L36](../src/account.js#L36) — Copia nome e cor para as preferências (lidas por comentários e presença).
+- **`avatarEl(h, acc, cls = '')`** · [L82](../src/account.js#L82) — Avatar da conta: a imagem enviada ou as iniciais sobre a cor escolhida.
+  - `h` <sub>(tag: string, ...args) => HTMLElement</sub> — helper de ui/dom.js
+- **`shrinkAvatar(file)`** · [L93](../src/account.js#L93) — Reduz uma imagem escolhida pela pessoa para caber no limite do servidor (quadrada, até 160 px).
+  - ↩︎ `Promise<string>` data URL (JPEG, ou PNG se for pequena o bastante e tiver transparência)
 
 ---
 
@@ -529,33 +556,33 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`presenceSlot`** <sub>do módulo</sub> · [L49](../src/main.js#L49) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
-- **`toast(msg)`** <sub>do módulo</sub> · [L58](../src/main.js#L58) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L72](../src/main.js#L72) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L97](../src/main.js#L97) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L100](../src/main.js#L100) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L131](../src/main.js#L131) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L155](../src/main.js#L155) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L190](../src/main.js#L190) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L306](../src/main.js#L306) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`presenceSlot`** <sub>do módulo</sub> · [L50](../src/main.js#L50) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
+- **`toast(msg)`** <sub>do módulo</sub> · [L59](../src/main.js#L59) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L73](../src/main.js#L73) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings(section)`** <sub>do módulo</sub> · [L101](../src/main.js#L101) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
+- **`quickSave()`** <sub>do módulo</sub> · [L104](../src/main.js#L104) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L135](../src/main.js#L135) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L159](../src/main.js#L159) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L194](../src/main.js#L194) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L327](../src/main.js#L327) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L350](../src/main.js#L350) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L367](../src/main.js#L367) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L373](../src/main.js#L373) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L390](../src/main.js#L390) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L379](../src/main.js#L379) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L445](../src/main.js#L445) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L483](../src/main.js#L483) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L529](../src/main.js#L529) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L616](../src/main.js#L616) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L670](../src/main.js#L670) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L678](../src/main.js#L678) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L402](../src/main.js#L402) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L468](../src/main.js#L468) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L506](../src/main.js#L506) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L552](../src/main.js#L552) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L642](../src/main.js#L642) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L696](../src/main.js#L696) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L704](../src/main.js#L704) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1515,7 +1542,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`createAssistant({ store, runner, openSettings, stage, approve, prefs = {}, savePref…)`** · [L97](../src/ui/assistant.js#L97) — Cria o painel.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
-  - `deps.openSettings` <sub>() => void</sub> — abre as Configurações (para pôr a chave)
+  - `deps.openSettings` <sub>() => void</sub> — abre as Configurações numa seção ('ai', 'keys')
   - `deps.stage` <sub>HTMLElement</sub> — onde o painel se encaixa
   - `[deps.prefs]` <sub>object</sub> — preferências (lembra a opção) · @param {() => void} [deps.savePrefs]
   - ↩︎ `{ el: HTMLElement, toggle: () => void, open: () => void, close: () => void, isOpen: () => boolean ` }
@@ -1548,35 +1575,32 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **SELETOR DE COR (popover) com gerenciador de paletas** · [abrir o código](../src/ui/colorpicker.js)
 
 ```text
- Abre ao clicar numa amostra de cor do painel. Em CIMA, a cor em si:
-   1. área saturação/brilho; conta-gotas + barras de matiz e opacidade + amostra (nova sobre a original);
-   2. formato (HEX · RGB · HSL) e campos;
-   3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível.
- EMBAIXO, as cores prontas para um clique, como fileiras de amostras com nome:
-   4. MINHAS PALETAS (uma fileira por paleta; a ativa em destaque), gerenciáveis aqui mesmo: nova, renomear,
-      + guardar a cor atual, × tirar cor, duplicar, copiar como variáveis CSS e excluir;
-   5. cores do documento e estilos de cor (vindos de `groups`) e as recentes;
-   6. SUGESTÕES de harmonia (complementar, análogas, tríade, tons) como faixa de amostras, recolhidas;
-   7. paletas prontas, recolhidas.
+ Abre ao clicar numa amostra de cor do painel. De cima para baixo:
+   1. área saturação/brilho + barra de matiz (+ barra de opacidade quando o campo tem opacidade);
+   2. a cor atual (ao lado da original) com campos HEX · RGB · HSL e conta-gotas;
+   3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível;
+   4. SUGESTÕES de harmonia (complementar, análogas, tríade, tons): um clique escolhe, outro guarda na paleta;
+   5. PALETAS PRÓPRIAS, gerenciáveis aqui mesmo: abas, nova paleta, renomear, guardar a cor atual, tirar cor,
+      duplicar, copiar como variáveis CSS e excluir;
+   6. cores recentes, as do projeto, estilos de cor e paletas prontas.
  Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo
  que o abriu some do painel.
 ```
 
-- **`BUILTIN`** <sub>do módulo</sub> · [L29](../src/ui/colorpicker.js#L29) — Paletas prontas (de fábrica).
-- **`closeColorPicker()`** · [L44](../src/ui/colorpicker.js#L44) — Fecha o seletor de cor aberto, se houver.
-- **`colorPickerAnchor()`** · [L46](../src/ui/colorpicker.js#L46) — O campo (amostra) que abriu o seletor agora, ou null.
-- **`openColorPicker({ anchor, get, set, commit, opacity, setOpacity, groups, onClose })`** · [L54](../src/ui/colorpicker.js#L54) — Abre o seletor de cor.
-- **`paint()`** <sub>interna</sub> · [L88](../src/ui/colorpicker.js#L88) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
-- **`buildFields()`** <sub>interna</sub> · [L113](../src/ui/colorpicker.js#L113) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
-- **`paintFields()`** <sub>interna</sub> · [L165](../src/ui/colorpicker.js#L165) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
-- **`paintContrast(c)`** <sub>interna</sub> · [L173](../src/ui/colorpicker.js#L173) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
-- **`push()`** <sub>interna</sub> · [L187](../src/ui/colorpicker.js#L187) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
-- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L190](../src/ui/colorpicker.js#L190) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
-- **`finish(quiet = false)`** <sub>interna</sub> · [L198](../src/ui/colorpicker.js#L198) — Fim de uma edição: grava no histórico e guarda nas recentes.
-- **`pick(c, quiet = false)`** <sub>interna</sub> · [L205](../src/ui/colorpicker.js#L205) — Escolhe uma cor pronta (chip): aplica e grava.
-- **`drag(el, fn)`** <sub>interna</sub> · [L212](../src/ui/colorpicker.js#L212) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
-- **`keyboardAdjust(el, adjust)`** <sub>interna</sub> · [L225](../src/ui/colorpicker.js#L225) — Faz os controles de cor responderem às setas sem roubar os atalhos do canvas.
-- **`swatchRow(title, colors)`** <sub>interna</sub> · [L260](../src/ui/colorpicker.js#L260) — Fileira de amostras com o nome em cima (cores do documento, estilos, recentes, paletas prontas).
+- **`BUILTIN`** <sub>do módulo</sub> · [L27](../src/ui/colorpicker.js#L27) — Paletas prontas (de fábrica).
+- **`closeColorPicker()`** · [L38](../src/ui/colorpicker.js#L38) — Fecha o seletor de cor aberto, se houver.
+- **`colorPickerAnchor()`** · [L40](../src/ui/colorpicker.js#L40) — O campo (amostra) que abriu o seletor agora, ou null.
+- **`openColorPicker({ anchor, get, set, commit, opacity, setOpacity, groups, onClose })`** · [L48](../src/ui/colorpicker.js#L48) — Abre o seletor de cor.
+- **`paint()`** <sub>interna</sub> · [L81](../src/ui/colorpicker.js#L81) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
+- **`buildFields()`** <sub>interna</sub> · [L106](../src/ui/colorpicker.js#L106) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
+- **`paintFields()`** <sub>interna</sub> · [L158](../src/ui/colorpicker.js#L158) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
+- **`paintContrast(c)`** <sub>interna</sub> · [L166](../src/ui/colorpicker.js#L166) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
+- **`push()`** <sub>interna</sub> · [L180](../src/ui/colorpicker.js#L180) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
+- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L183](../src/ui/colorpicker.js#L183) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
+- **`finish(quiet = false)`** <sub>interna</sub> · [L191](../src/ui/colorpicker.js#L191) — Fim de uma edição: grava no histórico e guarda nas recentes.
+- **`pick(c, quiet = false)`** <sub>interna</sub> · [L198](../src/ui/colorpicker.js#L198) — Escolhe uma cor pronta (chip): aplica e grava.
+- **`drag(el, fn)`** <sub>interna</sub> · [L205](../src/ui/colorpicker.js#L205) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
+- **`keyboardAdjust(el, adjust)`** <sub>interna</sub> · [L218](../src/ui/colorpicker.js#L218) — Faz os controles de cor responderem às setas sem roubar os atalhos do canvas.
 
 ---
 
@@ -1764,11 +1788,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`close()`** <sub>interna</sub> · [L76](../src/ui/home.js#L76) — Fecha a página inicial e devolve o editor (foco no canvas para os atalhos voltarem a funcionar).
 - **`open()`** <sub>interna</sub> · [L90](../src/ui/home.js#L90) — Abre (ou redesenha) a página inicial.
 - **`onKey(e)`** <sub>interna</sub> · [L108](../src/ui/home.js#L108) — Esc fecha (volta ao editor); "/" foca a busca, como em muitos apps.
-- **`refreshList()`** <sub>interna</sub> · [L117](../src/ui/home.js#L117) — Busca a lista da pasta e redesenha a grade.
-- **`replaceWith(question, action)`** <sub>interna</sub> · [L128](../src/ui/home.js#L128) — Troca o projeto aberto por `action` (abrir da pasta, exemplo, novo), perguntando antes se for perder algo.
-- **`openFile(file)`** <sub>interna</sub> · [L140](../src/ui/home.js#L140) — Abre um projeto da pasta. Se já é o aberto, só volta ao editor.
-- **`renderGrid()`** <sub>interna</sub> · [L215](../src/ui/home.js#L215) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
-- **`card(p)`** <sub>interna</sub> · [L232](../src/ui/home.js#L232) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
+- **`refreshList()`** <sub>interna</sub> · [L118](../src/ui/home.js#L118) — Busca a lista da pasta e redesenha a grade.
+- **`replaceWith(question, action)`** <sub>interna</sub> · [L129](../src/ui/home.js#L129) — Troca o projeto aberto por `action` (abrir da pasta, exemplo, novo), perguntando antes se for perder algo.
+- **`openFile(file)`** <sub>interna</sub> · [L141](../src/ui/home.js#L141) — Abre um projeto da pasta. Se já é o aberto, só volta ao editor.
+- **`renderGrid()`** <sub>interna</sub> · [L216](../src/ui/home.js#L216) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
+- **`card(p)`** <sub>interna</sub> · [L233](../src/ui/home.js#L233) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
 
 ---
 
@@ -1777,10 +1801,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **ÍCONES SVG (inline, sem dependências)** · [abrir o código](../src/ui/icons.js)
 
 - **`P`** <sub>do módulo</sub> · [L11](../src/ui/icons.js#L11) — Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto). Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
-- **`icon(name, size = 16)`** · [L110](../src/ui/icons.js#L110) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+- **`icon(name, size = 16)`** · [L115](../src/ui/icons.js#L115) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
   - `name` <sub>string</sub> — 
   - `[size=16]` <sub>number</sub> — px
-- **`nodeIcon(type)`** · [L114](../src/ui/icons.js#L114) — Ícone usado na lista de camadas para cada tipo de camada.
+- **`nodeIcon(type)`** · [L119](../src/ui/icons.js#L119) — Ícone usado na lista de camadas para cada tipo de camada.
 
 ---
 
@@ -1827,10 +1851,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `x` <sub>number</sub> — 
   - `y` <sub>number</sub> — 
   - `items` <sub>(object\|'sep')[]</sub> — { label, hint (atalho), icon, onClick, disabled, danger, checked, heading } ou 'sep' (separador). `heading: true` = título de seção, só texto.
-- **`contextMenuItems({ store, commands, tools })`** · [L90](../src/ui/menus.js#L90) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
-- **`SHORTCUTS`** <sub>do módulo</sub> · [L147](../src/ui/menus.js#L147) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
-- **`modalSeq`** <sub>do módulo</sub> · [L159](../src/ui/menus.js#L159) — Contador para dar um id único ao título de cada janela (aria-labelledby).
-- **`openModal({ title, body, cls = '', onClose })`** · [L173](../src/ui/menus.js#L173) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
+- **`contextMenuItems({ store, commands, tools })`** · [L89](../src/ui/menus.js#L89) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
+- **`SHORTCUTS`** · [L146](../src/ui/menus.js#L146) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
+- **`modalSeq`** <sub>do módulo</sub> · [L158](../src/ui/menus.js#L158) — Contador para dar um id único ao título de cada janela (aria-labelledby).
+- **`openModal({ title, body, cls = '', onClose })`** · [L172](../src/ui/menus.js#L172) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
 
    - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
    - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
@@ -1841,7 +1865,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[o.cls]` <sub>string</sub> — classe extra para o .modal (ex.: 'narrow')
   - `[o.onClose]` <sub>() => void</sub> — 
   - ↩︎ `{ el: HTMLElement, close: () => void ` }
-- **`ask({ title, message, buttons })`** · [L220](../src/ui/menus.js#L220) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+- **`ask({ title, message, buttons })`** · [L219](../src/ui/menus.js#L219) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
 
     const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
       { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
@@ -1849,12 +1873,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
   - `[]` <sub>{title: string, message: string\|Node\|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean</sub> — }} o
   - ↩︎ `Promise<any>`
-- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L241](../src/ui/menus.js#L241) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
+- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L240](../src/ui/menus.js#L240) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
   - ↩︎ `Promise<string\|null>` o texto digitado, ou null se cancelou
-- **`GUIDE`** <sub>do módulo</sub> · [L261](../src/ui/menus.js#L261) — Primeiros passos da Central de ajuda: [título, texto].
-- **`FAQ`** <sub>do módulo</sub> · [L269](../src/ui/menus.js#L269) — Problemas comuns: [pergunta, resposta].
-- **`diagnostics(version)`** <sub>do módulo</sub> · [L279](../src/ui/menus.js#L279) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
-- **`showHelp(tab = 'keys', version = '')`** · [L289](../src/ui/menus.js#L289) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+- **`GUIDE`** <sub>do módulo</sub> · [L260](../src/ui/menus.js#L260) — Primeiros passos da Central de ajuda: [título, texto].
+- **`FAQ`** <sub>do módulo</sub> · [L268](../src/ui/menus.js#L268) — Problemas comuns: [pergunta, resposta].
+- **`diagnostics(version)`** <sub>do módulo</sub> · [L278](../src/ui/menus.js#L278) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
+- **`showHelp(tab = 'keys', version = '')`** · [L288](../src/ui/menus.js#L288) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
   - `[tab]` <sub>string</sub> — aba inicial: 'start' \| 'keys' \| 'faq' \| 'support'
   - `[version]` <sub>string</sub> — versão do app, para o diagnóstico
 
@@ -1871,9 +1895,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Os dados vêm do servidor (server/presence.js), pelo evento SSE "presence" ou por GET /api/presence.
 ```
 
-- **`COLORS`** <sub>do módulo</sub> · [L16](../src/ui/presence.js#L16) — Cores para escolher no perfil (as mesmas da presença no servidor).
-- **`createPresence({ store, prefs, savePrefs, onProfile, toast })`** · [L24](../src/ui/presence.js#L24) — _(sem comentário)_
-- **`profile()`** <sub>interna</sub> · [L31](../src/ui/presence.js#L31) — Perfil desta pessoa (nome + cor). Sem nome ainda: "Você".
+- **`COLORS`** <sub>do módulo</sub> · [L15](../src/ui/presence.js#L15) — Cores para escolher no perfil (as mesmas da presença no servidor).
+- **`createPresence({ store, prefs, editProfile })`** · [L23](../src/ui/presence.js#L23) — _(sem comentário)_
+- **`profile()`** <sub>interna</sub> · [L30](../src/ui/presence.js#L30) — Perfil desta pessoa (nome + cor). Sem nome ainda: "Você".
 
 ---
 
@@ -1976,20 +2000,19 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`docTopColors(max = 14)`** <sub>interna</sub> · [L1264](../src/ui/props.js#L1264) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
 - **`colorGroups()`** <sub>interna</sub> · [L1276](../src/ui/props.js#L1276) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
 - **`docColorChips(apply)`** <sub>interna</sub> · [L1282](../src/ui/props.js#L1282) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1294](../src/ui/props.js#L1294) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
-- **`fillSection()`** <sub>interna</sub> · [L1332](../src/ui/props.js#L1332) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1422](../src/ui/props.js#L1422) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1460](../src/ui/props.js#L1460) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1466](../src/ui/props.js#L1466) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1472](../src/ui/props.js#L1472) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1496](../src/ui/props.js#L1496) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1528](../src/ui/props.js#L1528) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1554](../src/ui/props.js#L1554) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`customCssSection()`** <sub>interna</sub> · [L1573](../src/ui/props.js#L1573) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
-- **`exportSection()`** <sub>interna</sub> · [L1599](../src/ui/props.js#L1599) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1625](../src/ui/props.js#L1625) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1645](../src/ui/props.js#L1645) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1672](../src/ui/props.js#L1672) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`fillSection()`** <sub>interna</sub> · [L1293](../src/ui/props.js#L1293) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1389](../src/ui/props.js#L1389) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1427](../src/ui/props.js#L1427) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1433](../src/ui/props.js#L1433) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1439](../src/ui/props.js#L1439) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1463](../src/ui/props.js#L1463) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1495](../src/ui/props.js#L1495) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1521](../src/ui/props.js#L1521) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`customCssSection()`** <sub>interna</sub> · [L1540](../src/ui/props.js#L1540) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+- **`exportSection()`** <sub>interna</sub> · [L1566](../src/ui/props.js#L1566) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1592](../src/ui/props.js#L1592) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1612](../src/ui/props.js#L1612) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1639](../src/ui/props.js#L1639) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
@@ -2033,30 +2056,50 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ## src/ui/settings.js
 
-**JANELA "CONFIGURAÇÕES" (onde salvar, versões, cópia no navegador, aparência)** · [abrir o código](../src/ui/settings.js)
+**PÁGINA "CONFIGURAÇÕES" (tela cheia dentro do app, não é janela modal)** · [abrir o código](../src/ui/settings.js)
 
 ```text
- Aberta pela engrenagem do topo, por Arquivo → Configurações ou Ctrl+, (vírgula).
- Seções:
-  1. Pasta de projetos  — caminho no computador (o SERVIDOR grava lá), auto-salvar e nº de versões.
-     Explica como usar Google Drive/OneDrive/Dropbox: escolher uma pasta sincronizada por eles.
-  2. Cópia no navegador — sempre ligada (IndexedDB); mostra o espaço e pede proteção contra limpeza.
-  3. Assistente de IA e MCP — chave/modelo/endereço da API (OpenAI ou compatível) e como ligar o Claude Code/Codex.
-  4. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
+ Aberta pelo menu da conta (avatar no topo), por Arquivo → Configurações, pelo indicador "Salvo" ou Ctrl+,
+ (vírgula). Abrir só ESCONDE o editor (fica `inert` por trás, sem recarregar nada); "Voltar ao editor" e Esc
+ fecham. À esquerda, uma barra fixa com as seções; à direita, o conteúdo da seção escolhida, em cartões:
+  1. Conta              — o seu perfil local (nome, e-mail, cargo, avatar, idioma), salvo sozinho (account.js).
+  2. Projetos e pasta   — pasta do computador (o SERVIDOR grava lá), auto-salvar, versões e a cópia no navegador.
+  3. Agente de IA       — provedor, modelo (lista "Ver modelos") e endereço da API.
+  4. Chaves de API      — a chave do provedor escolhido (fica só neste computador).
+  5. MCP e agentes      — acesso de administrador e como ligar Claude Code / Codex / Claude Desktop.
+  6. Aparência          — tema, tela ao abrir o app e o que a roda do mouse faz.
+  7. Atalhos            — a lista de atalhos de teclado.
+  8. Sobre e suporte    — versão e a Central de ajuda.
+ Explicações longas (copiar a pasta para a nuvem, caminhos, comandos) ficam atrás do botão "i" ou de um
+ "Mostrar detalhes": quem não precisa delas não as vê.
 ```
 
-- **`formatBytes(b)`** · [L21](../src/ui/settings.js#L21) — "12345678" bytes → "11,8 MB".
-- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L25](../src/ui/settings.js#L25) — Caixa de seleção no estilo do app (a mesma de props.js).
-- **`openSettings({ store, saving, prefs, savePrefs, toast })`** · [L39](../src/ui/settings.js#L39) — Abre a janela de Configurações.
+- **`formatBytes(b)`** · [L30](../src/ui/settings.js#L30) — "12345678" bytes → "11,8 MB".
+- **`checkbox(label, checked, onchange)`** <sub>do módulo</sub> · [L34](../src/ui/settings.js#L34) — Caixa de seleção no estilo do app (a mesma de props.js).
+- **`SECTIONS`** <sub>do módulo</sub> · [L40](../src/ui/settings.js#L40) — Seções da página: [id, ícone, nome, descrição curta no cabeçalho].
+- **`current`** <sub>do módulo</sub> · [L52](../src/ui/settings.js#L52) — A página aberta agora (só existe uma).
+- **`openSettings({ store, saving, prefs, savePrefs, toast, account, section = 'accou…)`** · [L66](../src/ui/settings.js#L66) — Abre a página de Configurações (ou, se já está aberta, só troca de seção).
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.saving` <sub>object</sub> — ver saving.js (refresh, server)
-  - `deps.prefs` <sub>object</sub> — preferências (autoFolder, wheelMode)
+  - `deps.prefs` <sub>object</sub> — preferências (autoFolder, wheelMode, startScreen)
   - `deps.savePrefs` <sub>() => void</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
-- **`render()`** <sub>interna</sub> · [L76](../src/ui/settings.js#L76) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
-- **`save(patch, done = 'Assistente configurado.')`** <sub>interna</sub> · [L188](../src/ui/settings.js#L188) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
-- **`putConfig(patch)`** <sub>interna</sub> · [L212](../src/ui/settings.js#L212) — Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta).
+  - `deps.account` <sub>object</sub> — conta local (account.js)
+  - `[deps.section]` <sub>string</sub> — seção para mostrar ('account', 'folder', 'ai'...)
+  - ↩︎ `{ close: () => void ` }
+- **`show(id, focus = false)`** <sub>interna</sub> · [L87](../src/ui/settings.js#L87) — Mostra uma seção (as outras ficam escondidas, mas continuam montadas: campos não salvos não se perdem).
+- **`onKey(e)`** <sub>interna</sub> · [L98](../src/ui/settings.js#L98) — Esc fecha (se não houver janela, menu ou balão de informação por cima).
+- **`sectionEl(id, ...cards)`** <sub>interna</sub> · [L128](../src/ui/settings.js#L128) — Cabeçalho + cartões de uma seção.
+- **`card(title, desc, info, ...body)`** <sub>interna</sub> · [L135](../src/ui/settings.js#L135) — Cartão: título (com "i" opcional), descrição curta e o conteúdo.
+- **`row(label, hint, ...control)`** <sub>interna</sub> · [L141](../src/ui/settings.js#L141) — Linha rótulo/descrição à esquerda e controle à direita.
+- **`details(summary, ...body)`** <sub>interna</sub> · [L143](../src/ui/settings.js#L143) — Bloco recolhido "Mostrar detalhes".
+- **`queue(patch, wait = 450)`** <sub>interna</sub> · [L160](../src/ui/settings.js#L160) — Junta mudanças e grava depois de uma pausa curta (indicador "Salvando…" → "Salvo").
+- **`aiSections(ai)`** <sub>interna</sub> · [L291](../src/ui/settings.js#L291) — Monta as seções de IA e de chaves juntas: "Ver modelos" usa a chave digitada na seção de chaves.
+- **`save(patch, done = 'Agente configurado.', out = msg)`** <sub>interna</sub> · [L297](../src/ui/settings.js#L297) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
+- **`putConfig(patch)`** <sub>interna</sub> · [L305](../src/ui/settings.js#L305) — Grava sem redesenhar a página (para não sumir com a lista de modelos aberta).
+- **`render()`** <sub>interna</sub> · [L472](../src/ui/settings.js#L472) — Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma).
+- **`settingsOpen()`** · [L501](../src/ui/settings.js#L501) — A página de Configurações está aberta?
 
 ---
 
@@ -2087,36 +2130,38 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     escapar da pasta com "../" nem sobrescrever outros tipos de arquivo.
 ```
 
-- **`root`** <sub>do módulo</sub> · [L41](../server.js#L41) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
-- **`port`** <sub>do módulo</sub> · [L43](../server.js#L43) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
-- **`allowed`** <sub>do módulo</sub> · [L45](../server.js#L45) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
-- **`configFile`** <sub>do módulo</sub> · [L47](../server.js#L47) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
-- **`DEFAULTS`** <sub>do módulo</sub> · [L49](../server.js#L49) — Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto.
-- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L51](../server.js#L51) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
-- **`MAX_BODY`** <sub>do módulo</sub> · [L53](../server.js#L53) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
-- **`FILE_RE`** <sub>do módulo</sub> · [L55](../server.js#L55) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
-- **`types`** <sub>do módulo</sub> · [L58](../server.js#L58) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
-- **`loadConfig()`** <sub>do módulo</sub> · [L70](../server.js#L70) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
-- **`config`** <sub>do módulo</sub> · [L79](../server.js#L79) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
-- **`expandHome(p)`** <sub>do módulo</sub> · [L82](../server.js#L82) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
-- **`useFolder(input)`** <sub>do módulo</sub> · [L88](../server.js#L88) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
-- **`publicConfig()`** <sub>do módulo</sub> · [L100](../server.js#L100) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
-- **`httpError(status, message)`** <sub>do módulo</sub> · [L104](../server.js#L104) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L108](../server.js#L108) — Responde JSON.
-- **`readBody(req)`** <sub>do módulo</sub> · [L113](../server.js#L113) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L124](../server.js#L124) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L126](../server.js#L126) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L129](../server.js#L129) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L131](../server.js#L131) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L133](../server.js#L133) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L135](../server.js#L135) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L137](../server.js#L137) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L143](../server.js#L143) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L159](../server.js#L159) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L191](../server.js#L191) — Rotas da API (todas respondem JSON):
+- **`root`** <sub>do módulo</sub> · [L42](../server.js#L42) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
+- **`port`** <sub>do módulo</sub> · [L44](../server.js#L44) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
+- **`allowed`** <sub>do módulo</sub> · [L46](../server.js#L46) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
+- **`configFile`** <sub>do módulo</sub> · [L48](../server.js#L48) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
+- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L54](../server.js#L54) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
+- **`MAX_BODY`** <sub>do módulo</sub> · [L56](../server.js#L56) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
+- **`FILE_RE`** <sub>do módulo</sub> · [L58](../server.js#L58) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
+- **`types`** <sub>do módulo</sub> · [L61](../server.js#L61) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
+- **`loadConfig()`** <sub>do módulo</sub> · [L73](../server.js#L73) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
+- **`config`** <sub>do módulo</sub> · [L82](../server.js#L82) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
+- **`loadAccount()`** <sub>do módulo</sub> · [L85](../server.js#L85) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
+- **`expandHome(p)`** <sub>do módulo</sub> · [L90](../server.js#L90) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`useFolder(input)`** <sub>do módulo</sub> · [L96](../server.js#L96) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
+- **`publicConfig()`** <sub>do módulo</sub> · [L108](../server.js#L108) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
+- **`httpError(status, message)`** <sub>do módulo</sub> · [L112](../server.js#L112) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
+- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L116](../server.js#L116) — Responde JSON.
+- **`readBody(req)`** <sub>do módulo</sub> · [L121](../server.js#L121) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L132](../server.js#L132) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L134](../server.js#L134) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L137](../server.js#L137) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L139](../server.js#L139) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L141](../server.js#L141) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L143](../server.js#L143) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L145](../server.js#L145) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L151](../server.js#L151) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L167](../server.js#L167) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L201](../server.js#L201) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
+    GET  /api/account                        → conta local { name, email, role, color, avatar, language, createdAt }
+    PUT  /api/account       { campos... }    → atualiza o perfil (400 com mensagem se algo for inválido)
     GET  /api/projects                       → [{ file, modified, size }]
     GET  /api/projects/<arquivo>             → o projeto (+ cabeçalho X-Modified com a data de modificação)
     PUT  /api/projects/<arquivo>             → grava; responde { modified }. Envie X-Base-Modified com a data
@@ -2128,20 +2173,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
-- **`editors`** <sub>do módulo</sub> · [L303](../server.js#L303) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
-- **`pending`** <sub>do módulo</sub> · [L305](../server.js#L305) — Pedidos esperando resposta do editor: id → { resolve, timer }.
-- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L308](../server.js#L308) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
-- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L311](../server.js#L311) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
-- **`presence`** <sub>do módulo</sub> · [L328](../server.js#L328) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
-- **`mcpSessions`** <sub>do módulo</sub> · [L330](../server.js#L330) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
-- **`broadcastPresence()`** <sub>do módulo</sub> · [L332](../server.js#L332) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
-- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L340](../server.js#L340) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
-- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L368](../server.js#L368) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
-- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L394](../server.js#L394) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
-- **`agentConfig()`** <sub>do módulo</sub> · [L400](../server.js#L400) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
-- **`agentInstructions()`** <sub>do módulo</sub> · [L412](../server.js#L412) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
-- **`authHeader(a)`** <sub>do módulo</sub> · [L414](../server.js#L414) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
-- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L427](../server.js#L427) — Rotas da IA:
+- **`editors`** <sub>do módulo</sub> · [L323](../server.js#L323) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L325](../server.js#L325) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L328](../server.js#L328) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L331](../server.js#L331) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`presence`** <sub>do módulo</sub> · [L348](../server.js#L348) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+- **`mcpSessions`** <sub>do módulo</sub> · [L350](../server.js#L350) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
+- **`broadcastPresence()`** <sub>do módulo</sub> · [L352](../server.js#L352) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
+- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L360](../server.js#L360) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L388](../server.js#L388) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L414](../server.js#L414) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
+- **`agentConfig()`** <sub>do módulo</sub> · [L420](../server.js#L420) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+- **`agentInstructions()`** <sub>do módulo</sub> · [L432](../server.js#L432) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+- **`authHeader(a)`** <sub>do módulo</sub> · [L434](../server.js#L434) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L447](../server.js#L447) — Rotas da IA:
 
     GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
     POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
@@ -2151,6 +2196,28 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
                              instruções de docs/AGENTE.md como mensagem de sistema
     GET  /api/agent/models   → { models } a lista de modelos da conta (testa a chave)
     PUT  /api/agent/mcp      { admin } → liga/desliga o "Acesso de administrador" do MCP (só programas deste computador)
+
+---
+
+## server/account.js
+
+**CONTA LOCAL (o seu perfil neste computador)** · [abrir o código](../server/account.js)
+
+```text
+ O Stylo roda na SUA máquina, então a "conta" não tem senha: é só um perfil guardado pelo servidor num
+ arquivo JSON ao lado da configuração (designer.account.json). Ele assina comentários, aparece na presença
+ ("quem está no projeto") e no avatar do topo.
+   { name, email, role, color, avatar (data URL de imagem ou ""), language, createdAt, updatedAt }
+ Este módulo só VALIDA e LIMITA os campos (o servidor lê/grava o arquivo). Funções puras: dá para testar.
+```
+
+- **`ACCOUNT_COLORS`** · [L14](../server/account.js#L14) — Cores de avatar aceitas (as mesmas da presença e do editor).
+- **`ACCOUNT_LANGUAGES`** · [L16](../server/account.js#L16) — Idiomas oferecidos (a interface hoje é só pt-BR; guardamos a escolha para o futuro).
+- **`MAX_AVATAR`** · [L18](../server/account.js#L18) — Tamanho máximo da imagem do avatar (o data URL inteiro), ~200 KB.
+- **`emptyAccount()`** · [L21](../server/account.js#L21) — Conta vazia (antes de a pessoa preencher qualquer coisa).
+- **`line(v, max)`** <sub>do módulo</sub> · [L24](../server/account.js#L24) — Texto de uma linha, sem caracteres de controle, cortado em `max`.
+- **`mergeAccount(current, patch = {})`** · [L30](../server/account.js#L30) — Aplica `patch` (vindo do navegador) sobre a conta `current`. Campos desconhecidos são ignorados. Lança Error com mensagem legível quando um valor é inválido (o servidor responde 400 com ela).
+- **`normalizeAccount(saved)`** · [L61](../server/account.js#L61) — Lê uma conta salva (pode estar velha ou corrompida): devolve sempre um objeto completo e válido.
 
 ---
 

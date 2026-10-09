@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
 import { createPresence, targetsOf } from './server/presence.js';
+import { mergeAccount, normalizeAccount } from './server/account.js';
 import { VERSION } from './src/version.js';
 import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
 import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
@@ -46,6 +47,8 @@ const allowed = ['index.html', 'src', 'assets'];
 /** Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore). */
 const configFile = resolve(process.env.DESIGNER_CONFIG || join(root, 'designer.config.json'));
 /** Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto. */
+// CONTA LOCAL (perfil sem senha): arquivo ao lado da configuração. designer.config.json → designer.account.json
+const accountFile = configFile.replace(/(\.config)?\.json$/i, '') + '.account.json';
 const DEFAULTS = { folder: join(root, 'projetos'), keepVersions: 20 };
 /** Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não). */
 const VERSION_EVERY_MS = 10 * 60 * 1000;
@@ -77,6 +80,11 @@ async function loadConfig() {
 }
 /** Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config. */
 let config = await loadConfig();
+
+/** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
+async function loadAccount() {
+  try { return normalizeAccount(JSON.parse(await readFile(accountFile, 'utf8'))); } catch { return normalizeAccount(null); }
+}
 
 /** "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário). */
 const expandHome = (p) => (p === '~' || p.startsWith('~/') || p.startsWith('~\\') ? join(homedir(), p.slice(1)) : p);
@@ -176,6 +184,8 @@ async function snapshotVersion(name) {
  * Rotas da API (todas respondem JSON):
  *   GET  /api/status                         → { ok, folder, keepVersions }
  *   PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
+ *   GET  /api/account                        → conta local { name, email, role, color, avatar, language, createdAt }
+ *   PUT  /api/account       { campos... }    → atualiza o perfil (400 com mensagem se algo for inválido)
  *   GET  /api/projects                       → [{ file, modified, size }]
  *   GET  /api/projects/<arquivo>             → o projeto (+ cabeçalho X-Modified com a data de modificação)
  *   PUT  /api/projects/<arquivo>             → grava; responde { modified }. Envie X-Base-Modified com a data
@@ -207,6 +217,16 @@ async function api(req, res, path) {
     await writeFile(configFile, JSON.stringify(next, null, 2));
     config = next;
     return sendJson(res, 200, { ok: true, ...publicConfig() });
+  }
+
+  // CONTA LOCAL: GET devolve o perfil; PUT mescla os campos enviados (validados em server/account.js)
+  if (parts[0] === 'account' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await loadAccount());
+  if (parts[0] === 'account' && parts.length === 1 && req.method === 'PUT') {
+    const body = JSON.parse((await readBody(req)) || '{}');
+    let next;
+    try { next = mergeAccount(await loadAccount(), body); } catch (err) { throw httpError(400, err.message); }
+    await writeFile(accountFile, JSON.stringify(next, null, 2));
+    return sendJson(res, 200, next);
   }
 
   if (parts[0] === 'agent') return agentApi(req, res, parts.slice(1));

@@ -288,8 +288,10 @@ try {
   ok('"Ver modelos" lista os modelos da conta (em ordem)', listed.models?.join() === 'meta/modelo-a,nvidia/modelo-b', JSON.stringify(listed));
   // na TELA, como uma pessoa faz: cola a chave e clica "Ver modelos" SEM clicar em Salvar antes; escolhe na lista
   await p.keyboard.press('Control+,');
-  await p.waitForSelector('[aria-label="Chave da API"]');
+  await p.waitForSelector('.settings-page [aria-label="Chave da API"]', { state: 'attached' });
+  await p.click('.sp-nav-item[data-section="keys"]');
   await p.fill('[aria-label="Chave da API"]', 'chave-da-tela-123');
+  await p.click('.sp-nav-item[data-section="ai"]');
   await p.locator('button', { hasText: 'Ver modelos' }).click();
   await p.waitForSelector('.model-item');
   ok('"Ver modelos" salva a chave digitada e mostra a lista (sem precisar de Salvar)', (await p.locator('.model-item').count()) === 2 && modelsAuth.at(-1) === 'Bearer chave-da-tela-123', `${await p.locator('.model-item').count()} itens, auth ${modelsAuth.at(-1)}`);
@@ -301,7 +303,7 @@ try {
   await p.focus('[aria-label="Buscar modelo"]');
   await p.keyboard.press('Escape');
   await p.waitForTimeout(150);
-  ok('Esc na busca de modelos fecha a janela', (await p.locator('.modal-backdrop').count()) === 0);
+  ok('Esc na busca de modelos fecha a página de Configurações', (await p.locator('.settings-page').count()) === 0);
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: '', model: 'modelo-teste' }) });
   await ev((id) => designer.store.setSelection([id]), ids.botao);
   await p.click('.ai-btn');

@@ -1,21 +1,30 @@
 /**
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  ui/settings.js — JANELA "CONFIGURAÇÕES" (onde salvar, versões, cópia no navegador, aparência)
+ *  ui/settings.js — PÁGINA "CONFIGURAÇÕES" (tela cheia dentro do app, não é janela modal)
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Aberta pela engrenagem do topo, por Arquivo → Configurações ou Ctrl+, (vírgula).
- *  Seções:
- *   1. Pasta de projetos  — caminho no computador (o SERVIDOR grava lá), auto-salvar e nº de versões.
- *      Explica como usar Google Drive/OneDrive/Dropbox: escolher uma pasta sincronizada por eles.
- *   2. Cópia no navegador — sempre ligada (IndexedDB); mostra o espaço e pede proteção contra limpeza.
- *   3. Assistente de IA e MCP — chave/modelo/endereço da API (OpenAI ou compatível) e como ligar o Claude Code/Codex.
- *   4. Aparência e controles — tema, tela ao abrir o app (página inicial ou editor) e o que a roda do mouse faz.
+ *  Aberta pelo menu da conta (avatar no topo), por Arquivo → Configurações, pelo indicador "Salvo" ou Ctrl+,
+ *  (vírgula). Abrir só ESCONDE o editor (fica `inert` por trás, sem recarregar nada); "Voltar ao editor" e Esc
+ *  fecham. À esquerda, uma barra fixa com as seções; à direita, o conteúdo da seção escolhida, em cartões:
+ *   1. Conta              — o seu perfil local (nome, e-mail, cargo, avatar, idioma), salvo sozinho (account.js).
+ *   2. Projetos e pasta   — pasta do computador (o SERVIDOR grava lá), auto-salvar, versões e a cópia no navegador.
+ *   3. Agente de IA       — provedor, modelo (lista "Ver modelos") e endereço da API.
+ *   4. Chaves de API      — a chave do provedor escolhido (fica só neste computador).
+ *   5. MCP e agentes      — acesso de administrador e como ligar Claude Code / Codex / Claude Desktop.
+ *   6. Aparência          — tema, tela ao abrir o app e o que a roda do mouse faz.
+ *   7. Atalhos            — a lista de atalhos de teclado.
+ *   8. Sobre e suporte    — versão e a Central de ajuda.
+ *  Explicações longas (copiar a pasta para a nuvem, caminhos, comandos) ficam atrás do botão "i" ou de um
+ *  "Mostrar detalhes": quem não precisa delas não as vê.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
 import { h, ico } from './dom.js';
-import { openModal } from './menus.js';
+import { showHelp, SHORTCUTS } from './menus.js';
+import { informationButton, closeInformation } from './info.js';
 import { browserUsage, requestPersistence, folder } from '../storage.js';
 import { PROVIDERS } from '../agent/providers.js';
+import { ACCOUNT_COLORS, avatarEl, shrinkAvatar } from '../account.js';
+import { VERSION } from '../version.js';
 
 /** "12345678" bytes → "11,8 MB". */
 export const formatBytes = (b) =>
@@ -27,81 +36,203 @@ const checkbox = (label, checked, onchange) => {
   return h('label.check', input, h('span.box', ico('check', 10)), h('span', label));
 };
 
+/** Seções da página: [id, ícone, nome, descrição curta no cabeçalho]. */
+const SECTIONS = [
+  ['account', 'user', 'Conta', 'Seu perfil neste computador. Ele assina os comentários e aparece para quem está no projeto.'],
+  ['folder', 'folder', 'Projetos e pasta', 'Onde os projetos são gravados e como as versões antigas são guardadas.'],
+  ['ai', 'sparkle', 'Agente de IA e modelos', 'Qual serviço de IA o Agente usa e com qual modelo.'],
+  ['keys', 'key', 'Chaves de API', 'A chave do provedor de IA. Fica guardada só neste computador.'],
+  ['mcp', 'plug', 'MCP e agentes', 'Deixe programas como Claude Code e Codex lerem e alterarem o design.'],
+  ['look', 'sliders', 'Aparência', 'Tema, tela inicial e controles do canvas.'],
+  ['keyboard', 'keyboard', 'Atalhos', 'Todos os atalhos de teclado do editor.'],
+  ['about', 'help', 'Sobre e suporte', 'Versão do Stylo, guias e ajuda.'],
+];
+
+/** A página aberta agora (só existe uma). */
+let current = null;
+
 /**
- * Abre a janela de Configurações.
+ * Abre a página de Configurações (ou, se já está aberta, só troca de seção).
  * @param {object} deps
  * @param {object} deps.store
  * @param {object} deps.saving   ver saving.js (refresh, server)
- * @param {object} deps.prefs    preferências (autoFolder, wheelMode)
+ * @param {object} deps.prefs    preferências (autoFolder, wheelMode, startScreen)
  * @param {() => void} deps.savePrefs
  * @param {(m: string) => void} deps.toast
+ * @param {object} deps.account  conta local (account.js)
+ * @param {string} [deps.section] seção para mostrar ('account', 'folder', 'ai'...)
+ * @returns {{ close: () => void }}
  */
-export function openSettings({ store, saving, prefs, savePrefs, toast }) {
+export function openSettings({ store, saving, prefs, savePrefs, toast, account, section = 'account' }) {
+  if (current) { current.show(section); return current; }
   const ui = store.ui;
-  const body = h('div.modal-body.settings');
-  const nav = h('nav.settings-nav', { 'aria-label': 'Seções das configurações' });
-  const content = h('div.settings-content');
-  const sections = [
-    ['folder', 'folder', 'Projetos e versões'],
-    ['browser', 'layers', 'Cópia no navegador'],
-    ['ai', 'sparkle', 'Assistente e MCP'],
-    ['look', 'sliders', 'Aparência e controles'],
-  ];
-  const navButtons = sections.map(([id, icon, label]) => h('button.settings-nav-item', {
-    type: 'button', 'aria-controls': `settings-${id}`,
-    onclick: () => {
-      const target = content.querySelector(`#settings-${id}`);
-      if (!target) return;
-      target.focus({ preventScroll: true });
-      content.scrollTo({ top: target.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop });
-    },
-  }, ico(icon, 16), h('span', label)));
-  nav.append(h('p.settings-nav-caption', 'PREFERÊNCIAS'), ...navButtons);
-  body.append(nav, content);
-  const { close } = openModal({ title: 'Configurações', body, cls: 'settings-modal' });
-  function syncNavigation() {
-    let active = 0;
-    const top = content.getBoundingClientRect().top;
-    [...content.children].forEach((section, i) => {
-      if (section.getBoundingClientRect().top <= top + 48) active = i;
-    });
-    navButtons.forEach((button, i) => {
-      if (i === active) button.setAttribute('aria-current', 'location');
-      else button.removeAttribute('aria-current');
-    });
-  }
-  content.addEventListener('scroll', syncNavigation, { passive: true });
+  const app = document.getElementById('app');
+  const returnFocus = document.activeElement;
+  let active = SECTIONS.some((s) => s[0] === section) ? section : 'account';
 
-  /** Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma). */
-  async function render() {
-    const server = await saving.refresh();
-    const usage = await browserUsage();
-    const persisted = await navigator.storage?.persisted?.().catch(() => false);
-    const ai = server ? await fetch('/api/agent/config').then((r) => r.json()).catch(() => null) : null;
-    if (!body.isConnected) return;
-    const scrollTop = content.scrollTop;
-    const focusedLabel = content.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
-    const panels = [folderSection(server), browserSection(usage, persisted), aiSection(ai), lookSection()];
-    panels.forEach((panel, i) => {
-      panel.id = `settings-${sections[i][0]}`;
-      panel.tabIndex = -1;
-      panel.setAttribute('aria-labelledby', `${panel.id}-title`);
-      panel.querySelector('h3').id = `${panel.id}-title`;
-    });
-    content.replaceChildren(...panels);
-    content.scrollTop = scrollTop;
-    if (focusedLabel) [...content.querySelectorAll('[aria-label]')].find((el) => el.getAttribute('aria-label') === focusedLabel)?.focus({ preventScroll: true });
-    syncNavigation();
+  const content = h('div.sp-inner');
+  const main = h('main.sp-main', { tabindex: -1 }, content);
+  const navButtons = SECTIONS.map(([id, icon, label]) => h('button.sp-nav-item', {
+    type: 'button', dataset: { section: id }, 'aria-controls': `settings-${id}`,
+    onclick: () => show(id, true),
+  }, id === 'account' ? h('span.sp-nav-av') : ico(icon, 16), h('span', label)));
+  const back = h('button.btn.sp-back', { type: 'button', onclick: () => close() }, ico('arrowLeft', 14), ' Voltar ao editor', h('kbd', 'Esc'));
+  const side = h('aside.sp-side',
+    h('div.sp-brand', h('img.sp-logo', { src: 'assets/logo-mark.svg', alt: '', width: 28, height: 28 }), h('div', h('strong', 'Configurações'), h('span', 'Stylo ' + VERSION))),
+    back,
+    h('nav.sp-nav', { 'aria-label': 'Seções das configurações' }, navButtons.slice(0, 5), h('p.sp-nav-caption', 'Editor'), navButtons.slice(5)));
+  const root = h('section.settings-page', { role: 'region', 'aria-label': 'Configurações' }, side, main);
+
+  /** Mostra uma seção (as outras ficam escondidas, mas continuam montadas: campos não salvos não se perdem). */
+  function show(id, focus = false) {
+    if (!SECTIONS.some((s) => s[0] === id)) id = 'account';
+    active = id;
+    closeInformation();
+    for (const sec of content.children) sec.hidden = sec.dataset.section !== id;
+    navButtons.forEach((b) => (b.dataset.section === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+    main.scrollTop = 0;
+    if (focus) content.querySelector(`#settings-${id} h2`)?.focus({ preventScroll: true });
   }
 
-  // ---------------------------------------------------------------- 1. pasta
-  function folderSection(server) {
+  /** Esc fecha (se não houver janela, menu ou balão de informação por cima). */
+  function onKey(e) {
+    if (e.key !== 'Escape' || document.querySelector('.modal-backdrop, .menu, .inspector-info')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+  }
+
+  function close() {
+    if (!root.isConnected) return;
+    closeInformation();
+    root.remove();
+    stopAccount();
+    stopNav();
+    window.removeEventListener('keydown', onKey);
+    ui.settingsOpen = false;
+    current = null;
+    // o editor só volta a receber foco se a página inicial não estiver aberta por baixo
+    if (!ui.homeOpen) { app.inert = false; app.removeAttribute('aria-hidden'); }
+    store.emit('ui');
+    if (returnFocus?.isConnected) returnFocus.focus?.();
+  }
+
+  ui.settingsOpen = true;
+  app.inert = true;
+  app.setAttribute('aria-hidden', 'true');
+  document.body.append(root);
+  window.addEventListener('keydown', onKey);
+
+  // ---------------------------------------------------------------- peças de layout
+  /** Cabeçalho + cartões de uma seção. */
+  function sectionEl(id, ...cards) {
+    const [, , label, desc] = SECTIONS.find((s) => s[0] === id);
+    return h('section.sp-section', { id: `settings-${id}`, dataset: { section: id }, 'aria-labelledby': `settings-${id}-title` },
+      h('header.sp-head', h('h2', { id: `settings-${id}-title`, tabindex: -1 }, label), h('p', desc)),
+      ...cards);
+  }
+  /** Cartão: título (com "i" opcional), descrição curta e o conteúdo. */
+  function card(title, desc, info, ...body) {
+    return h('div.sp-card',
+      title ? h('div.sp-card-head', h('h3', title, info ? informationButton(title, info) : null), desc ? h('p', desc) : null) : null,
+      ...body);
+  }
+  /** Linha rótulo/descrição à esquerda e controle à direita. */
+  const row = (label, hint, ...control) => h('div.sp-row', h('div.sp-row-label', h('span.sp-label', label), hint ? h('span.sp-hint', hint) : null), h('div.sp-row-control', ...control));
+  /** Bloco recolhido "Mostrar detalhes". */
+  const details = (summary, ...body) => h('details.sp-details', h('summary', summary), h('div.sp-details-body', ...body));
+  const radio = (group, value, label, cur, onPick) =>
+    h('label.set-radio', h('input', { type: 'radio', name: group, value, checked: cur === value, onchange: () => onPick(value) }), h('span', label));
+  const needServer = (what) => card('Precisa do servidor', null, null,
+    h('p.sp-muted', `${what} usa o servidor do app. Abra o Stylo com `, h('code', 'npm start'), ' para ativar.'));
+
+  // ---------------------------------------------------------------- 1. conta
+  let stopAccount = () => {};
+  let stopNav = () => {};
+  function accountSection() {
+    const acc = account.data;
+    const status = h('span.sp-saved', { role: 'status' });
+    const setStatus = (state, text) => { status.dataset.state = state; status.textContent = text; };
+    setStatus('idle', account.server ? 'Salvo automaticamente' : 'Salvo neste navegador');
+    let timer = 0;
+    let pending = {};
+    /** Junta mudanças e grava depois de uma pausa curta (indicador "Salvando…" → "Salvo"). */
+    const queue = (patch, wait = 450) => {
+      Object.assign(pending, patch);
+      setStatus('saving', 'Salvando…');
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const p = pending; pending = {};
+        try { await account.save(p); setStatus('saved', 'Salvo'); } catch (err) { setStatus('error', err.message || 'Não consegui salvar.'); }
+      }, wait);
+    };
+    const field = (label, key, attrs, hint) => {
+      const input = h('input.text', { type: 'text', value: acc[key] || '', spellcheck: false, 'aria-label': label, ...attrs });
+      input.addEventListener('input', () => queue({ [key]: input.value }));
+      return row(label, hint, h('div.field.grow', input));
+    };
+    const preview = h('div.sp-avatar-preview');
+    const colorHint = h('span.sp-hint');
+    const swatches = h('div.sp-colors', { role: 'radiogroup', 'aria-label': 'Cor do avatar' });
+    const fileInput = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true });
+    const removeBtn = h('button.btn.small', { type: 'button', onclick: () => queue({ avatar: '' }, 0) }, 'Remover foto');
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0];
+      fileInput.value = '';
+      if (!f) return;
+      try { queue({ avatar: await shrinkAvatar(f) }, 0); } catch (err) { setStatus('error', err.message); }
+    });
+    const paint = (a) => {
+      preview.replaceChildren(avatarEl(h, a, '.big'));
+      swatches.replaceChildren(...ACCOUNT_COLORS.map((c) => h('button.sp-color', {
+        type: 'button', role: 'radio', style: `--c: ${c}`, 'aria-label': `Cor ${c}`, 'aria-checked': String(a.color === c),
+        onclick: () => queue({ color: c }, 0),
+      })));
+      removeBtn.style.display = a.avatar ? '' : 'none';
+      colorHint.textContent = a.avatar ? 'Sua cor nos comentários e na presença:' : 'Sem foto, o avatar mostra as suas iniciais nesta cor:';
+    };
+    paint(acc);
+    stopAccount = account.onChange((a) => paint(a));
+    const lang = h('select.select', { 'aria-label': 'Idioma' },
+      [['pt-BR', 'Português (Brasil)'], ['en', 'English'], ['es', 'Español']].map(([v, l]) => h('option', { value: v, selected: acc.language === v }, l)));
+    lang.addEventListener('change', () => queue({ language: lang.value }, 0));
+    const created = acc.createdAt ? new Date(acc.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : null;
+    return sectionEl('account',
+      card('Perfil', null,
+        'Esta é uma conta LOCAL, sem senha: o Stylo roda no seu computador e o perfil fica num arquivo ao lado da configuração do servidor (designer.account.json). Nada é enviado para a internet.',
+        h('div.sp-profile', preview,
+          h('div.sp-profile-actions',
+            h('div.sp-profile-buttons', h('button.btn.small', { type: 'button', onclick: () => fileInput.click(), disabled: !account.server }, ico('upload', 13), ' Enviar foto'), removeBtn, fileInput),
+            colorHint,
+            swatches)),
+        field('Nome', 'name', { placeholder: 'Como você quer aparecer', maxLength: 60 }, 'Assina os comentários e aparece na presença'),
+        account.server ? field('E-mail', 'email', { type: 'email', placeholder: 'opcional', maxLength: 120 }, 'Opcional. Só fica aqui.') : null,
+        account.server ? field('Cargo ou função', 'role', { placeholder: 'ex.: Designer de produto', maxLength: 60 }) : null,
+        account.server ? row('Idioma', 'A interface ainda está só em português', h('div.field.select-wrap', lang, ico('chevron', 12))) : null,
+        h('div.sp-card-foot', status, created ? h('span.sp-hint', `Conta criada em ${created}`) : null)),
+      account.server ? null : card(null, null, null, h('p.sp-muted', 'Sem o servidor (', h('code', 'npm start'), '), só o nome e a cor ficam guardados, neste navegador.')));
+  }
+
+  // ---------------------------------------------------------------- 2. pasta e cópias
+  function folderSection(server, usage, persisted) {
+    const protect = h('button.btn', {
+      type: 'button', disabled: persisted,
+      onclick: async () => {
+        const ok = await requestPersistence();
+        toast(ok ? 'Pronto: o navegador não vai apagar a cópia sozinho.' : 'O navegador recusou (ele decide com base no uso do site).');
+        render();
+      },
+    }, persisted ? 'Protegida' : 'Proteger contra limpeza');
+    const browserCard = card('Cópia no navegador', `Sempre ligada: cada mudança também fica guardada no navegador (${usage.engine}).`,
+      'Ela some se você limpar os dados do site ou trocar de navegador. Para guardar de verdade, use a pasta de projetos.',
+      row('Espaço usado', usage.usage != null ? formatBytes(usage.usage) : 'desconhecido', protect));
     if (!server) {
-      return h('section.set-section',
-        h('h3', ico('folder', 15), ' Pasta de projetos'),
-        h('p.set-status.off', '● Sem servidor'),
-        h('p.muted', 'Para salvar numa pasta do seu computador, abra o app com ', h('code', 'npm start'),
-          ' (o servidor do projeto). Do jeito que está, o projeto fica só no navegador, e "Salvar" baixa um arquivo .json.'));
+      return sectionEl('folder',
+        card('Pasta de projetos', null, null,
+          h('p.set-status.off', '● Sem servidor'),
+          h('p.sp-muted', 'Para salvar numa pasta do seu computador, abra o app com ', h('code', 'npm start'),
+            '. Do jeito que está, o projeto fica só no navegador, e "Salvar" baixa um arquivo .json.')),
+        browserCard);
     }
     const pathInput = h('input.text.mono', { type: 'text', value: server.folder, spellcheck: false, 'aria-label': 'Caminho da pasta de projetos' });
     const msg = h('p.set-msg', { role: 'status' });
@@ -127,7 +258,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
     }, 'Usar esta pasta');
     pathInput.addEventListener('keydown', (e) => e.key === 'Enter' && apply.click());
 
-    const versions = h('input.text', { type: 'number', min: 0, max: 200, value: server.keepVersions, 'aria-label': 'Quantidade de versões guardadas', style: { width: '64px' } });
+    const versions = h('input.text', { type: 'number', min: 0, max: 200, value: server.keepVersions, 'aria-label': 'Quantidade de versões guardadas', style: { width: '72px' } });
     versions.addEventListener('change', async () => {
       try {
         const r = await folder.setConfig({ keepVersions: Number(versions.value) });
@@ -136,63 +267,46 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
       } catch (err) { toast(err.message); }
     });
 
-    return h('section.set-section',
-      h('h3', ico('folder', 15), ' Pasta de projetos'),
-      h('p.set-status.on', '● Servidor conectado — projetos são gravados como arquivos .json nesta pasta:'),
-      h('div.set-path', h('div.field', pathInput), apply),
-      msg,
-      h('p.muted.small', 'Caminho completo. Exemplos: ', h('code', 'C:\\Users\\voce\\Documents\\Designer'), ' · ',
-        h('code', '/home/voce/Designer'), ' · ', h('code', '~/Designer'), '. A pasta é criada se não existir.'),
-      h('div.set-tip',
-        h('strong', 'Quer cópia na nuvem (Google Drive)?'),
-        h('p', 'Instale o ', h('em', 'Google Drive para computador'), ' e escolha aqui uma pasta DENTRO dele (no Windows costuma ser ',
-          h('code', 'G:\\Meu Drive\\Designer'), '). O próprio Drive sobe os arquivos para a nuvem; funciona igual com OneDrive e Dropbox.'),
-        h('p.muted.small', 'Se abrir o mesmo projeto em dois computadores ao mesmo tempo, o editor percebe que o arquivo mudou e para de gravar nele em vez de apagar o trabalho do outro.')),
-      h('div.set-row', checkbox('Salvar automaticamente na pasta enquanto edito', prefs.autoFolder !== false, (v) => {
-        prefs.autoFolder = v;
-        savePrefs();
-        toast(v ? 'Auto-salvar na pasta ligado.' : 'Auto-salvar na pasta desligado: use Ctrl+S para gravar.');
-      })),
-      h('div.set-row', h('span', 'Guardar até'), h('div.field', versions), h('span', 'versões antigas de cada projeto')),
-      h('p.muted.small', 'No máximo uma versão a cada 10 minutos de edição. Abra-as em Arquivo → Abrir da pasta → Versões. 0 = não guardar.'));
+    return sectionEl('folder',
+      card('Pasta de projetos', 'Os projetos são gravados como arquivos .json nesta pasta do computador.',
+        'Use o caminho completo (ex.: C:\\Users\\voce\\Documents\\Stylo, /home/voce/Stylo ou ~/Stylo); a pasta é criada se não existir. '
+          + 'Quer cópia na nuvem? Instale o Google Drive para computador (ou OneDrive, Dropbox) e escolha uma pasta DENTRO dele, como G:\\Meu Drive\\Stylo: o próprio programa sobe os arquivos. '
+          + 'Se o mesmo projeto for aberto em dois computadores, o editor percebe que o arquivo mudou e para de gravar nele em vez de apagar o trabalho do outro.',
+        h('p.set-status.on', '● Servidor conectado'),
+        h('div.set-path', h('div.field', pathInput), apply),
+        msg),
+      card('Salvamento', null, null,
+        row('Auto-salvar na pasta', 'Grava enquanto você edita', checkbox('Ligado', prefs.autoFolder !== false, (v) => {
+          prefs.autoFolder = v;
+          savePrefs();
+          toast(v ? 'Auto-salvar na pasta ligado.' : 'Auto-salvar na pasta desligado: use Ctrl+S para gravar.');
+        })),
+        row('Versões antigas', '0 = não guardar', h('div.field', versions), h('span.sp-hint', 'por projeto'),
+          informationButton('Versões antigas', 'No máximo uma versão a cada 10 minutos de edição. Abra-as em Arquivo → Abrir da pasta → Versões.'))),
+      browserCard);
   }
 
-  // ---------------------------------------------------------------- 2. navegador
-  function browserSection(usage, persisted) {
-    const protect = h('button.btn', {
-      type: 'button', disabled: persisted,
-      onclick: async () => {
-        const ok = await requestPersistence();
-        toast(ok ? 'Pronto: o navegador não vai apagar a cópia sozinho.' : 'O navegador recusou (ele decide com base no uso do site).');
-        render();
-      },
-    }, persisted ? 'Protegida' : 'Proteger contra limpeza automática');
-    return h('section.set-section',
-      h('h3', ico('layers', 15), ' Cópia no navegador'),
-      h('p', 'Sempre ligada. A cada mudança o projeto aberto é guardado no navegador (', usage.engine, '), mesmo sem servidor. ',
-        usage.usage != null ? `Usando ${formatBytes(usage.usage)}.` : ''),
-      h('p.muted.small', 'Ela some se você limpar os dados do site ou trocar de navegador. Para guardar de verdade, use a pasta acima.'),
-      h('div.set-row', protect));
-  }
-
-  // ---------------------------------------------------------------- 3. assistente de IA e MCP
-  function aiSection(ai) {
-    if (!ai) {
-      return h('section.set-section',
-        h('h3', ico('sparkle', 15), ' Assistente de IA e MCP'),
-        h('p.muted', 'Precisa do servidor do app (', h('code', 'npm start'), '): é ele que guarda a chave e conversa com a IA.'));
-    }
+  // ---------------------------------------------------------------- 3 e 4. agente de IA e chaves
+  /** Monta as seções de IA e de chaves juntas: "Ver modelos" usa a chave digitada na seção de chaves. */
+  function aiSections(ai) {
+    if (!ai) return [sectionEl('ai', needServer('O Agente de IA')), sectionEl('keys', needServer('Guardar a chave'))];
     const msg = h('p.set-msg', { role: 'status' });
+    const keyMsg = h('p.set-msg', { role: 'status' });
     const prov = PROVIDERS.find((x) => x.id === ai.provider) || null;
     /** Grava no servidor e redesenha (a chave só vai quando você digita uma nova). */
-    const save = async (patch, done = 'Assistente configurado.') => {
+    const save = async (patch, done = 'Agente configurado.', out = msg) => {
       try {
-        const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error);
+        await putConfig(patch);
         toast(done);
         render();
-      } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui salvar.'; }
+      } catch (err) { out.className = 'set-msg error'; out.textContent = err.message || 'Não consegui salvar.'; }
+    };
+    /** Grava sem redesenhar a página (para não sumir com a lista de modelos aberta). */
+    const putConfig = async (patch) => {
+      const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      return data;
     };
     // PROVEDOR: escolher um já grava endereço e modelo sugerido (a chave de cada provedor fica guardada separada)
     const provSel = h('select.select', { 'aria-label': 'Provedor de IA' },
@@ -201,20 +315,15 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
     provSel.addEventListener('change', () => {
       const x = PROVIDERS.find((p) => p.id === provSel.value);
       if (x) save({ baseUrl: x.baseUrl, model: x.model }, `Provedor: ${x.name}.`);
-      else { base.focus(); base.select(); }
+      else { advanced.open = true; base.focus(); base.select(); }
     });
     const key = h('input.text.mono', { type: 'password', placeholder: ai.hasKey ? '•••••••• (chave salva)' : prov?.keyHint || 'chave da API', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave da API' });
     const model = h('input.text.mono', { type: 'text', value: ai.model, spellcheck: false, 'aria-label': 'Modelo' });
     const base = h('input.text.mono', { type: 'text', value: ai.baseUrl, spellcheck: false, 'aria-label': 'Endereço da API' });
     const saveBtn = h('button.btn.primary', { type: 'button', onclick: () => save({ model: model.value, baseUrl: base.value, ...(key.value.trim() ? { apiKey: key.value.trim() } : {}) }) }, 'Salvar');
-    const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }, 'Chave apagada.') }, 'Apagar chave') : null;
-    /** Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta). */
-    const putConfig = async (patch) => {
-      const r = await fetch('/api/agent/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
-      return data;
-    };
+    const saveKey = h('button.btn.primary', { type: 'button', onclick: () => key.value.trim() && save({ apiKey: key.value.trim() }, 'Chave salva.', keyMsg) }, 'Salvar chave');
+    const forget = ai.hasKey ? h('button.btn', { type: 'button', onclick: () => save({ apiKey: '' }, 'Chave apagada.', keyMsg) }, 'Apagar chave') : null;
+    key.addEventListener('keydown', (e) => e.key === 'Enter' && saveKey.click());
     // LISTA DE MODELOS (aparece depois de "Ver modelos"): busca + lista clicável. Uma lista de verdade, e não o
     // <datalist> do navegador, que só mostra o que combina com o texto já escrito no campo (escondia quase tudo).
     const picker = h('div.model-picker', { hidden: true });
@@ -266,67 +375,127 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         listBtn.disabled = false;
       },
     }, 'Ver modelos');
+    const advanced = details('Avançado: endereço da API',
+      row('Endereço da API', 'Qualquer servidor compatível com a API da OpenAI', h('div.field.grow', base)),
+      h('p.sp-muted.small', 'Funciona com LM Studio, Ollama, OpenRouter, Groq e outros que falam Chat Completions com ferramentas.'));
+    const providerName = prov ? prov.name : 'provedor personalizado';
+    return [
+      sectionEl('ai',
+        card('Provedor e modelo', 'O Agente (botão ✦ no topo) conversa com a IA usando a sua chave.',
+          `O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ${ai.instructions || 'docs/AGENTE.md'}. Edite à vontade: vale na próxima mensagem.`,
+          row('Provedor', null, h('div.field.select-wrap', provSel, ico('chevron', 12))),
+          row('Modelo', 'Precisa aceitar ferramentas (tool calling)', h('div.field.grow', model), listBtn),
+          picker,
+          advanced,
+          h('div.sp-card-foot', msg, h('div.spacer'), saveBtn)),
+        ai.hasKey ? null : card(null, null, null, h('p.sp-muted', 'Falta a chave de API. ', h('button.link', { type: 'button', onclick: () => show('keys', true) }, 'Adicionar chave →')))),
+      sectionEl('keys',
+        card(`Chave do ${providerName}`, ai.hasKey ? 'Há uma chave salva para este provedor.' : 'Nenhuma chave salva para este provedor ainda.',
+          'A chave fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto nem volta para o navegador. Cada provedor tem a própria chave. Ela também pode vir de uma variável de ambiente (ex.: OPENAI_API_KEY).',
+          row('Chave da API', prov ? `Crie em ${prov.keyUrl}` : null, h('div.field.grow', key)),
+          prov?.note ? h('p.sp-muted.small', prov.note) : null,
+          h('div.sp-card-foot', keyMsg, h('div.spacer'), forget, saveKey))),
+    ];
+  }
+
+  // ---------------------------------------------------------------- 5. MCP
+  function mcpSection(ai) {
+    if (!ai) return sectionEl('mcp', needServer('O MCP'));
     const copy = (text) => h('button.btn.small', { type: 'button', onclick: () => navigator.clipboard?.writeText(text).then(() => toast('Copiado.')) }, 'Copiar');
-    const cmd = (label, text) => h('div.set-cmd', h('span.set-label', label), h('code', text), copy(text));
-    return h('section.set-section',
-      h('h3', ico('sparkle', 15), ' Assistente de IA e MCP'),
-      h('p', 'O ', h('strong', 'Assistente'), ' (botão ', ico('sparkle', 12), ' no topo) conversa com a IA usando a ', h('strong', 'sua'),
-        ' chave. Ela fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto.'),
-      h('div.set-row', h('span.set-label', 'Provedor'), h('div.field.select-wrap', provSel, ico('chevron', 12))),
-      h('div.set-row', h('span.set-label', 'Chave da API'), h('div.field.grow', key), forget),
-      h('div.set-row', h('span.set-label', 'Modelo'), h('div.field.grow', model), listBtn),
-      picker,
-      h('div.set-row', h('span.set-label', 'Endereço da API'), h('div.field.grow', base)),
-      h('div.set-row', saveBtn),
-      msg,
-      prov ? h('p.muted.small', `Chave em ${prov.keyUrl}. ${prov.note}`) : h('p.muted.small', 'Qualquer servidor compatível com a API da OpenAI (Chat Completions com ferramentas) funciona: LM Studio, OpenRouter, Groq...'),
-      h('p.muted.small', 'O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ', h('code', ai.instructions || 'docs/AGENTE.md'),
-        '. Edite à vontade: vale na próxima mensagem.'),
-      h('div.set-tip',
-        h('strong', 'MCP: ligar o Claude Code, o Codex ou o Claude Desktop'),
-        h('p', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design (cada alteração passa pela sua permissão aqui). ',
-          ai.editors ? h('span.set-badge.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`) : h('span.set-badge.off', '● nenhum editor conectado')),
+    const cmd = (label, text) => h('div.set-cmd', label ? h('span.set-label', label) : null, h('code', text), copy(text));
+    return sectionEl('mcp',
+      card('Conexão', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design.', null,
+        row('Editores conectados', null, ai.editors
+          ? h('span.set-badge.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`)
+          : h('span.set-badge.off', '● nenhum editor conectado')),
         // ACESSO DE ADMINISTRADOR: programas deste computador agem sem perguntar e mexem nos arquivos de projeto
-        h('div.set-row', checkbox('Acesso de administrador: o MCP altera sem perguntar e pode abrir, salvar e criar projetos', !!ai.mcpAdmin, async (v) => {
-          try {
-            const r = await fetch('/api/agent/mcp', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: v }) });
-            if (!r.ok) throw new Error((await r.json()).error);
-            toast(v ? 'MCP com acesso de administrador.' : 'MCP volta a pedir permissão a cada alteração.');
-          } catch (err) { toast(err.message || 'Não consegui salvar.'); }
-        })),
-        h('p.muted.small', 'Só vale para programas deste computador (o endereço do MCP não aceita pedidos de fora). Tudo continua saindo com Ctrl+Z, e um aviso mostra cada alteração.'),
-        cmd('Plugin do Claude Code', `/plugin marketplace add Kaykygnb/projetodesigner2`),
-        cmd('', `/plugin install projeto-designer@projeto-designer`),
-        cmd('Claude Code (sem plugin)', `claude mcp add --transport http designer ${ai.mcpUrl}`),
-        cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
-        h('p.muted.small', 'Guia completo (Claude, Codex/GPT e ChatGPT): ', h('code', 'docs/MCP.md'), '. No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
-          h('code', `args = ["${ai.mcpScript.replace(/\\/g, '\\\\')}"]`), '. No Claude Desktop: Configurações → Desenvolvedor → Editar configuração, em ', h('code', 'mcpServers'), '.')));
+        row('Acesso de administrador', 'O MCP altera sem perguntar e pode abrir, salvar e criar projetos',
+          checkbox('Ativar', !!ai.mcpAdmin, async (v) => {
+            try {
+              const r = await fetch('/api/agent/mcp', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: v }) });
+              if (!r.ok) throw new Error((await r.json()).error);
+              toast(v ? 'MCP com acesso de administrador.' : 'MCP volta a pedir permissão a cada alteração.');
+            } catch (err) { toast(err.message || 'Não consegui salvar.'); }
+          }),
+          informationButton('Acesso de administrador', 'Só vale para programas deste computador (o endereço do MCP não aceita pedidos de fora). Tudo continua saindo com Ctrl+Z, e um aviso mostra cada alteração.'))),
+      card('Instalar no Claude Code, Codex ou Claude Desktop', 'Copie o comando do programa que você usa.', null,
+        details('Mostrar comandos',
+          cmd('Plugin do Claude Code', '/plugin marketplace add Kaykygnb/projetodesigner2'),
+          cmd('', '/plugin install projeto-designer@projeto-designer'),
+          cmd('Claude Code (sem plugin)', `claude mcp add --transport http designer ${ai.mcpUrl}`),
+          cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
+          h('p.sp-muted.small', 'Guia completo (Claude, Codex/GPT e ChatGPT): ', h('code', 'docs/MCP.md'), '. No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
+            h('code', `args = ["${ai.mcpScript.replace(/\\/g, '\\\\')}"]`), '. No Claude Desktop: Configurações → Desenvolvedor → Editar configuração, em ', h('code', 'mcpServers'), '.'))));
   }
 
-  // ---------------------------------------------------------------- 4. aparência
+  // ---------------------------------------------------------------- 6. aparência
   function lookSection() {
-    const opt = (group, value, label, current, onPick) =>
-      h('label.set-radio', h('input', { type: 'radio', name: group, value, checked: current === value, onchange: () => onPick(value) }), h('span', label));
-    return h('section.set-section',
-      h('h3', ico('sliders', 15), ' Aparência e controles'),
-      h('div.set-row', { role: 'radiogroup', 'aria-label': 'Tema' }, h('span.set-label', 'Tema'),
-        opt('theme', 'dark', 'Escuro', ui.theme, (v) => store.setTheme(v)),
-        opt('theme', 'light', 'Claro', ui.theme, (v) => store.setTheme(v))),
-      h('div.set-row', h('span.set-label', 'Seu nome nos comentários'),
-        (() => {
-          const input = h('input.text', { type: 'text', value: prefs.author || '', placeholder: 'Eu', maxLength: 40, spellcheck: false, 'aria-label': 'Seu nome nos comentários' });
-          input.addEventListener('change', () => { prefs.author = input.value.trim().slice(0, 40); savePrefs(); toast('Nome atualizado.'); });
-          return h('div.field', { style: { maxWidth: '220px' } }, input);
-        })()),
-      h('div.set-row', { role: 'radiogroup', 'aria-label': 'Ao abrir o app' }, h('span.set-label', 'Ao abrir o app'),
-        opt('start', 'home', 'Mostrar a página inicial', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); }),
-        opt('start', 'editor', 'Ir direto para o editor', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); })),
-      h('div.set-row', { role: 'radiogroup', 'aria-label': 'Roda do mouse' }, h('span.set-label', 'Roda do mouse'),
-        opt('wheel', 'pan', 'Rola o canvas (Ctrl + roda = zoom)', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); }),
-        opt('wheel', 'zoom', 'Dá zoom', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); })));
+    return sectionEl('look',
+      card('Tema', null, null,
+        h('div.sp-choices', { role: 'radiogroup', 'aria-label': 'Tema' },
+          radio('theme', 'dark', 'Escuro', ui.theme, (v) => store.setTheme(v)),
+          radio('theme', 'light', 'Claro', ui.theme, (v) => store.setTheme(v)))),
+      card('Ao abrir o app', null, null,
+        h('div.sp-choices', { role: 'radiogroup', 'aria-label': 'Ao abrir o app' },
+          radio('start', 'home', 'Mostrar a página inicial', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); }),
+          radio('start', 'editor', 'Ir direto para o editor', prefs.startScreen || 'home', (v) => { prefs.startScreen = v; savePrefs(); }))),
+      card('Roda do mouse', null, null,
+        h('div.sp-choices', { role: 'radiogroup', 'aria-label': 'Roda do mouse' },
+          radio('wheel', 'pan', 'Rola o canvas (Ctrl + roda = zoom)', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); }),
+          radio('wheel', 'zoom', 'Dá zoom', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); }))));
   }
 
-  content.append(h('p.muted', { role: 'status' }, 'Carregando preferências…'));
-  render();
-  return { close };
+  // ---------------------------------------------------------------- 7. atalhos
+  function keysSection() {
+    return sectionEl('keyboard', h('div.sp-shortcuts', SHORTCUTS.map(([title, rows]) =>
+      card(title, null, null, h('div.sp-sc', rows.map(([k, d]) => h('div.sc-row', h('span', d), h('kbd', k))))))));
+  }
+
+  // ---------------------------------------------------------------- 8. sobre
+  function aboutSection(server) {
+    const help = (tab, icon, label, desc) => h('button.sp-help', { type: 'button', onclick: () => showHelp(tab, VERSION) }, ico(icon, 18), h('span', h('strong', label), h('span', desc)));
+    return sectionEl('about',
+      card(null, null, null,
+        h('div.sp-about',
+          h('img', { src: 'assets/logo.svg', alt: 'Stylo', class: 'sp-about-logo' }),
+          h('div', h('strong', `Versão ${VERSION}`), h('p.sp-muted', 'Editor de design local onde o canvas é HTML e CSS de verdade.'),
+            h('p.sp-muted.small', server ? '● Servidor local conectado' : '● Sem servidor (projetos só no navegador)')))),
+      card('Central de ajuda', null, null,
+        h('div.sp-help-grid',
+          help('start', 'star', 'Primeiros passos', 'Como montar uma tela'),
+          help('keys', 'keyboard', 'Atalhos', 'Lista completa'),
+          help('faq', 'help', 'Problemas comuns', 'Soluções rápidas'),
+          help('support', 'comment', 'Suporte', 'Como pedir ajuda'))));
+  }
+
+  /** Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma). */
+  async function render() {
+    const server = await saving.refresh();
+    const [usage, persisted, ai] = await Promise.all([
+      browserUsage(),
+      navigator.storage?.persisted?.().catch(() => false),
+      server ? fetch('/api/agent/config').then((r) => r.json()).catch(() => null) : null,
+    ]);
+    if (!root.isConnected) return;
+    const scrollTop = main.scrollTop;
+    const focusedLabel = content.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    stopAccount();
+    content.replaceChildren(accountSection(), folderSection(server, usage, persisted), ...aiSections(ai), mcpSection(ai), lookSection(), keysSection(), aboutSection(server));
+    show(active);
+    main.scrollTop = scrollTop;
+    if (focusedLabel) [...content.querySelectorAll('[aria-label]')].find((el) => el.getAttribute('aria-label') === focusedLabel)?.focus({ preventScroll: true });
+  }
+
+  // avatar da conta na barra lateral (acompanha as mudanças do perfil)
+  const navAv = navButtons[0].querySelector('.sp-nav-av');
+  const paintNav = () => navAv.replaceChildren(avatarEl(h, account.data, '.tiny'));
+  paintNav();
+  stopNav = account.onChange(paintNav);
+  content.append(h('p.sp-muted', { role: 'status' }, 'Carregando preferências…'));
+  current = { show, close };
+  render().then(() => back.focus());
+  return current;
 }
+
+/** A página de Configurações está aberta? */
+export const settingsOpen = () => !!current;

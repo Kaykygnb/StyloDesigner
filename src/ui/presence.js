@@ -10,7 +10,6 @@
  */
 
 import { h, ico } from './dom.js';
-import { askText } from './menus.js';
 
 /** Cores para escolher no perfil (as mesmas da presença no servidor). */
 const COLORS = ['#4c8dff', '#f7a541', '#c79bff', '#5cc98f', '#ff7a90', '#3ec5d6', '#e3c14b', '#9aa7ff'];
@@ -18,10 +17,10 @@ const initial = (name) => (String(name || '?').trim()[0] || '?').toUpperCase();
 const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 10 ? 'agora' : s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`; };
 
 /**
- * @param {{ store, prefs: object, savePrefs: () => void, onProfile: () => void, toast: (m: string) => void }} deps
- *        onProfile: o perfil mudou (a conexão com o servidor é refeita com o nome novo)
+ * @param {{ store, prefs: object, editProfile: () => void }} deps
+ *        prefs.author/authorColor vêm da conta local (account.js); editProfile abre Configurações → Conta
  */
-export function createPresence({ store, prefs, savePrefs, onProfile, toast }) {
+export function createPresence({ store, prefs, editProfile }) {
   let data = { people: [], agents: [], activity: [] };
   let popup = null;
   const stack = h('span.pr-stack');
@@ -41,6 +40,8 @@ export function createPresence({ store, prefs, savePrefs, onProfile, toast }) {
     el.setAttribute('aria-label', `No projeto agora: você${others.length ? `, ${others.length} ${others.length === 1 ? 'pessoa' : 'pessoas'}` : ''}${agents.length ? `, ${agents.length} ${agents.length === 1 ? 'agente' : 'agentes'}` : ''}`);
     el.title = n ? 'Quem está no projeto agora' : 'Seu perfil e agentes conectados';
     el.classList.toggle('busy', agents.some((a) => a.active));
+    // sozinho no projeto: o seu avatar já está no topo (menu da conta), então a pilha só aparece com mais gente/agentes
+    el.hidden = !n;
     if (popup) fillPopup();
   }
 
@@ -64,11 +65,7 @@ export function createPresence({ store, prefs, savePrefs, onProfile, toast }) {
     popup = h('div.pr-pop', { role: 'dialog', 'aria-label': 'No projeto agora' },
       h('div.pr-body'),
       h('div.pr-foot',
-        h('button.btn.small', { type: 'button', onclick: editProfile }, ico('edit', 12), ' Editar meu perfil'),
-        h('div.pr-colors', { role: 'group', 'aria-label': 'Minha cor' }, COLORS.map((c) => h('button.pr-color', {
-          type: 'button', style: `--c: ${c}`, 'aria-label': `Cor ${c}`, 'aria-pressed': String(profile().color === c),
-          onclick: () => { prefs.authorColor = c; savePrefs(); onProfile(); render(); popup?.querySelectorAll('.pr-color').forEach((b) => b.setAttribute('aria-pressed', String(b.style.getPropertyValue('--c').trim() === c))); },
-        })))));
+        h('button.btn.small', { type: 'button', onclick: () => { closePopup(); editProfile(); } }, ico('edit', 12), ' Editar meu perfil')));
     document.body.append(popup);
     const r = el.getBoundingClientRect();
     popup.style.top = `${r.bottom + 8}px`;
@@ -88,14 +85,6 @@ export function createPresence({ store, prefs, savePrefs, onProfile, toast }) {
     window.removeEventListener('keydown', onKey, true);
   }
 
-  async function editProfile() {
-    const name = await askText({ title: 'Seu perfil', label: 'Seu nome (aparece para os outros e assina os comentários)', value: String(prefs.author || ''), confirm: 'Salvar' });
-    if (name == null) return;
-    prefs.author = name.trim().slice(0, 40);
-    savePrefs(); onProfile(); render();
-    toast(`Perfil: ${profile().name}`);
-  }
-
   async function refresh() {
     try { const r = await fetch('/api/presence'); if (r.ok) { data = await r.json(); render(); } } catch { /* sem servidor */ }
   }
@@ -106,5 +95,6 @@ export function createPresence({ store, prefs, savePrefs, onProfile, toast }) {
     /** Recebe o retrato do servidor (evento "presence"). */
     update(next) { if (next && Array.isArray(next.agents)) { data = next; render(); } },
     refresh,
+    render,
   };
 }
