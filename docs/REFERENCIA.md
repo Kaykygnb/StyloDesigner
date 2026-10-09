@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-50 arquivos · 776 funções e constantes documentadas.
+50 arquivos · 777 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -527,27 +527,28 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`savePrefs()`** <sub>do módulo</sub> · [L67](../src/main.js#L67) — Grava as preferências (falhas silenciosas: é só conveniência).
 - **`openSettings()`** <sub>do módulo</sub> · [L92](../src/main.js#L92) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
 - **`quickSave()`** <sub>do módulo</sub> · [L95](../src/main.js#L95) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L127](../src/main.js#L127) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L159](../src/main.js#L159) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L271](../src/main.js#L271) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L126](../src/main.js#L126) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L150](../src/main.js#L150) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L185](../src/main.js#L185) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L301](../src/main.js#L301) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L314](../src/main.js#L314) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L331](../src/main.js#L331) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L344](../src/main.js#L344) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L361](../src/main.js#L361) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L343](../src/main.js#L343) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L404](../src/main.js#L404) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L440](../src/main.js#L440) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L486](../src/main.js#L486) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L570](../src/main.js#L570) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L624](../src/main.js#L624) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L632](../src/main.js#L632) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L373](../src/main.js#L373) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L434](../src/main.js#L434) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L470](../src/main.js#L470) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L516](../src/main.js#L516) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L600](../src/main.js#L600) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L654](../src/main.js#L654) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L662](../src/main.js#L662) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1989,9 +1990,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `deps.prefs` <sub>object</sub> — preferências (autoFolder, wheelMode)
   - `deps.savePrefs` <sub>() => void</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
-- **`render()`** <sub>interna</sub> · [L45](../src/ui/settings.js#L45) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
-- **`save(patch, done = 'Assistente configurado.')`** <sub>interna</sub> · [L144](../src/ui/settings.js#L144) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
-- **`putConfig(patch)`** <sub>interna</sub> · [L168](../src/ui/settings.js#L168) — Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta).
+- **`render()`** <sub>interna</sub> · [L76](../src/ui/settings.js#L76) — Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma).
+- **`save(patch, done = 'Assistente configurado.')`** <sub>interna</sub> · [L188](../src/ui/settings.js#L188) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
+- **`putConfig(patch)`** <sub>interna</sub> · [L212](../src/ui/settings.js#L212) — Grava sem redesenhar a janela (para não sumir com a lista de modelos aberta).
 
 ---
 

@@ -122,6 +122,29 @@ createLayersPanel({ store, commands, container: layersBox });
 const ltLayers = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('layers') }, ico('layers', 14), ' Camadas');
 const ltAssets = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('assets') }, ico('component', 14), ' Recursos');
 const ltIcons = h('button.tab', { type: 'button', role: 'tab', onclick: () => setLeftTab('icons') }, ico('star', 14), ' Ícones');
+/** Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas. */
+function bindPanelTabs(buttons, panel, id) {
+  panel.id = `${id}-content`;
+  panel.setAttribute('role', 'tabpanel');
+  panel.tabIndex = 0;
+  buttons.forEach((button, index) => {
+    button.id = `${id}-tab-${index}`;
+    button.setAttribute('aria-controls', panel.id);
+    button.addEventListener('keydown', (event) => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+      else if (event.key === 'ArrowLeft') next = (index + buttons.length - 1) % buttons.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = buttons.length - 1;
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+      buttons[next].click();
+      buttons[next].focus();
+    });
+  });
+}
+bindPanelTabs([ltLayers, ltAssets, ltIcons], leftBody, 'left');
 $('#left').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel esquerdo' }, ltLayers, ltAssets, ltIcons), leftBody);
 /** Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons'). */
 function setLeftTab(tab) {
@@ -130,6 +153,8 @@ function setLeftTab(tab) {
   for (const [b, t] of [[ltLayers, 'layers'], [ltAssets, 'assets'], [ltIcons, 'icons']]) {
     b.classList.toggle('on', tab === t);
     b.setAttribute('aria-selected', String(tab === t));
+    b.tabIndex = tab === t ? 0 : -1;
+    if (tab === t) leftBody.setAttribute('aria-labelledby', b.id);
   }
   leftBody.replaceChildren(tab === 'layers' ? layersBox : tab === 'assets' ? assetsBox : iconsBox);
   if (tab === 'assets') assets.render();
@@ -154,6 +179,7 @@ const tabCode = h('button.tab', { type: 'button', role: 'tab', 'aria-label': 'C�
 // Quatro abas com rótulos; em painéis estreitos o CSS mostra seus ícones.
 const cmBadge = h('span.cm-badge', { hidden: true });
 const tabComments = h('button.tab.tab-cm', { type: 'button', role: 'tab', title: 'Comentários', 'aria-label': 'Comentários', onclick: () => setTab('comments') }, ico('comment', 14), h('span.tab-label', 'Comentários'), cmBadge);
+bindPanelTabs([tabDesign, tabProto, tabCode, tabComments], rightBody, 'right');
 $('#right').append(h('div.tabs', { role: 'tablist', 'aria-label': 'Painel direito' }, tabDesign, tabProto, tabCode, tabComments), rightBody);
 /** Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido. */
 function setTab(tab) {
@@ -163,7 +189,11 @@ function setTab(tab) {
   tabProto.classList.toggle('on', tab === 'proto');
   tabCode.classList.toggle('on', tab === 'code');
   tabComments.classList.toggle('on', tab === 'comments');
-  [[tabDesign, 'design'], [tabProto, 'proto'], [tabCode, 'code'], [tabComments, 'comments']].forEach(([b, t]) => b.setAttribute('aria-selected', String(tab === t)));
+  [[tabDesign, 'design'], [tabProto, 'proto'], [tabCode, 'code'], [tabComments, 'comments']].forEach(([b, t]) => {
+    b.setAttribute('aria-selected', String(tab === t));
+    b.tabIndex = tab === t ? 0 : -1;
+    if (tab === t) rightBody.setAttribute('aria-labelledby', b.id);
+  });
   rightBody.replaceChildren(tab === 'design' ? design.el : tab === 'proto' ? proto.el : tab === 'comments' ? comments.el : code.el);
   if (tab === 'comments') comments.render();
   else if (tab === 'code') code.render();

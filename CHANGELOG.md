@@ -9,6 +9,8 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 ## [Unreleased]
 
 ### Alterado
+- Configurações: navegação fixa por assunto, conteúdo com rolagem própria, campos mais legíveis e adaptação a telas estreitas. Trocar de seção preserva os rascunhos dos campos.
+- Abas dos painéis: aparência consistente, foco visível, navegação com setas/Home/End e associação acessível entre aba e conteúdo.
 - Seletor de fontes: melhora a semântica para leitores de tela e mantém os controles de paginação fora da lista de opções.
 - Auto layout em Grid: grade rápida 6×6 navegável pelas setas e com foco único por Tab; trilhas CSS editáveis ganharam modelos de colunas comuns e orientação sobre como voltar aos controles numéricos.
 - CSS ao vivo: a dica agora explica como editar o layout pelos controles e onde inserir trilhas CSS diretamente.

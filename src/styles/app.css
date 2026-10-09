@@ -495,6 +495,36 @@ button.brand:hover { background: var(--panel-2); }
 .set-label { font-weight: 600; min-width: 110px; }
 .set-radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .set-radio input { accent-color: var(--accent); margin: 0; }
+/* Preferências: navegação fixa e conteúdo com rolagem própria. */
+.modal.settings-modal { width: min(920px, 94vw); height: min(740px, 90vh); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.settings-modal .modal-head { flex: none; padding: 18px 24px; }
+.modal-body.settings { display: grid; grid-template-columns: 192px minmax(0, 1fr); padding: 0; min-height: 0; flex: 1; }
+.settings-nav { padding: 18px 10px; border-right: 1px solid var(--border); background: var(--panel-2); overflow-y: auto; }
+.settings-nav-caption { margin: 0 12px 12px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .08em; }
+.settings-nav-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 11px 12px; margin: 3px 0; text-align: left; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.settings-nav-item:hover { color: var(--text); background: var(--accent-soft); }
+.settings-nav-item[aria-current] { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.settings-content { overflow: auto; min-width: 0; padding: 0 24px 24px; scroll-padding-top: 20px; }
+.settings-content .set-section { padding: 24px 0; outline: none; }
+.settings-content .set-section:last-child { min-height: 100%; box-sizing: border-box; }
+.settings-content .set-section h3 { margin-bottom: 14px; font-size: 15px; }
+.settings-content .set-section p { line-height: 1.65; overflow-wrap: anywhere; }
+.settings-content .set-row { gap: 10px 12px; margin-top: 16px; }
+.settings-content .set-row > .field.grow { flex: 1 1 180px; min-width: 0; }
+.settings-content .set-row > .field.select-wrap { flex: 1; min-width: 180px; }
+.settings-content .set-label { font-size: 12px; }
+.settings-content .set-radio { padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); }
+.settings-content .set-radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.settings-content .set-tip { padding: 14px 16px; margin: 16px 0; background: var(--panel-2); border: 1px solid var(--border); }
+.settings-nav-item:focus-visible, .settings-content .set-radio:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .modal-body.settings { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .settings-nav { display: flex; gap: 4px; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .settings-nav-caption { display: none; }
+  .settings-nav-item { width: auto; flex: none; margin: 0; white-space: nowrap; }
+  .settings-content { padding: 0 16px 16px; }
+  .settings-content .set-path { align-items: stretch; flex-direction: column; }
+}
 .proj-folder { display: flex; align-items: center; gap: 8px; padding: 12px 0; color: var(--muted); }
 .proj-folder .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proj-save { padding: 4px 0 14px; border-bottom: 1px solid var(--border); }
@@ -1258,6 +1288,15 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 #right .tab .ico { display: none; }
 #right .tab.on { box-shadow: inset 0 -2px var(--accent); }
 #right .tab-cm .cm-badge { top: 2px; right: 0; min-width: 10px; height: 10px; padding: 0 2px; font-size: 7.5px; line-height: 10px; }
+/* Mesma hierarquia visual nos dois painéis, com seleção e foco distintos. */
+.panel.left .tabs { height: 40px; padding: 0 8px; gap: 2px; align-items: stretch; }
+.panel.left .tab { padding: 0 5px; border-radius: 0; font-size: 11px; background: transparent; }
+.panel.left .tab.on, #right .tab.on { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 -2px var(--accent); }
+.panel.left .tab.on::after, #right .tab.on::after { display: none; }
+.panel .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.panel .tab:hover:not(.on) { background: var(--panel-2); }
+#right .tab, #right .tab.tab-cm { font-size: 11px; }
+#right .tab-cm .cm-badge { top: 1px; right: 0; min-width: 12px; height: 12px; font-size: 8px; line-height: 12px; }
 .design-panel .sel-head { padding: 12px 14px; gap: 8px; }
 .sel-top { gap: 8px; }
 .sel-ico { width: 26px; height: 26px; border-radius: 6px; }

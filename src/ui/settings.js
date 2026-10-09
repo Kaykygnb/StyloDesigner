@@ -39,7 +39,38 @@ const checkbox = (label, checked, onchange) => {
 export function openSettings({ store, saving, prefs, savePrefs, toast }) {
   const ui = store.ui;
   const body = h('div.modal-body.settings');
-  const { close } = openModal({ title: 'Configurações', body, cls: 'narrow' });
+  const nav = h('nav.settings-nav', { 'aria-label': 'Seções das configurações' });
+  const content = h('div.settings-content');
+  const sections = [
+    ['folder', 'folder', 'Projetos e versões'],
+    ['browser', 'layers', 'Cópia no navegador'],
+    ['ai', 'sparkle', 'Assistente e MCP'],
+    ['look', 'sliders', 'Aparência e controles'],
+  ];
+  const navButtons = sections.map(([id, icon, label]) => h('button.settings-nav-item', {
+    type: 'button', 'aria-controls': `settings-${id}`,
+    onclick: () => {
+      const target = content.querySelector(`#settings-${id}`);
+      if (!target) return;
+      target.focus({ preventScroll: true });
+      content.scrollTo({ top: target.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop });
+    },
+  }, ico(icon, 16), h('span', label)));
+  nav.append(h('p.settings-nav-caption', 'PREFERÊNCIAS'), ...navButtons);
+  body.append(nav, content);
+  const { close } = openModal({ title: 'Configurações', body, cls: 'settings-modal' });
+  function syncNavigation() {
+    let active = 0;
+    const top = content.getBoundingClientRect().top;
+    [...content.children].forEach((section, i) => {
+      if (section.getBoundingClientRect().top <= top + 48) active = i;
+    });
+    navButtons.forEach((button, i) => {
+      if (i === active) button.setAttribute('aria-current', 'location');
+      else button.removeAttribute('aria-current');
+    });
+  }
+  content.addEventListener('scroll', syncNavigation, { passive: true });
 
   /** Redesenha o conteúdo (chamado ao abrir e depois de cada mudança que o servidor confirma). */
   async function render() {
@@ -47,7 +78,20 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
     const usage = await browserUsage();
     const persisted = await navigator.storage?.persisted?.().catch(() => false);
     const ai = server ? await fetch('/api/agent/config').then((r) => r.json()).catch(() => null) : null;
-    body.replaceChildren(folderSection(server), browserSection(usage, persisted), aiSection(ai), lookSection());
+    if (!body.isConnected) return;
+    const scrollTop = content.scrollTop;
+    const focusedLabel = content.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    const panels = [folderSection(server), browserSection(usage, persisted), aiSection(ai), lookSection()];
+    panels.forEach((panel, i) => {
+      panel.id = `settings-${sections[i][0]}`;
+      panel.tabIndex = -1;
+      panel.setAttribute('aria-labelledby', `${panel.id}-title`);
+      panel.querySelector('h3').id = `${panel.id}-title`;
+    });
+    content.replaceChildren(...panels);
+    content.scrollTop = scrollTop;
+    if (focusedLabel) [...content.querySelectorAll('[aria-label]')].find((el) => el.getAttribute('aria-label') === focusedLabel)?.focus({ preventScroll: true });
+    syncNavigation();
   }
 
   // ---------------------------------------------------------------- 1. pasta
@@ -282,7 +326,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast }) {
         opt('wheel', 'zoom', 'Dá zoom', ui.wheelMode || 'pan', (v) => { ui.wheelMode = v; prefs.wheelMode = v; savePrefs(); })));
   }
 
-  body.append(h('p.muted', 'Carregando…'));
+  content.append(h('p.muted', { role: 'status' }, 'Carregando preferências…'));
   render();
   return { close };
 }
