@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-65 arquivos · 1041 funções e constantes documentadas.
+65 arquivos · 1042 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -2633,18 +2633,19 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`useFolder(input)`** <sub>do módulo</sub> · [L98](../server.js#L98) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
 - **`publicConfig()`** <sub>do módulo</sub> · [L110](../server.js#L110) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
 - **`httpError(status, message)`** <sub>do módulo</sub> · [L114](../server.js#L114) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L118](../server.js#L118) — Responde JSON.
-- **`readBody(req)`** <sub>do módulo</sub> · [L123](../server.js#L123) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L134](../server.js#L134) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L136](../server.js#L136) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L139](../server.js#L139) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L141](../server.js#L141) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L143](../server.js#L143) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L145](../server.js#L145) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L147](../server.js#L147) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L153](../server.js#L153) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L169](../server.js#L169) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L203](../server.js#L203) — Rotas da API (todas respondem JSON):
+- **`knownContent`** <sub>do módulo</sub> · [L119](../server.js#L119) — Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo).
+- **`hashOf(data)`** <sub>do módulo</sub> · [L121](../server.js#L121) — Hash curto do conteúdo de um arquivo de projeto.
+- **`readBody(req)`** <sub>do módulo</sub> · [L128](../server.js#L128) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L139](../server.js#L139) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L141](../server.js#L141) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L144](../server.js#L144) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L146](../server.js#L146) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L148](../server.js#L148) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L150](../server.js#L150) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L152](../server.js#L152) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L158](../server.js#L158) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L174](../server.js#L174) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L208](../server.js#L208) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
@@ -2661,26 +2662,26 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
-- **`editors`** <sub>do módulo</sub> · [L325](../server.js#L325) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
-- **`pending`** <sub>do módulo</sub> · [L327](../server.js#L327) — Pedidos esperando resposta do editor: id → { resolve, timer }.
-- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L330](../server.js#L330) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
-- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L333](../server.js#L333) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
-- **`presence`** <sub>do módulo</sub> · [L350](../server.js#L350) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
-- **`mcpSessions`** <sub>do módulo</sub> · [L352](../server.js#L352) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
-- **`broadcastPresence()`** <sub>do módulo</sub> · [L354](../server.js#L354) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
-- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L362](../server.js#L362) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
-- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L390](../server.js#L390) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
-- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L416](../server.js#L416) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
-- **`agentConfig()`** <sub>do módulo</sub> · [L422](../server.js#L422) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
-- **`jevConfig()`** <sub>do módulo</sub> · [L444](../server.js#L444) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
-- **`agentInstructions()`** <sub>do módulo</sub> · [L453](../server.js#L453) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
-- **`authHeader(a)`** <sub>do módulo</sub> · [L455](../server.js#L455) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
-- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L458](../server.js#L458) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
-- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L467](../server.js#L467) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
-- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L545](../server.js#L545) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
-- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L558](../server.js#L558) — Frase para a tela a partir do erro de chat (com o que fazer).
-- **`PING_TOOL`** <sub>do módulo</sub> · [L572](../server.js#L572) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
-- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L590](../server.js#L590) — Rotas da IA:
+- **`editors`** <sub>do módulo</sub> · [L347](../server.js#L347) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L349](../server.js#L349) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L352](../server.js#L352) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L355](../server.js#L355) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`presence`** <sub>do módulo</sub> · [L372](../server.js#L372) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+- **`mcpSessions`** <sub>do módulo</sub> · [L374](../server.js#L374) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
+- **`broadcastPresence()`** <sub>do módulo</sub> · [L376](../server.js#L376) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
+- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L384](../server.js#L384) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L412](../server.js#L412) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L438](../server.js#L438) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
+- **`agentConfig()`** <sub>do módulo</sub> · [L444](../server.js#L444) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+- **`jevConfig()`** <sub>do módulo</sub> · [L466](../server.js#L466) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
+- **`agentInstructions()`** <sub>do módulo</sub> · [L475](../server.js#L475) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+- **`authHeader(a)`** <sub>do módulo</sub> · [L477](../server.js#L477) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
+- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L480](../server.js#L480) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
+- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L489](../server.js#L489) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
+- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L567](../server.js#L567) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
+- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L580](../server.js#L580) — Frase para a tela a partir do erro de chat (com o que fazer).
+- **`PING_TOOL`** <sub>do módulo</sub> · [L594](../server.js#L594) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L612](../server.js#L612) — Rotas da IA:
 
     GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
     POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido

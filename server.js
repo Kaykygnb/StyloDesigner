@@ -30,7 +30,7 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
 import { createPresence, targetsOf } from './server/presence.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
@@ -115,6 +115,11 @@ function httpError(status, message) {
   return Object.assign(new Error(message), { status, expose: true });
 }
 /** Responde JSON. */
+/** Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo). */
+const knownContent = new Map();
+/** Hash curto do conteúdo de um arquivo de projeto. */
+const hashOf = (data) => createHash('sha1').update(data).digest('hex');
+
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(data));
@@ -247,10 +252,19 @@ async function api(req, res, path) {
     return sendJson(res, 200, list.filter(Boolean).sort((a, b) => b.modified - a.modified));
   }
 
+  /**
+   * Impressão digital do conteúdo que ESTE servidor leu ou gravou por último, por arquivo. Em discos exFAT/FAT (pen
+   * drive, HD externo) a data de modificação é grosseira: duas gravações próximas ficam com a mesma data e a
+   * comparação só por data deixaria passar uma alteração feita fora do editor. Com o hash, não passa.
+   */
   if (parts[0] === 'projects' && parts[1]) {
     const name = checkName(parts[1]);
     if (parts.length === 2 && req.method === 'GET') {
       const [data, s] = await Promise.all([readFile(projectPath(name)), stat(projectPath(name))]);
+      // só registra se a data mudou: com a MESMA data, o registro do último salvamento daqui é que vale (é com ele
+      // que o PUT descobre uma alteração feita por fora no mesmo instante)
+      const prev = knownContent.get(name);
+      if (!prev || Math.abs(prev.mtime - s.mtimeMs) > 1) knownContent.set(name, { mtime: s.mtimeMs, hash: hashOf(data) });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(s.mtimeMs) });
       return res.end(data);
     }
@@ -262,7 +276,13 @@ async function api(req, res, path) {
       // proteção contra sobrescrever trabalho alheio: compara a data que o editor conhece com a do disco
       const cur = await stat(projectPath(name)).catch(() => null);
       const base = Number(req.headers['x-base-modified']);
-      if (cur && req.headers['x-overwrite'] !== '1' && (!base || Math.abs(cur.mtimeMs - base) > 1)) {
+      const known = knownContent.get(name);
+      const sameDate = base && Math.abs(cur?.mtimeMs - base) <= 1;
+      // mesma data, mas o conteúdo no disco não é o último que vimos: alguém mudou o arquivo fora daqui
+      const changedInside = cur && sameDate && known && Math.abs(known.mtime - base) <= 1 && known.hash !== hashOf(await readFile(projectPath(name)));
+      if (cur && req.headers['x-overwrite'] !== '1' && (!sameDate || changedInside)) {
+        // o editor agora sabe do conflito: a versão do disco passa a ser a conhecida (recarregar e salvar volta a funcionar)
+        if (changedInside) knownContent.set(name, { mtime: cur.mtimeMs, hash: hashOf(await readFile(projectPath(name))) });
         return sendJson(res, 409, { error: 'O arquivo foi alterado fora deste editor.', modified: cur.mtimeMs });
       }
       await mkdir(config.folder, { recursive: true });
@@ -271,7 +291,9 @@ async function api(req, res, path) {
       const tmp = projectPath(`.${name}.${process.pid}.tmp`);
       await writeFile(tmp, text);
       await rename(tmp, projectPath(name));
-      return sendJson(res, 200, { ok: true, file: name, modified: (await stat(projectPath(name))).mtimeMs });
+      const saved = (await stat(projectPath(name))).mtimeMs;
+      knownContent.set(name, { mtime: saved, hash: hashOf(text) });
+      return sendJson(res, 200, { ok: true, file: name, modified: saved });
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
       const data = await readFile(thumbPath(name));

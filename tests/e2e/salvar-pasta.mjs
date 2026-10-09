@@ -73,7 +73,8 @@ try {
   ok('caminho relativo mostra erro na própria janela', /caminho completo/i.test(await pasta.locator('.set-msg').innerText()));
   await p.fill('.set-path input', dir);
   await p.click('text=Usar esta pasta');
-  await p.waitForTimeout(600);
+  // espera o servidor aplicar (sem tempo fixo: em máquina lenta 600 ms não bastavam)
+  for (let i = 0; i < 40 && (await api('/status')).folder !== dir; i++) await p.waitForTimeout(200);
   ok('pasta nova aplicada', (await api('/status')).folder === dir);
   await p.keyboard.press('Escape');
   ok('Esc fecha a página', (await p.locator('.settings-page').count()) === 0);
