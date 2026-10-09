@@ -83,6 +83,8 @@ export async function readImageResult(json, { timeoutMs = 60000, fetchImpl = fet
     }
     const type = (r.headers.get('content-type') || '').split(';')[0].trim();
     if (!r.ok || !/^image\/(png|jpeg|webp)$/.test(type)) throw fail(502, `A API gerou a imagem, mas o download falhou (${r.status} ${type || 'sem tipo'}).`);
+    // tamanho anunciado grande demais: nem baixa (o download não leva a chave: é só a imagem pronta)
+    if (Number(r.headers.get('content-length')) > MAX_IMAGE) throw fail(502, 'A imagem gerada é grande demais.');
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.length > MAX_IMAGE) throw fail(502, 'A imagem gerada é grande demais.');
     return `data:${type};base64,${buf.toString('base64')}`;
