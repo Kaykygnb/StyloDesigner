@@ -1553,6 +1553,86 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .panel.right .design-panel .panel-section:has(> .section-body:empty), .panel.right .design-panel .panel-section.collapsed { padding-bottom: 12px; }
 .design-panel .panel-section:has(> .section-body:empty) > .section-head, .design-panel .panel-section.collapsed > .section-head { margin-bottom: -4px; }
 
+/* ============================================================ seletor de cor v3: a cor em cima, as paletas embaixo */
+.cp { width: 264px; padding: 0; gap: 0; border-radius: 12px; overflow-x: hidden; }
+.cp-top { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.cp-sv { height: 168px; border-radius: 8px; }
+.cp-bars { display: flex; align-items: center; gap: 8px; }
+.cp-sliders { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.cp-hue, .cp-alpha { height: 10px; }
+.cp-bars .cp-knob { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-width: 2px; }
+.cp-eye { flex: none; width: 28px !important; height: 28px !important; border-radius: 6px; }
+.cp .cp-prev { width: 28px; height: 28px; border-radius: 6px; }
+.cp-prev-old { height: 8px; }
+.cp .cp-row { display: flex; align-items: center; gap: 4px; }
+.cp-mode { width: 44px; height: 28px; border-radius: 6px; font: 600 10px var(--mono); letter-spacing: .02em; color: var(--text); background: var(--panel-2); }
+.cp-mode:hover { background: var(--panel-3); }
+.cp-fields { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.cp-fields .hash { display: none; }
+.cp-fields .cp-hex { flex: 1; min-width: 0; height: 28px; border-radius: 6px; padding: 0 8px; font-size: 11.5px; background: var(--panel-2); border: 1px solid transparent; text-transform: uppercase; }
+.cp-fields .cp-hex:focus { border-color: var(--accent); }
+.cp-field { flex: 1; min-width: 0; flex-direction: row; gap: 0; height: 28px; border-radius: 6px; background: var(--panel-2); border: 1px solid transparent; box-sizing: border-box; }
+.cp-field:focus-within { border-color: var(--accent); }
+.cp-field > span { padding-left: 6px; font: 500 9.5px var(--mono); color: var(--muted); }
+.cp .cp-num { flex: 1; min-width: 0; width: 100% !important; height: 26px; padding: 0 4px; text-align: right; background: transparent; border: 0; border-radius: 6px; font: 500 11px var(--mono); }
+.cp-fields > .cp-field:last-child:not(:first-child) { flex: 0 0 52px; }
+.cp-contrast { gap: 8px; min-height: 22px; }
+.cp-clabel { font: 500 11px var(--font); }
+.cp-cdemo { width: 26px; height: 20px; border-radius: 4px; }
+
+.cp-bottom { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-top: 1px solid var(--border); }
+.cp-bottom:empty { display: none; }
+.cp-pals, .cp-doc { display: flex; flex-direction: column; gap: 4px; }
+.cp-doc { gap: 12px; }
+.cp-doc:empty, .cp-recent:empty { display: none; }
+.cp-sec-title { display: flex; align-items: center; justify-content: space-between; height: 20px; font: 600 11px var(--font); color: var(--text); }
+.cp .cp-pill.new { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; color: var(--accent); font: 500 11px var(--font); }
+.cp .cp-pill.new:hover { background: var(--accent-soft); }
+.cp-hint { font-size: 11px; line-height: 16px; }
+/* uma fileira por paleta; a ativa ganha um fundo suave */
+.cp-prow { padding: 4px 6px 8px; margin: 0 -6px; border-radius: 8px; transition: background .12s; }
+.cp-prow:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.cp-prow.on { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.cp .cp-phead { gap: 4px; height: 24px; margin-bottom: 4px; }
+.cp .cp-pill.cp-pname { flex: 1; min-width: 0; max-width: none; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-left: -4px; border-radius: 4px; background: none; color: var(--text); font: 500 11px var(--font); text-align: left; cursor: pointer; }
+.cp .cp-pill.cp-pname:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.cp .cp-pill.cp-pname.on { background: none; color: var(--text); font-weight: 600; }
+.cp .cp-pill.cp-pname.on::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--accent); }
+.cp .cp-rename { height: 22px; font-size: 11px; border-radius: 4px; }
+.cp-pcount { font: 500 10px var(--mono); color: var(--muted); }
+.cp .cp-phead .icon-btn.small { width: 22px; height: 22px; opacity: 0; }
+.cp-prow:hover .cp-phead .icon-btn.small, .cp-prow.on .cp-phead .icon-btn.small, .cp .cp-phead .icon-btn.small:focus-visible { opacity: 1; }
+.cp-pchips, .cp-swatches { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.cp-pchip-wrap { min-width: 0; }
+.cp .cp-pchip, .cp-swatches .chip { width: 100%; height: auto; aspect-ratio: 1; display: block; box-sizing: border-box; border-radius: 4px; padding: 0;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); transition: box-shadow .1s; }
+.cp .cp-pchip:hover, .cp-swatches .chip:hover { transform: none; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--text); }
+.cp .cp-pchip.add { display: grid; place-items: center; color: var(--muted); border: 1px dashed color-mix(in srgb, var(--muted) 50%, transparent); background: transparent; }
+.cp .cp-pchip.add:hover { color: var(--accent); border-color: var(--accent); box-shadow: none; background: var(--accent-soft); }
+.cp-pchip-x { top: -5px; right: -5px; width: 14px; height: 14px; font-size: 9px; z-index: 1; }
+.cp-srow-head { display: flex; align-items: center; justify-content: space-between; height: 20px; margin-bottom: 4px; font: 600 11px var(--font); color: var(--text); }
+.cp-confirm { margin-top: 8px; }
+/* recolhíveis do fim: Sugestões (faixa de harmonias) e Paletas prontas */
+.cp-fold > summary { display: flex; align-items: center; gap: 6px; height: 24px; margin: 0 -6px; padding: 0 6px; border-radius: 6px; cursor: pointer; list-style: none; font: 600 11px var(--font); color: var(--muted); }
+.cp-fold > summary::-webkit-details-marker { display: none; }
+.cp-fold > summary:hover { color: var(--text); background: color-mix(in srgb, var(--text) 4%, transparent); }
+.cp-fold > summary .ico { transition: transform .15s; }
+.cp-fold[open] > summary { color: var(--text); }
+.cp-fold[open] > summary .ico { transform: rotate(90deg); }
+.cp-fold-body { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+.cp-sugg-mini { margin-left: auto; display: flex; overflow: hidden; border-radius: 3px; }
+.cp-sugg-mini i { width: 12px; height: 10px; }
+.cp-sugg[open] .cp-sugg-mini { display: none; }
+.cp-harmony { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+.cp .cp-tabs { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 2px; border-radius: 6px; background: var(--panel-2); }
+.cp .cp-tab { flex: 1 1 auto; min-width: 0; max-width: none; height: 22px; padding: 0 6px; border-radius: 4px; background: none; font: 500 10.5px var(--font); color: var(--muted); }
+.cp .cp-tab.on { background: var(--panel-3); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+.cp-strip { display: flex; height: 32px; border-radius: 6px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+.cp-strip .chip { flex: 1; min-width: 0; width: auto; height: 100%; border: 0; border-radius: 0; transition: flex .15s; }
+.cp-strip .chip:hover { transform: none; flex: 1.6; }
+.cp-sugg-foot { display: flex; justify-content: flex-end; }
+:root[data-theme="light"] .cp-tab.on { background: var(--panel); }
+
 /* ============================================================ inspecionar (F12) */
 /* Cores do DevTools: margem laranja, padding verde, conteúdo azul (translúcidos, por cima do design). */
 .insp-margin { position: absolute; background: rgba(246, 178, 107, 0.45); pointer-events: none; }

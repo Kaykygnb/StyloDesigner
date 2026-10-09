@@ -2,14 +2,16 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  ui/colorpicker.js — SELETOR DE COR (popover) com gerenciador de paletas
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Abre ao clicar numa amostra de cor do painel. De cima para baixo:
- *    1. área saturação/brilho + barra de matiz (+ barra de opacidade quando o campo tem opacidade);
- *    2. a cor atual (ao lado da original) com campos HEX · RGB · HSL e conta-gotas;
- *    3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível;
- *    4. SUGESTÕES de harmonia (complementar, análogas, tríade, tons): um clique escolhe, outro guarda na paleta;
- *    5. PALETAS PRÓPRIAS, gerenciáveis aqui mesmo: abas, nova paleta, renomear, guardar a cor atual, tirar cor,
- *       duplicar, copiar como variáveis CSS e excluir;
- *    6. cores recentes, as do projeto, estilos de cor e paletas prontas.
+ *  Abre ao clicar numa amostra de cor do painel. Em CIMA, a cor em si:
+ *    1. área saturação/brilho; conta-gotas + barras de matiz e opacidade + amostra (nova sobre a original);
+ *    2. formato (HEX · RGB · HSL) e campos;
+ *    3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível.
+ *  EMBAIXO, as cores prontas para um clique, como fileiras de amostras com nome:
+ *    4. MINHAS PALETAS (uma fileira por paleta; a ativa em destaque), gerenciáveis aqui mesmo: nova, renomear,
+ *       + guardar a cor atual, × tirar cor, duplicar, copiar como variáveis CSS e excluir;
+ *    5. cores do documento e estilos de cor (vindos de `groups`) e as recentes;
+ *    6. SUGESTÕES de harmonia (complementar, análogas, tríade, tons) como faixa de amostras, recolhidas;
+ *    7. paletas prontas, recolhidas.
  *  Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo
  *  que o abriu some do painel.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -32,6 +34,10 @@ const BUILTIN = [
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 const round = Math.round;
+
+// Sugestões e Paletas prontas começam recolhidas; lembra se a pessoa abriu (enquanto o app está aberto)
+let suggOpen = false;
+let readyOpen = false;
 
 let open = null; // seletor aberto agora ({ anchor, pop, close })
 /** Fecha o seletor de cor aberto, se houver. */
@@ -75,6 +81,7 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
   const harmonyBox = h('div.cp-harmony');
   const palBox = h('div.cp-pals');
   const recentBox = h('div.cp-recent');
+  const docBox = h('div.cp-doc');
   const moreBox = h('div.cp-more');
 
   /** Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando). */
@@ -172,7 +179,7 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
         h('span.cp-cinfo', h('b', r.toFixed(1)), h('i', lvl))),
       { title: `Contraste sobre ${label}`, text: 'Mede se um texto desta cor é legível sobre este fundo (WCAG). AA = bom para texto normal; AAA = ótimo; "AA grande" = só serve para títulos grandes; "falha" = difícil de ler.' });
     };
-    contrastBox.replaceChildren(h('span.cp-clabel', 'Contraste'), box('#FFFFFF', 'branco'), box('#000000', 'preto'), ...(eye ? [h('span.cp-spacer'), eye] : []));
+    contrastBox.replaceChildren(h('span.cp-clabel', 'Contraste'), box('#FFFFFF', 'branco'), box('#000000', 'preto'));
   }
 
   // ------------------------------------------------------------ aplicar mudanças
@@ -247,11 +254,14 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
   prevOld.addEventListener('click', () => pick(original));
   modeBtn.addEventListener('click', () => { mode = mode === 'hex' ? 'rgb' : mode === 'rgb' ? 'hsl' : 'hex'; buildFields(); paint(); });
 
-  // ------------------------------------------------------------ chips
+  // ------------------------------------------------------------ amostras
   const chip = (c, quiet = false) => h('button.chip', { type: 'button', title: c, 'aria-label': c, style: { background: c }, onclick: () => pick(c, quiet) });
-  const chipRow = (colors, quiet = false) => h('div.color-chips', colors.map((c) => chip(c, quiet)));
+  /** Fileira de amostras com o nome em cima (cores do documento, estilos, recentes, paletas prontas). */
+  const swatchRow = (title, colors) =>
+    h('div.cp-srow', h('div.cp-srow-head', h('span.cp-srow-name', title), h('span.cp-pcount', String(colors.length))),
+      h('div.cp-swatches', colors.map((c) => chip(c))));
 
-  // ------------------------------------------------------------ 4. sugestões
+  // ------------------------------------------------------------ sugestões (recolhidas, no fim)
   function paintHarmony() {
     const all = harmonies(current());
     const cur = all.find((x) => x.key === harmony) || all[0];
@@ -266,30 +276,25 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
         else createPalette('Paleta 1', cur.colors);
       },
     }, '+ guardar na paleta');
-    harmonyBox.replaceChildren(h('div.cp-title', h('span', 'Sugestões'), useAll), tabs, chipRow(cur.colors, true));
+    harmonyBox.replaceChildren(tabs, h('div.cp-strip', cur.colors.map((c) => chip(c, true))), h('div.cp-sugg-foot', useAll));
+    // prévia mínima no título recolhido: a faixa atual em miniatura
+    suggMini.replaceChildren(...cur.colors.slice(0, 5).map((c) => h('i', { style: { background: c } })));
   }
 
-  // ------------------------------------------------------------ 5. paletas
+  // ------------------------------------------------------------ paletas próprias: uma fileira por paleta
   function paintPalettes() {
     const pals = getPalettes();
     const active = getActiveId();
-    const pills = h('div.cp-pills',
-      pals.map((p) => h('button.cp-pill' + (p.id === active ? '.on' : ''), {
-        type: 'button', title: p.id === active ? 'Paleta ativa. Duplo clique para renomear' : p.name,
-        onclick: () => { confirmDelete = null; renaming = null; setActiveId(p.id); },
-        ondblclick: () => { setActiveId(p.id); renaming = p.id; paintPalettes(); },
-      }, p.name)),
-      h('button.cp-pill.new', {
-        type: 'button', title: 'Nova paleta, já com a cor atual',
-        onclick: () => { renamingNext = true; if (!createPalette(`Paleta ${pals.length + 1}`, [current()])) renamingNext = false; },
-      }, '+ Nova'));
-    const parts = [h('div.cp-title', h('span', 'Minhas paletas')), pills];
-    const p = pals.find((x) => x.id === active);
-    if (!p) {
-      parts.push(h('p.cp-hint', 'Você ainda não tem nenhuma paleta. Crie uma e guarde aqui as cores que mais usa: ela fica disponível em todos os projetos.'));
+    const newBtn = h('button.cp-pill.new', {
+      type: 'button', title: 'Nova paleta, já com a cor atual',
+      onclick: () => { renamingNext = true; if (!createPalette(`Paleta ${pals.length + 1}`, [current()])) renamingNext = false; },
+    }, ico('plus', 10), 'Nova');
+    const parts = [h('div.cp-sec-title', h('span', 'Minhas paletas'), newBtn)];
+    if (!pals.length) {
+      parts.push(h('p.cp-hint', 'Guarde aqui as cores que você mais usa. As paletas ficam disponíveis em todos os projetos.'));
     } else {
-      if (renamingNext) { renaming = p.id; renamingNext = false; }
-      parts.push(paletteBody(p));
+      if (renamingNext) { renaming = active; renamingNext = false; }
+      pals.forEach((p) => parts.push(paletteRow(p, p.id === active)));
     }
     palBox.replaceChildren(...parts);
     if (renaming) {
@@ -297,7 +302,7 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
       if (i) { i.focus(); i.select(); }
     }
   }
-  function paletteBody(p) {
+  function paletteRow(p, on) {
     const nameEl = renaming === p.id
       ? (() => {
         const i = h('input.text.cp-rename', { type: 'text', value: p.name, maxLength: 40, 'aria-label': 'Nome da paleta' });
@@ -307,7 +312,11 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
         i.addEventListener('blur', () => save(true));
         return i;
       })()
-      : h('button.cp-pname', { type: 'button', title: 'Clique para renomear', onclick: () => { renaming = p.id; paintPalettes(); } }, h('span', p.name), ico('more', 12));
+      : h('button.cp-pill.cp-pname' + (on ? '.on' : ''), {
+        type: 'button', title: on ? 'Paleta ativa: o + e as sugestões guardam aqui. Clique para renomear' : 'Tornar esta a paleta ativa (duplo clique renomeia)',
+        onclick: () => { confirmDelete = null; if (on) { renaming = p.id; paintPalettes(); } else { renaming = null; setActiveId(p.id); } },
+        ondblclick: () => { setActiveId(p.id); renaming = p.id; paintPalettes(); },
+      }, p.name);
     const menuBtn = h('button.icon-btn.small', {
       type: 'button', title: 'Mais ações da paleta', 'aria-label': 'Mais ações da paleta',
       onclick: (e) => {
@@ -321,49 +330,56 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
         ], { anchorRight: true });
       },
     }, ico('more', 14));
-    const head = h('div.cp-phead', nameEl, h('span.cp-pcount', `${p.colors.length} ${p.colors.length === 1 ? 'cor' : 'cores'}`), menuBtn);
+    const head = h('div.cp-phead', nameEl, h('span.cp-pcount', String(p.colors.length)), menuBtn);
     const chips = h('div.cp-pchips',
       p.colors.map((c) => h('div.cp-pchip-wrap',
         h('button.cp-pchip', { type: 'button', style: { background: c }, title: `${c} — clique para usar`, 'aria-label': `Usar ${c}`, onclick: () => pick(c) }),
         h('button.cp-pchip-x', { type: 'button', title: 'Tirar da paleta', 'aria-label': `Tirar ${c} da paleta`, onclick: () => changePalette(p.id, (x) => removeColor(x, c)) }, '×'))),
       h('button.cp-pchip.add', {
-        type: 'button', title: 'Guardar a cor atual nesta paleta', 'aria-label': 'Guardar a cor atual nesta paleta',
-        onclick: () => changePalette(p.id, (x) => addColor(x, current())),
-      }, '+'));
+        type: 'button', title: `Guardar a cor atual em "${p.name}"`, 'aria-label': `Guardar a cor atual em ${p.name}`,
+        onclick: () => { if (!on) setActiveId(p.id); changePalette(p.id, (x) => addColor(x, current())); },
+      }, ico('plus', 12)));
     const body = [head, chips];
-    if (!p.colors.length) body.push(h('p.cp-hint', 'Paleta vazia. Use o + para guardar a cor atual, ou "+ guardar na paleta" nas sugestões.'));
     if (confirmDelete === p.id) {
       body.push(h('div.cp-confirm', h('span', `Excluir "${p.name}"?`),
         h('button.btn.small', { type: 'button', onclick: () => { confirmDelete = null; paintPalettes(); } }, 'Cancelar'),
         h('button.btn.small.danger', { type: 'button', onclick: () => { confirmDelete = null; deletePalette(p.id); } }, 'Excluir')));
     }
-    return h('div.cp-pbody', body);
+    return h('div.cp-prow' + (on ? '.on' : ''), body);
   }
 
-  // ------------------------------------------------------------ 6. recentes, projeto, prontas
+  // ------------------------------------------------------------ documento, recentes e prontas
   function paintRecent() {
     const r = getRecents();
-    recentBox.replaceChildren(...(r.length ? [h('div.cp-title', h('span', 'Recentes')), chipRow(r)] : []));
+    recentBox.replaceChildren(...(r.length ? [swatchRow('Recentes', r)] : []));
   }
   function paintMore() {
     const g = (groups?.() || []).filter((x) => x.colors.length);
-    const items = [...g, ...BUILTIN.map(([title, colors]) => ({ title, colors }))];
-    const d = h('details.cp-det', h('summary', ico('chevron', 10), ' Neste projeto e paletas prontas'),
-      h('div.cp-groups', items.map((x) => h('div.cp-group', h('div.cp-group-title', x.title), chipRow(x.colors)))));
+    docBox.replaceChildren(...g.map((x) => swatchRow(x.title, x.colors)));
+    const d = h('details.cp-fold', { open: readyOpen }, h('summary', ico('chevron', 10), h('span', 'Paletas prontas')),
+      h('div.cp-fold-body', BUILTIN.map(([title, colors]) => swatchRow(title, colors))));
+    d.addEventListener('toggle', () => { readyOpen = d.open; });
     moreBox.replaceChildren(d);
   }
 
   // ------------------------------------------------------------ montar
   const eye = globalThis.EyeDropper
-    ? h('button.icon-btn.small', {
-      type: 'button', title: 'Conta-gotas: pega uma cor de qualquer lugar da tela',
+    ? h('button.icon-btn.small.cp-eye', {
+      type: 'button', title: 'Conta-gotas: pega uma cor de qualquer lugar da tela', 'aria-label': 'Conta-gotas',
       onclick: async () => { try { const { sRGBHex } = await new globalThis.EyeDropper().open(); pick(sRGBHex.toUpperCase()); } catch { /* cancelado */ } },
     }, ico('eyedropper', 14))
     : null;
+  const suggMini = h('span.cp-sugg-mini');
+  const sugg = h('details.cp-fold.cp-sugg', { open: suggOpen },
+    h('summary', ico('chevron', 10), h('span', 'Sugestões'), suggMini), harmonyBox);
+  sugg.addEventListener('toggle', () => { suggOpen = sugg.open; });
   const pop = h('div.cp', { role: 'dialog', 'aria-label': 'Seletor de cor' },
-    sv, hue, alphaBar,
-    h('div.cp-row', prev, h('div.cp-fieldbox', modeBtn, fields)),
-    contrastBox, harmonyBox, palBox, recentBox, moreBox);
+    h('div.cp-top',
+      sv,
+      h('div.cp-bars', eye, h('div.cp-sliders', hue, alphaBar), prev),
+      h('div.cp-row', modeBtn, fields),
+      contrastBox),
+    h('div.cp-bottom', palBox, docBox, recentBox, sugg, moreBox));
   document.body.append(pop);
   buildFields();
   paint();

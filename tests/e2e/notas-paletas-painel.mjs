@@ -173,7 +173,7 @@ ok('"Adicionar ao projeto como estilos de cor" cria os estilos', styles.join() =
 await page.locator('#left .tab', { hasText: 'Camadas' }).click();
 await page.locator('#right .panel-section', { has: page.locator('.section-head', { hasText: 'Preenchimento' }) }).locator('button.swatch').click();
 await page.waitForSelector('.cp');
-ok('o seletor de cor mostra a paleta própria como aba', (await page.locator('.cp .cp-pill', { hasText: 'Marca' }).count()) === 1);
+ok('o seletor de cor mostra a paleta própria como fileira com nome', (await page.locator('.cp .cp-pill', { hasText: 'Marca' }).count()) === 1);
 await page.keyboard.press('Escape');
 
 // ---------------------------------------------------------------- recarregar: paletas e preferências permanecem

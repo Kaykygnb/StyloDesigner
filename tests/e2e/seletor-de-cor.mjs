@@ -89,6 +89,7 @@ ok('mostra o contraste sobre branco e sobre preto, com o nível WCAG', (await pa
 await page.locator('.cp .cp-hex').fill('FF0000');
 await page.locator('.cp .cp-hex').press('Enter');
 await page.waitForTimeout(250);
+await page.locator('.cp .cp-sugg summary').click(); // as sugestões ficam recolhidas no fim do seletor
 await page.locator('.cp .cp-tab', { hasText: 'Tríade' }).click();
 const triad = await page.locator('.cp .cp-harmony .chip').evaluateAll((l) => l.map((c) => c.getAttribute('aria-label')));
 ok('a tríade de #FF0000 é #FF0000, #00FF00, #0000FF', triad.join() === '#FF0000,#00FF00,#0000FF', triad.join());
@@ -125,7 +126,7 @@ await page.locator('.cp .cp-tab', { hasText: 'Análogas' }).click();
 await page.locator('.cp .cp-link', { hasText: 'guardar na paleta' }).click();
 await page.waitForTimeout(250);
 ok('"+ guardar na paleta" põe as sugestões na paleta ativa', (await pals())[0].colors.length === 3, JSON.stringify((await pals())[0].colors));
-// segunda paleta e troca por abas
+// segunda paleta (cada paleta é uma fileira) e troca da ativa pelo nome
 await page.locator('.cp .cp-pill.new').click();
 await page.waitForTimeout(300);
 await page.keyboard.press('Escape'); // cancela o renomear (mantém "Paleta 2")
@@ -133,30 +134,30 @@ await page.waitForTimeout(250);
 ok('Esc no campo de nome só cancela a renomeação (o seletor continua aberto)', (await page.locator('.cp').count()) === 1 && (await pals()).length === 2 && (await pals())[1].name === 'Paleta 2');
 await page.locator('.cp .cp-pill', { hasText: 'Marca' }).click();
 await page.waitForTimeout(250);
-ok('clicar na aba troca a paleta ativa', (await page.locator('.cp .cp-pname').innerText()) === 'Marca' && (await page.locator('.cp .cp-pchip-wrap').count()) === 3);
+ok('clicar no nome troca a paleta ativa', (await page.locator('.cp .cp-prow.on .cp-pname').innerText()) === 'Marca' && (await page.locator('.cp .cp-prow.on .cp-pchip-wrap').count()) === 3);
 // duplicar pelo menu ⋯ (o menu fica fora do seletor e não deve fechá-lo)
-await page.locator('.cp .cp-phead .icon-btn').click();
+await page.locator('.cp .cp-prow.on .cp-phead .icon-btn').click();
 await page.locator('.menu .menu-item', { hasText: 'Duplicar' }).click();
 await page.waitForTimeout(300);
 ok('Duplicar cria a cópia e o seletor continua aberto', (await pals()).length === 3 && (await pals())[2].name === 'Marca (cópia)' && (await page.locator('.cp').count()) === 1);
 await page.keyboard.press('Enter'); // fecha o renomear da cópia
 await page.waitForTimeout(250);
 // excluir com confirmação
-await page.locator('.cp .cp-phead .icon-btn').click();
+await page.locator('.cp .cp-prow.on .cp-phead .icon-btn').click();
 await page.locator('.menu .menu-item', { hasText: 'Excluir paleta' }).click();
 await page.waitForTimeout(250);
 ok('Excluir pede confirmação ali mesmo', (await page.locator('.cp .cp-confirm').count()) === 1 && (await pals()).length === 3);
 await page.locator('.cp .cp-confirm button', { hasText: 'Cancelar' }).click();
 ok('Cancelar não apaga', (await page.locator('.cp .cp-confirm').count()) === 0 && (await pals()).length === 3);
-await page.locator('.cp .cp-phead .icon-btn').click();
+await page.locator('.cp .cp-prow.on .cp-phead .icon-btn').click();
 await page.locator('.menu .menu-item', { hasText: 'Excluir paleta' }).click();
 await page.locator('.cp .cp-confirm button', { hasText: 'Excluir' }).click();
 await page.waitForTimeout(300);
 ok('confirmar apaga a paleta ativa', (await pals()).length === 2 && !(await pals()).some((p) => p.name === 'Marca (cópia)'));
-// renomear dando duplo clique na aba
+// renomear dando duplo clique no nome da paleta ativa
 await page.locator('.cp .cp-pill.on').dblclick();
 await page.waitForTimeout(250);
-ok('duplo clique na aba abre o renomear', (await page.locator('.cp .cp-rename').count()) === 1);
+ok('duplo clique no nome abre o renomear', (await page.locator('.cp .cp-rename').count()) === 1);
 await page.keyboard.press('Escape');
 
 // ---------------------------------------------------------------- fechar
