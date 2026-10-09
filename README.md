@@ -1,12 +1,14 @@
-# Projeto Designer
+# Stylo
+
+> Antes chamado *Projeto Designer*.
 
 **O editor de design onde o canvas é CSS de verdade.** Desenhe telas como no Figma, mas cada camada é um elemento HTML estilizado pelo próprio navegador: o que você vê é exatamente o que o CSS faz, o painel de código mostra o CSS real e "auto layout" não é imitação, é `display: flex` e `display: grid`. Feito só com JavaScript, roda no seu computador, sem conta e sem build.
 
-![Projeto Designer: o editor com o projeto base aberto](docs/screenshots/01-visao-geral.png)
+![Stylo: o editor com o projeto base aberto](docs/screenshots/01-visao-geral.png)
 
 > **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
 
-`v0.17.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 168 testes unitários + 28 suítes de navegador
+`v1.0.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 169 testes unitários + 28 suítes de navegador
 
 ---
 

@@ -1,6 +1,6 @@
 # MCP: usar o Claude, o Codex (GPT) e outros programas de IA no editor
 
-O **MCP** (*Model Context Protocol*) é o "padrão de tomada" que programas de IA usam para operar ferramentas externas. O Projeto Designer tem um servidor MCP embutido: com o app aberto, o **Claude Code**, o **Claude Desktop**, o **Codex** (modelos GPT) e outros conseguem ver e alterar o design aberto no navegador, sem limite de chamadas (é tudo no seu computador).
+O **MCP** (*Model Context Protocol*) é o "padrão de tomada" que programas de IA usam para operar ferramentas externas. O Stylo tem um servidor MCP embutido: com o app aberto, o **Claude Code**, o **Claude Desktop**, o **Codex** (modelos GPT) e outros conseguem ver e alterar o design aberto no navegador, sem limite de chamadas (é tudo no seu computador).
 
 > **Regra de ouro:** o MCP só funciona com `npm start` rodando **e** o editor aberto no navegador (http://localhost:5173). Quem executa as ações é o editor, então o canvas atualiza na hora e tudo sai com Ctrl+Z.
 
@@ -53,7 +53,7 @@ O que cada uma aceita está descrito no próprio MCP (a IA lê sozinha). As **in
 | Sintoma | O que fazer |
 |---|---|
 | "O editor não está aberto" | Rode `npm start` e abra http://localhost:5173 (a aba precisa ficar aberta). |
-| "O Projeto Designer não está rodando" (stdio) | O `scripts/mcp.mjs` não achou o servidor: `npm start` primeiro. Porta diferente? Use a variável `DESIGNER_URL`. |
+| "O Stylo não está rodando" (stdio) | O `scripts/mcp.mjs` não achou o servidor: `npm start` primeiro. Porta diferente? Use a variável `DESIGNER_URL`. |
 | A IA "espera" e nada acontece | Tem uma janela de permissão aberta no editor esperando você (ou ligue o acesso de administrador). |
 | "precisa do Acesso de administrador" | Ferramentas de projeto: ligue em Configurações → Assistente de IA e MCP. |
 | A imagem de `get_image` está com outra fonte | Normal: a imagem usa as fontes instaladas no computador; o editor e o HTML exportado usam as do Google. |

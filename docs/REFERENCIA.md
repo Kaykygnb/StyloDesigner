@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-51 arquivos · 779 funções e constantes documentadas.
+51 arquivos · 782 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -396,61 +396,61 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `parent` <sub>object\|null</sub> — o pai (decide se a camada está em fluxo de flex/grid ou é absoluta)
   - `[assets]` <sub>Object<string,string></sub> — imagens do documento
   - ↩︎ `Object<string,string>` propriedades CSS em ordem de inserção (kebab-case)
-- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L348](../src/css.js#L348) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
-- **`marginCss(node, s)`** <sub>do módulo</sub> · [L360](../src/css.js#L360) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
-- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L367](../src/css.js#L367) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
-- **`colorFilters(node)`** · [L368](../src/css.js#L368) — _(sem comentário)_
-- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L384](../src/css.js#L384) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
+- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L351](../src/css.js#L351) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
+- **`marginCss(node, s)`** <sub>do módulo</sub> · [L363](../src/css.js#L363) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
+- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L370](../src/css.js#L370) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
+- **`colorFilters(node)`** · [L371](../src/css.js#L371) — _(sem comentário)_
+- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L387](../src/css.js#L387) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
 
    - 'ellipsis': uma linha só, o que não cabe vira "…"  → white-space:nowrap + overflow:hidden + text-overflow:ellipsis
    - 'clamp': no máximo `lines` linhas, com "…" no fim → display:-webkit-box + -webkit-line-clamp (e line-clamp)
   Os dois precisam de uma LARGURA (fixa ou máxima) para saber onde cortar. O alinhamento vertical por grid
   (centro/fim) é desligado, porque o grid e o -webkit-box/ellipsis não funcionam juntos.
-- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L409](../src/css.js#L409) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
+- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L412](../src/css.js#L412) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
 
    - min-/max-width/height: só aparecem quando o usuário define (campos minW, maxW, minH, maxH).
    - aspect-ratio: só quando ALGUMA medida é flexível (hug/fill). A medida fixa vira `auto` no eixo oposto para a
      proporção valer (com as duas fixas o CSS ignoraria o aspect-ratio, e quem mantém a proporção é o editor).
-- **`transformOf(node)`** · [L429](../src/css.js#L429) — Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale. Devolve '' quando não há nada a aplicar (assim o CSS gerado não ganha `transform` à toa).
-- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L443](../src/css.js#L443) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
-- **`hasStrokeSides(node)`** · [L475](../src/css.js#L475) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
-- **`num(n)`** <sub>do módulo</sub> · [L480](../src/css.js#L480) — Arredonda para 2 casas (coordenadas de SVG).
-- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L490](../src/css.js#L490) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
+- **`transformOf(node)`** · [L432](../src/css.js#L432) — Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale. Devolve '' quando não há nada a aplicar (assim o CSS gerado não ganha `transform` à toa).
+- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L446](../src/css.js#L446) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
+- **`hasStrokeSides(node)`** · [L478](../src/css.js#L478) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
+- **`num(n)`** <sub>do módulo</sub> · [L483](../src/css.js#L483) — Arredonda para 2 casas (coordenadas de SVG).
+- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L493](../src/css.js#L493) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
   - `[]` <sub>{x:number,y:number,hin?:object,hout?:object</sub> — } points  pontos; hin/hout = alças de entrada/saída
   - `closed` <sub>boolean</sub> — fecha o caminho com Z (liga o último ao primeiro)
   - `[tx]` <sub>(x:number)=>number</sub> — transformação opcional de x (usada pelo clip-path e pelo SVG exportado)
   - `[ty]` <sub>(y:number)=>number</sub> — idem para y
-- **`nodePathData(node, tx, ty)`** · [L512](../src/css.js#L512) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
+- **`nodePathData(node, tx, ty)`** · [L515](../src/css.js#L515) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
   - `node` <sub>object</sub> — camada do tipo 'path'
   - `[tx]` <sub>(x:number)=>number</sub> — 
   - `[ty]` <sub>(y:number)=>number</sub> — 
-- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L526](../src/css.js#L526) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
-- **`pathSvg(node, assets = {})`** · [L553](../src/css.js#L553) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
+- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L529](../src/css.js#L529) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
+- **`pathSvg(node, assets = {})`** · [L556](../src/css.js#L556) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
 
    - preserveAspectRatio="none": o desenho estica junto com a caixa da camada.
    - vector-effect="non-scaling-stroke": a espessura do traço NÃO muda ao esticar.
    - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
-- **`maskClip(group)`** · [L576](../src/css.js#L576) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
-- **`toCssText(style)`** · [L593](../src/css.js#L593) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
-- **`cssRule(selector, style, indent = '')`** · [L599](../src/css.js#L599) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
-- **`stateStyle(node, parent, assets, opts, states)`** · [L615](../src/css.js#L615) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+- **`maskClip(group)`** · [L579](../src/css.js#L579) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
+- **`toCssText(style)`** · [L596](../src/css.js#L596) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
+- **`cssRule(selector, style, indent = '')`** · [L602](../src/css.js#L602) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
+- **`stateStyle(node, parent, assets, opts, states)`** · [L618](../src/css.js#L618) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
   - `node` <sub>object</sub> — 
   - `parent` <sub>object\|null</sub> — 
   - `assets` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
-- **`pathStateStyle(node, assets, state)`** · [L629](../src/css.js#L629) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
-- **`makeClassNamer()`** <sub>do módulo</sub> · [L652](../src/css.js#L652) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`noteComment(node)`** · [L663](../src/css.js#L663) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L669](../src/css.js#L669) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L680](../src/css.js#L680) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`pathStateStyle(node, assets, state)`** · [L632](../src/css.js#L632) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+- **`makeClassNamer()`** <sub>do módulo</sub> · [L655](../src/css.js#L655) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+- **`noteComment(node)`** · [L666](../src/css.js#L666) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L672](../src/css.js#L672) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L683](../src/css.js#L683) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L806](../src/css.js#L806) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`joinCss(parts)`** · [L823](../src/css.js#L823) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L809](../src/css.js#L809) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`joinCss(parts)`** · [L826](../src/css.js#L826) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L853](../src/css.js#L853) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L864](../src/css.js#L864) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L856](../src/css.js#L856) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L867](../src/css.js#L867) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -524,32 +524,32 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`toast(msg)`** <sub>do módulo</sub> · [L54](../src/main.js#L54) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L68](../src/main.js#L68) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L93](../src/main.js#L93) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L96](../src/main.js#L96) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L127](../src/main.js#L127) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L151](../src/main.js#L151) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L186](../src/main.js#L186) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L302](../src/main.js#L302) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`toast(msg)`** <sub>do módulo</sub> · [L55](../src/main.js#L55) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L69](../src/main.js#L69) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings()`** <sub>do módulo</sub> · [L94](../src/main.js#L94) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
+- **`quickSave()`** <sub>do módulo</sub> · [L97](../src/main.js#L97) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L128](../src/main.js#L128) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L152](../src/main.js#L152) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L187](../src/main.js#L187) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L303](../src/main.js#L303) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L345](../src/main.js#L345) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L362](../src/main.js#L362) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L346](../src/main.js#L346) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L363](../src/main.js#L363) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L374](../src/main.js#L374) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L440](../src/main.js#L440) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L478](../src/main.js#L478) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L524](../src/main.js#L524) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L608](../src/main.js#L608) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L662](../src/main.js#L662) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L670](../src/main.js#L670) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L375](../src/main.js#L375) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L441](../src/main.js#L441) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L479](../src/main.js#L479) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L525](../src/main.js#L525) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L609](../src/main.js#L609) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L663](../src/main.js#L663) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L671](../src/main.js#L671) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1823,7 +1823,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - ↩︎ `Promise<any>`
 - **`askText({ title, label, value = '', confirm = 'OK' })`** · [L240](../src/ui/menus.js#L240) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
   - ↩︎ `Promise<string\|null>` o texto digitado, ou null se cancelou
-- **`showHelp()`** · [L260](../src/ui/menus.js#L260) — Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora.
+- **`GUIDE`** <sub>do módulo</sub> · [L260](../src/ui/menus.js#L260) — Primeiros passos da Central de ajuda: [título, texto].
+- **`FAQ`** <sub>do módulo</sub> · [L268](../src/ui/menus.js#L268) — Problemas comuns: [pergunta, resposta].
+- **`diagnostics(version)`** <sub>do módulo</sub> · [L278](../src/ui/menus.js#L278) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
+- **`showHelp(tab = 'keys', version = '')`** · [L288](../src/ui/menus.js#L288) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+  - `[tab]` <sub>string</sub> — aba inicial: 'start' \| 'keys' \| 'faq' \| 'support'
+  - `[version]` <sub>string</sub> — versão do app, para o diagnóstico
 
 ---
 
@@ -1893,51 +1898,51 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`componentSection()`** <sub>interna</sub> · [L486](../src/ui/props.js#L486) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
 - **`A_START`** <sub>interna</sub> · [L506](../src/ui/props.js#L506) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
 - **`CSS_DOC`** <sub>interna</sub> · [L509](../src/ui/props.js#L509) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
-- **`cssTip(key)`** <sub>interna</sub> · [L586](../src/ui/props.js#L586) — Monta o objeto de dica de uma propriedade do CSS_DOC.
-- **`varButton(prop)`** <sub>interna</sub> · [L592](../src/ui/props.js#L592) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
-- **`autoLayoutSection()`** <sub>interna</sub> · [L641](../src/ui/props.js#L641) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
+- **`cssTip(key)`** <sub>interna</sub> · [L588](../src/ui/props.js#L588) — Monta o objeto de dica de uma propriedade do CSS_DOC.
+- **`varButton(prop)`** <sub>interna</sub> · [L594](../src/ui/props.js#L594) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
+- **`autoLayoutSection()`** <sub>interna</sub> · [L643](../src/ui/props.js#L643) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
 
    - FLEX: gap, flex-wrap, padding, justify-content (eixo principal) e align-items (eixo cruzado);
    - GRID: colunas/linhas, gap, padding e justify-items/align-items (onde o item fica DENTRO da célula).
-- **`pad(labels)`** <sub>interna</sub> · [L694](../src/ui/props.js#L694) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
-- **`paddingBlock()`** <sub>interna</sub> · [L700](../src/ui/props.js#L700) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
-- **`matrix(jName, aName)`** <sub>interna</sub> · [L717](../src/ui/props.js#L717) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
-- **`opts(list, grid)`** <sub>interna</sub> · [L740](../src/ui/props.js#L740) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
-- **`subTip(text, key)`** <sub>interna</sub> · [L742](../src/ui/props.js#L742) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
-- **`gridPicker()`** <sub>interna</sub> · [L748](../src/ui/props.js#L748) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
-- **`autoSection(body)`** <sub>interna</sub> · [L932](../src/ui/props.js#L932) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
-- **`STATE_DOC`** <sub>interna</sub> · [L938](../src/ui/props.js#L938) — Dicas dos estados.
-- **`statesSection()`** <sub>interna</sub> · [L952](../src/ui/props.js#L952) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
-- **`stateScaleBlock()`** <sub>interna</sub> · [L989](../src/ui/props.js#L989) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
-- **`marginBlock()`** <sub>interna</sub> · [L997](../src/ui/props.js#L997) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
-- **`flowItemSection()`** <sub>interna</sub> · [L1022](../src/ui/props.js#L1022) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
+- **`pad(labels)`** <sub>interna</sub> · [L696](../src/ui/props.js#L696) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
+- **`paddingBlock()`** <sub>interna</sub> · [L702](../src/ui/props.js#L702) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
+- **`matrix(jName, aName)`** <sub>interna</sub> · [L719](../src/ui/props.js#L719) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
+- **`opts(list, grid)`** <sub>interna</sub> · [L742](../src/ui/props.js#L742) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
+- **`subTip(text, key)`** <sub>interna</sub> · [L744](../src/ui/props.js#L744) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
+- **`gridPicker()`** <sub>interna</sub> · [L750](../src/ui/props.js#L750) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
+- **`autoSection(body)`** <sub>interna</sub> · [L934](../src/ui/props.js#L934) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
+- **`STATE_DOC`** <sub>interna</sub> · [L940](../src/ui/props.js#L940) — Dicas dos estados.
+- **`statesSection()`** <sub>interna</sub> · [L956](../src/ui/props.js#L956) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+- **`stateScaleBlock()`** <sub>interna</sub> · [L996](../src/ui/props.js#L996) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
+- **`marginBlock()`** <sub>interna</sub> · [L1004](../src/ui/props.js#L1004) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+- **`flowItemSection()`** <sub>interna</sub> · [L1029](../src/ui/props.js#L1029) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
 
    - position: absolute (ignora o layout do pai);
    - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
    - flex → align-self (sobrescreve o align-items do pai).
   "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
-- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1037](../src/ui/props.js#L1037) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
-- **`commandsOrigin(n)`** <sub>interna</sub> · [L1066](../src/ui/props.js#L1066) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
-- **`GRID_KINDS`** <sub>interna</sub> · [L1074](../src/ui/props.js#L1074) — Tipos de grade de layout (só guia visual).
-- **`layoutGridsSection()`** <sub>interna</sub> · [L1076](../src/ui/props.js#L1076) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
-- **`vectorSection()`** <sub>interna</sub> · [L1104](../src/ui/props.js#L1104) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
-- **`textSection()`** <sub>interna</sub> · [L1163](../src/ui/props.js#L1163) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
-- **`gradientBar()`** <sub>interna</sub> · [L1225](../src/ui/props.js#L1225) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1235](../src/ui/props.js#L1235) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
-- **`colorGroups()`** <sub>interna</sub> · [L1247](../src/ui/props.js#L1247) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L1253](../src/ui/props.js#L1253) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`fillSection()`** <sub>interna</sub> · [L1264](../src/ui/props.js#L1264) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1360](../src/ui/props.js#L1360) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1398](../src/ui/props.js#L1398) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1404](../src/ui/props.js#L1404) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1410](../src/ui/props.js#L1410) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1434](../src/ui/props.js#L1434) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1466](../src/ui/props.js#L1466) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1492](../src/ui/props.js#L1492) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`exportSection()`** <sub>interna</sub> · [L1508](../src/ui/props.js#L1508) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1534](../src/ui/props.js#L1534) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1554](../src/ui/props.js#L1554) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1581](../src/ui/props.js#L1581) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1044](../src/ui/props.js#L1044) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
+- **`commandsOrigin(n)`** <sub>interna</sub> · [L1073](../src/ui/props.js#L1073) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
+- **`GRID_KINDS`** <sub>interna</sub> · [L1081](../src/ui/props.js#L1081) — Tipos de grade de layout (só guia visual).
+- **`layoutGridsSection()`** <sub>interna</sub> · [L1083](../src/ui/props.js#L1083) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
+- **`vectorSection()`** <sub>interna</sub> · [L1111](../src/ui/props.js#L1111) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+- **`textSection()`** <sub>interna</sub> · [L1170](../src/ui/props.js#L1170) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
+- **`gradientBar()`** <sub>interna</sub> · [L1232](../src/ui/props.js#L1232) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1242](../src/ui/props.js#L1242) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L1254](../src/ui/props.js#L1254) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L1260](../src/ui/props.js#L1260) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`fillSection()`** <sub>interna</sub> · [L1271](../src/ui/props.js#L1271) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1367](../src/ui/props.js#L1367) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1405](../src/ui/props.js#L1405) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1411](../src/ui/props.js#L1411) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1417](../src/ui/props.js#L1417) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1441](../src/ui/props.js#L1441) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1473](../src/ui/props.js#L1473) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1499](../src/ui/props.js#L1499) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`exportSection()`** <sub>interna</sub> · [L1515](../src/ui/props.js#L1515) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1541](../src/ui/props.js#L1541) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1561](../src/ui/props.js#L1561) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1588](../src/ui/props.js#L1588) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
@@ -2103,7 +2108,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  MCP é o "padrão de tomada" que programas de IA (Claude Code, Claude Desktop, Codex, Cursor...) usam para
  conversar com ferramentas externas. Por baixo é JSON-RPC 2.0: a IA manda { id, method, params } e recebe
  { id, result } ou { id, error }. Só precisamos de quatro métodos:
-   initialize   → "oi, eu sou o Projeto Designer e sei usar ferramentas"
+   initialize   → "oi, eu sou o Stylo e sei usar ferramentas"
    tools/list   → a lista de agent/schema.js
    tools/call   → executa uma ferramenta (quem executa de verdade é o EDITOR aberto no navegador; ver server.js)
    ping         → "estou vivo"

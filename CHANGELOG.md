@@ -8,6 +8,19 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-10-08 · Stylo
+
+### Alterado
+- O projeto agora se chama **Stylo**: novo nome, logo e ícone da aba. O identificador do servidor MCP continua `projeto-designer` para não quebrar integrações já configuradas.
+- Nova identidade visual: grafite neutro com azul de destaque (#4c8dff) e âmbar para medidas e guias, sem degradês; a interface usa IBM Plex Sans. Tema claro reajustado com a mesma lógica.
+
+### Adicionado
+- **Central de ajuda** (botão ? ou tecla ?): primeiros passos, atalhos, problemas comuns e suporte, com diagnóstico do ambiente para copiar e link para abrir um chamado.
+- CSS: `position: sticky` ("Fixar ao rolar") e `pointer-events: none` na seção Estados → Normal. O sticky só vale para itens em fluxo e aparece na apresentação e no HTML exportado.
+
+### Removido
+- Relatórios avulsos (`AVALIACAO-MANUAL.md`, `RELATORIO-ERROS-E-MELHORIAS.md`, `docs/POLIMENTO-V0.13.md`): o que importava já está no CHANGELOG e nos testes.
+
 ### Alterado
 - Ferramentas agrupadas por tarefa, com Mão disponível na barra, adaptação ao espaço do canvas e zoom posicionado de acordo com a altura da barra.
 - Réguas com subdivisões e gerenciador de guias: posições numéricas, bordas/centro da seleção, remoção individual/em conjunto e trava de arrasto. Criar conjuntos de guias pode ser desfeito em um passo.

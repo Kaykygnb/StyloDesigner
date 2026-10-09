@@ -1,6 +1,6 @@
 {
   "name": "projeto-designer",
-  "description": "Plugins do Projeto Designer: o editor de design em que o canvas é CSS de verdade.",
+  "description": "Plugins do Stylo: o editor de design em que o canvas é CSS de verdade.",
   "owner": { "name": "Kayky Gabriel" },
   "plugins": [
     {

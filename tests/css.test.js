@@ -545,3 +545,17 @@ test('texto ligado a um estilo de cor usa var() em color; exportHtml leva o :roo
   assert.ok(html.includes(':root {\n  --cor-primaria: #7c5cff;\n}'), html);
   assert.ok(html.includes('background-color: var(--cor-primaria);'));
 });
+
+test('sticky e pointer-events: só itens em fluxo grudam, e só fora do editor', () => {
+  const f = createNode('frame');
+  f.layout = { mode: 'column', gap: 0, padding: [0, 0, 0, 0], justify: 'flex-start', align: 'flex-start', wrap: false };
+  const item = createNode('frame');
+  item.sticky = 16; item.pointerEvents = 'none';
+  const s = nodeStyle(item, f);
+  assert.equal(s.position, 'sticky');
+  assert.equal(s.top, '16px');
+  assert.equal(s['pointer-events'], 'none');
+  assert.equal(nodeStyle(item, f, {}, { editor: true }).position, 'relative');
+  const livre = createNode('rect', { x: 5, y: 5 }); livre.sticky = 0;
+  assert.equal(nodeStyle(livre, null).position, 'absolute');
+});

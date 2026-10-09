@@ -1,6 +1,6 @@
 # Guia do código
 
-Este é o ponto de partida para **ler e mexer** no código do Projeto Designer, mesmo se você nunca abriu o projeto.
+Este é o ponto de partida para **ler e mexer** no código do Stylo, mesmo se você nunca abriu o projeto.
 
 São três documentos, do mais simples ao mais detalhado:
 

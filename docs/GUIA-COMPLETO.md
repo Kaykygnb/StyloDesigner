@@ -1,4 +1,4 @@
-# Guia completo — Projeto Designer
+# Guia completo — Stylo
 
 Este é o guia de referência: tudo que o editor faz, onde o trabalho fica salvo, atalhos, como funciona por dentro, testes e limitações. Para conhecer o produto em poucos minutos, leia o [README](../README.md).
 

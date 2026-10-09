@@ -1,55 +1,59 @@
 /* ============================================================ tokens */
-/* Design tokens (variáveis CSS). Mudar uma cor aqui muda o app inteiro.
-    --accent / --accent-2: roxo e rosa da marca · --grad: o degradê usado em botões e destaques
+/* Design tokens do Stylo (variáveis CSS). Mudar uma cor aqui muda o app inteiro.
+    --accent: azul da marca (seleção, foco, ação principal) · --accent-2: âmbar das medidas, guias e protótipo
+    --grad: superfície sólida da ação principal (mantido com esse nome por compatibilidade)
     --left / --right: largura dos painéis (o JS ajusta ao arrastar a borda) · --topbar: altura da barra superior */
 :root {
-  --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --accent: #a18aff;
-  --accent-2: #d7a5f5;
-  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
-  --grad: linear-gradient(135deg, #8064ec, #9875ef);
-  --primary: #7958d6;
-  --radius: 10px;
+  --accent: #4c8dff;
+  --accent-2: #f7a541;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --on-accent: #0b0c0e;
+  --grad: var(--accent);
+  --primary: #2f6ae0;
+  --radius: 8px;
   --topbar: 40px;
-  --left: 268px;
-  --right: 292px;
+  --left: 260px;
+  --right: 300px;
   color-scheme: dark;
 }
-/* Tema ESCURO (padrão). Cada cor tem um papel: --bg fundo da página · --panel painéis · --panel-2/-3 campos e
-    realces · --border bordas · --text/--muted texto · --canvas fundo da área de desenho · --dot pontinhos da grade */
+/* Tema ESCURO (padrão): grafite neutro, sem tom roxo. --bg fundo · --panel painéis · --panel-2/-3 campos e
+    realces · --border bordas · --text/--muted texto · --canvas área de desenho · --dot pontinhos da grade */
 :root, :root[data-theme="dark"] {
-  --bg: #111216;
-  --panel: #191a20;
-  --panel-2: #22232b;
-  --panel-3: #2d2e38;
-  --border: #30313b;
-  --text: #f0f0f5;
-  --muted: #a0a1b2;
-  --canvas: #121318;
-  --dot: #292a35;
-  --glass: rgba(25, 26, 32, 0.96);
-  --shadow: 0 8px 28px rgba(0, 0, 0, 0.24), 0 1px 4px rgba(0, 0, 0, 0.18);
-  --danger: #ff6b7a;
-  --ok: #3ddc84; --warn: #ffb020;
+  --bg: #121316;
+  --panel: #18191d;
+  --panel-2: #212328;
+  --panel-3: #2b2d33;
+  --border: #2a2c32;
+  --text: #e6e7ea;
+  --muted: #9a9da6;
+  --canvas: #0e0f11;
+  --dot: #23252b;
+  --glass: rgba(24, 25, 29, 0.97);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
+  --danger: #ff6b6b;
+  --ok: #5cc98f; --warn: #f7a541;
 }
 /* Tema CLARO: só redefine as mesmas variáveis; nenhuma regra do app precisa saber qual tema está ativo. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --accent: #7051c9;
-  --accent-2: #9a478d;
-  --bg: #f5f5f8;
+  --accent: #2563eb;
+  --accent-2: #b45309;
+  --primary: #2563eb;
+  --on-accent: #ffffff;
+  --bg: #f4f5f7;
   --panel: #ffffff;
-  --panel-2: #f2f2f7;
-  --panel-3: #e6e6ee;
-  --border: #e3e3ec;
-  --text: #1a1a24;
-  --muted: #68687b;
-  --canvas: #eeeef3;
-  --dot: #d6d6e0;
-  --glass: rgba(255, 255, 255, 0.96);
-  --shadow: 0 12px 40px rgba(40, 30, 90, 0.16), 0 2px 8px rgba(40, 30, 90, 0.1);
-  --danger: #e5384d;
+  --panel-2: #f1f2f5;
+  --panel-3: #e5e7eb;
+  --border: #e2e4e9;
+  --text: #17181c;
+  --muted: #5f636d;
+  --canvas: #ebedf0;
+  --dot: #d3d6dc;
+  --glass: rgba(255, 255, 255, 0.97);
+  --shadow: 0 12px 36px rgba(20, 24, 40, 0.14), 0 2px 6px rgba(20, 24, 40, 0.08);
+  --danger: #dc2626;
   --ok: #15803d; --warn: #b45309;
 }
 
@@ -125,7 +129,7 @@ button.brand:hover { background: var(--panel-2); }
   display: grid; place-items: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
-.brand-name { font-weight: 700; font-size: 13px; letter-spacing: -0.2px; }
+.brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .doc-name {
   background: transparent; border: 1px solid transparent; border-radius: 8px;
   text-align: center; font-weight: 600; font-size: 12.5px; width: 240px; padding: 6px 10px;
@@ -476,6 +480,20 @@ button.brand:hover { background: var(--panel-2); }
 .modal { width: min(760px, 92vw); max-height: 86vh; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); }
 .modal-head h2 { margin: 0; font-size: 16px; }
+.help-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); }
+.help-tab { border: 0; background: none; padding: 8px 12px; border-radius: 6px 6px 0 0; color: var(--muted); font-weight: 500; position: relative; }
+.help-tab:hover { color: var(--text); }
+.help-tab.on { color: var(--text); }
+.help-tab.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+.modal-body.help { min-height: 320px; max-height: min(60vh, 560px); overflow: auto; }
+.help-list { display: flex; flex-direction: column; gap: 10px; padding: 20px; font-size: 12.5px; line-height: 1.55; }
+.help-list > p { margin: 0; color: var(--muted); }
+.help-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.help-item p { margin: 4px 0 0; color: var(--muted); }
+.help-item summary { cursor: pointer; font-weight: 600; }
+.help-diag { margin: 0; padding: 12px; background: var(--canvas); border-radius: var(--radius); font: 11px/1.6 var(--mono); white-space: pre-wrap; word-break: break-all; color: var(--muted); }
+.help-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px; padding: 20px; }
 .shortcuts h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent); }
 /* Janelas Configurações e Projetos */
@@ -683,7 +701,7 @@ details.size-limits[open] > summary .ico { transform: rotate(90deg); }
 .cm-thread.active { border-color: color-mix(in srgb, var(--accent-2) 70%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 16%, transparent); }
 .cm-thread.resolved { opacity: .7; }
 .cm-head { display: flex; align-items: center; gap: 8px; }
-.cm-avatar { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--grad); color: #fff; font-weight: 700; font-size: 11.5px; }
+.cm-avatar { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--grad); color: var(--on-accent); font-weight: 700; font-size: 11.5px; }
 .cm-avatar.small { width: 20px; height: 20px; font-size: 10px; }
 .cm-who { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
 .cm-who strong { font-size: 12px; }
@@ -1004,7 +1022,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); fon
   opacity: 0; transform: translateY(4px) scale(.97); transition: opacity .15s, transform .15s;
   overflow: hidden;
 }
-.rich-tip::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--accent), var(--accent-2)); }
+.rich-tip::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
 .rich-tip.show { opacity: 1; transform: none; }
 .tip-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 650; font-size: 12.5px; line-height: 1.3; color: var(--text); }
 .tip-title + .tip-code-label, .tip-title + .tip-text { margin-top: 8px; }
@@ -1113,7 +1131,7 @@ button.al-code-head:hover { color: var(--text); }
 .sel-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sel-ico {
   flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--accent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 14%, transparent));
+  background: var(--accent-soft);
 }
 .sel-info { flex: 1; min-width: 0; }
 .sel-name { font-weight: 650; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1205,7 +1223,7 @@ button.al-code-head:hover { color: var(--text); }
 .cp-tabs, .cp-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .cp-tab, .cp-pill { border: 0; cursor: pointer; font: 600 10.5px var(--font, inherit); color: var(--muted); padding: 4px 9px; border-radius: 99px; background: color-mix(in srgb, var(--text) 6%, transparent); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cp-tab:hover, .cp-pill:hover { color: var(--text); }
-.cp-tab.on, .cp-pill.on { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.cp-tab.on, .cp-pill.on { color: #fff; background: var(--accent); }
 .cp-pill.new { color: var(--accent); background: transparent; border: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent); }
 .cp-pbody { display: flex; flex-direction: column; gap: 8px; padding: 9px; border-radius: 12px; background: color-mix(in srgb, var(--text) 5%, transparent); }
 .cp-phead { display: flex; align-items: center; gap: 6px; }
@@ -1271,7 +1289,7 @@ body.bp-active .viewport { box-shadow: inset 0 0 0 2px var(--accent); }
 .row > .cap-group > .cap.has-tip .cap-right { flex-direction: row; }
 .var-btn { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 6px; cursor: pointer; color: var(--muted); background: transparent; opacity: .55; transition: all .12s; }
 .var-btn:hover { opacity: 1; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.var-btn.on { opacity: 1; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.var-btn.on { opacity: 1; color: #fff; background: var(--accent); }
 .var-btn[hidden] { display: none; }
 .asset-swatch { cursor: pointer; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); padding: 0; }
 button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }

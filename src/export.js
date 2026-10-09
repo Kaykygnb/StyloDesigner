@@ -50,7 +50,7 @@ export function saveProject(doc) {
  */
 export async function openProjectFile(file) {
   const doc = JSON.parse(await file.text());
-  if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Projeto Designer.');
+  if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
   doc.assets ||= {};
   return doc;
 }

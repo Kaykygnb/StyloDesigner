@@ -1,9 +1,9 @@
 ---
 name: projeto-designer
-description: Desenhar, revisar e ajustar interfaces no Projeto Designer (o editor em que o canvas é CSS de verdade) pelo MCP "projeto-designer". Use quando a pessoa pedir para criar ou mudar uma página, tela, seção, componente, estilo, responsivo ou protótipo no editor, ou para revisar o HTML/CSS de um design.
+description: Desenhar, revisar e ajustar interfaces no Stylo (o editor em que o canvas é CSS de verdade) pelo MCP "projeto-designer". Use quando a pessoa pedir para criar ou mudar uma página, tela, seção, componente, estilo, responsivo ou protótipo no editor, ou para revisar o HTML/CSS de um design.
 ---
 
-# Projeto Designer pelo MCP
+# Stylo pelo MCP
 
 Você controla o **editor aberto no navegador** da pessoa pelas ferramentas do MCP `projeto-designer`. Cada camada é HTML/CSS de verdade: frames com layout viram `display: flex`/`grid`, e o que aparece no editor é o que vai para o código exportado. As instruções completas da ferramenta (regras de layout, habilidades de design, receita de página) chegam junto com o MCP; siga-as.
 

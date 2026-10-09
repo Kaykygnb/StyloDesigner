@@ -1,4 +1,4 @@
-# Arquitetura do Projeto Designer
+# Arquitetura do Stylo
 
 Este documento explica **como o app funciona por dentro** e **como estendê-lo**. Para uso, veja o [README](../README.md). Primeira vez no código? Comece pelo [Guia do código](GUIA-DO-CODIGO.md). Para consultar uma função específica, veja a [Referência](REFERENCIA.md) (gerada dos comentários do código).
 

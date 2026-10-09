@@ -36,9 +36,9 @@ rl.on('line', async (line) => {
   } catch {
     // servidor desligado: só pedidos (com id) recebem resposta de erro; avisos são ignorados
     if (msg && msg.id !== undefined && msg.id !== null) {
-      send({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `O Projeto Designer não está rodando em ${BASE}. Rode "npm start" na pasta do projeto e abra o editor no navegador.` } });
+      send({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `O Stylo não está rodando em ${BASE}. Rode "npm start" na pasta do projeto e abra o editor no navegador.` } });
     }
   }
 });
 // mensagens para pessoas vão para a saída de ERRO (stderr), que o protocolo ignora
-process.stderr.write(`Projeto Designer MCP (stdio) → ${BASE}/mcp\n`);
+process.stderr.write(`Stylo MCP (stdio) → ${BASE}/mcp\n`);

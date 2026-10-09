@@ -520,6 +520,6 @@ createServer(async (req, res) => {
   }
 // escuta só em 127.0.0.1 (localhost): ninguém na sua rede consegue acessar o servidor
 }).listen(port, '127.0.0.1', () => {
-  console.log(`\n  Projeto Designer rodando em  http://localhost:${port}`);
+  console.log(`\n  Stylo rodando em  http://localhost:${port}`);
   console.log(`  Projetos salvos em           ${config.folder}\n`);
 });

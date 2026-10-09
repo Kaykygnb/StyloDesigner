@@ -151,8 +151,8 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
     });
     const top = h('header.home-top',
       h('div.brand',
-        h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>' }),
-        h('span.brand-name', 'Projeto Designer'),
+        h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0b0c0e" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M16.5 7.2C15.6 6.2 14.1 5.6 12.4 5.6c-2.5 0-4.2 1.3-4.2 3.2 0 4.2 8.6 2.2 8.6 6.3 0 1.9-1.8 3.3-4.4 3.3-1.9 0-3.5-.7-4.5-1.9"/></svg>' }),
+        h('span.brand-name', 'Stylo'),
         h('span.home-version', 'v' + VERSION)),
       h('div.spacer'),
       h('label.home-search', ico('search', 15), search, h('kbd', '/')),

@@ -5,7 +5,7 @@
  *  MCP é o "padrão de tomada" que programas de IA (Claude Code, Claude Desktop, Codex, Cursor...) usam para
  *  conversar com ferramentas externas. Por baixo é JSON-RPC 2.0: a IA manda { id, method, params } e recebe
  *  { id, result } ou { id, error }. Só precisamos de quatro métodos:
- *    initialize   → "oi, eu sou o Projeto Designer e sei usar ferramentas"
+ *    initialize   → "oi, eu sou o Stylo e sei usar ferramentas"
  *    tools/list   → a lista de agent/schema.js
  *    tools/call   → executa uma ferramenta (quem executa de verdade é o EDITOR aberto no navegador; ver server.js)
  *    ping         → "estou vivo"
@@ -51,7 +51,7 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
       result: {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'projeto-designer', title: 'Projeto Designer', version },
+        serverInfo: { name: 'projeto-designer', title: 'Stylo', version },
         instructions: `${instructions}\n\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Cada alteração aparece para a pessoa aprovar.`,
       },
     };

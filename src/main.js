@@ -29,6 +29,7 @@ import { createIconsPanel } from './ui/googleicons.js';
 import { ensureFonts, usedFonts } from './fonts.js';
 import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
+import { VERSION } from './version.js';
 import { h, ico, iconButton, tip, installAutoTips } from './ui/dom.js';
 import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
 import { buildSampleShowcase } from './sample-vitrine.js';
@@ -323,8 +324,8 @@ const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Assistente 
 // monta a barra superior
 $('#topbar').append(
   h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', onclick: () => home.open() },
-    h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>' }),
-    h('span.brand-name', 'Projeto Designer')),
+    h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0b0c0e" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M16.5 7.2C15.6 6.2 14.1 5.6 12.4 5.6c-2.5 0-4.2 1.3-4.2 3.2 0 4.2 8.6 2.2 8.6 6.3 0 1.9-1.8 3.3-4.4 3.3-1.9 0-3.5-.7-4.5-1.9"/></svg>' }),
+    h('span.brand-name', 'Stylo')),
   fileBtn,
   h('span.sep'),
   undoBtn, redoBtn,
@@ -337,7 +338,7 @@ $('#topbar').append(
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
   settingsBtn,
-  iconButton('help', 'Atalhos de teclado (?)', showHelp),
+  iconButton('help', 'Central de ajuda (?)', () => showHelp('start', VERSION)),
   fileInput,
 );
 
@@ -500,7 +501,7 @@ window.addEventListener('keydown', (e) => {
   if (mod && e.altKey && e.key === 'Enter') { e.preventDefault(); present.open(ui.selection[0]); }
   if (mod && key === 'o') { e.preventDefault(); openProjects('open'); }
   if (mod && e.key === ',') { e.preventDefault(); openSettings(); }
-  if (e.key === '?' && !typing) showHelp();
+  if (e.key === '?' && !typing) showHelp('keys', VERSION);
 });
 // ao esconder a aba (trocar de aba, minimizar, fechar) e ao sair, grava na hora, sem esperar o atraso do auto-salvar.
 // `visibilitychange` é o mais confiável: o IndexedDB é assíncrono e pode não terminar dentro do `beforeunload`.

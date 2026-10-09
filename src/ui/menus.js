@@ -151,7 +151,7 @@ const SHORTCUTS = [
   ['Vista', [['Ctrl R', 'Réguas (arraste delas para criar guias)'], ['Ctrl + roda', 'Zoom'], ['Ctrl + / − / 0', 'Aproximar / afastar / 100%'], ['Roda / ⇧ roda', 'Rolar'], ['Espaço + arrastar', 'Pan'], ['⇧ 1', 'Ajustar tudo'], ['⇧ 2', 'Ajustar seleção'], ['⇧ 0', 'Zoom 100%']]],
   ['Ao redimensionar / mover', [['⇧', 'Mantém proporção / trava eixo'], ['Alt', 'A partir do centro'], ['Ctrl', 'Sem snap']]],
   ['Seleção', [['Ctrl + clique', 'Seleciona através de grupos'], ['Tab / ⇧ Tab', 'Próxima / anterior camada'], ['Alt + mouse', 'Mostra distâncias até outra camada'], ['Ctrl Alt C / V', 'Copiar / colar propriedades'], ['Ctrl B / I / U', 'Negrito / itálico / sublinhado (editando texto)'], ['Ctrl \\', 'Esconder/mostrar painéis']]],
-  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar na pasta (escolhe o nome na 1ª vez)'], ['Ctrl ⇧ S', 'Salvar como… (novo nome na pasta)'], ['Ctrl O', 'Abrir projeto da pasta'], ['Ctrl ,', 'Configurações (onde salvar, tema...)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Esta lista de atalhos'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
+  ['Outros', [['Ctrl ⇧ C', 'Copiar CSS'], ['Ctrl S', 'Salvar na pasta (escolhe o nome na 1ª vez)'], ['Ctrl ⇧ S', 'Salvar como… (novo nome na pasta)'], ['Ctrl O', 'Abrir projeto da pasta'], ['Ctrl ,', 'Configurações (onde salvar, tema...)'], ['Ctrl Alt Enter', 'Apresentar o protótipo'], ['?', 'Central de ajuda'], ['Ctrl V', 'Colar imagem ou texto do sistema']]],
 ];
 
 /** Contador para dar um id único ao título de cada janela (aria-labelledby). */
@@ -256,11 +256,63 @@ export function askText({ title, label, value = '', confirm = 'OK' }) {
   });
 }
 
-/** Abre a janela de ajuda com todos os atalhos. Fecha com Esc, no X ou clicando fora. */
-export function showHelp() {
-  openModal({
-    title: 'Atalhos de teclado',
-    body: h('div.modal-body.shortcuts', SHORTCUTS.map(([title, rows]) =>
+/** Primeiros passos da Central de ajuda: [título, texto]. */
+const GUIDE = [
+  ['1. Crie um frame', 'Aperte F e arraste no canvas. O frame é um <div> de verdade: tudo dentro dele vira HTML e CSS.'],
+  ['2. Ligue o auto layout', 'Com o frame selecionado, Shift+A liga o flexbox. No painel Design, troque para Grade (display: grid) para colunas.'],
+  ['3. Ajuste pelo nome do CSS', 'Cada campo tem o nome da propriedade (gap, padding, justify-content). O ícone (i) de cada seção explica o que ela faz.'],
+  ['4. Teste o responsivo', 'Troque para Tablet ou Celular na barra do topo: o que você mudar ali sai no CSS como @media.'],
+  ['5. Exporte', 'A aba Código mostra o CSS da seleção. Arquivo → Exportar gera o HTML e o CSS prontos para publicar.'],
+];
+/** Problemas comuns: [pergunta, resposta]. */
+const FAQ = [
+  ['A tela ficou em branco', 'Abra pelo servidor (npm start → http://localhost:5173), não pelo arquivo direto. Os módulos ES precisam de http://.'],
+  ['Onde ficam meus projetos?', 'Na pasta escolhida em Configurações (Ctrl+,), como arquivos .json com versões antigas guardadas. Ctrl+S salva.'],
+  ['Mudei no Celular e o Desktop mudou', 'Confira a largura ativa na barra do topo. Só o que é editado com Tablet/Celular ativo vira @media.'],
+  ['A rolagem não funciona no editor', 'É de propósito: no canvas o conteúdo aparece cortado. A rolagem e o position: sticky funcionam na apresentação e no HTML exportado.'],
+  ['Desfiz algo sem querer', 'Ctrl+Shift+Z refaz. O histórico guarda até 200 passos, e Arquivo → Versões recupera versões salvas.'],
+];
+const SUPPORT_URL = 'https://github.com/Kaykygnb/projetodesigner2/issues/new';
+
+/** Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente). */
+function diagnostics(version) {
+  return [`Stylo ${version}`, `Navegador: ${navigator.userAgent}`, `Tela: ${innerWidth}×${innerHeight} @${devicePixelRatio}x`,
+    `Tema: ${document.documentElement.dataset.theme || 'dark'}`, `Idioma: ${navigator.language}`].join('\n');
+}
+
+/**
+ * Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+ * @param {string} [tab] aba inicial: 'start' | 'keys' | 'faq' | 'support'
+ * @param {string} [version] versão do app, para o diagnóstico
+ */
+export function showHelp(tab = 'keys', version = '') {
+  const tabs = [['start', 'Primeiros passos'], ['keys', 'Atalhos'], ['faq', 'Problemas comuns'], ['support', 'Suporte']];
+  const panes = {
+    start: h('div.help-list', GUIDE.map(([t, d]) => h('div.help-item', h('strong', t), h('p', d)))),
+    keys: h('div.shortcuts', SHORTCUTS.map(([title, rows]) =>
       h('section', h('h4', title), rows.map(([k, d]) => h('div.sc-row', h('span', d), h('kbd', k)))))),
-  });
+    faq: h('div.help-list', FAQ.map(([q, a]) => h('details.help-item', h('summary', q), h('p', a)))),
+    support: h('div.help-list',
+      h('p', 'Encontrou um erro ou quer pedir um recurso? Abra um chamado e cole o diagnóstico abaixo: ele ajuda a reproduzir o problema e não inclui nada do seu projeto.'),
+      h('pre.help-diag', diagnostics(version)),
+      h('div.help-actions',
+        h('button.btn', { type: 'button', onclick: (e) => {
+          navigator.clipboard?.writeText(diagnostics(version)).then(() => { e.target.textContent = 'Copiado'; }, () => {});
+        } }, ico('copy', 13), ' Copiar diagnóstico'),
+        h('a.btn.primary', { href: SUPPORT_URL, target: '_blank', rel: 'noopener' }, 'Abrir chamado no GitHub'))),
+  };
+  const bar = h('div.help-tabs', { role: 'tablist', 'aria-label': 'Seções da ajuda' });
+  const body = h('div.modal-body.help');
+  const select = (k) => {
+    for (const b of bar.children) { const on = b.dataset.k === k; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; b.classList.toggle('on', on); }
+    body.replaceChildren(panes[k]);
+  };
+  tabs.forEach(([k, label]) => bar.append(h('button.help-tab', { type: 'button', role: 'tab', 'data-k': k, onclick: () => select(k),
+    onkeydown: (e) => {
+      const i = tabs.findIndex(([x]) => x === k);
+      const j = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length : -1;
+      if (j >= 0) { e.preventDefault(); select(tabs[j][0]); bar.children[j].focus(); }
+    } }, label)));
+  select(panes[tab] ? tab : 'keys');
+  openModal({ title: 'Central de ajuda', body: h('div', bar, body) });
 }

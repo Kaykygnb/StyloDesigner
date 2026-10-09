@@ -222,7 +222,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
   async function open(file) {
     await store.saveNow();
     const { doc, modified } = await folder.load(file);
-    if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Projeto Designer.');
+    if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
     store.loadDoc(doc, { link: { file, modified, synced: true } });
   }
 

@@ -1,6 +1,6 @@
 <!-- Instruções para o Codex (GPT). Coloque em ~/.codex/AGENTS.md (vale para tudo) ou cole no AGENTS.md da pasta onde você roda o codex. -->
 
-# Projeto Designer pelo MCP
+# Stylo pelo MCP
 
 Você controla o **editor aberto no navegador** da pessoa pelas ferramentas do MCP `projeto-designer` (configurado em ~/.codex/config.toml). Cada camada é HTML/CSS de verdade: frames com layout viram `display: flex`/`grid`, e o que aparece no editor é o que vai para o código exportado. As instruções completas da ferramenta (regras de layout, habilidades de design, receita de página) chegam junto com o MCP; siga-as.
 

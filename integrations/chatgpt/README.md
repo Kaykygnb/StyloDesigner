@@ -1,10 +1,10 @@
-# ChatGPT (site e app) com o Projeto Designer
+# ChatGPT (site e app) com o Stylo
 
 ## Situação hoje
 
 O ChatGPT do site/app só conecta a servidores MCP **pela internet**, num endereço **HTTPS** público (modo desenvolvedor → criar app/conector). Ele não consegue falar com programas locais como o `scripts/mcp.mjs`, nem com `http://localhost`.
 
-O servidor do Projeto Designer, de propósito, **só aceita pedidos deste computador**: ele lê e grava os seus projetos, e com o acesso de administrador age sem perguntar. Abrir isso para a internet (com um túnel como Cloudflare Tunnel ou ngrok) exigiria uma proteção que o app ainda não tem: autenticação forte (OAuth ou um segredo no endereço), limitar o que um acesso remoto pode fazer e registrar tudo. Por isso **não há acesso remoto pronto**.
+O servidor do Stylo, de propósito, **só aceita pedidos deste computador**: ele lê e grava os seus projetos, e com o acesso de administrador age sem perguntar. Abrir isso para a internet (com um túnel como Cloudflare Tunnel ou ngrok) exigiria uma proteção que o app ainda não tem: autenticação forte (OAuth ou um segredo no endereço), limitar o que um acesso remoto pode fazer e registrar tudo. Por isso **não há acesso remoto pronto**.
 
 ## Como usar modelos GPT agora
 

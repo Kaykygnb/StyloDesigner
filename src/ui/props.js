@@ -527,6 +527,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     blur: ['filter: blur()', 'filter: blur(8px);', 'Desfoca a PRÓPRIA camada (e tudo que há nela). Quanto maior o valor, mais borrado.'],
     'backdrop-filter': ['backdrop-filter', 'backdrop-filter: blur(16px);', 'Efeito VIDRO: desfoca o que está ATRÁS da camada. Use junto com um preenchimento semitransparente para aparecer.'],
     transition: ['transition', 'transition: all 200ms ease;', 'Faz a camada MUDAR SUAVEMENTE entre o estado normal e hover/pressionado/foco, em vez de pular. Duração em milissegundos (0 = sem transição).'],
+    sticky: ['position: sticky', 'position: sticky;\ntop: 0;', 'O item continua no layout, mas GRUDA a essa distância do topo quando a página rola. Ideal para cabeçalhos e menus laterais. Funciona na apresentação e no HTML exportado.'],
+    'pointer-events': ['pointer-events', 'pointer-events: none;', '"Ignora o mouse" deixa os cliques atravessarem a camada até o que está embaixo. Útil para enfeites e sobreposições decorativas.'],
     cursor: ['cursor', 'cursor: pointer;', 'O formato do mouse quando passa por cima. "pointer" (mãozinha) diz que a camada é clicável. Aparece no código exportado e na apresentação, não no editor.'],
     transform: ['transform', 'transform: scale(1.05);', 'Aumenta (acima de 1) ou diminui (abaixo de 1) a camada, a partir do centro. Num :hover costuma ser 1.02 a 1.08; num :active, 0.97.'],
     'flex-grow': ['flex-grow', 'flex: 2 1 0%;', 'O PESO deste item na divisão do espaço sobrando (só para itens "Preencher" no eixo principal). Com pesos 1 e 2, um item fica com 1/3 e o outro com 2/3.'],
@@ -943,6 +945,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   };
   const EASINGS = [['ease', 'Suave (ease)'], ['ease-in-out', 'Entra e sai (ease-in-out)'], ['ease-out', 'Desacelera (ease-out)'], ['ease-in', 'Acelera (ease-in)'], ['linear', 'Constante (linear)']];
   const CURSORS = [['', 'Padrão'], ['pointer', 'Mãozinha (pointer)'], ['text', 'Texto (text)'], ['grab', 'Mão aberta (grab)'], ['not-allowed', 'Bloqueado (not-allowed)'], ['default', 'Seta (default)']];
+  const STICKY = [['', 'Não'], ['0', 'No topo (0px)'], ['16', '16px do topo'], ['64', '64px do topo']];
+  const POINTER_EVENTS = [['', 'Normal'], ['none', 'Ignora (none)']];
 
   /**
    * Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as
@@ -980,7 +984,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         capK('Curva', 'transition', select(EASINGS, () => P().transition?.easing || 'ease', (v) => each((n) => {
           if (n.transition) n.transition = { ...n.transition, easing: v };
         }), 'transition-timing-function'))),
-      capK('Cursor', 'cursor', select(CURSORS, () => P().cursor || '', (v) => each((n) => { if (v) n.cursor = v; else delete n.cursor; }), 'cursor')));
+      capK('Cursor', 'cursor', select(CURSORS, () => P().cursor || '', (v) => each((n) => { if (v) n.cursor = v; else delete n.cursor; }), 'cursor')),
+      row(
+        capK('Fixar ao rolar', 'sticky', select(STICKY, () => P().sticky == null ? '' : String(P().sticky), (v) => each((n) => { if (v === '') delete n.sticky; else n.sticky = Number(v); }), 'position: sticky')),
+        capK('Mouse', 'pointer-events', select(POINTER_EVENTS, () => P().pointerEvents || '', (v) => each((n) => { if (v) n.pointerEvents = v; else delete n.pointerEvents; }), 'pointer-events'))));
     }
     return section('Estados', body, null, { closedByDefault: !ui.editState && !hasStates(base) });
   }

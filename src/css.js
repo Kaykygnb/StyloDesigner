@@ -326,6 +326,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   // transição suave entre o estado normal e hover/pressionado/foco (e entre qualquer mudança de valores visuais)
   if (node.transition?.duration > 0) s.transition = `all ${round(node.transition.duration)}ms ${node.transition.easing || 'ease'}`;
   if (node.cursor && node.cursor !== 'auto') s.cursor = node.cursor;
+  if (node.pointerEvents === 'none') s['pointer-events'] = 'none';
+  // sticky: o item em fluxo gruda a N px do topo de quem rola (cabeçalhos, menus laterais). Camada livre já é absoluta.
+  if (node.sticky != null && s.position === 'relative' && !opts.editor) { s.position = 'sticky'; s.top = px(node.sticky); s['z-index'] = s['z-index'] || '1'; }
   const tf = transformOf(node);
   if (tf) s.transform = tf;
   // A camada marcada como máscara some (display:none): ela só serve para recortar o grupo via clip-path.

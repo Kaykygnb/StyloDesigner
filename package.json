@@ -1,7 +1,7 @@
 {
-  "name": "projeto-designer",
-  "version": "0.17.0",
-  "description": "Editor de design local, em JavaScript puro, inspirado no Figma e no Penpot. O canvas é CSS de verdade.",
+  "name": "stylo",
+  "version": "1.0.0",
+  "description": "Stylo — editor de design onde o canvas é CSS de verdade. JavaScript puro, local, sem build.",
   "private": true,
   "type": "module",
   "scripts": {

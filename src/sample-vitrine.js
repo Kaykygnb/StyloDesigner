@@ -335,7 +335,7 @@ export function buildSampleShowcase() {
     tag: 'footer', fill: bound('st-superficie'), stroke: { ...defaultStroke(), color: '#7C5CFF', opacity: 0.1, width: 1, sides: [1, 0, 0, 0], position: 'inside' },
     layout: flex('row', { gap: 24, padding: [28, 48, 28, 48], justify: 'space-between', align: 'center', wrap: true }),
   });
-  footer.children.push(text('© 2026 Lumen. Feito com o Projeto Designer.', { name: 'Direitos', tag: 'p', fontSize: 13, fill: bound('st-suave'), sizeX: 'hug' }));
+  footer.children.push(text('© 2026 Lumen. Feito com o Stylo.', { name: 'Direitos', tag: 'p', fontSize: 13, fill: bound('st-suave'), sizeX: 'hug' }));
   const links = frame('Links do rodapé', { sizeX: 'hug', layout: flex('row', { gap: 20 }) });
   ['Termos', 'Privacidade', 'Contato'].forEach((t) => links.children.push(text(t, { name: `Link ${t}`, tag: 'a', href: '#', fontSize: 13, fill: bound('st-suave'), cursor: 'pointer' })));
   footer.children.push(links);
