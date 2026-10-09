@@ -7,8 +7,9 @@
  *  fecham. À esquerda, uma barra fixa com as seções; à direita, o conteúdo da seção escolhida, em cartões:
  *   1. Conta              — o seu perfil local (nome, e-mail, cargo, avatar, idioma), salvo sozinho (account.js).
  *   2. Projetos e pasta   — pasta do computador (o SERVIDOR grava lá), auto-salvar, versões e a cópia no navegador.
- *   3. Agente de IA       — provedor, modelo (lista "Ver modelos") e endereço da API.
- *   4. Chaves de API      — a chave do provedor escolhido (fica só neste computador).
+ *   3. Agente de IA       — provedor, modelo (lista "Ver modelos", "Testar modelo" com os resultados guardados), endereço
+ *                           da API, tempos (1º pedaço, tempo máximo pensando) e "Pedir menos raciocínio" (NVIDIA NIM).
+ *   4. Chaves de API      — a chave do provedor escolhido e a do Jev (TypeSafe); ficam só neste computador.
  *   5. MCP e agentes      — acesso de administrador e como ligar Claude Code / Codex / Claude Desktop.
  *   6. Aparência          — tema, tela ao abrir o app e o que a roda do mouse faz.
  *   7. Atalhos            — a lista de atalhos de teclado.
@@ -36,12 +37,18 @@ const checkbox = (label, checked, onchange) => {
   return h('label.check', input, h('span.box', ico('check', 10)), h('span', label));
 };
 
+/** "1234" ms → "1,2 s". */
+export const formatSecs = (ms) => (ms == null ? '—' : `${(ms / 1000).toFixed(1).replace('.', ',')} s`);
+/** Selo curto do teste de um modelo (para a lista de modelos): "✓ ferramentas · 1,2 s", "✗ sem ferramentas"... */
+export const testBadge = (t) => !t ? '' : t.ok ? `✓ ferramentas · ${formatSecs(t.firstTokenMs)}${t.reasoning ? ' · pensa' : ''}`
+  : t.tools === false ? '✗ sem ferramentas' : t.code === 'first_token' || t.code === 'thinking' ? '✗ lento demais' : '✗ falhou';
+
 /** Seções da página: [id, ícone, nome, descrição curta no cabeçalho]. */
 const SECTIONS = [
   ['account', 'user', 'Conta', 'Seu perfil neste computador. Ele assina os comentários e aparece para quem está no projeto.'],
   ['folder', 'folder', 'Projetos e pasta', 'Onde os projetos são gravados e como as versões antigas são guardadas.'],
   ['ai', 'sparkle', 'Agente de IA e modelos', 'Qual serviço de IA o Agente usa e com qual modelo.'],
-  ['keys', 'key', 'Chaves de API', 'A chave do provedor de IA. Fica guardada só neste computador.'],
+  ['keys', 'key', 'Chaves de API', 'As chaves do provedor de IA e do Jev. Ficam guardadas só neste computador.'],
   ['mcp', 'plug', 'MCP e agentes', 'Deixe programas como Claude Code e Codex lerem e alterarem o design.'],
   ['look', 'sliders', 'Aparência', 'Tema, tela inicial e controles do canvas.'],
   ['keyboard', 'keyboard', 'Atalhos', 'Todos os atalhos de teclado do editor.'],
@@ -333,8 +340,10 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
       const fill = () => {
         const q = search.value.trim().toLowerCase();
         const shown = list.filter((m) => !q || m.toLowerCase().includes(q));
-        box.replaceChildren(...shown.slice(0, 300).map((m) => h('button.model-item' + (m === model.value ? '.on' : ''), {
-          type: 'button', role: 'option', 'aria-selected': String(m === model.value),
+        // modelos já testados aparecem primeiro, com o selo do resultado
+        shown.sort((x, y) => (tested[y]?.ok ? 2 : tested[y] ? 1 : 0) - (tested[x]?.ok ? 2 : tested[x] ? 1 : 0));
+        box.replaceChildren(...shown.slice(0, 300).map((m) => h('button.model-item' + (m === model.value ? '.on' : '') + (tested[m] ? (tested[m].ok ? '.tested-ok' : '.tested-bad') : ''), {
+          type: 'button', role: 'option', 'aria-selected': String(m === model.value), title: tested[m]?.error || '',
           onclick: async () => {
             try {
               await putConfig({ model: m });
@@ -345,7 +354,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
               fill();
             } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message; }
           },
-        }, m)), ...(shown.length ? [] : [h('p.muted.small', 'Nenhum modelo com esse nome.')])); // nada de null: replaceChildren escreveria "null"
+        }, h('span.model-name', m), tested[m] ? h('span.model-badge', testBadge(tested[m])) : '')), ...(shown.length ? [] : [h('p.muted.small', 'Nenhum modelo com esse nome.')])); // nada de null: replaceChildren escreveria "null"
       };
       search.addEventListener('input', fill);
       picker.replaceChildren(h('div.field', search), box);
@@ -375,6 +384,66 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
         listBtn.disabled = false;
       },
     }, 'Ver modelos');
+    // TESTAR MODELO: o servidor pede ao modelo para chamar uma ferramenta "ping" e mede o tempo até o 1º pedaço. O
+    // resultado fica guardado no servidor e marca o modelo na lista ("✓ ferramentas · 1,2 s").
+    const tested = { ...(ai.tested || {}) };
+    const testedList = h('div.model-tested');
+    const renderTested = () => {
+      const rows = Object.values(tested).sort((x, y) => y.at - x.at).slice(0, 8);
+      testedList.replaceChildren(...(rows.length ? [h('p.sp-label.small', 'Modelos testados'), ...rows.map((t) => h('div.model-test-row' + (t.ok ? '.ok' : '.bad'),
+        h('code', t.model), h('span.model-badge', testBadge(t)),
+        h('span.sp-hint', t.ok ? `total ${formatSecs(t.totalMs)}` : (t.error || '').slice(0, 90)),
+        h('div.spacer'),
+        t.model === model.value ? h('span.sp-hint', 'em uso') : h('button.btn.small', { type: 'button', onclick: async () => {
+          try { await putConfig({ model: t.model }); model.value = t.model; toast(`Modelo: ${t.model}.`); renderTested(); } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message; }
+        } }, 'Usar')))] : []));
+    };
+    renderTested();
+    const testBtn = h('button.btn', {
+      type: 'button', title: 'Mede o tempo até o 1º pedaço da resposta e se o modelo chama ferramentas',
+      onclick: async () => {
+        const m = model.value.trim();
+        if (!m) return;
+        testBtn.disabled = true;
+        msg.className = 'set-msg';
+        const t0 = Date.now();
+        msg.textContent = `Testando “${m}”…`;
+        const tick = setInterval(() => { msg.textContent = `Testando “${m}”… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
+        try {
+          const typed = key.value.trim();
+          await putConfig({ baseUrl: base.value, ...(typed ? { apiKey: typed } : {}) });
+          if (typed) { key.value = ''; key.placeholder = '•••••••• (chave salva)'; }
+          const r = await fetch('/api/agent/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: m }) });
+          const t = await r.json();
+          if (!r.ok) throw new Error(t.error);
+          tested[m] = t;
+          msg.className = t.ok ? 'set-msg ok' : 'set-msg error';
+          msg.textContent = t.ok
+            ? `“${m}” funciona: aceita ferramentas, 1º pedaço em ${formatSecs(t.firstTokenMs)}, total ${formatSecs(t.totalMs)}${t.reasoning ? ' (raciocina antes de responder)' : ''}.`
+            : `“${m}” não serve para o agente: ${t.error}`;
+          renderTested();
+          if (!picker.hidden) picker.querySelector('input')?.dispatchEvent(new Event('input'));
+        } catch (err) { msg.className = 'set-msg error'; msg.textContent = err.message || 'Não consegui testar.'; }
+        clearInterval(tick);
+        testBtn.disabled = false;
+      },
+    }, 'Testar modelo');
+    // TEMPOS E RACIOCÍNIO: gravam sozinhos ao mudar
+    const numField = (label, keyName, value, min, max) => {
+      const input = h('input.text', { type: 'number', min, max, value, 'aria-label': label, style: { width: '84px' } });
+      input.addEventListener('change', async () => {
+        try { await putConfig({ [keyName]: input.value === '' ? '' : Number(input.value) }); toast('Salvo.'); } catch (err) { toast(err.message); }
+      });
+      return input;
+    };
+    const timing = card('Tempo e raciocínio', 'Para o agente nunca ficar travado esperando.',
+      'A resposta chega em tempo real. Se o modelo não mandar nada no tempo do 1º pedaço, o agente para e avisa. Modelos de raciocínio (DeepSeek-R1, Qwen3, Nemotron) podem pensar por minutos: o “tempo máximo pensando” corta isso. “Pedir menos raciocínio” manda à NVIDIA NIM o parâmetro de cada modelo para pensar menos (chat_template_kwargs, “detailed thinking off”, /no_think ou reasoning_effort).',
+      row('Esperar o 1º pedaço', 'Segundos sem resposta até desistir', h('div.field', numField('Esperar o 1º pedaço (segundos)', 'firstTokenSec', ai.firstTokenSec ?? 60, 5, 600)), h('span.sp-hint', 's')),
+      row('Tempo máximo pensando', 'Só raciocínio, sem responder', h('div.field', numField('Tempo máximo pensando (segundos)', 'maxThinkSec', ai.maxThinkSec ?? 120, 10, 1800)), h('span.sp-hint', 's')),
+      row('Pedir menos raciocínio', 'NVIDIA NIM: pede ao modelo para pensar menos', checkbox('Ligado', ai.limitReasoning !== false, async (v) => {
+        try { await putConfig({ limitReasoning: v }); toast(v ? 'O agente vai pedir menos raciocínio.' : 'Raciocínio livre.'); } catch (err) { toast(err.message); }
+      })),
+      row('Limite da resposta (NIM)', 'max_tokens; 0 = sem limite', h('div.field', numField('Limite de tokens da resposta', 'maxTokens', ai.maxTokens ?? 4096, 0, 65536)), h('span.sp-hint', 'tokens')));
     const advanced = details('Avançado: endereço da API',
       row('Endereço da API', 'Qualquer servidor compatível com a API da OpenAI', h('div.field.grow', base)),
       h('p.sp-muted.small', 'Funciona com LM Studio, Ollama, OpenRouter, Groq e outros que falam Chat Completions com ferramentas.'));
@@ -384,18 +453,33 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
         card('Provedor e modelo', 'O Agente (botão ✦ no topo) conversa com a IA usando a sua chave.',
           `O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ${ai.instructions || 'docs/AGENTE.md'}. Edite à vontade: vale na próxima mensagem.`,
           row('Provedor', null, h('div.field.select-wrap', provSel, ico('chevron', 12))),
-          row('Modelo', 'Precisa aceitar ferramentas (tool calling)', h('div.field.grow', model), listBtn),
+          row('Modelo', 'Precisa aceitar ferramentas (tool calling)', h('div.field.grow', model), listBtn, testBtn),
           picker,
+          testedList,
           advanced,
           h('div.sp-card-foot', msg, h('div.spacer'), saveBtn)),
+        timing,
         ai.hasKey ? null : card(null, null, null, h('p.sp-muted', 'Falta a chave de API. ', h('button.link', { type: 'button', onclick: () => show('keys', true) }, 'Adicionar chave →')))),
       sectionEl('keys',
         card(`Chave do ${providerName}`, ai.hasKey ? 'Há uma chave salva para este provedor.' : 'Nenhuma chave salva para este provedor ainda.',
           'A chave fica guardada só neste computador, no arquivo de configuração do servidor, e nunca vai para o projeto nem volta para o navegador. Cada provedor tem a própria chave. Ela também pode vir de uma variável de ambiente (ex.: OPENAI_API_KEY).',
           row('Chave da API', prov ? `Crie em ${prov.keyUrl}` : null, h('div.field.grow', key)),
           prov?.note ? h('p.sp-muted.small', prov.note) : null,
-          h('div.sp-card-foot', keyMsg, h('div.spacer'), forget, saveKey))),
+          h('div.sp-card-foot', keyMsg, h('div.spacer'), forget, saveKey)),
+        jevCard()),
     ];
+    /** CHAVE DO JEV (TypeSafe): liga as ferramentas jev_choose / jev_score / jev_check do agente. */
+    function jevCard() {
+      const jevMsg = h('p.set-msg', { role: 'status' });
+      const jevKey = h('input.text.mono', { type: 'password', placeholder: ai.jev ? '•••••••• (chave salva)' : 'chave da TypeSafe', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave do Jev' });
+      const saveJev = h('button.btn.primary', { type: 'button', onclick: () => jevKey.value.trim() && save({ jevKey: jevKey.value.trim() }, 'Chave do Jev salva: o agente já pode usar o Jev.', jevMsg) }, 'Salvar chave');
+      jevKey.addEventListener('keydown', (e) => e.key === 'Enter' && saveJev.click());
+      const forgetJev = ai.jevSource === 'config' ? h('button.btn', { type: 'button', onclick: () => save({ jevKey: '' }, 'Chave do Jev apagada.', jevMsg) }, 'Apagar chave') : null;
+      return card('Chave do Jev (TypeSafe)', ai.jev ? (ai.jevSource === 'env' ? 'Ligado pela variável de ambiente JEV_API_KEY.' : 'Ligado: o agente pode pedir uma segunda opinião ao Jev.') : 'Opcional. Sem a chave, o agente não usa o Jev.',
+        'O Jev é um modelo rápido e barato que não escreve texto: ele escolhe entre opções, dá nota numa rubrica e confere se uma evidência sustenta uma afirmação. O agente usa como segunda opinião (ferramentas jev_choose, jev_score e jev_check). A chave fica só no servidor, nunca volta ao navegador. Também pode vir da variável de ambiente JEV_API_KEY.',
+        row('Chave do Jev', 'Crie em console.typesafe.ai', h('div.field.grow', jevKey)),
+        h('div.sp-card-foot', jevMsg, h('div.spacer'), forgetJev, saveJev));
+    }
   }
 
   // ---------------------------------------------------------------- 5. MCP
