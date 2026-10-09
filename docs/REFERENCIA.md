@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-65 arquivos · 1042 funções e constantes documentadas.
+67 arquivos · 1053 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -67,6 +67,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/inspector.js`](#srcuiinspectorjs) | Painel do inspecionar (como a aba "elements" do F12) |
 | [`src/ui/layers.js`](#srcuilayersjs) | Painel de páginas e camadas |
 | [`src/ui/menus.js`](#srcuimenusjs) | Menus flutuantes, janelas modais e ajuda de atalhos |
+| [`src/ui/photos.js`](#srcuiphotosjs) |  |
 | [`src/ui/presence.js`](#srcuipresencejs) | Quem está no projeto (pessoas e agentes) na barra do topo |
 | [`src/ui/projects.js`](#srcuiprojectsjs) | Janela "projetos na pasta" (salvar com nome, abrir, versões antigas) |
 | [`src/ui/props.js`](#srcuipropsjs) | Painel "design" (propriedades da seleção) |
@@ -76,6 +77,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`server.js`](#serverjs) | Servidor local: entrega o app e salva os projetos numa pasta do seu computador |
 | [`server/account.js`](#serveraccountjs) | Conta local (o seu perfil neste computador) |
 | [`server/mcp.js`](#servermcpjs) | O protocolo MCP (model context protocol), sem dependências |
+| [`server/photos.js`](#serverphotosjs) |  |
 | [`server/presence.js`](#serverpresencejs) | Quem está no projeto (pessoas e agentes) e as travas por camada |
 | [`scripts/mcp.mjs`](#scriptsmcpmjs) | Servidor MCP por "stdio" (para Claude Desktop, Codex e outros) |
 
@@ -567,12 +569,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L916](../src/css.js#L916) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`docCssVars(styles)`** · [L933](../src/css.js#L933) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
-- **`joinCss(parts)`** · [L950](../src/css.js#L950) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L922](../src/css.js#L922) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`docCssVars(styles)`** · [L939](../src/css.js#L939) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L956](../src/css.js#L956) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L980](../src/css.js#L980) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L994](../src/css.js#L994) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L986](../src/css.js#L986) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1000](../src/css.js#L1000) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -1844,22 +1846,22 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 **ABA "RECURSOS" (COMPONENTES E ESTILOS)** · [abrir o código](../src/ui/assets.js)
 
-- **`cssSlug(s)`** <sub>do módulo</sub> · [L17](../src/ui/assets.js#L17) — Nome da variável de CSS (o mesmo do código gerado).
-- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L26](../src/ui/assets.js#L26) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
+- **`cssSlug(s)`** <sub>do módulo</sub> · [L18](../src/ui/assets.js#L18) — Nome da variável de CSS (o mesmo do código gerado).
+- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L27](../src/ui/assets.js#L27) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
 
    - Componentes: clicar insere uma instância no centro da tela
    - Cores: estilos de cor; clicar aplica à seleção; +, renomear e excluir
    - Tipografia: estilos de texto; idem
   Mudar um estilo muda todas as camadas ligadas a ele (ver components.js → syncStyles).
-- **`section(title, add, body)`** <sub>interna</sub> · [L32](../src/ui/assets.js#L32) — Seção da lista: título, botão "+" opcional e linhas.
-- **`components()`** <sub>interna</sub> · [L36](../src/ui/assets.js#L36) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
-- **`compQuery`** <sub>interna</sub> · [L43](../src/ui/assets.js#L43) — Busca da biblioteca de componentes (lembrada entre redesenhos).
-- **`usage()`** <sub>interna</sub> · [L45](../src/ui/assets.js#L45) — Quantas cópias (instâncias) de cada componente existem no documento.
-- **`thumb(n, page)`** <sub>interna</sub> · [L51](../src/ui/assets.js#L51) — Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas.
-- **`componentGrid(comps)`** <sub>interna</sub> · [L59](../src/ui/assets.js#L59) — Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também.
-- **`render()`** <sub>interna</sub> · [L96](../src/ui/assets.js#L96) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
-- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L200](../src/ui/assets.js#L200) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
-- **`askColors(title)`** <sub>interna</sub> · [L214](../src/ui/assets.js#L214) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
+- **`section(title, add, body)`** <sub>interna</sub> · [L34](../src/ui/assets.js#L34) — Seção da lista: título, botão "+" opcional e linhas.
+- **`components()`** <sub>interna</sub> · [L38](../src/ui/assets.js#L38) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
+- **`compQuery`** <sub>interna</sub> · [L45](../src/ui/assets.js#L45) — Busca da biblioteca de componentes (lembrada entre redesenhos).
+- **`usage()`** <sub>interna</sub> · [L47](../src/ui/assets.js#L47) — Quantas cópias (instâncias) de cada componente existem no documento.
+- **`thumb(n, page)`** <sub>interna</sub> · [L53](../src/ui/assets.js#L53) — Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas.
+- **`componentGrid(comps)`** <sub>interna</sub> · [L61](../src/ui/assets.js#L61) — Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também.
+- **`render()`** <sub>interna</sub> · [L98](../src/ui/assets.js#L98) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
+- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L202](../src/ui/assets.js#L202) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
+- **`askColors(title)`** <sub>interna</sub> · [L216](../src/ui/assets.js#L216) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
 
 ---
 
@@ -2365,6 +2367,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/ui/photos.js
+
+- **`createPhotosPanel({ store, commands, canvas, toast })`** · [L9](../src/ui/photos.js#L9) — _(sem comentário)_
+
+---
+
 ## src/ui/presence.js
 
 **QUEM ESTÁ NO PROJETO (pessoas e agentes) NA BARRA DO TOPO** · [abrir o código](../src/ui/presence.js)
@@ -2496,7 +2504,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`exportSection()`** <sub>interna</sub> · [L1642](../src/ui/props.js#L1642) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
 - **`emptySection()`** <sub>interna</sub> · [L1668](../src/ui/props.js#L1668) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
 - **`signature()`** <sub>interna</sub> · [L1688](../src/ui/props.js#L1688) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1715](../src/ui/props.js#L1715) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`render()`** <sub>interna</sub> · [L1716](../src/ui/props.js#L1716) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
@@ -2586,8 +2594,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`save(patch, done = 'Agente configurado.', out = msg)`** <sub>interna</sub> · [L304](../src/ui/settings.js#L304) — Grava no servidor e redesenha (a chave só vai quando você digita uma nova).
 - **`putConfig(patch)`** <sub>interna</sub> · [L312](../src/ui/settings.js#L312) — Grava sem redesenhar a página (para não sumir com a lista de modelos aberta).
 - **`jevCard()`** <sub>interna</sub> · [L472](../src/ui/settings.js#L472) — CHAVE DO JEV (TypeSafe): liga as ferramentas jev_choose / jev_score / jev_check do agente.
-- **`render()`** <sub>interna</sub> · [L556](../src/ui/settings.js#L556) — Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma).
-- **`settingsOpen()`** · [L585](../src/ui/settings.js#L585) — A página de Configurações está aberta?
+- **`pexelsCard()`** <sub>interna</sub> · [L484](../src/ui/settings.js#L484) — Chave opcional do Pexels: usada só pelo servidor na busca da biblioteca de fotos.
+- **`render()`** <sub>interna</sub> · [L568](../src/ui/settings.js#L568) — Redesenha o conteúdo (ao abrir e depois de cada mudança que o servidor confirma).
+- **`settingsOpen()`** · [L597](../src/ui/settings.js#L597) — A página de Configurações está aberta?
 
 ---
 
@@ -2618,34 +2627,34 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     escapar da pasta com "../" nem sobrescrever outros tipos de arquivo.
 ```
 
-- **`root`** <sub>do módulo</sub> · [L44](../server.js#L44) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
-- **`port`** <sub>do módulo</sub> · [L46](../server.js#L46) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
-- **`allowed`** <sub>do módulo</sub> · [L48](../server.js#L48) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
-- **`configFile`** <sub>do módulo</sub> · [L50](../server.js#L50) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
-- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L56](../server.js#L56) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
-- **`MAX_BODY`** <sub>do módulo</sub> · [L58](../server.js#L58) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
-- **`FILE_RE`** <sub>do módulo</sub> · [L60](../server.js#L60) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
-- **`types`** <sub>do módulo</sub> · [L63](../server.js#L63) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
-- **`loadConfig()`** <sub>do módulo</sub> · [L75](../server.js#L75) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
-- **`config`** <sub>do módulo</sub> · [L84](../server.js#L84) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
-- **`loadAccount()`** <sub>do módulo</sub> · [L87](../server.js#L87) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
-- **`expandHome(p)`** <sub>do módulo</sub> · [L92](../server.js#L92) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
-- **`useFolder(input)`** <sub>do módulo</sub> · [L98](../server.js#L98) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
-- **`publicConfig()`** <sub>do módulo</sub> · [L110](../server.js#L110) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
-- **`httpError(status, message)`** <sub>do módulo</sub> · [L114](../server.js#L114) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`knownContent`** <sub>do módulo</sub> · [L119](../server.js#L119) — Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo).
-- **`hashOf(data)`** <sub>do módulo</sub> · [L121](../server.js#L121) — Hash curto do conteúdo de um arquivo de projeto.
-- **`readBody(req)`** <sub>do módulo</sub> · [L128](../server.js#L128) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L139](../server.js#L139) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L141](../server.js#L141) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L144](../server.js#L144) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L146](../server.js#L146) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L148](../server.js#L148) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L150](../server.js#L150) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L152](../server.js#L152) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L158](../server.js#L158) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L174](../server.js#L174) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L208](../server.js#L208) — Rotas da API (todas respondem JSON):
+- **`root`** <sub>do módulo</sub> · [L45](../server.js#L45) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
+- **`port`** <sub>do módulo</sub> · [L47](../server.js#L47) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
+- **`allowed`** <sub>do módulo</sub> · [L49](../server.js#L49) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
+- **`configFile`** <sub>do módulo</sub> · [L51](../server.js#L51) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
+- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L57](../server.js#L57) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
+- **`MAX_BODY`** <sub>do módulo</sub> · [L59](../server.js#L59) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
+- **`FILE_RE`** <sub>do módulo</sub> · [L61](../server.js#L61) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
+- **`types`** <sub>do módulo</sub> · [L64](../server.js#L64) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
+- **`loadConfig()`** <sub>do módulo</sub> · [L76](../server.js#L76) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
+- **`config`** <sub>do módulo</sub> · [L85](../server.js#L85) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
+- **`loadAccount()`** <sub>do módulo</sub> · [L89](../server.js#L89) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
+- **`expandHome(p)`** <sub>do módulo</sub> · [L94](../server.js#L94) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`useFolder(input)`** <sub>do módulo</sub> · [L100](../server.js#L100) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
+- **`publicConfig()`** <sub>do módulo</sub> · [L112](../server.js#L112) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
+- **`httpError(status, message)`** <sub>do módulo</sub> · [L116](../server.js#L116) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
+- **`knownContent`** <sub>do módulo</sub> · [L121](../server.js#L121) — Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo).
+- **`hashOf(data)`** <sub>do módulo</sub> · [L123](../server.js#L123) — Hash curto do conteúdo de um arquivo de projeto.
+- **`readBody(req)`** <sub>do módulo</sub> · [L130](../server.js#L130) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L141](../server.js#L141) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L143](../server.js#L143) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L146](../server.js#L146) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L148](../server.js#L148) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L150](../server.js#L150) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L152](../server.js#L152) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L154](../server.js#L154) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L160](../server.js#L160) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L176](../server.js#L176) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L210](../server.js#L210) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
@@ -2662,26 +2671,26 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
-- **`editors`** <sub>do módulo</sub> · [L347](../server.js#L347) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
-- **`pending`** <sub>do módulo</sub> · [L349](../server.js#L349) — Pedidos esperando resposta do editor: id → { resolve, timer }.
-- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L352](../server.js#L352) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
-- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L355](../server.js#L355) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
-- **`presence`** <sub>do módulo</sub> · [L372](../server.js#L372) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
-- **`mcpSessions`** <sub>do módulo</sub> · [L374](../server.js#L374) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
-- **`broadcastPresence()`** <sub>do módulo</sub> · [L376](../server.js#L376) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
-- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L384](../server.js#L384) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
-- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L412](../server.js#L412) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
-- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L438](../server.js#L438) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
-- **`agentConfig()`** <sub>do módulo</sub> · [L444](../server.js#L444) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
-- **`jevConfig()`** <sub>do módulo</sub> · [L466](../server.js#L466) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
-- **`agentInstructions()`** <sub>do módulo</sub> · [L475](../server.js#L475) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
-- **`authHeader(a)`** <sub>do módulo</sub> · [L477](../server.js#L477) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
-- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L480](../server.js#L480) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
-- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L489](../server.js#L489) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
-- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L567](../server.js#L567) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
-- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L580](../server.js#L580) — Frase para a tela a partir do erro de chat (com o que fazer).
-- **`PING_TOOL`** <sub>do módulo</sub> · [L594](../server.js#L594) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
-- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L612](../server.js#L612) — Rotas da IA:
+- **`editors`** <sub>do módulo</sub> · [L350](../server.js#L350) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L352](../server.js#L352) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L355](../server.js#L355) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L358](../server.js#L358) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`presence`** <sub>do módulo</sub> · [L375](../server.js#L375) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+- **`mcpSessions`** <sub>do módulo</sub> · [L377](../server.js#L377) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
+- **`broadcastPresence()`** <sub>do módulo</sub> · [L379](../server.js#L379) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
+- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L387](../server.js#L387) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L415](../server.js#L415) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L441](../server.js#L441) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
+- **`agentConfig()`** <sub>do módulo</sub> · [L447](../server.js#L447) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+- **`jevConfig()`** <sub>do módulo</sub> · [L469](../server.js#L469) — Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um servidor DESTA máquina (testes), por config.jev.url.
+- **`agentInstructions()`** <sub>do módulo</sub> · [L478](../server.js#L478) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+- **`authHeader(a)`** <sub>do módulo</sub> · [L480](../server.js#L480) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
+- **`chatError(code, message, extra = {})`** <sub>do módulo</sub> · [L483](../server.js#L483) — Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network).
+- **`streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {…)`** <sub>do módulo</sub> · [L492](../server.js#L492) — Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta` ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }). Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` → erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
+- **`chatWithRetry({ a, model, system, messages, tools, signal, onDelta })`** <sub>do módulo</sub> · [L570](../server.js#L570) — Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
+- **`chatErrorText(err, model, a)`** <sub>do módulo</sub> · [L583](../server.js#L583) — Frase para a tela a partir do erro de chat (com o que fazer).
+- **`PING_TOOL`** <sub>do módulo</sub> · [L597](../server.js#L597) — Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L615](../server.js#L615) — Rotas da IA:
 
     GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
     POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
@@ -2749,6 +2758,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `deps.version` <sub>string</sub> — versão do app (aparece para a IA)
   - `[deps.instructions]` <sub>string</sub> — quem a IA é e como trabalhar (o servidor lê de docs/AGENTE.md)
   - ↩︎ `Promise<object\|null>` a resposta, ou null quando a mensagem é um aviso (sem id)
+
+---
+
+## server/photos.js
+
+- **`MAX_PHOTO_BYTES`** · [L2](../server/photos.js#L2) — _(sem comentário)_
+- **`commercialLicense(result)`** · [L10](../server/photos.js#L10) — _(sem comentário)_
+- **`normalizeOpenverse(item)`** · [L16](../server/photos.js#L16) — _(sem comentário)_
+- **`normalizePexels(item)`** · [L32](../server/photos.js#L32) — _(sem comentário)_
+- **`normalizeResults(openverse = [], pexels = [])`** · [L45](../server/photos.js#L45) — _(sem comentário)_
+- **`validateProxyUrl(value)`** · [L52](../server/photos.js#L52) — _(sem comentário)_
+- **`validateImageResponse(contentType, contentLength)`** · [L62](../server/photos.js#L62) — _(sem comentário)_
+- **`boundedPhotoBytes(response)`** · [L68](../server/photos.js#L68) — _(sem comentário)_
+- **`createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {})`** · [L91](../server/photos.js#L91) — _(sem comentário)_
 
 ---
 

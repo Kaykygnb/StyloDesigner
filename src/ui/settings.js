@@ -48,7 +48,7 @@ const SECTIONS = [
   ['account', 'user', 'Conta', 'Seu perfil neste computador. Ele assina os comentários e aparece para quem está no projeto.'],
   ['folder', 'folder', 'Projetos e pasta', 'Onde os projetos são gravados e como as versões antigas são guardadas.'],
   ['ai', 'sparkle', 'Agente de IA e modelos', 'Qual serviço de IA o Agente usa e com qual modelo.'],
-  ['keys', 'key', 'Chaves de API', 'As chaves do provedor de IA e do Jev. Ficam guardadas só neste computador.'],
+  ['keys', 'key', 'Chaves de API', 'As chaves do provedor de IA, do Jev e do Pexels. Ficam guardadas só neste computador.'],
   ['mcp', 'plug', 'MCP e agentes', 'Deixe programas como Claude Code e Codex lerem e alterarem o design.'],
   ['look', 'sliders', 'Aparência', 'Tema, tela inicial e controles do canvas.'],
   ['keyboard', 'keyboard', 'Atalhos', 'Todos os atalhos de teclado do editor.'],
@@ -466,7 +466,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
           row('Chave da API', prov ? `Crie em ${prov.keyUrl}` : null, h('div.field.grow', key)),
           prov?.note ? h('p.sp-muted.small', prov.note) : null,
           h('div.sp-card-foot', keyMsg, h('div.spacer'), forget, saveKey)),
-        jevCard()),
+        jevCard(), pexelsCard()),
     ];
     /** CHAVE DO JEV (TypeSafe): liga as ferramentas jev_choose / jev_score / jev_check do agente. */
     function jevCard() {
@@ -479,6 +479,18 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
         'O Jev é um modelo rápido e barato que não escreve texto: ele escolhe entre opções, dá nota numa rubrica e confere se uma evidência sustenta uma afirmação. O agente usa como segunda opinião (ferramentas jev_choose, jev_score e jev_check). A chave fica só no servidor, nunca volta ao navegador. Também pode vir da variável de ambiente JEV_API_KEY.',
         row('Chave do Jev', 'Crie em console.typesafe.ai', h('div.field.grow', jevKey)),
         h('div.sp-card-foot', jevMsg, h('div.spacer'), forgetJev, saveJev));
+    }
+    /** Chave opcional do Pexels: usada só pelo servidor na busca da biblioteca de fotos. */
+    function pexelsCard() {
+      const pexelsMsg = h('p.set-msg', { role: 'status' });
+      const pexelsKey = h('input.text.mono', { type: 'password', placeholder: ai.pexels ? '•••••••• (chave salva)' : 'chave do Pexels', autocomplete: 'off', spellcheck: false, 'aria-label': 'Chave do Pexels' });
+      const savePexels = h('button.btn.primary', { type: 'button', onclick: () => pexelsKey.value.trim() && save({ pexelsKey: pexelsKey.value.trim() }, 'Chave do Pexels salva.', pexelsMsg) }, 'Salvar chave');
+      pexelsKey.addEventListener('keydown', (e) => e.key === 'Enter' && savePexels.click());
+      const forgetPexels = ai.pexelsSource === 'config' ? h('button.btn', { type: 'button', onclick: () => save({ pexelsKey: '' }, 'Chave do Pexels apagada.', pexelsMsg) }, 'Apagar chave') : null;
+      return card('Chave do Pexels', ai.pexels ? (ai.pexelsSource === 'env' ? 'Ligado pela variável de ambiente PEXELS_API_KEY.' : 'Ligado: as buscas de fotos também consultam o Pexels.') : 'Opcional. Sem a chave, a biblioteca consulta apenas o Openverse.',
+        'A chave fica só no arquivo de configuração do servidor, nunca é enviada ao navegador. Também pode vir da variável de ambiente PEXELS_API_KEY.',
+        row('Chave do Pexels', 'Crie em pexels.com/api', h('div.field.grow', pexelsKey)),
+        h('div.sp-card-foot', pexelsMsg, h('div.spacer'), forgetPexels, savePexels));
     }
   }
 

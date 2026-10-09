@@ -26,6 +26,7 @@
  */
 
 import { createServer } from 'node:http';
+import { createPhotosHandler } from './server/photos.js';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
@@ -82,6 +83,7 @@ async function loadConfig() {
 }
 /** Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config. */
 let config = await loadConfig();
+const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
 
 /** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
 async function loadAccount() {
@@ -207,6 +209,7 @@ async function snapshotVersion(name) {
  */
 async function api(req, res, path) {
   if (!localHost(req.headers.host)) throw httpError(403, 'Acesso negado.');
+  if (path.startsWith('/api/photos/')) return photosRoute(req, res, config);
   const write = req.method !== 'GET' && req.method !== 'HEAD';
   if (write) {
     if (!localOrigin(req.headers.origin)) throw httpError(403, 'Acesso negado.');
@@ -642,6 +645,7 @@ async function agentApi(req, res, parts) {
       tested: config.agent?.tested || {},
       // Jev: só se há chave e de onde ela vem (a chave em si nunca sai daqui)
       jev: !!jevConfig().apiKey, jevSource: jevConfig().source,
+      pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY), pexelsSource: config.pexels?.apiKey ? 'config' : process.env.PEXELS_API_KEY ? 'env' : '',
     });
   }
   if (what === 'config' && req.method === 'PUT') {
@@ -668,6 +672,8 @@ async function agentApi(req, res, parts) {
       else next[k] = Number(body[k]);
     }
     if (body.limitReasoning !== undefined) next.limitReasoning = !!body.limitReasoning;
+    const pexels = { ...(config.pexels || {}) };
+    if (body.pexelsKey !== undefined) { const k = String(body.pexelsKey).trim(); if (k) pexels.apiKey = k.slice(0, 400); else delete pexels.apiKey; }
     // CHAVE DO JEV (TypeSafe): "" apaga. jevUrl só aceita endereço desta máquina (servidor de teste).
     let jev = { ...(config.jev || {}) };
     if (body.jevKey !== undefined) { const k = String(body.jevKey).trim(); if (k) jev.apiKey = k.slice(0, 400); else delete jev.apiKey; }
@@ -676,11 +682,12 @@ async function agentApi(req, res, parts) {
       if (u && !isLocalUrl(u)) throw httpError(400, 'jevUrl só aceita um endereço desta máquina (localhost). Para outro, use a variável JEV_API_URL.');
       if (u) jev.url = u; else delete jev.url;
     }
-    config = { ...config, agent: next, ...(Object.keys(jev).length ? { jev } : {}) };
+    config = { ...config, agent: next, ...(Object.keys(jev).length ? { jev } : {}), ...(Object.keys(pexels).length ? { pexels } : {}) };
     if (!Object.keys(jev).length) delete config.jev;
+    if (!Object.keys(pexels).length) delete config.pexels;
     await writeFile(configFile, JSON.stringify(config, null, 2));
     const a = agentConfig();
-    return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, jev: !!jevConfig().apiKey });
+    return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, jev: !!jevConfig().apiKey, pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY) });
   }
   if (what === 'mcp' && req.method === 'PUT') {
     // { admin: boolean } — "Acesso de administrador" do MCP: programas de IA DESTE computador agem sem a janela de

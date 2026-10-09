@@ -1703,6 +1703,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       marginExpanded, n.margin && (n.margin[0] !== n.margin[2] || n.margin[1] !== n.margin[3]), n.fx && Object.keys(n.fx).length,
       !!(n.minW || n.maxW || n.minH || n.maxH), n.aspect > 0, n.aspect > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed',
       n.flipX, n.flipY, n.isMask, n.grids?.length, n.grids?.map((g) => g.type).join(), n.closed,
+      JSON.stringify(n.photoCredit || null),
       // vetor: se está em edição de pontos, qual ponto e de que tipo (mudam os campos mostrados)
       n.type === 'path' ? `${ui.editPathId === n.id}|${ui.editPt}|${(ui.editPts || []).join('.')}|${ui.editPathId === n.id ? tools.pen.pointType() : ''}` : '',
       store.state.doc.styles.colors.length, store.state.doc.styles.texts.length, n.fill.styleId, n.textStyleId, n.type,
@@ -1728,9 +1729,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         const canComp = one && ['frame', 'group', 'rect', 'ellipse'].includes(n.type);
         const isComp = !!(n.component || n.instanceOf);
         const parts = [];
+        const creditUrl = (value) => { try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
+        const creditSection = (credit) => credit && section('Crédito da foto', h('div.photo-credit-panel',
+          h('strong', credit.author || 'Autor desconhecido'),
+          h('span', `${credit.provider || ''} · ${credit.license || 'Licença não informada'}`),
+          creditUrl(credit.sourceUrl) ? h('a', { href: creditUrl(credit.sourceUrl), target: '_blank', rel: 'noopener noreferrer' }, 'Abrir origem') : null,
+          creditUrl(credit.licenseUrl) ? h('a', { href: creditUrl(credit.licenseUrl), target: '_blank', rel: 'noopener noreferrer' }, 'Ver licença') : null));
         if (ui.editState && canHaveStates(n)) {
           // modo ESTADO: só o que um estado pode mudar (aparência, escala, preenchimento, contorno, efeitos)
-          parts.push(statesSection(), appearanceSection(), stateScaleBlock(), fillSection(), strokeSection(), effectsSection());
+          parts.push(statesSection(), appearanceSection(), stateScaleBlock(), fillSection(), strokeSection(), effectsSection(), creditSection(n.photoCredit));
           el.replaceChildren(...parts);
           updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
           return;
@@ -1747,6 +1754,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
           if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
           if (n.type !== 'section' && n.type !== 'path') parts.push(effectsSection());
+          if (one) parts.push(creditSection(n.photoCredit));
           if (one) parts.push(customCssSection());
           el.replaceChildren(...parts.filter(Boolean));
           updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
@@ -1763,6 +1771,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
         if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
         if (n.type !== 'section') parts.push(effectsSection());
+        if (one) parts.push(creditSection(n.photoCredit));
         if (canHaveStates(n)) parts.push(statesSection());
         if (canComp && !isComp) parts.push(componentSection());
         parts.push(customCssSection(), htmlSection(), exportSection());

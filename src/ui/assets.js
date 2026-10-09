@@ -13,6 +13,7 @@ import { getPalettes, onPalettes, changePalette, createPalette, deletePalette, a
 import { rgba } from '../css.js';
 import { walk, defaultFill, defaultStroke, slugify } from '../model.js';
 import { toSvg } from '../svg.js';
+import { createPhotosPanel } from './photos.js';
 /** Nome da variável de CSS (o mesmo do código gerado). */
 const cssSlug = (s) => slugify(s || 'variavel');
 
@@ -27,6 +28,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
   const ui = store.ui;
   const el = h('div.assets');
   container.append(el);
+  const photos = createPhotosPanel({ store, commands, canvas, toast });
 
   /** Seção da lista: título, botão "+" opcional e linhas. */
   const section = (title, add, body) =>
@@ -268,6 +270,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     }, 'small');
 
     el.replaceChildren(
+      section('Fotos', null, [photos.el]),
       section('Componentes', null, compRows),
       section('Cores', addColor, colorRows.length ? colorRows : [h('p.hint', 'Crie estilos de cor: mudou aqui, muda em todas as camadas.')]),
       section('Variáveis', addVarBtn, varRows.length ? varRows : [h('p.hint', 'Números reutilizáveis (espaçamento, raio, fonte). Ligue um campo do painel Design a uma variável: mudou aqui, muda em todas as camadas, e o CSS usa var(--nome).')]),

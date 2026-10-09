@@ -859,11 +859,15 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     // etiqueta escolhida no painel (HTML) e seus atributos: link, tipo de botão, descrição para leitor de tela
     // etiqueta conferida contra os pais (htmlTagIn): um <li> fora de lista, por exemplo, vira <div>
     const tag = htmlTagIn(node, ancestors).tag;
+    const photoAttribution = node.photoCredit?.attributionRequired
+      ? String(node.photoCredit.attribution || `${node.photoCredit.author || 'Autor'} · ${node.photoCredit.license || ''}`)
+      : '';
+    const htmlNode = photoAttribution ? { ...node, title: [node.title, photoAttribution].filter(Boolean).join(' · ') } : node;
     const hasKids = node.type !== 'text' && node.type !== 'path' && (node.children || []).length > 0;
     // classes: a gerada + as extras escritas pela pessoa; depois id, title, role, target/rel... (html.js → htmlAttrs)
     const extra = cleanClasses(node.classes).filter((c) => c !== cls);
     const attrs = ` class="${[cls, ...extra].join(' ')}"`
-      + htmlAttrs(node, tag)
+      + htmlAttrs(htmlNode, tag)
       + (tag === 'a' ? ` href="${escapeHtml(safeUrl(node.href) || '#')}"` : '')
       + (tag === 'button' ? ` type="${BUTTON_TYPES.includes(node.buttonType) ? node.buttonType : 'button'}"` : '')
       + (node.alt ? ` aria-label="${escapeHtml(node.alt)}"` : '')
@@ -872,21 +876,23 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       // `ids` (só para os testes de fidelidade): marca cada elemento com o id da camada para comparar com o editor
       + (ids ? ` data-node-id="${escapeHtml(node.id)}"` : '');
     const noteHtml = note ? `${pad}<!-- ${note} -->\n` : '';
+    const credit = photoAttribution.replace(/--/g, '—').replace(/[<>]/g, '');
+    const creditHtml = credit ? `${pad}<!-- Crédito da foto: ${credit} -->\n` : '';
     if (node.type === 'text') {
-      return `${noteHtml}${pad}<${tag}${attrs}>${escapeHtml(node.text)}</${tag}>`;
+      return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}>${escapeHtml(node.text)}</${tag}>`;
     }
     if (node.type === 'path') {
-      return `${noteHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
+      return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
     }
     // CÓDIGO HTML escrito à mão: vai limpo (html.js → sanitizeHtml) dentro da caixa da camada
     if (node.type === 'html') {
       const inner = sanitizeHtml(node.html).html.trim();
-      if (!inner) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
-      return `${noteHtml}${pad}<${tag}${attrs}>\n${inner.split('\n').map((l) => `${pad}  ${l}`).join('\n')}\n${pad}</${tag}>`;
+      if (!inner) return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}></${tag}>`;
+      return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}>\n${inner.split('\n').map((l) => `${pad}  ${l}`).join('\n')}\n${pad}</${tag}>`;
     }
     const kids = (node.children || []).map((c) => build(c, node, depth + 1, false, [...ancestors, tag])).filter(Boolean);
-    if (!kids.length) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
-    return `${noteHtml}${pad}<${tag}${attrs}>\n${kids.join('\n')}\n${pad}</${tag}>`;
+    if (!kids.length) return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}></${tag}>`;
+    return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}>\n${kids.join('\n')}\n${pad}</${tag}>`;
   };
   // o pai (quando há, ex.: o painel Código mostrando um item) conta para a conferência das etiquetas
   const html = nodes.map((n, i) => build(n, parent, 0, root && i === 0, parent ? [tagOf(parent)] : [])).filter(Boolean).join('\n');
