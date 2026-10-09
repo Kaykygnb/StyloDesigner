@@ -45,6 +45,7 @@ import { createRunner } from './agent/runner.js';
 import { createApprover, connectMcpBridge } from './agent/bridge.js';
 import { createAssistant } from './ui/assistant.js';
 import { createPresence } from './ui/presence.js';
+import { createAccount, avatarEl } from './account.js';
 /** Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo). */
 const presenceSlot = document.createElement('span');
 
@@ -93,8 +94,11 @@ store.onSaveError = () => {
   warnedSave = true;
   toast('Não consegui salvar no navegador (espaço cheio?). Use Arquivo → Salvar na pasta.');
 };
-/** Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js). */
-const openSettings = () => openSettingsDialog({ store, saving, prefs, savePrefs, toast });
+// CONTA LOCAL (perfil guardado pelo servidor; ver account.js). Carrega sem travar a abertura do app: comentários e
+// presença leem prefs.author/authorColor, que a conta mantém em dia.
+const account = createAccount({ prefs, savePrefs, server: !!ui.server });
+/** Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção. */
+const openSettings = (section) => openSettingsDialog({ store, saving, prefs, savePrefs, toast, account, section: typeof section === 'string' ? section : undefined });
 const openProjects = (mode = 'open') => openProjectsDialog({ store, saving, canvas, toast, openSettings, confirmReplace, mode });
 /** Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome. */
 const quickSave = async () => { if (!(await saving.quickSave())) openProjects('save'); };
@@ -220,11 +224,28 @@ nameInput.addEventListener('change', () => {
 nameInput.addEventListener('keydown', (e) => e.key === 'Enter' && nameInput.blur());
 
 // indicador de salvamento (atualizado em syncTopbar). É um botão: clicar abre as Configurações de onde salvar.
-const saveEl = h('button.save-state', { type: 'button', onclick: () => openSettings() }, 'Salvo');
+const saveEl = h('button.save-state', { type: 'button', onclick: () => openSettings('folder') }, 'Salvo');
 const undoBtn = iconButton('undo', 'Desfazer (Ctrl+Z)', () => store.undo());
 const redoBtn = iconButton('redo', 'Refazer (Ctrl+Shift+Z)', () => store.redo());
 const themeBtn = iconButton('sun', 'Alternar tema claro/escuro', () => store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'));
-const settingsBtn = iconButton('settings', 'Configurações (Ctrl+,)', () => openSettings());
+// AVATAR DA CONTA (canto direito): abre o menu "Minha conta / Configurações / Central de ajuda"
+const accountBtn = h('button.acc-btn', {
+  type: 'button', title: 'Sua conta', 'aria-label': 'Sua conta e configurações', 'aria-haspopup': 'menu',
+  onclick: (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const a = account.data;
+    showMenu(r.right, r.bottom + 6, [
+      { label: a.name || 'Sua conta', heading: true },
+      { label: 'Minha conta', icon: 'user', onClick: () => openSettings('account') },
+      { label: 'Configurações', hint: 'Ctrl+,', icon: 'settings', onClick: () => openSettings('folder') },
+      'sep',
+      { label: 'Central de ajuda', hint: '?', icon: 'help', onClick: () => showHelp('start', VERSION) },
+    ], { anchorRight: true });
+  },
+});
+const paintAccount = () => accountBtn.replaceChildren(avatarEl(h, account.data));
+paintAccount();
+account.onChange(paintAccount);
 // seletor de arquivo escondido: o menu Arquivo → Abrir "clica" nele para abrir o diálogo do sistema
 const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
 fileInput.addEventListener('change', async () => {
@@ -326,14 +347,17 @@ async function confirmReplace(question) {
 const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Agente de IA: conversas, modelos e memória do projeto' }, ico('sparkle', 15), h('span.tab-label', ' Agente'));
 // monta a barra superior
 $('#topbar').append(
-  h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', onclick: () => home.open() },
-    h('div.logo', { html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0b0c0e" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M16.5 7.2C15.6 6.2 14.1 5.6 12.4 5.6c-2.5 0-4.2 1.3-4.2 3.2 0 4.2 8.6 2.2 8.6 6.3 0 1.9-1.8 3.3-4.4 3.3-1.9 0-3.5-.7-4.5-1.9"/></svg>' }),
+  // logo + nome do app: leva à página inicial (o nome do projeto fica logo depois, editável)
+  h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', 'aria-label': 'Stylo: página inicial', onclick: () => home.open() },
+    h('img.logo-img', { src: 'assets/logo-mark.svg', alt: '', width: 24, height: 24 }),
     h('span.brand-name', 'Stylo')),
-  fileBtn,
-  h('span.sep'),
-  undoBtn, redoBtn,
+  // nome do projeto logo depois da marca ("Stylo / Meu projeto"), com o indicador de salvo
+  h('span.brand-slash', { 'aria-hidden': 'true' }, '/'),
   nameInput,
   saveEl,
+  h('span.sep'),
+  fileBtn,
+  undoBtn, redoBtn,
   h('div.spacer'),
   responsive.topEl,
   h('div.spacer'),
@@ -341,8 +365,7 @@ $('#topbar').append(
   aiBtn,
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
-  settingsBtn,
-  iconButton('help', 'Central de ajuda (?)', () => showHelp('start', VERSION)),
+  accountBtn,
   fileInput,
 );
 
@@ -499,7 +522,7 @@ window.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   const typing = e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
   // com uma janela aberta (Configurações, Projetos, ajuda), os atalhos do app ficam quietos
-  if (document.querySelector('.modal-backdrop') || ui.homeOpen) return;
+  if (document.querySelector('.modal-backdrop') || ui.homeOpen || ui.settingsOpen) return;
   const key = e.key.toLowerCase();
   if (mod && key === 's') { e.preventDefault(); e.shiftKey ? openProjects('save') : quickSave(); }
   if (mod && e.altKey && e.key === 'Enter') { e.preventDefault(); present.open(ui.selection[0]); }
@@ -552,7 +575,10 @@ const assistant = createAssistant({ store, runner, openSettings, stage: $('.stag
 aiBtn.addEventListener('click', () => assistant.toggle());
 // o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
 let bridge = null;
-const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => bridge?.reconnect() });
+const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => bridge?.reconnect(), editProfile: () => openSettings('account') });
+// nome ou cor da conta mudou: a presença (e os agentes) passam a ver o nome novo
+account.onChange((a, changed) => { presence.render(); if (changed) bridge?.reconnect(); });
+account.load();
 presenceSlot.replaceWith(presence.el);
 if (ui.server) bridge = connectMcpBridge({ runner, toast, profile: () => presence.profile(), onPresence: (d) => presence.update(d) });
 

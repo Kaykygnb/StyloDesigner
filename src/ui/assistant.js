@@ -88,7 +88,7 @@ function loadSaved() {
  * @param {object} deps
  * @param {object} deps.store
  * @param {{ run: Function }} deps.runner
- * @param {() => void} deps.openSettings  abre as Configurações (para pôr a chave)
+ * @param {() => void} deps.openSettings  abre as Configurações numa seção ('ai', 'keys')
  * @param {HTMLElement} deps.stage  onde o painel se encaixa
  * @param {{ setAuto: Function, isAuto: Function }} [deps.approve]  para a opção "Fazer sem perguntar"
  * @param {object} [deps.prefs]  preferências (lembra a opção) · @param {() => void} [deps.savePrefs]
@@ -168,7 +168,7 @@ export function createAssistant({ store, runner, openSettings, stage, approve, p
       titleEl,
       h('div.spacer'),
       h('button.icon-btn.small', { type: 'button', title: 'Nova conversa', 'aria-label': 'Nova conversa', onclick: () => newSession() }, ico('plus', 14)),
-      h('button.icon-btn.small', { type: 'button', title: 'Provedores, chaves e modelo padrão', 'aria-label': 'Configurar agente', onclick: () => openSettings() }, ico('settings', 14)),
+      h('button.icon-btn.small', { type: 'button', title: 'Provedores, chaves e modelo padrão', 'aria-label': 'Configurar agente', onclick: () => openSettings('ai') }, ico('settings', 14)),
       h('button.icon-btn.small', { type: 'button', title: 'Fechar', 'aria-label': 'Fechar agente', onclick: () => close() }, ico('x', 14))),
     h('div.ai-bar', modelBtn, h('div.spacer'), autoEl),
     memBox,
@@ -231,7 +231,7 @@ export function createAssistant({ store, runner, openSettings, stage, approve, p
     if (!modelList.length) items.push({ label: 'Lista indisponível (confira a chave nas Configurações)', disabled: true });
     items.push('sep',
       { label: 'Outro modelo…', icon: 'edit', onClick: async () => { const m = await askText({ title: 'Modelo desta conversa', label: 'Nome exato do modelo (ex.: gpt-4.1, qwen2.5:7b)', value: currentModel(), confirm: 'Usar' }); if (m) pick(m.trim()); } },
-      { label: 'Provedores e chaves…', icon: 'settings', onClick: () => openSettings() });
+      { label: 'Provedores e chaves…', icon: 'settings', onClick: () => openSettings('ai') });
     showMenu(r.left, r.bottom + 6, items);
   }
 
@@ -290,7 +290,7 @@ export function createAssistant({ store, runner, openSettings, stage, approve, p
   const setupBox = () => {
     const who = { openai: 'da OpenAI', nvidia: 'da NVIDIA (nvapi-...)' }[config?.provider] || 'da API';
     return h('div.ai-setup', h('p', `Para conversar, o agente precisa da sua chave ${who} (ela fica só neste computador).`),
-      h('button.btn.primary.small', { type: 'button', onclick: () => openSettings() }, 'Configurar a chave'));
+      h('button.btn.primary.small', { type: 'button', onclick: () => openSettings('keys') }, 'Configurar a chave'));
   };
 
   /** Lê a configuração do servidor (modelo padrão, provedor, se falta a chave). */

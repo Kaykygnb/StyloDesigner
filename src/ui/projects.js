@@ -117,7 +117,7 @@ export function openProjects({ store, saving, canvas, toast, openSettings, confi
 
     body.replaceChildren(
       h('div.proj-folder', ico('folder', 14), h('span.mono.small', server.folder),
-        h('button.btn.ghost.small', { type: 'button', onclick: () => { close(); openSettings(); } }, 'Trocar pasta…')),
+        h('button.btn.ghost.small', { type: 'button', onclick: () => { close(); openSettings('folder'); } }, 'Trocar pasta…')),
       h('div.proj-save',
         h('label.set-label', { for: 'proj-name' }, 'Salvar o projeto atual como'),
         h('div.set-path', h('div.field', Object.assign(nameInput, { id: 'proj-name' }), h('span.muted.mono.small', '.json ')),

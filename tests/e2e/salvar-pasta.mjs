@@ -59,13 +59,13 @@ try {
 
   // ---------------------------------------------------------------- 3. Configurações: escolher a pasta
   await p.keyboard.press('Control+,');
-  await p.waitForSelector('[role=dialog] .set-path input');
-  ok('Ctrl+, abre Configurações como diálogo acessível', await p.evaluate(() => {
-    const d = document.querySelector('[role=dialog]');
-    return d.getAttribute('aria-modal') === 'true' && document.getElementById(d.getAttribute('aria-labelledby'))?.textContent === 'Configurações';
+  await p.waitForSelector('.settings-page');
+  ok('Ctrl+, abre a página de Configurações (região nomeada, editor inerte)', await p.evaluate(() => {
+    const d = document.querySelector('.settings-page');
+    return d.getAttribute('aria-label') === 'Configurações' && document.getElementById('app').inert;
   }));
-  // a 1ª seção é a da pasta (a de IA, mais abaixo, tem o próprio indicador e a própria mensagem)
-  const pasta = p.locator('.set-section').first();
+  await p.click('.sp-nav-item[data-section="folder"]');
+  const pasta = p.locator('#settings-folder .sp-card').first();
   ok('mostra "servidor conectado"', (await pasta.locator('.set-status.on').count()) === 1 && (await pasta.innerText()).includes('Servidor conectado'));
   await p.fill('.set-path input', 'pasta/relativa');
   await p.click('text=Usar esta pasta');
@@ -76,7 +76,7 @@ try {
   await p.waitForTimeout(600);
   ok('pasta nova aplicada', (await api('/status')).folder === dir);
   await p.keyboard.press('Escape');
-  ok('Esc fecha a janela', (await p.locator('[role=dialog]').count()) === 0);
+  ok('Esc fecha a página', (await p.locator('.settings-page').count()) === 0);
 
   // ---------------------------------------------------------------- 4. Ctrl+S na 1ª vez pede o nome; depois auto-salva na pasta
   await rename('Teste E2E');
