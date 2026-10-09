@@ -92,7 +92,7 @@ try {
   ok('aviso (notification) recebe 202 sem corpo', note.status === 202);
   const list = await mcp('tools/list');
   const names = list.body.result.tools.map((t) => t.name);
-  ok('tools/list traz as 33 ferramentas', names.length === 33 && ['get_image', 'set_responsive', 'set_state', 'create_instance', 'add_interaction', 'list_projects'].every((n) => names.includes(n)) && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
+  ok('tools/list traz as 35 ferramentas (com edit_image e generate_image_edit)', names.length === 35 && ['edit_image', 'generate_image_edit', 'get_image', 'set_responsive', 'set_state', 'create_instance', 'add_interaction', 'list_projects'].every((n) => names.includes(n)) && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
   const docOut = await callTool('get_document', {});
   ok('get_document lê o projeto aberto (camadas da página)', !docOut.isError && docOut.data.page.layers[0].name === 'Tela' && docOut.data.page.layers[0].children[0].name === 'Card', JSON.stringify(docOut.data).slice(0, 300));
   const code = await callTool('get_code', { id: ids.card });
@@ -320,7 +320,7 @@ try {
   ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
-  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 35 && first.data.tools.some((t) => t.function.name === 'remember') && first.data.tools.some((t) => t.function.name === 'delegate_task') && !first.data.tools.some((t) => t.function.name.startsWith('jev_')) && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 36 && first.data.tools.some((t) => t.function.name === 'edit_image') && !first.data.tools.some((t) => t.function.name === 'generate_image_edit') && first.data.tools.some((t) => t.function.name === 'remember') && first.data.tools.some((t) => t.function.name === 'delegate_task') && !first.data.tools.some((t) => t.function.name.startsWith('jev_')) && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
   ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Stylo/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');
