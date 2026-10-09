@@ -10,7 +10,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { nodeStyle, pathSvg, toCssText, classNamesOf } from './css.js';
+import { nodeStyle, pathSvg, toCssText, classNamesOf, docCssVars } from './css.js';
 import { round, stateView, bpView, tagOf } from './model.js';
 import { sanitizeHtml, scopePageCss, cleanClasses, cleanId } from './html.js';
 import { modeView } from './modes.js';
@@ -319,6 +319,15 @@ export function createCanvas(store, viewport) {
     classMap = classNamesOf(page.children.flatMap((n) => (n.type === 'section' ? [n, ...n.children] : [n])));
     const pageCss = scopePageCss(store.state.doc.styles?.pageCss || '', '.world');
     if (pageStyle.textContent !== pageCss) pageStyle.textContent = pageCss;
+    // variáveis do projeto (--cor-x, --espaco-md) no mundo: o var(--…) escrito à mão vale no canvas como na exportação
+    const vars = docCssVars(store.state.doc.styles);
+    const varsKey = vars.map((v) => `${v.name}:${v.value}`).join(';');
+    if (world._vars !== varsKey) {
+      for (const n of world._varNames || []) world.style.removeProperty(n);
+      vars.forEach((v) => world.style.setProperty(v.name, v.value));
+      world._varNames = vars.map((v) => v.name);
+      world._vars = varsKey;
+    }
     page.children.forEach((n, i) => syncNode(n, null, world, i));
     // remove elementos de nós que não existem mais (ou que são de outra página)
     for (const [id, el] of els) {

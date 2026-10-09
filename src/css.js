@@ -926,6 +926,23 @@ export function colorVarNames(styles) {
 }
 
 /**
+ * Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md).
+ * Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e
+ * pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+ */
+export function docCssVars(styles) {
+  const out = [];
+  const colorNames = colorVarNames(styles);
+  for (const st of styles?.colors || []) {
+    const v = styleValue(st, null);
+    out.push({ name: colorNames.get(st.id), value: rgba(v.color, v.opacity), hex: v.color, kind: 'color', label: st.name });
+  }
+  const sizeNames = varCssNames(styles, slugify);
+  for (const v of varsOf(styles)) out.push({ name: sizeNames.get(v.id), value: `${v.value}px`, kind: 'size', label: v.name });
+  return out;
+}
+
+/**
  * Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as
  * variáveis usadas por elas. Sem variáveis, devolve só as regras.
  * @param {{css: string, tokens?: [string, string][]}[]} parts

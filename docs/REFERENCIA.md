@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-63 arquivos · 981 funções e constantes documentadas.
+65 arquivos · 1041 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -15,6 +15,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 |---|---|
 | [`src/account.js`](#srcaccountjs) | Conta local no navegador (espelho do perfil guardado pelo servidor) |
 | [`src/canvas.js`](#srccanvasjs) | Desenha o documento em HTML/CSS + pan, zoom e geometria |
+| [`src/codeassist.js`](#srccodeassistjs) | Autocompletar de CSS/HTML e abreviações emmet (lógica pura, sem DOM) |
 | [`src/color.js`](#srccolorjs) | Matemática de cor (puro): hex ↔ rgb ↔ hsl ↔ hsv, harmonias, tons e contraste |
 | [`src/commands.js`](#srccommandsjs) | Comandos de edição |
 | [`src/comments.js`](#srccommentsjs) | Comentários nas camadas (módulo puro: sem DOM, testado em tests/features.test.js) |
@@ -51,7 +52,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/agent/subagents.js`](#srcagentsubagentsjs) | Subagentes: o agente divide o trabalho em até 4 ajudantes em paralelo |
 | [`src/ui/assets.js`](#srcuiassetsjs) | Aba "recursos" (componentes e estilos) |
 | [`src/ui/assistant.js`](#srcuiassistantjs) | Aba do agente (chat de IA dentro do editor) |
-| [`src/ui/code.js`](#srcuicodejs) | Aba "código" (CSS e HTML da seleção, CSS da página, HTML à mão) |
+| [`src/ui/code.js`](#srcuicodejs) | Aba "código" (CSS e HTML da seleção, CSS da página, atributos) |
+| [`src/ui/codedock.js`](#srcuicodedockjs) | Editor de código grande (acoplado embaixo do canvas, ou em tela cheia) |
 | [`src/ui/codeeditor.js`](#srcuicodeeditorjs) | Editor de código leve (sem dependências) |
 | [`src/ui/colorpicker.js`](#srcuicolorpickerjs) | Seletor de cor (popover) com gerenciador de paletas |
 | [`src/ui/comments.js`](#srcuicommentsjs) | Painel "comentários" (aba do painel direito) |
@@ -154,6 +156,75 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `index` <sub>number</sub> — posição desejada entre os irmãos (a ordem do array é a ordem z)
 - **`measureBack(list, parent)`** <sub>interna</sub> · [L291](../src/canvas.js#L291) — "Medida de volta": para camadas com tamanho 'hug'/'fill' (ou dentro de auto layout), o tamanho real só o navegador sabe. Lemos offsetWidth/Height e gravamos em node.w/h, para o painel, o SVG e o 'ajustar' mostrarem o tamanho verdadeiro. Não cria entrada no histórico (é dado derivado).
 - **`render()`** <sub>interna</sub> · [L315](../src/canvas.js#L315) — Desenha a página atual: sincroniza todas as camadas, remove elementos órfãos (camada apagada ou de outra página), mede de volta os tamanhos e, se há texto em edição, dá foco e seleciona o conteúdo.
+
+---
+
+## src/codeassist.js
+
+**AUTOCOMPLETAR DE CSS/HTML E ABREVIAÇÕES EMMET (lógica pura, sem DOM)** · [abrir o código](../src/codeassist.js)
+
+```text
+ O editor de código (ui/codeeditor.js) pergunta "o que sugerir aqui?" passando o texto e a posição do cursor.
+ Este módulo descobre o CONTEXTO e devolve a lista já filtrada (busca "fuzzy") e ordenada:
+  - CSS: propriedades, valores por propriedade, unidades depois de números, funções (calc, clamp, var...),
+    variáveis do documento (estilos de cor e variáveis de tamanho), seletores (classes e ids das camadas,
+    etiquetas, pseudo-classes) e @regras (@media com os breakpoints do projeto, @keyframes, @supports);
+  - HTML: etiquetas, atributos por etiqueta, valores de atributos, fechamento de etiqueta e Emmet
+    (`div.card>h2+p` vira o HTML completo).
+ Cada sugestão: { label, kind, insert, detail?, doc?, color?, retrigger?, hits? }. Em `insert`, o caractere
+ CARET (\u0001) marca onde o cursor fica depois de aceitar. Testado em tests/codeassist.test.js.
+```
+
+- **`CARET`** · [L18](../src/codeassist.js#L18) — Marca de onde o cursor fica dentro de um `insert` (o editor remove a marca ao inserir).
+- **`fuzzyMatch(q, label)`** · [L26](../src/codeassist.js#L26) — Pontua `label` para a busca `q` (maior = melhor; -1 = não combina). Começo da palavra vale mais que meio, letras seguidas valem mais que espalhadas, e começo de pedaço (depois de - . : # @ espaço) ganha bônus: "jc" acha "justify-content". Devolve { score, hits } (hits = posições das letras que combinaram).
+- **`rank(items, q, max = 60)`** · [L55](../src/codeassist.js#L55) — Filtra e ordena as sugestões pela busca (a ordem original desempata: as mais usadas vêm primeiro).
+- **`COMMON_PROPS`** <sub>do módulo</sub> · [L70](../src/codeassist.js#L70) — Propriedades mais usadas (aparecem primeiro quando a busca está vazia ou empata).
+- **`MORE_PROPS`** <sub>do módulo</sub> · [L79](../src/codeassist.js#L79) — Lista completa das propriedades CSS modernas (além das comuns acima).
+- **`CSS_PROPERTIES`** · [L123](../src/codeassist.js#L123) — Todas as propriedades (comuns primeiro, depois o resto em ordem alfabética).
+- **`PROP_DOC`** <sub>do módulo</sub> · [L126](../src/codeassist.js#L126) — Descrição curta (rodapé da lista) das propriedades mais usadas.
+- **`CSS_VALUES`** · [L174](../src/codeassist.js#L174) — Valores (palavras-chave) sugeridos por propriedade.
+- **`GLOBAL_VALUES`** <sub>do módulo</sub> · [L310](../src/codeassist.js#L310) — Valores que servem para qualquer propriedade.
+- **`SINGLE`** <sub>do módulo</sub> · [L313](../src/codeassist.js#L313) — Propriedades de UM valor só: aceitar a sugestão já põe o ";" no fim da linha.
+- **`NAMED_COLORS`** · [L323](../src/codeassist.js#L323) — As 148 cores com nome do CSS (+ transparent e currentColor).
+- **`FN_DOC`** <sub>do módulo</sub> · [L338](../src/codeassist.js#L338) — Funções de CSS: nome → descrição curta.
+- **`fnsFor(prop)`** <sub>do módulo</sub> · [L357](../src/codeassist.js#L357) — Funções sugeridas por "tipo" de propriedade.
+- **`FN_ARGS`** <sub>do módulo</sub> · [L370](../src/codeassist.js#L370) — Sugestões DENTRO de uma função: nome da função → valores.
+- **`COLOR_ARG_FNS`** <sub>do módulo</sub> · [L383](../src/codeassist.js#L383) — As funções que recebem cores entre os argumentos.
+- **`unitsFor(prop)`** <sub>do módulo</sub> · [L394](../src/codeassist.js#L394) — Unidades possíveis para a propriedade (vazio = sem unidade).
+- **`SELECTOR_TAGS`** <sub>do módulo</sub> · [L407](../src/codeassist.js#L407) — Etiquetas HTML mais usadas no CSS (seletores).
+- **`PSEUDOS`** <sub>do módulo</sub> · [L411](../src/codeassist.js#L411) — Pseudo-classes e pseudo-elementos (o `()` indica que recebe argumento).
+- **`AT_RULES`** <sub>do módulo</sub> · [L423](../src/codeassist.js#L423) — _(sem comentário)_
+- **`MEDIA_FEATURES`** <sub>do módulo</sub> · [L436](../src/codeassist.js#L436) — Condições do @media (além das larguras dos breakpoints).
+- **`scanCss(text, pos)`** · [L448](../src/codeassist.js#L448) — Lê o CSS até o cursor e diz onde ele está: { in: 'comment'|'string' } ou { stack: [cabeçalhos dos blocos abertos], stmt: texto desde o último { } ; , stmtStart }.
+- **`blockKind(stack, decls)`** <sub>do módulo</sub> · [L476](../src/codeassist.js#L476) — Tipo do bloco onde o cursor está: 'decls' (propriedades), 'rules' (seletores/@regras) ou 'keyframes'.
+- **`localVars(text)`** <sub>do módulo</sub> · [L486](../src/codeassist.js#L486) — Variáveis declaradas no próprio texto (`--nome: valor`), além das do documento.
+- **`openFn(value)`** <sub>do módulo</sub> · [L493](../src/codeassist.js#L493) — Função aberta mais interna no valor (ex.: "repeat(auto-fill, " → "repeat"), ou ''.
+- **`varItems(vars, { bare = false } = {})`** <sub>do módulo</sub> · [L505](../src/codeassist.js#L505) — Itens de variáveis: { name: '--cor-x', value, kind: 'color'|'size' } → var(--x).
+- **`fnItem(name)`** <sub>do módulo</sub> · [L514](../src/codeassist.js#L514) — Itens de função: "calc()" com o cursor dentro dos parênteses.
+- **`completeCss(text, pos, opts = {})`** · [L525](../src/codeassist.js#L525) — SUGESTÕES DE CSS para o cursor em `pos`.
+  - `text` <sub>string</sub> — todo o texto do editor
+  - `pos` <sub>number</sub> — posição do cursor
+  - `[]` <sub>{ decls?: boolean, manual?: boolean, vars?: {name:string,value:string,kind:string,label?:string</sub> — , classes?: string[], ids?: string[], breakpoints?: {name:string,max:number}[], colors?: {name:string,value:string}[] }} [opts] decls = o texto é só uma lista de declarações (CSS da camada) · manual = Ctrl+Espaço (mostra mesmo sem nada digitado)
+  - ↩︎ `{ from: number, to: number, items: object[], context: string ` \| null}
+- **`HTML_TAGS`** · [L655](../src/codeassist.js#L655) — Etiquetas HTML: nome → descrição curta.
+- **`VOID_TAGS`** · [L673](../src/codeassist.js#L673) — Etiquetas que não têm fechamento.
+- **`INLINE_TAGS`** <sub>do módulo</sub> · [L675](../src/codeassist.js#L675) — Etiquetas "de linha" (no Emmet, ficam na mesma linha do pai).
+- **`GLOBAL_ATTRS`** <sub>do módulo</sub> · [L677](../src/codeassist.js#L677) — Atributos que valem em qualquer etiqueta.
+- **`TAG_ATTRS`** <sub>do módulo</sub> · [L683](../src/codeassist.js#L683) — Atributos próprios de cada etiqueta.
+- **`BOOLEAN_ATTRS`** <sub>do módulo</sub> · [L695](../src/codeassist.js#L695) — Atributos sem valor (só o nome).
+- **`ATTR_VALUES`** <sub>do módulo</sub> · [L698](../src/codeassist.js#L698) — Valores de atributos comuns: "etiqueta.atributo" ou só "atributo".
+- **`openTags(text)`** · [L713](../src/codeassist.js#L713) — Pilha das etiquetas abertas (e não fechadas) no HTML até `pos` — a última é a que um "</" deve fechar.
+- **`completeHtml(text, pos, opts = {})`** · [L733](../src/codeassist.js#L733) — SUGESTÕES DE HTML para o cursor em `pos`: etiquetas (depois de "<"), fechamento ("</"), atributos (dentro da etiqueta), valores de atributos (entre aspas, inclusive as classes do projeto em class="") e, no texto, etiquetas e abreviações Emmet.
+  - `text` <sub>string</sub> — 
+  - `pos` <sub>number</sub> — 
+  - ↩︎ `{ from: number, to: number, items: object[], context: string ` \| null}
+- **`emmetAbbrBefore(lineBefore)`** · [L820](../src/codeassist.js#L820) — Pega a abreviação Emmet logo antes do cursor (ex.: "  ul>li.item*3" → "ul>li.item*3"). Para no espaço (fora de [] e {}) e no fim da última etiqueta HTML da linha. Devolve '' se não houver.
+- **`parseEmmet(src)`** · [L837](../src/codeassist.js#L837) — Lê a abreviação e monta a árvore: [{ tag, id, classes, attrs, text, children, count, group }]. Lança erro se inválida.
+- **`implicitTag(parent)`** <sub>do módulo</sub> · [L905](../src/codeassist.js#L905) — Etiqueta implícita (quando a abreviação começa com . ou #): li dentro de ul/ol, td em tr, span em linha...
+- **`DEFAULT_ATTRS`** <sub>do módulo</sub> · [L914](../src/codeassist.js#L914) — Atributos que já vêm por padrão em algumas etiquetas.
+- **`expandEmmet(abbr)`** · [L922](../src/codeassist.js#L922) — EXPANDE uma abreviação Emmet em HTML indentado (2 espaços). Suporta etiqueta, .classe, #id, [atributos], {texto}, > (filho), + (irmão), ^ (sobe), *N (repete) com $ numerando, e (grupos). O cursor (CARET) fica no primeiro lugar vazio. Devolve '' se a abreviação for inválida.
+
+    expandEmmet('div.card>h2+p') → '<div class="card">\n  <h2>⁁</h2>\n  <p></p>\n</div>'
 
 ---
 
@@ -497,10 +568,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
 - **`colorVarNames(styles)`** · [L916](../src/css.js#L916) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`joinCss(parts)`** · [L933](../src/css.js#L933) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`docCssVars(styles)`** · [L933](../src/css.js#L933) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L950](../src/css.js#L950) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L963](../src/css.js#L963) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L977](../src/css.js#L977) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L980](../src/css.js#L980) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L994](../src/css.js#L994) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -719,32 +791,32 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`presenceSlot`** <sub>do módulo</sub> · [L51](../src/main.js#L51) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
-- **`toast(msg)`** <sub>do módulo</sub> · [L60](../src/main.js#L60) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L74](../src/main.js#L74) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings(section)`** <sub>do módulo</sub> · [L102](../src/main.js#L102) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
-- **`quickSave()`** <sub>do módulo</sub> · [L105](../src/main.js#L105) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L136](../src/main.js#L136) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L160](../src/main.js#L160) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L197](../src/main.js#L197) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L330](../src/main.js#L330) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`presenceSlot`** <sub>do módulo</sub> · [L52](../src/main.js#L52) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
+- **`toast(msg)`** <sub>do módulo</sub> · [L61](../src/main.js#L61) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L75](../src/main.js#L75) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings(section)`** <sub>do módulo</sub> · [L103](../src/main.js#L103) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
+- **`quickSave()`** <sub>do módulo</sub> · [L106](../src/main.js#L106) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L137](../src/main.js#L137) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L161](../src/main.js#L161) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L201](../src/main.js#L201) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L334](../src/main.js#L334) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L376](../src/main.js#L376) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L393](../src/main.js#L393) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L380](../src/main.js#L380) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L397](../src/main.js#L397) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L405](../src/main.js#L405) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L486](../src/main.js#L486) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L524](../src/main.js#L524) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L570](../src/main.js#L570) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L660](../src/main.js#L660) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L723](../src/main.js#L723) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L409](../src/main.js#L409) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L490](../src/main.js#L490) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L528](../src/main.js#L528) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L576](../src/main.js#L576) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L666](../src/main.js#L666) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L729](../src/main.js#L729) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1866,27 +1938,57 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ## src/ui/code.js
 
-**ABA "CÓDIGO" (CSS E HTML DA SELEÇÃO, CSS DA PÁGINA, HTML À MÃO)** · [abrir o código](../src/ui/code.js)
+**ABA "CÓDIGO" (CSS E HTML DA SELEÇÃO, CSS DA PÁGINA, ATRIBUTOS)** · [abrir o código](../src/ui/code.js)
 
 ```text
- Três abas:
-  - CSS: o CSS REAL da seleção (o mesmo da exportação). "Editar" abre o editor com as declarações da camada;
-    ao aplicar, o que dá vira campo do modelo e o resto vai para o CSS livre (ver cssedit.js). Ctrl+Z desfaz;
+ Três abas (só leitura; "Editar" abre o EDITOR GRANDE embaixo do canvas — ui/codedock.js):
+  - CSS: o CSS REAL da seleção (o mesmo da exportação). Editar → declarações da camada; ao aplicar, o que dá vira
+    campo do modelo e o resto vai para o CSS livre (ver cssedit.js). Ctrl+Z desfaz;
   - HTML: o HTML da seleção + os ATRIBUTOS da camada (id, classes, title, role, aria-label, link...). Numa camada
-    "Código HTML", "Editar" abre o HTML escrito à mão (limpo por html.js → sanitizeHtml);
+    "Código HTML", Editar → o HTML escrito à mão (limpo por html.js → sanitizeHtml);
   - Página: o CSS GLOBAL do projeto (doc.styles.pageCss) com seletores, @media, :hover e @keyframes. Vale no canvas,
     no HTML exportado e na apresentação.
 ```
 
-- **`setKids(parent, list)`** <sub>do módulo</sub> · [L23](../src/ui/code.js#L23) — Troca os filhos só se mudaram (mover o editor no DOM tiraria o foco de quem está digitando).
-- **`supports(p, v)`** <sub>do módulo</sub> · [L29](../src/ui/code.js#L29) — CSS.supports do navegador (quando existe) para conferir propriedades e valores.
-- **`createCodePanel({ store, commands, toast })`** · [L36](../src/ui/code.js#L36) — Cria o painel CÓDIGO. Mostra o código REAL (a mesma saída de `generateCode` usada na exportação) e permite editar.
-- **`ensureEditor(lang)`** <sub>interna</sub> · [L93](../src/ui/code.js#L93) — Garante um editor da linguagem pedida.
-- **`lintTimer`** <sub>interna</sub> · [L107](../src/ui/code.js#L107) — Confere o texto do editor e mostra os problemas (com o número da linha).
-- **`apply()`** <sub>interna</sub> · [L130](../src/ui/code.js#L130) — Aplica o que está no editor (CSS da camada, HTML da camada ou CSS da página) com 1 passo de desfazer.
-- **`sourceText(target)`** <sub>interna</sub> · [L161](../src/ui/code.js#L161) — Texto que o editor deve mostrar para a aba/seleção atuais.
-- **`render()`** <sub>interna</sub> · [L168](../src/ui/code.js#L168) — Gera o código das camadas-alvo e mostra colorido; no modo Editar, monta o editor.
-- **`editHint(one)`** <sub>interna</sub> · [L222](../src/ui/code.js#L222) — Explicação curta acima do editor.
+- **`setKids(parent, list)`** <sub>do módulo</sub> · [L22](../src/ui/code.js#L22) — Troca os filhos só se mudaram (mover o editor no DOM tiraria o foco de quem está digitando).
+- **`createCodePanel({ store, commands, toast, dock })`** · [L32](../src/ui/code.js#L32) — Cria o painel CÓDIGO. Mostra o código REAL (a mesma saída de `generateCode` usada na exportação); "Editar" abre o editor grande (ui/codedock.js) na aba correspondente.
+- **`render()`** <sub>interna</sub> · [L71](../src/ui/code.js#L71) — Gera o código das camadas-alvo e mostra colorido (na aba Página, o CSS escrito à mão).
+
+---
+
+## src/ui/codedock.js
+
+**EDITOR DE CÓDIGO GRANDE (acoplado embaixo do canvas, ou em tela cheia)** · [abrir o código](../src/ui/codedock.js)
+
+```text
+ A aba Código do painel direito é estreita demais para escrever. "Editar" (ou Ctrl+Shift+E) abre este painel:
+  - fica EMBAIXO do canvas; arrastar a borda de cima muda a altura (lembrada nas preferências);
+  - maximizar (botão ou F11 dentro do editor) ocupa a janela toda; Esc volta;
+  - abas: "CSS da camada" (declarações da camada selecionada, ver cssedit.js), "CSS da página"
+    (doc.styles.pageCss) e "HTML" (camada "Código HTML", limpo por html.js → sanitizeHtml);
+  - AO VIVO: enquanto digita, o canvas mostra o resultado (com atraso curto), sem entrar no histórico.
+    Aplicar (Ctrl+S / Ctrl+Enter) grava com 1 passo de desfazer; Descartar volta ao que era.
+ Cada aba tem a sua "sessão" (texto, camada-alvo, mudanças pendentes). Com mudança pendente, a aba fica PRESA
+ à camada que estava sendo editada, mesmo se a seleção mudar.
+```
+
+- **`supports(p, v)`** <sub>do módulo</sub> · [L26](../src/ui/codedock.js#L26) — CSS.supports do navegador (quando existe) para conferir propriedades e valores.
+- **`TABS`** <sub>do módulo</sub> · [L31](../src/ui/codedock.js#L31) — As três abas do editor grande.
+- **`createCodeDock({ store, commands, toast, prefs, savePrefs })`** · [L42](../src/ui/codedock.js#L42) — Cria o editor grande. Devolve { el, open(tab?), close(), toggle(), isOpen(), sync() }.
+- **`editorOf(id)`** <sub>interna</sub> · [L110](../src/ui/codedock.js#L110) — Editor (criado na primeira vez) da aba pedida.
+- **`targetOf(id)`** <sub>interna</sub> · [L130](../src/ui/codedock.js#L130) — Camada que a aba edita agora (presa à anterior enquanto houver mudança pendente).
+- **`sourceText(id, node)`** <sub>interna</sub> · [L145](../src/ui/codedock.js#L145) — Texto atual (no documento) que a aba deve mostrar.
+- **`emptyReason(id, node)`** <sub>interna</sub> · [L152](../src/ui/codedock.js#L152) — Motivo para a aba não ter o que editar (ou '' se tem).
+- **`goToLine(n)`** <sub>interna</sub> · [L188](../src/ui/codedock.js#L188) — Leva o cursor para o começo da linha (1-based).
+- **`snapNode(n)`** <sub>interna</sub> · [L200](../src/ui/codedock.js#L200) — Guarda os campos da camada (menos os filhos) para poder voltar.
+- **`preview()`** <sub>interna</sub> · [L208](../src/ui/codedock.js#L208) — Mostra no canvas o que está no editor (sem histórico). Com erro de sintaxe, mantém a última prévia boa.
+- **`revertPreview(id)`** <sub>interna</sub> · [L231](../src/ui/codedock.js#L231) — Desfaz a pré-visualização ao vivo da aba (o documento volta ao que estava antes de digitar).
+- **`apply()`** <sub>interna</sub> · [L244](../src/ui/codedock.js#L244) — Aplica o que está no editor (CSS da camada, CSS da página ou HTML) com 1 passo de desfazer.
+- **`discard(id = tab)`** <sub>interna</sub> · [L283](../src/ui/codedock.js#L283) — Joga fora as mudanças da aba atual (e a prévia no canvas).
+- **`openDock(which)`** <sub>interna</sub> · [L312](../src/ui/codedock.js#L312) — Abre o editor grande (na aba pedida, ou na que faz sentido para a seleção) e põe o foco no código.
+- **`close()`** <sub>interna</sub> · [L329](../src/ui/codedock.js#L329) — Fecha (pergunta antes se há mudança não aplicada).
+- **`syncChrome()`** <sub>interna</sub> · [L379](../src/ui/codedock.js#L379) — Cabeçalho, status e botões conforme a aba atual.
+- **`sync(force = false)`** <sub>interna</sub> · [L398](../src/ui/codedock.js#L398) — Atualiza o painel: aba, alvo e texto (sem apagar o que está sendo digitado). `force` recarrega o texto.
 
 ---
 
@@ -1896,19 +1998,30 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ```text
  Um <textarea> transparente por cima de um <pre> colorido (o texto que você vê é o <pre>; o cursor e a seleção
- são do textarea). Tem números de linha, Tab/Shift+Tab indentam, Enter mantém o recuo, Ctrl+Enter aplica,
- autocompletar de propriedades CSS (e de alguns valores) e marcas de erro/aviso por linha.
+ são do textarea). Tem:
+  - números de linha, linha atual destacada, marcas de erro/aviso por linha;
+  - Tab/Shift+Tab indentam, Enter mantém o recuo (e abre o bloco entre { } ou entre <a></a>);
+  - colchetes e aspas fecham sozinhos, Ctrl+/ comenta a linha, Ctrl+F procura, Ctrl+Enter/Ctrl+S aplicam;
+  - AUTOCOMPLETAR de verdade (ver codeassist.js): popup com ícone do tipo, descrição e prévia de cor, setas
+    navegam, Enter/Tab aceitam, Esc fecha, Ctrl+Espaço abre; no HTML, fecha etiquetas e expande Emmet com Tab.
  As edições usam execCommand('insertText'), então o Ctrl+Z do próprio campo continua funcionando.
 ```
 
-- **`highlightCss(code)`** · [L17](../src/ui/codeeditor.js#L17) — Colore uma folha de CSS (ou só declarações): comentários, @regras, seletores, propriedades, valores.
-- **`highlightHtml(code)`** · [L53](../src/ui/codeeditor.js#L53) — Colore HTML: etiquetas, atributos, valores, comentários.
-- **`cssProps()`** <sub>do módulo</sub> · [L71](../src/ui/codeeditor.js#L71) — Todas as propriedades que ESTE navegador conhece (longhands do getComputedStyle + atalhos comuns).
-- **`CSS_VALUES`** <sub>do módulo</sub> · [L82](../src/ui/codeeditor.js#L82) — Valores sugeridos para algumas propriedades.
-- **`createCodeEditor({ language, value = '', placeholder = '', label = 'Editor de código…)`** · [L112](../src/ui/codeeditor.js#L112) — Cria um editor.
-  - ↩︎ {{ el: HTMLElement, textarea: HTMLTextAreaElement, getValue: ()=>string, setValue: (v:string)=>void, setDiagnostics: (list:{line:number,level:string,msg:string}[])=>void, focus: ()=>void }}
-- **`insert(text, from = ta.selectionStart, to = ta.selectionEnd)`** <sub>interna</sub> · [L145](../src/ui/codeeditor.js#L145) — Insere texto no lugar da seleção mantendo o desfazer nativo do campo.
-- **`charWidth(font)`** <sub>do módulo</sub> · [L270](../src/ui/codeeditor.js#L270) — Largura de um caractere da fonte monoespaçada (mede uma vez por fonte).
+- **`highlightCss(code)`** · [L22](../src/ui/codeeditor.js#L22) — Colore uma folha de CSS (ou só declarações): comentários, @regras, seletores, propriedades, valores.
+- **`highlightHtml(code)`** · [L59](../src/ui/codeeditor.js#L59) — Colore HTML: etiquetas, atributos, valores, comentários.
+- **`KINDS`** <sub>do módulo</sub> · [L75](../src/ui/codeeditor.js#L75) — Ícone (letra) e nome de cada tipo de sugestão, no popup.
+- **`createCodeEditor({ language, value = '', placeholder = '', label = 'Editor de código…)`** · [L93](../src/ui/codeeditor.js#L93) — Cria um editor.
+  - ↩︎ {{ el: HTMLElement, textarea: HTMLTextAreaElement, getValue: ()=>string, setValue: (v:string)=>void, setDiagnostics: (list:{line:number,level:string,msg:string}[])=>void, focus: ()=>void, complete: (manual?:boolean)=>void, openFind: ()=>void, refresh: ()=>void }}
+- **`measure()`** <sub>interna</sub> · [L122](../src/ui/codeeditor.js#L122) — Altura da linha, largura do caractere e recuos (fonte monoespaçada; medido uma vez por fonte).
+- **`lineCol(pos)`** <sub>interna</sub> · [L134](../src/ui/codeeditor.js#L134) — Linha e coluna (0-based) de uma posição do texto.
+- **`quiet`** <sub>interna</sub> · [L183](../src/ui/codeeditor.js#L183) — Insere texto no lugar de [from, to] mantendo o desfazer nativo do campo.
+- **`insertSnippet(text, from, to)`** <sub>interna</sub> · [L194](../src/ui/codeeditor.js#L194) — Insere um trecho com a marca CARET (onde o cursor fica) e recua as linhas novas como a linha atual.
+- **`complete(manual = false)`** <sub>interna</sub> · [L209](../src/ui/codeeditor.js#L209) — Calcula as sugestões para o cursor e mostra o popup (ou fecha, se não houver).
+- **`placePopup()`** <sub>interna</sub> · [L232](../src/ui/codeeditor.js#L232) — Posiciona o popup logo abaixo do cursor (ou acima, se embaixo não couber); encolhe a lista se faltar espaço.
+- **`reveal(pos)`** <sub>interna</sub> · [L329](../src/ui/codeeditor.js#L329) — Rola o campo para a posição ficar visível.
+- **`inHtmlTag(v, pos)`** <sub>do módulo</sub> · [L517](../src/ui/codeeditor.js#L517) — O cursor está dentro de uma etiqueta (<a href="…">)? Usado para decidir se aspas fecham sozinhas no HTML.
+- **`markHits(label, hits = [])`** <sub>do módulo</sub> · [L522](../src/ui/codeeditor.js#L522) — Rótulo com as letras que combinaram com a busca em negrito.
+- **`charWidth(font)`** <sub>do módulo</sub> · [L532](../src/ui/codeeditor.js#L532) — Largura de um caractere da fonte monoespaçada (mede uma vez por fonte).
 
 ---
 
@@ -2146,10 +2259,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **ÍCONES SVG (inline, sem dependências)** · [abrir o código](../src/ui/icons.js)
 
 - **`P`** <sub>do módulo</sub> · [L11](../src/ui/icons.js#L11) — Os desenhos dos ícones, só o miolo do SVG (viewBox 24×24, traço de 1.8px herdando a cor do texto). Estilo "linha": mesmo traço e cantos arredondados em todos, para a interface ficar coesa.
-- **`icon(name, size = 16)`** · [L120](../src/ui/icons.js#L120) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
+- **`icon(name, size = 16)`** · [L123](../src/ui/icons.js#L123) — Markup SVG completo de um ícone pelo nome (ver `P`). Nome inexistente gera um SVG vazio em vez de quebrar.
   - `name` <sub>string</sub> — 
   - `[size=16]` <sub>number</sub> — px
-- **`nodeIcon(type)`** · [L124](../src/ui/icons.js#L124) — Ícone usado na lista de camadas para cada tipo de camada.
+- **`nodeIcon(type)`** · [L127](../src/ui/icons.js#L127) — Ícone usado na lista de camadas para cada tipo de camada.
 
 ---
 
@@ -2221,8 +2334,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `items` <sub>(object\|'sep')[]</sub> — { label, hint (atalho), icon, onClick, disabled, danger, checked, heading } ou 'sep' (separador). `heading: true` = título de seção, só texto.
 - **`contextMenuItems({ store, commands, tools })`** · [L90](../src/ui/menus.js#L90) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
 - **`SHORTCUTS`** · [L147](../src/ui/menus.js#L147) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
-- **`modalSeq`** <sub>do módulo</sub> · [L160](../src/ui/menus.js#L160) — Contador para dar um id único ao título de cada janela (aria-labelledby).
-- **`openModal({ title, body, cls = '', onClose })`** · [L174](../src/ui/menus.js#L174) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
+- **`modalSeq`** <sub>do módulo</sub> · [L161](../src/ui/menus.js#L161) — Contador para dar um id único ao título de cada janela (aria-labelledby).
+- **`openModal({ title, body, cls = '', onClose })`** · [L175](../src/ui/menus.js#L175) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
 
    - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
    - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
@@ -2233,7 +2346,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[o.cls]` <sub>string</sub> — classe extra para o .modal (ex.: 'narrow')
   - `[o.onClose]` <sub>() => void</sub> — 
   - ↩︎ `{ el: HTMLElement, close: () => void ` }
-- **`ask({ title, message, buttons })`** · [L221](../src/ui/menus.js#L221) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+- **`ask({ title, message, buttons })`** · [L222](../src/ui/menus.js#L222) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
 
     const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
       { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
@@ -2241,12 +2354,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
   - `[]` <sub>{title: string, message: string\|Node\|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean</sub> — }} o
   - ↩︎ `Promise<any>`
-- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L242](../src/ui/menus.js#L242) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
+- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L243](../src/ui/menus.js#L243) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
   - ↩︎ `Promise<string\|null>` o texto digitado, ou null se cancelou
-- **`GUIDE`** <sub>do módulo</sub> · [L262](../src/ui/menus.js#L262) — Primeiros passos da Central de ajuda: [título, texto].
-- **`FAQ`** <sub>do módulo</sub> · [L270](../src/ui/menus.js#L270) — Problemas comuns: [pergunta, resposta].
-- **`diagnostics(version)`** <sub>do módulo</sub> · [L280](../src/ui/menus.js#L280) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
-- **`showHelp(tab = 'keys', version = '')`** · [L290](../src/ui/menus.js#L290) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+- **`GUIDE`** <sub>do módulo</sub> · [L263](../src/ui/menus.js#L263) — Primeiros passos da Central de ajuda: [título, texto].
+- **`FAQ`** <sub>do módulo</sub> · [L271](../src/ui/menus.js#L271) — Problemas comuns: [pergunta, resposta].
+- **`diagnostics(version)`** <sub>do módulo</sub> · [L281](../src/ui/menus.js#L281) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
+- **`showHelp(tab = 'keys', version = '')`** · [L291](../src/ui/menus.js#L291) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
   - `[tab]` <sub>string</sub> — aba inicial: 'start' \| 'keys' \| 'faq' \| 'support'
   - `[version]` <sub>string</sub> — versão do app, para o diagnóstico
 
