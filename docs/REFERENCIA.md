@@ -2765,13 +2765,13 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`MAX_PHOTO_BYTES`** · [L2](../server/photos.js#L2) — _(sem comentário)_
 - **`commercialLicense(result)`** · [L10](../server/photos.js#L10) — _(sem comentário)_
-- **`normalizeOpenverse(item)`** · [L16](../server/photos.js#L16) — _(sem comentário)_
-- **`normalizePexels(item)`** · [L32](../server/photos.js#L32) — _(sem comentário)_
-- **`normalizeResults(openverse = [], pexels = [])`** · [L45](../server/photos.js#L45) — _(sem comentário)_
-- **`validateProxyUrl(value)`** · [L52](../server/photos.js#L52) — _(sem comentário)_
-- **`validateImageResponse(contentType, contentLength)`** · [L62](../server/photos.js#L62) — _(sem comentário)_
-- **`boundedPhotoBytes(response)`** · [L68](../server/photos.js#L68) — _(sem comentário)_
-- **`createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {})`** · [L91](../server/photos.js#L91) — _(sem comentário)_
+- **`normalizeOpenverse(item)`** · [L18](../server/photos.js#L18) — _(sem comentário)_
+- **`normalizePexels(item)`** · [L34](../server/photos.js#L34) — _(sem comentário)_
+- **`normalizeResults(openverse = [], pexels = [])`** · [L47](../server/photos.js#L47) — _(sem comentário)_
+- **`validateProxyUrl(value)`** · [L54](../server/photos.js#L54) — _(sem comentário)_
+- **`validateImageResponse(contentType, contentLength)`** · [L64](../server/photos.js#L64) — _(sem comentário)_
+- **`boundedPhotoBytes(response)`** · [L71](../server/photos.js#L71) — _(sem comentário)_
+- **`createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {})`** · [L94](../server/photos.js#L94) — _(sem comentário)_
 
 ---
 

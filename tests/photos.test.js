@@ -41,7 +41,8 @@ test('valida hosts permitidos e bloqueia destinos externos e inseguros no proxy'
 
 test('valida tipo de conteúdo e tamanho anunciado para o proxy', () => {
   assert.doesNotThrow(() => validateImageResponse('image/jpeg', '2048'));
-  assert.doesNotThrow(() => validateImageResponse('image/bmp', '2048'));
+  assert.throws(() => validateImageResponse('image/bmp', '2048'), /tipo/);
+  assert.throws(() => validateImageResponse('image/svg+xml', '2048'), /tipo/, 'SVG pode ter script: recusado');
   assert.throws(() => validateImageResponse('text/html', '30'), /tipo de imagem/);
   assert.throws(() => validateImageResponse('application/octet-stream', '30'), /tipo de imagem/);
   assert.throws(() => validateImageResponse('image/png', String(MAX_PHOTO_BYTES + 1)), /8 MB/);
@@ -97,4 +98,13 @@ test('busca sem internet traduz filtros de orientação e pede apenas licença c
   assert.equal(requested.searchParams.get('license_type'), 'commercial');
   assert.equal(requested.searchParams.get('aspect_ratio'), 'wide');
   assert.equal(JSON.parse(res.body).results[0].author, 'Ana');
+});
+
+test('licenças sem derivação (nd) ou não comerciais (nc) ficam de fora', async () => {
+  const { commercialLicense } = await import('../server/photos.js');
+  assert.equal(commercialLicense({ license: 'by-nd' }), false);
+  assert.equal(commercialLicense({ license: 'by-nc' }), false);
+  assert.equal(commercialLicense({ license: 'by-nd', license_type: 'commercial' }), false);
+  assert.equal(commercialLicense({ license: 'by-sa' }), true);
+  assert.equal(commercialLicense({ license: 'cc0' }), true);
 });

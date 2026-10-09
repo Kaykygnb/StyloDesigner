@@ -10,7 +10,9 @@ const allowedHosts = [
 export function commercialLicense(result) {
   const type = String(result?.license_type || '').toLowerCase();
   const license = String(result?.license || '').toLowerCase();
-  return type === 'commercial' || (!type && /^(cc0|pdm|by|by-sa|by-nd|by-sa-nd)$/.test(license));
+  // "nd" (sem derivações) fica de fora: recortar ou editar a foto num design já é uma obra derivada
+  if (/(^|-)nd(-|$)|(^|-)nc(-|$)/.test(license)) return false;
+  return type === 'commercial' || (!type && /^(cc0|pdm|by|by-sa)$/.test(license));
 }
 
 export function normalizeOpenverse(item) {
@@ -60,7 +62,8 @@ export function validateProxyUrl(value) {
 }
 
 export function validateImageResponse(contentType, contentLength) {
-  if (!/^image\/[a-z0-9.+-]+(?:\s*;|$)/i.test(String(contentType || ''))) throw new Error('O provedor não devolveu um tipo de imagem permitido.');
+  // só formatos de bitmap: SVG pode carregar script e seria servido pela origem do próprio editor (XSS)
+  if (!/^image\/(png|jpe?g|webp|gif|avif)(?:\s*;|$)/i.test(String(contentType || ''))) throw new Error('O provedor não devolveu um tipo de imagem permitido.');
   const size = Number(contentLength);
   if (Number.isFinite(size) && size > MAX_PHOTO_BYTES) throw new Error('A imagem ultrapassa o limite de 8 MB.');
 }
@@ -107,7 +110,7 @@ export function createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now 
         }
         if (!response.ok) throw new Error(`O provedor respondeu ${response.status}.`);
         const bytes = await boundedPhotoBytes(response);
-        res.writeHead(200, { 'Content-Type': response.headers.get('content-type').split(';')[0], 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=300', 'X-Content-Type-Options': 'nosniff' });
+        res.writeHead(200, { 'Content-Type': response.headers.get('content-type').split(';')[0], 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=300', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox" });
         return res.end(bytes);
       } catch (err) {
         if (res.headersSent) return res.end();
