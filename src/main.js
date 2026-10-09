@@ -386,6 +386,7 @@ const TOOLS = [
   ['polygon', 'polygon', 'Polígono'],
   ['star', 'star', 'Estrela'],
   ['pen', 'pen', 'Caneta / vetor (P)'],
+  ['pencil', 'pencil', 'Lápis: desenho à mão livre (⇧P)'],
   ['text', 'text', 'Texto (T)'],
   ['comment', 'comment', 'Comentar (C)'],
   ['inspect', 'inspect', 'Inspecionar (I): passe o mouse para ver o HTML e o CSS, como o F12'],
@@ -403,12 +404,12 @@ imgInput.addEventListener('change', async () => {
 // Grupos mantêm juntas as ferramentas relacionadas, inclusive quando a barra quebra em duas linhas.
 const toolGroup = (label, ...buttons) => h('div.tool-group', { role: 'group', 'aria-label': label }, ...buttons);
 $('#toolbar').append(
-  toolGroup('Navegar', toolBtns[0], toolBtns[12]),
+  toolGroup('Navegar', toolBtns[0], toolBtns[13]),
   toolGroup('Estruturar', toolBtns[1], toolBtns[2]),
   toolGroup('Desenhar formas', ...toolBtns.slice(3, 8)),
-  toolGroup('Criar conteúdo', toolBtns[8], toolBtns[9],
+  toolGroup('Criar conteúdo', toolBtns[8], toolBtns[9], toolBtns[10],
     h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18))),
-  toolGroup('Revisar', toolBtns[10], toolBtns[11]),
+  toolGroup('Revisar', toolBtns[11], toolBtns[12]),
   imgInput,
 );
 $('#toolbar').setAttribute('role', 'toolbar');
@@ -423,19 +424,32 @@ new ResizeObserver(() => {
 const penBar = h('div.pen-bar', { hidden: true });
 let penBarSig = '';
 function renderPenBar() {
-  const show = ui.tool === 'pen' || !!ui.editPathId;
+  const pencil = ui.tool === 'pencil';
+  const show = ui.tool === 'pen' || pencil || !!ui.editPathId;
   const snap = Number(ui.penSnap) || 0;
-  const sig = `${show}|${snap}|${!!ui.editPathId}`;
+  const sig = `${show}|${snap}|${!!ui.editPathId}|${pencil}`;
   if (sig === penBarSig) return;
   penBarSig = sig;
   penBar.hidden = !show;
   if (!show) return;
+  if (pencil) {
+    // LÁPIS: só o nível de suavização (0 = segue o traço; 100 = poucas curvas largas)
+    const val = h('span.pen-bar-val', `${ui.pencilSmooth ?? 50}`);
+    const range = h('input.pen-smooth', { type: 'range', min: 0, max: 100, step: 5, value: ui.pencilSmooth ?? 50, 'aria-label': 'Suavização do lápis' });
+    range.addEventListener('input', () => { ui.pencilSmooth = Number(range.value); val.textContent = range.value; });
+    penBar.replaceChildren(
+      h('span.pen-bar-title', ico('pencil', 13), 'Lápis'),
+      tip(h('label.pen-bar-smooth', 'Suavização', range, val),
+        { title: 'Suavização do lápis', text: 'Quanto o traço é simplificado ao soltar o mouse: 0 segue o traço quase ponto a ponto; 100 vira poucas curvas largas.' }),
+      h('span.pen-bar-hint', 'Arraste para desenhar · termine perto do início para fechar'));
+    return;
+  }
   penBar.replaceChildren(
     h('span.pen-bar-title', ico('pen', 13), ui.editPathId ? 'Editando pontos' : 'Caneta'),
     tip(h('div.segmented.wide', [0, 1, 2, 4, 8].map((s) =>
       h('button.seg-btn.wide' + (snap === s ? '.on' : ''), { type: 'button', onclick: () => { ui.penSnap = s; store.emit('ui'); renderPenBar(); } }, s ? `${s}px` : 'Livre'))),
     { title: 'Encaixe na grade', text: 'Os pontos grudam numa grade de pixels, contada do canto do frame onde você desenha. Em ícones de 24×24, use 1px.' }),
-    h('span.pen-bar-hint', 'Shift trava 45° · Alt+clique no ponto: canto/suave · Enter termina'));
+    h('span.pen-bar-hint', ui.editPathId ? 'Clique no traço: novo ponto · duplo clique no ponto: canto/curva · Delete remove · Enter conclui' : 'Arraste: curva · Alt solta a alça · Shift 45° · Backspace desfaz o ponto · Enter termina'));
 }
 store.subscribe((reasons) => { if (reasons.has('tool') || reasons.has('overlay') || reasons.has('ui') || reasons.has('selection')) renderPenBar(); });
 $('.stage').append(penBar);
@@ -501,7 +515,7 @@ window.addEventListener('keydown', (e) => {
   // com uma janela aberta (Configurações, Projetos, ajuda), os atalhos do app ficam quietos
   if (document.querySelector('.modal-backdrop') || ui.homeOpen) return;
   const key = e.key.toLowerCase();
-  if (mod && key === 's') { e.preventDefault(); e.shiftKey ? openProjects('save') : quickSave(); }
+  if (mod && !e.altKey && key === 's') { e.preventDefault(); e.shiftKey ? openProjects('save') : quickSave(); }
   if (mod && e.altKey && e.key === 'Enter') { e.preventDefault(); present.open(ui.selection[0]); }
   if (mod && key === 'o') { e.preventDefault(); openProjects('open'); }
   if (mod && e.key === ',') { e.preventDefault(); openSettings(); }
@@ -667,7 +681,8 @@ const emptyHint = h('div.empty-canvas',
   h('p.muted', 'Arquivo → Abrir o projeto base mostra o que dá para fazer'));
 $('.stage').append(emptyHint);
 /** Mostra/esconde a dica conforme a página tem ou não camadas. */
-const syncEmpty = () => { emptyHint.style.display = store.page().children.length ? 'none' : ''; };
+// (some também enquanto a caneta/lápis desenha: a dica ficaria por baixo do traço)
+const syncEmpty = () => { emptyHint.style.display = store.page().children.length || ui.pen || ui.pencil ? 'none' : ''; };
 store.subscribe(syncEmpty);
 syncEmpty();
 

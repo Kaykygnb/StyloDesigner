@@ -295,6 +295,12 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       drag = { type: 'pen' };
       return pen.down(e) ? undefined : (drag = null);
     }
+    // lápis: arrastar desenha à mão livre; ao soltar vira um vetor suavizado
+    if (tool === 'pencil') {
+      drag = { type: 'pencil' };
+      pen.pencilDown(e);
+      return;
+    }
     // editando os pontos de um vetor: arrastar um ponto/alça, Alt+clique no traço adiciona ponto, clicar fora sai da edição
     if (pen.isEditing()) {
       if (t.dataset?.edit) {
@@ -305,6 +311,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       // pontos (clicar sem arrastar limpa os pontos, ou sai da edição se foi fora do vetor). Outra camada: sai da edição.
       if (hitId === ui.editPathId || !hitId) {
         if (e.altKey && hitId === ui.editPathId) { pen.addPointAt(e); return; }
+        // clicar EM CIMA do traço adiciona um ponto ali (e já dá para arrastá-lo)
+        if (pen.onSegment(e)) { drag = { type: 'pen' }; pen.addPointAt(e, { drag: true }); return; }
         drag = pen.marqueeStart(e, hitId === ui.editPathId);
         return;
       }
@@ -1014,6 +1022,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       case 'draw': drawDrag(e); break;
       case 'marquee': marqueeDrag(e); break;
       case 'pen': pen.move(e); break;
+      case 'pencil': pen.pencilMove(e); break;
       case 'penmarquee': pen.marqueeMove(e, drag); break;
       case 'guide': guideDrag(e); break;
       default: break;
@@ -1045,6 +1054,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     setDragIds(null);
     if (d.type === 'pan') { store.emit('overlay'); return; }
     if (d.type === 'pen') { pen.up(); return; }
+    if (d.type === 'pencil') { pen.pencilUp(); return; }
     if (d.type === 'penmarquee') { pen.marqueeEnd(d); return; }
     if (d.type === 'guide') {
       const r = canvas.vpRect();
@@ -1099,7 +1109,10 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       store.emit('doc');
       return;
     }
-    if (t.dataset?.edit === 'pt') { pen.togglePointType(Number(t.dataset.idx)); return; }
+    // duplo clique num PONTO/ALÇA em edição: quem trata é pen.downEdit (o overlay é redesenhado a cada clique, então o
+    // navegador nem sempre dispara o dblclick ali); aqui só não deixa o duplo clique "vazar" para a camada
+    const under = pen.isEditing() ? document.elementFromPoint(e.clientX, e.clientY) : null;
+    if (t.dataset?.edit || under?.dataset?.edit) return;
     const id = nodeAt(t);
     if (!id) return;
     const node = store.get(id);
@@ -1220,6 +1233,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (e.key === 'Enter' && pen.isDrawing()) { e.preventDefault(); pen.finish(false); return; }
     if (e.key === 'Enter' && pen.isEditing()) { pen.exitEdit(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && pen.isEditing()) { e.preventDefault(); pen.deletePoint(); return; }
+    // desenhando com a caneta: Backspace/Delete desfaz o ÚLTIMO ponto (sem pontos, cancela)
+    if ((e.key === 'Delete' || e.key === 'Backspace') && pen.isDrawing()) { e.preventDefault(); pen.removeLast(); return; }
 
     // Ctrl+Alt+…: K criar componente · B desanexar · M máscara · G envolver em frame · C/V copiar/colar propriedades
     if (mod && e.altKey) {
@@ -1229,6 +1244,9 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       if (key === 'g') { e.preventDefault(); commands.frameSelection(); return; }
       if (key === 'c') { e.preventDefault(); if (commands.copyStyle()) toast('Propriedades copiadas'); return; }
       if (key === 'v') { e.preventDefault(); if (commands.pasteStyle()) toast('Propriedades coladas'); return; }
+      // booleanas (como no Figma): U unir · S subtrair · I interseção · X excluir
+      const BOOL = { u: 'union', s: 'subtract', i: 'intersect', x: 'exclude' };
+      if (BOOL[key]) { e.preventDefault(); const r = commands.booleanOp(BOOL[key]); if (r?.error) toast(r.error); return; }
     }
     // Ctrl/⌘+…: Z/Y desfazer/refazer · D duplicar · G agrupar (Shift desagrupa) · A selecionar tudo no nível ·
     // Shift+C copiar CSS · Shift+L travar · Shift+H ocultar · ] [ ordem z · +/−/0 zoom
@@ -1277,6 +1295,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
 
     // Shift+S = seção (Ctrl/⌘+Shift+S é "Salvar como", tratado antes)
     if (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && key === 's') { store.setTool('section'); return; }
+    // Shift+P = lápis (desenho à mão livre)
+    if (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && key === 'p') { store.setTool('pencil'); return; }
     // letras de ferramenta (V, F, R, E, T, H, P, L)
     if (TOOL_KEYS[key] && !e.shiftKey && !e.altKey) { store.setTool(TOOL_KEYS[key]); return; }
 
