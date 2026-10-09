@@ -39,6 +39,7 @@ import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
 import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
 import { createChatAccumulator, createSseReader, reasoningParams, rejectsExtras, rejectsTools } from './src/agent/stream.js';
 import { JEV_URL, JEV_MODEL, buildJevRequest, readJevAnswer, isJevTool } from './src/agent/jev.js';
+import { createImageAi } from './server/imageai.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -237,6 +238,8 @@ async function api(req, res, path) {
   }
 
   if (parts[0] === 'agent') return agentApi(req, res, parts.slice(1));
+  // IA DE FOTO: edição generativa (preencher, expandir, trocar objeto) com a chave guardada aqui (server/imageai.js)
+  if (parts[0] === 'imageai') return imageAi(req, res, parts.slice(1));
   // quem está no projeto agora (pessoas com o editor aberto e agentes do MCP) e o que fizeram por último
   if (parts[0] === 'presence' && req.method === 'GET') return sendJson(res, 200, presence.snapshot());
 
@@ -433,6 +436,9 @@ async function mcpRoute(req, res) {
   if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202).end(); return; } // só avisos: nada a responder
   sendJson(res, 200, out);
 }
+
+/** IA de foto (server/imageai.js): lê a configuração atual e grava as mudanças no mesmo arquivo. */
+const imageAi = createImageAi({ getConfig: () => config, saveConfig: async (next) => { config = next; await writeFile(configFile, JSON.stringify(config, null, 2)); } });
 
 /** Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro). */
 const DEFAULT_PROVIDER = PROVIDERS[0];
