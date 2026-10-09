@@ -1274,7 +1274,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   }
   /** Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor). */
   const colorGroups = () => [
-    { title: 'Neste projeto', colors: docTopColors(16) },
+    { title: 'Cores do documento', colors: docTopColors(16) },
     { title: 'Estilos de cor', colors: store.state.doc.styles.colors.map((c) => c.color).filter(Boolean) },
   ];
 
@@ -1284,6 +1284,45 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     if (top.length < 2) return null;
     return h('div.color-chips', { title: 'Cores usadas neste projeto' },
       top.map((c) => h('button.chip', { type: 'button', title: c, style: { background: c }, onclick: () => apply(c) })));
+  }
+
+  /**
+   * Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor").
+   * Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado,
+   * um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
+   */
+  function colorStylePicker(styles, styleOf) {
+    const swatchOf = (c) => (ui.mode ? styleValue(c, ui.mode).color : c.color) || c.color;
+    const createStyle = async () => {
+      const name = await askText({ title: 'Nome do estilo de cor', label: 'Nome do estilo de cor', value: `Cor ${styles.length + 1}`, confirm: 'Salvar' });
+      if (name) commands.addColorStyle(P(), name);
+    };
+    const link = (id) => { each((n) => { if (id) n.fill.styleId = id; else delete n.fill.styleId; }); commit(); };
+    const dot = h('span.style-dot');
+    const name = h('span.style-name');
+    const btn = h('button.style-pick', {
+      type: 'button', 'aria-haspopup': 'menu', 'aria-label': 'Estilo de cor',
+      onclick: () => {
+        const r = btn.getBoundingClientRect();
+        const cur = styleOf()?.id;
+        const items = styles.length
+          ? [{ heading: true, label: 'Estilos de cor do projeto' }, ...styles.map((c) => ({ label: c.name, swatch: swatchOf(c), checked: c.id === cur, onClick: () => link(c.id) }))]
+          : [{ label: 'Nenhum estilo de cor ainda', disabled: true }];
+        items.push('sep', { label: 'Criar estilo a partir desta cor…', icon: 'plus', onClick: createStyle });
+        if (cur) items.push({ label: 'Desvincular do estilo', icon: 'x', onClick: () => link(null) });
+        showMenu(r.left, r.bottom + 4, items);
+      },
+    }, dot, name, ico('chevron', 11));
+    updaters.push(() => {
+      const c = styleOf();
+      btn.classList.toggle('linked', !!c);
+      dot.style.background = c ? swatchOf(c) : '';
+      name.textContent = c ? c.name : 'Sem estilo de cor';
+    });
+    const side = styleOf()
+      ? iconButton('x', 'Desvincular do estilo de cor', () => link(null), 'small')
+      : iconButton('plus', 'Criar estilo de cor a partir desta cor', createStyle, 'small');
+    return h('div.row.style-row', btn, side);
   }
 
   /**
@@ -1321,13 +1360,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         body.push(h('p.hint', fill().styleId ? `Modo ${mname}: a cor que você muda aqui vale só neste modo (é o valor do estilo de cor).` : `Modo ${mname} ativo: esta cor não está ligada a um estilo, então vale igual em todos os modos. Crie um estilo de cor (botão +) para ter um valor por modo.`));
       }
       body.push(docColorChips((hex) => { each((n) => { n.fill.color = hex; n.fill.opacity = 1; delete n.fill.styleId; }); commit(); }));
-      body.push(row(
-        select([['', 'Sem estilo de cor'], ...styles.map((c) => [c.id, c.name])], () => fill().styleId || '',
-          (v) => each((n) => { if (v) n.fill.styleId = v; else delete n.fill.styleId; }), 'Estilo de cor'),
-        iconButton('plus', 'Criar estilo de cor a partir desta cor', async () => {
-          const name = await askText({ title: 'Nome do estilo de cor', label: 'Nome do estilo de cor', value: `Cor ${styles.length + 1}`, confirm: 'Salvar' });
-          if (name) commands.addColorStyle(P(), name);
-        }, 'small')));
+      body.push(colorStylePicker(styles, styleOf));
     } else if (t === 'linear' || t === 'radial' || t === 'conic') {
       body.push(gradientBar());
       if (t === 'linear' || t === 'conic') body.push(row(num('°', () => fill().angle, (v) => each((n) => { n.fill.angle = v; }), { title: t === 'conic' ? 'onde o giro começa (graus)' : 'ângulo', decimals: 0, min: -360, max: 360 })));

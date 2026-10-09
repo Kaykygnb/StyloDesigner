@@ -1420,17 +1420,138 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 .page-row.active .page-name { color: var(--accent); }
 .page-row.active, .layer-row.selected { border-radius: 0; }
 
-/* painel Design mais limpo: títulos discretos, sem caixinhas de ícone, nomes do CSS em tom suave */
+/* ============================================================ painel Design v3: compacto, grade de 8px, controles de 28px */
+/* Visual de Figma/Penpot: títulos de seção em 600/12px (sem caixa alta), legendas discretas, nomes do CSS em mono bem
+   suave (aparecem de verdade ao passar o mouse no grupo), campos de 28px com o rótulo dentro, divisórias sutis. */
+.design-panel .sel-head { padding: 12px 16px; gap: 8px; border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent); }
+.design-panel .sel-top { gap: 8px; }
+.design-panel .sel-ico { width: 28px; height: 28px; border-radius: 6px; }
+.design-panel .sel-name { font: 600 13px/18px var(--font); }
+.design-panel .sel-sub { font-size: 11px; line-height: 16px; margin-top: 0; }
+.design-panel .sel-tag { font: 500 10px/14px var(--mono); padding: 0 4px; border-radius: 4px; }
+.design-panel .sel-actions { gap: 0; }
+.design-panel .sel-actions .icon-btn { width: 24px; height: 24px; border-radius: 6px; }
+
+.panel.right .design-panel .panel-section, .design-panel .panel-section { padding: 12px 16px 16px; border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent); }
+.panel.right .design-panel .panel-section.collapsed { padding-bottom: 12px; }
+.design-panel .section-head { min-height: 24px; margin: -4px -8px 8px; padding: 0 0 0 8px; border-radius: 6px; font: 600 12px/16px var(--font); }
+.design-panel .section-head:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.design-panel .sh-title { gap: 6px; }
+.design-panel .sh-title > span:last-child { font: 600 12px/16px var(--font); letter-spacing: 0; text-transform: none; color: var(--text); }
+.design-panel .panel-section.collapsed .sh-title > span:last-child { color: var(--muted); }
+.design-panel .panel-section.collapsed .section-head:hover .sh-title > span:last-child { color: var(--text); }
 .design-panel .sh-ico { display: none; }
-.design-panel .panel-section { padding: 12px 14px 14px; }
-.design-panel .section-head { margin-bottom: 8px; min-height: 22px; }
-.design-panel .sh-title > span:last-child { font: 650 10.5px var(--font, inherit); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-.design-panel .section-body { gap: 10px; }
-.design-panel .cap-css { color: var(--muted); opacity: .75; font-size: 9px; }
-.design-panel .cap-group:hover .cap-css { color: var(--accent); opacity: 1; }
-.design-panel .sel-head { padding: 12px 14px 10px; }
-.design-panel .sel-ico { width: 30px; height: 30px; border-radius: 8px; }
-.design-panel .sel-name { font-size: 13px; }
+.design-panel .sh-right { gap: 0; }
+.design-panel .sh-right .icon-btn, .design-panel .sh-right .section-info { width: 24px; height: 24px; border-radius: 6px; }
+/* o "i" só aparece quando interessa: mouse no cabeçalho, foco pelo teclado ou explicação aberta */
+.design-panel .section-head .section-info { opacity: 0; transition: opacity .12s, color .12s, background .12s; }
+.design-panel .section-head:hover .section-info, .design-panel .section-info:focus-visible, .design-panel .section-info[aria-expanded="true"] { opacity: 1; }
+.design-panel .sh-chev { width: 24px; height: 24px; }
+.design-panel .section-head:hover .sh-chev { color: var(--text); }
+.design-panel .al-badge { font: 500 10px/16px var(--mono); letter-spacing: 0; text-transform: none; padding: 0 6px; border-radius: 4px; border: 0; margin-right: 2px; }
+
+.design-panel .section-body { gap: 8px; }
+.design-panel .section-body > .row + .row { margin-top: 0; }
+.design-panel .row { gap: 8px; }
+.design-panel .cap-group { gap: 4px; }
+.design-panel .cap, .design-panel .cap.has-tip { font: 500 11px/16px var(--font); color: var(--muted); letter-spacing: 0; }
+.design-panel .row > .cap-group > .cap.has-tip { flex-direction: row; align-items: baseline; gap: 6px; }
+.design-panel .cap-right { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.design-panel .cap-css { font: 400 9.5px/16px var(--mono); color: var(--muted); opacity: .45; transition: opacity .12s, color .12s; }
+.design-panel .cap-group:hover .cap-css { opacity: 1; color: var(--accent); }
+.design-panel .sub-label { font: 400 9.5px/16px var(--mono); margin: 0; }
+
+/* campos: 28px, cantos de 6px, fundo cinza; borda só no hover e no foco */
+.design-panel .field { height: 28px; border-radius: 6px; background: var(--panel-2); border: 1px solid transparent; }
+.design-panel .field:hover { background: var(--panel-2); border-color: var(--border); }
+.design-panel .field:focus-within { border-color: var(--accent); box-shadow: none; }
+.design-panel .field.off { opacity: .5; }
+.design-panel .num-label, .design-panel .sel-label { width: 24px; line-height: 26px; font: 500 10.5px/26px var(--mono); color: var(--muted); }
+.design-panel .num-label:hover { color: var(--text); }
+.design-panel .num, .design-panel .select, .design-panel .text { font-size: 11.5px; }
+.design-panel .select { padding: 0 24px 0 8px; }
+.design-panel .select-wrap.labeled .select { padding-left: 0; }
+.design-panel .select-wrap > .ico { right: 8px; }
+.design-panel .text { padding: 0 8px; }
+.design-panel input.text:not(.hex) { height: 28px; border-radius: 6px; background: var(--panel-2); border: 1px solid transparent; }
+.design-panel input.text:not(.hex):hover { border-color: var(--border); }
+.design-panel input.text:not(.hex):focus { border-color: var(--accent); }
+.design-panel .icon-btn.small { width: 28px; height: 28px; border-radius: 6px; }
+.design-panel .btn-group { gap: 0; }
+.design-panel .btn { height: 28px; border-radius: 6px; font-size: 11.5px; }
+.design-panel .btn.small { height: 24px; }
+.design-panel .link-btn { align-self: flex-start; height: 24px; }
+.design-panel .seg-group { border-radius: 6px; padding: 2px; }
+.design-panel .seg-group .icon-btn { height: 24px; border-radius: 4px; }
+.design-panel .align-row { gap: 4px; }
+.design-panel .segmented { border-radius: 6px; padding: 2px; }
+.design-panel .seg-btn { height: 24px; border-radius: 4px; }
+.design-panel .check { gap: 8px; min-height: 28px; font-size: 11.5px; }
+.design-panel .check .box { width: 14px; height: 14px; border-radius: 4px; border-width: 1px; }
+.design-panel .al-check { height: 28px; }
+.design-panel .hint { font-size: 11px; line-height: 16px; }
+.design-panel details.size-limits > summary { min-height: 24px; padding: 0; font-size: 11px; font-weight: 500; }
+.design-panel details.size-limits[open] > summary { margin-bottom: 8px; }
+.design-panel .effect-card { gap: 8px; padding: 8px; border-radius: 8px; background: transparent; border-color: color-mix(in srgb, var(--border) 80%, transparent); }
+.design-panel .note-input { border-radius: 6px; padding: 8px; font-size: 11.5px; }
+
+/* linha de cor: amostra + HEX + opacidade num campo só (como no Figma) */
+.design-panel .color-row { flex: 1; min-width: 0; gap: 0; height: 28px; padding: 0 0 0 5px; background: var(--panel-2); border: 1px solid transparent; border-radius: 6px; box-sizing: border-box; }
+.design-panel .color-row:hover { border-color: var(--border); }
+.design-panel .color-row:focus-within { border-color: var(--accent); }
+.design-panel .color-row .swatch { width: 16px; height: 16px; border-radius: 4px; border-color: color-mix(in srgb, var(--text) 16%, transparent); }
+.design-panel .color-row .swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
+.design-panel .color-row .hash { margin: 0 0 0 8px; font-size: 11px; }
+.design-panel .color-row .hex { flex: 1; min-width: 0; height: 26px; padding: 0 4px 0 2px; background: transparent; border: 0; border-radius: 0; font-size: 11.5px; }
+.design-panel .color-row > .icon-btn.small { width: 24px; height: 24px; color: var(--muted); }
+.design-panel .color-row > .field { width: 56px !important; height: 26px; background: transparent; border: 0; border-left: 1px solid var(--border); border-radius: 0 6px 6px 0; }
+.design-panel .color-row > .field .num-label { width: 20px; line-height: 26px; }
+.design-panel .color-row > .field:focus-within { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.design-panel .stop-row { gap: 8px; }
+.design-panel .grad-bar { height: 12px; border-radius: 6px; }
+/* cores do documento logo abaixo: quadradinhos menores, em fileira */
+.design-panel .color-chips { gap: 4px; }
+.design-panel .color-chips .chip { width: 16px; height: 16px; border-radius: 4px; border-color: color-mix(in srgb, var(--text) 14%, transparent); }
+.design-panel .color-chips .chip:hover { transform: none; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--muted); }
+
+/* seletor de estilo de cor: amostra + nome; abre o menu com as amostras dos estilos do documento */
+.design-panel .style-row { gap: 4px; }
+.style-pick {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 5px;
+  border: 1px dashed color-mix(in srgb, var(--border) 100%, transparent); border-radius: 6px; background: transparent;
+  color: var(--muted); font: 500 11.5px var(--font); cursor: pointer; text-align: left; box-sizing: border-box;
+}
+.style-pick:hover { color: var(--text); border-color: color-mix(in srgb, var(--muted) 50%, transparent); }
+.style-pick.linked { border: 1px solid transparent; background: var(--panel-2); color: var(--text); }
+.style-pick.linked:hover { border-color: var(--border); }
+.style-dot { width: 16px; height: 16px; flex: none; box-sizing: border-box; border-radius: 4px; border: 1px dashed color-mix(in srgb, var(--muted) 55%, transparent); }
+.style-pick.linked .style-dot { border: 1px solid color-mix(in srgb, var(--text) 16%, transparent); }
+.style-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.style-pick > .ico { transform: rotate(90deg); color: var(--muted); flex: none; }
+.style-pick[aria-expanded="true"], .style-pick:focus-visible { border-color: var(--accent); }
+.menu-swatch { width: 14px; height: 14px; flex: none; border-radius: 4px; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); }
+
+/* auto layout: cartões de modo mais baixos e legíveis; "CSS ao vivo" sem caixa alta */
+.design-panel .al-modes { gap: 4px; }
+.design-panel .al-mode { padding: 8px 2px 6px; gap: 2px; border-radius: 6px; }
+.design-panel .al-mode:hover { transform: none; background: color-mix(in srgb, var(--panel-3) 60%, var(--panel-2)); }
+.design-panel .al-mode-name { font-size: 11px; font-weight: 500; }
+.design-panel .al-mode-css { font: 400 9px var(--mono); opacity: .55; }
+.design-panel .al-mode.on .al-mode-css { opacity: .9; }
+.design-panel .al-code { border-radius: 6px; }
+.design-panel .al-code-head { padding: 0 8px; height: 26px; font: 500 10.5px var(--mono); letter-spacing: 0; text-transform: none; }
+.design-panel .al-matrix { width: 80px; padding: 4px; border-radius: 6px; }
+.design-panel .al-cell { border-radius: 4px; }
+
+/* legendas numa linha só: em grupos de meia largura o nome do CSS cede espaço (some em reticências) e aparece no hover */
+.design-panel .cap.has-tip { white-space: nowrap; }
+.design-panel .cap-right { flex: 0 1 auto; overflow: hidden; }
+.design-panel .row > .cap-group .cap-css { opacity: 0; }
+.design-panel .row > .cap-group:hover .cap-css { opacity: 1; }
+/* seção sem conteúdo (Contorno sem contorno) ou recolhida: cabeçalho centrado, sem sobra embaixo */
+.design-panel .section-body:empty { display: none; }
+.panel.right .design-panel .panel-section:has(> .section-body:empty), .panel.right .design-panel .panel-section.collapsed { padding-bottom: 12px; }
+.design-panel .panel-section:has(> .section-body:empty) > .section-head, .design-panel .panel-section.collapsed > .section-head { margin-bottom: -4px; }
 
 /* ============================================================ inspecionar (F12) */
 /* Cores do DevTools: margem laranja, padding verde, conteúdo azul (translúcidos, por cima do design). */

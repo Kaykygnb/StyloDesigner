@@ -31,6 +31,7 @@ export function showMenu(x, y, items, { anchorRight = false } = {}) {
   const menu = h('div.menu', { role: 'menu' },
     items.map((it) => {
       if (it === 'sep') return h('div.menu-sep', { role: 'separator' });
+      // `swatch` (opcional): amostra de cor no lugar do ícone (ex.: menu de estilos de cor)
       // título de seção (ex.: "Recentes"): só texto, não é clicável nem recebe foco
       if (it.heading) return h('div.menu-heading', { role: 'presentation' }, it.label);
       return h('button.menu-item' + (it.danger ? '.danger' : '') + (it.checked ? '.checked' : ''), {
@@ -38,7 +39,7 @@ export function showMenu(x, y, items, { anchorRight = false } = {}) {
         role: it.checked !== undefined ? 'menuitemcheckbox' : 'menuitem',
         'aria-checked': it.checked !== undefined ? String(!!it.checked) : null,
         onclick: () => { closeMenus(); it.onClick?.(); },
-      }, it.icon ? ico(it.icon, 15) : h('span.ico-pad'), h('span.menu-label', it.label), it.hint ? h('kbd', it.hint) : null,
+      }, it.swatch ? h('span.menu-swatch', { style: { background: it.swatch } }) : it.icon ? ico(it.icon, 15) : h('span.ico-pad'), h('span.menu-label', it.label), it.hint ? h('kbd', it.hint) : null,
       it.checked ? ico('check', 13) : null);
     }));
   document.body.append(menu);
