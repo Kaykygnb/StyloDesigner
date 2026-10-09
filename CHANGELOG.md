@@ -8,6 +8,20 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+### Adicionado (agente, fase 2)
+- **Resposta em tempo real (streaming)**: o `/api/agent/chat` pede `stream: true` à API (OpenAI, NVIDIA NIM, Ollama) e repassa ao navegador em NDJSON. O texto aparece enquanto o modelo escreve; o raciocínio (`reasoning_content`, `reasoning` ou `<think>…</think>`) vai para um bloco recolhível "Pensando… 12 s" → "Pensou por 12 s"; as chamadas de ferramenta são montadas a partir dos pedaços.
+- **Nunca mais travado**: tempo para o 1º pedaço (padrão 60 s) e tempo máximo só pensando (padrão 120 s), configuráveis, com erro claro e sugestão. O botão **Parar** fecha a conexão e o servidor aborta o pedido à API na hora.
+- **Menos raciocínio na NVIDIA NIM** (opção ligada por padrão): o parâmetro certo por modelo — `chat_template_kwargs` (`enable_thinking`/`thinking: false`), "detailed thinking off", `/no_think` ou `reasoning_effort: low` — e `max_tokens` (padrão 4096). Se a API recusar um campo, o pedido é refeito sem ele. Modelo que não aceita ferramentas recebe uma explicação e sugestão.
+- **Testar modelo** (Configurações → Agente de IA): mede o tempo até o 1º pedaço e se o modelo chama ferramentas; o resultado fica guardado e marca a lista de modelos ("✓ ferramentas · 1,2 s", "✗ sem ferramentas") e o menu de modelos do painel.
+- **Subagentes** (`delegate_task`, só no agente interno): o agente divide um trabalho grande em 1 a 4 subagentes que rodam em paralelo, cada um com tarefa, escopo de camadas e modelo opcionais, contexto mínimo e limite de passos. Travas por camada impedem dois subagentes de alterar a mesma camada ao mesmo tempo; cada um aparece como um cartão recolhível (nome, status, passos, Parar). As alterações passam pela permissão/"Fazer sem perguntar" e saem com Ctrl+Z.
+- **Jev (TypeSafe) para o agente**: `jev_choose`, `jev_score` e `jev_check` (segunda opinião rápida). O servidor chama a API com a chave `JEV_API_KEY` (Configurações → Chaves de API ou variável de ambiente), que nunca volta ao navegador; sem chave, as ferramentas nem são oferecidas.
+
+### Corrigido
+- Aba do Agente: abrir o painel depois de trocar de projeto não redesenha mais a conversa no meio de uma resposta.
+
+### Documentação
+- `docs/AGENTE.md`: quando usar subagentes e o Jev; streaming e tempos.
+
 ## [1.0.0] — 2026-10-08 · Stylo
 
 ### Adicionado (rodada 2)
