@@ -2919,12 +2919,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[env]` <sub>object</sub> — variáveis de ambiente (testes passam outras)
 - **`apiErrorText(status, detail, { baseUrl = '', model = '' } = {})`** · [L62](../server/imageai.js#L62) — Texto claro para um erro HTTP da API de imagens.
 - **`readImageResult(json, { timeoutMs = 60000, fetchImpl = fetch } = {})`** · [L76](../server/imageai.js#L76) — Lê a resposta da API ({ data: [{ b64_json } | { url }] }) e devolve um data URL. Se vier só a URL, baixa a imagem (com tempo e tamanho limitados).
-- **`readJson(req)`** <sub>do módulo</sub> · [L94](../server/imageai.js#L94) — Lê o corpo JSON com limite próprio (imagens em base64 são grandes, mas não tanto).
-- **`imageBytes(url, label)`** <sub>do módulo</sub> · [L106](../server/imageai.js#L106) — Data URL de imagem → bytes (com limite e só PNG/JPEG/WebP).
-- **`promptOf(v)`** <sub>do módulo</sub> · [L116](../server/imageai.js#L116) — Texto do pedido (prompt): obrigatório, até 1000 caracteres.
-- **`callApi(ic, path, init)`** <sub>do módulo</sub> · [L123](../server/imageai.js#L123) — Chama a API de imagens com tempo limite e transforma qualquer falha numa mensagem clara.
-- **`sizeOf(s, model)`** <sub>do módulo</sub> · [L143](../server/imageai.js#L143) — Tamanho pedido (só os aceitos); dall-e-2 só faz quadrado.
-- **`createImageAi({ getConfig, saveConfig })`** · [L152](../server/imageai.js#L152) — Cria o tratador das rotas /api/imageai/...
+- **`readJson(req)`** <sub>do módulo</sub> · [L96](../server/imageai.js#L96) — Lê o corpo JSON com limite próprio (imagens em base64 são grandes, mas não tanto).
+- **`imageBytes(url, label)`** <sub>do módulo</sub> · [L108](../server/imageai.js#L108) — Data URL de imagem → bytes (com limite e só PNG/JPEG/WebP).
+- **`promptOf(v)`** <sub>do módulo</sub> · [L118](../server/imageai.js#L118) — Texto do pedido (prompt): obrigatório, até 1000 caracteres.
+- **`callApi(ic, path, init)`** <sub>do módulo</sub> · [L125](../server/imageai.js#L125) — Chama a API de imagens com tempo limite e transforma qualquer falha numa mensagem clara.
+- **`sizeOf(s, model)`** <sub>do módulo</sub> · [L145](../server/imageai.js#L145) — Tamanho pedido (só os aceitos); dall-e-2 só faz quadrado.
+- **`createImageAi({ getConfig, saveConfig })`** · [L154](../server/imageai.js#L154) — Cria o tratador das rotas /api/imageai/...
 
 ---
 
