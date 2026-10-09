@@ -8,6 +8,12 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+### Adicionado
+- **Editor de código grande**: "Editar" na aba Código (ou `Ctrl+Shift+E`) abre um editor embaixo do canvas, com abas *CSS da camada*, *CSS da página* e *HTML*. Arraste a borda para mudar a altura (fica lembrada), `F11`/botão para tela cheia e `Esc` para voltar. O canvas mostra o resultado **ao vivo** enquanto você digita (sem entrar no histórico); `Ctrl+S`/`Ctrl+Enter` aplica com um passo de desfazer.
+- **Autocompletar de verdade** (sem dependências): propriedades CSS modernas com busca fuzzy (`jc` → `justify-content`), valores por propriedade, unidades depois de números, funções (`var()`, `calc()`, `clamp()`, `repeat()`, `minmax()`, gradientes...), variáveis do projeto (estilos de cor e variáveis de tamanho com prévia da cor), seletores com as classes e ids das camadas, pseudo-classes e `@media` com os breakpoints do projeto. No HTML: etiquetas, atributos por etiqueta, valores comuns, fechamento automático e **Emmet** (`div.card>h2+p` + `Tab`).
+- No editor: linha atual destacada, colchetes e aspas fecham sozinhos, Enter abre o bloco entre `{ }`, `Ctrl+/` comenta a linha e `Ctrl+F` procura.
+- As variáveis do projeto (`--cor-…`, `--espaco-…`) agora também valem no canvas, então `var(--cor-x)` escrito à mão aparece igual ao exportado.
+
 ## [1.0.0] — 2026-10-08 · Stylo
 
 ### Adicionado (rodada 2)

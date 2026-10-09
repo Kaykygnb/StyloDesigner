@@ -111,7 +111,7 @@ Segure **Alt** e passe o mouse sobre outra camada para ver as **distâncias**. A
 
 O botão **+** no encontro das réguas abre **Guias da página**; o mesmo comando está no menu do zoom. Nessa janela, digite posições exatas, crie guias nas bordas ou no centro da seleção e remova as que não precisa. **Travar guias no canvas** evita arrastos acidentais sem desligar o encaixe. As operações entram no histórico: ao voltar ao canvas, **Ctrl+Z** desfaz. Durante a criação pela régua, **Esc** cancela.
 
-No modo Grade, **Trilhas personalizadas (CSS)** aceita edição direta. Se a sintaxe estiver inválida, o painel avisa e mantém o último layout válido; **Esc** restaura o campo. Na aba Código, **Quebrar linhas** facilita ler regras longas em painéis estreitos.
+No modo Grade, **Trilhas personalizadas (CSS)** aceita edição direta. Se a sintaxe estiver inválida, o painel avisa e mantém o último layout válido; **Esc** restaura o campo. Na aba Código, **Quebrar linhas** facilita ler regras longas em painéis estreitos. Para escrever, **Editar** (ou `Ctrl+Shift+E`) abre o **editor grande** embaixo do canvas — arraste a borda para aumentar, `F11` para tela cheia — com autocompletar (`Ctrl+Espaço`), Emmet no HTML (`ul>li*3` + `Tab`), `Ctrl+/` para comentar, `Ctrl+F` para procurar e pré-visualização ao vivo; `Ctrl+S` aplica.
 
 
 
