@@ -11,7 +11,8 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { makeDoc, makePage, fitGroups, walk, uid } from './model.js';
+import { makeDoc, makePage, fitGroups, walk, uid, setBreakpoints, BREAKPOINTS } from './model.js';
+const BREAKPOINTS_IDS = () => BREAKPOINTS.map((b) => b.id);
 import { buildSampleShowcase } from './sample-vitrine.js';
 import { syncInstances, syncStyles } from './components.js';
 import { syncVars } from './modes.js';
@@ -192,7 +193,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   const history = { stack: [], i: -1 };
   /** Foto do documento para o histórico. Não inclui `assets` (imagens só entram, nunca saem) para ser leve. */
   // (os comentários entram na foto: criar, resolver ou apagar um comentário também se desfaz com Ctrl+Z)
-  const snapshot = () => JSON.stringify({ name: state.doc.name, pages: state.doc.pages, styles: state.doc.styles, comments: state.doc.comments || [] });
+  const snapshot = () => JSON.stringify({ name: state.doc.name, pages: state.doc.pages, styles: state.doc.styles, comments: state.doc.comments || [], breakpoints: state.doc.breakpoints });
 
   /**
    * Fecha uma edição: "arruma a casa" e grava no histórico.
@@ -228,6 +229,9 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     state.doc.pages = data.pages;
     state.doc.styles = data.styles || { colors: [], texts: [] };
     state.doc.comments = data.comments || [];
+    if (data.breakpoints) state.doc.breakpoints = data.breakpoints; else delete state.doc.breakpoints;
+    setBreakpoints(state.doc.breakpoints);
+    if (state.ui.bp && !BREAKPOINTS_IDS().includes(state.ui.bp)) state.ui.bp = null;
     if (!state.doc.pages.some((p) => p.id === state.ui.pageId)) state.ui.pageId = state.doc.pages[0].id;
     version++;
     api.setSelection(state.ui.selection.filter((id) => api.get(id)));
@@ -329,6 +333,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     doc.styles ||= { colors: [], texts: [] };
     doc.comments ||= []; // projetos antigos não têm comentários
+    setBreakpoints(doc.breakpoints);
+    state.ui.bp = null;
     state.doc = doc;
     state.ui.link = link;
     state.ui.pristine = pristine;

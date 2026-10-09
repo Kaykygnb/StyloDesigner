@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-51 arquivos · 782 funções e constantes documentadas.
+51 arquivos · 788 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -27,7 +27,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/overlay.js`](#srcoverlayjs) | Interface por cima do canvas (seleção, alças, guias, medidas...) |
 | [`src/palettes.js`](#srcpalettesjs) | Paletas de cor próprias (salvas no navegador, valem para todos os projetos) |
 | [`src/pen.js`](#srcpenjs) | Ferramenta caneta (vetores) e edição de pontos |
-| [`src/present.js`](#srcpresentjs) | Modo apresentar (protótipo em tela cheia) |
+| [`src/present.js`](#srcpresentjs) | Modo apresentar (o design num navegador de verdade) |
 | [`src/rulers.js`](#srcrulersjs) | Réguas e criação de guias |
 | [`src/sample-vitrine.js`](#srcsample-vitrinejs) | Exemplo "vitrine": um site inteiro que usa tudo que o editor faz |
 | [`src/saving.js`](#srcsavingjs) | Regras de salvamento (navegador + pasta do computador) |
@@ -645,48 +645,52 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `node` <sub>object</sub> — camada real (é alterada)
   - `state` <sub>string</sub> — 'hover' \| 'active' \| 'focus'
   - `fn` <sub>(draft: object) => void</sub> — recebe o rascunho (mexa só nas chaves de STATE_KEYS)
-- **`BREAKPOINTS`** · [L418](../src/model.js#L418) — Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
-- **`BP_KEYS`** · [L423](../src/model.js#L423) — Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela).
-- **`bpsUpTo(bp)`** · [L430](../src/model.js#L430) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
-- **`hasBps(n, which)`** · [L435](../src/model.js#L435) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
-- **`bpView(node, bp)`** · [L444](../src/model.js#L444) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
+- **`DEFAULT_BREAKPOINTS`** · [L418](../src/model.js#L418) — Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
+- **`BREAKPOINT_PRESETS`** · [L423](../src/model.js#L423) — Breakpoints prontos para adicionar ao projeto (os mais usados na web).
+- **`BREAKPOINTS`** · [L435](../src/model.js#L435) — Breakpoints ATIVOS do documento aberto, do maior para o menor (a ordem da cascata). É o mesmo array durante toda a vida do app: `setBreakpoints` troca o conteúdo quando o documento muda (cada projeto guarda os seus em `doc.breakpoints`; projetos antigos usam DEFAULT_BREAKPOINTS).
+- **`setBreakpoints(list)`** · [L437](../src/model.js#L437) — Normaliza e aplica a lista de breakpoints (sem duplicados, largura de 200 a 4000px, maior primeiro).
+- **`bpIcon(b)`** · [L448](../src/model.js#L448) — Ícone de um breakpoint pela largura (desktop / tablet / celular).
+- **`BP_KEYS`** · [L450](../src/model.js#L450) — Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela).
+- **`bpsUpTo(bp)`** · [L457](../src/model.js#L457) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
+- **`hasBps(n, which)`** · [L462](../src/model.js#L462) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
+- **`bpView(node, bp)`** · [L471](../src/model.js#L471) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
   - `node` <sub>object</sub> — 
   - `bp` <sub>string\|null</sub> — 'tablet' \| 'mobile' \| null (desktop)
-- **`editBp(node, bp, fn)`** · [L467](../src/model.js#L467) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
+- **`editBp(node, bp, fn)`** · [L494](../src/model.js#L494) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
   - `node` <sub>object</sub> — camada real (é alterada)
   - `bp` <sub>string</sub> — 'tablet' \| 'mobile'
   - `fn` <sub>(draft: object) => void</sub> — recebe o rascunho (só as chaves de BP_KEYS ficam)
-- **`cloneNode(node)`** · [L489](../src/model.js#L489) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
-- **`walk(list, fn, parent = null)`** · [L505](../src/model.js#L505) — Percorre a árvore de camadas em profundidade.
+- **`cloneNode(node)`** · [L516](../src/model.js#L516) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
+- **`walk(list, fn, parent = null)`** · [L532](../src/model.js#L532) — Percorre a árvore de camadas em profundidade.
   - `list` <sub>object[]</sub> — lista de nós (ex.: page.children)
   - `fn` <sub>(node, parent, list, index) => (void\|false)</sub> — chamada para cada nó; retornar `false` NÃO desce nos filhos dele
   - `[parent]` <sub>object\|null</sub> — pai da lista (null na raiz)
-- **`makePage(name = 'Página 1')`** · [L514](../src/model.js#L514) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
-- **`makeDoc()`** · [L526](../src/model.js#L526) — Documento vazio. Estrutura completa: { version, name,
+- **`makePage(name = 'Página 1')`** · [L541](../src/model.js#L541) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
+- **`makeDoc()`** · [L553](../src/model.js#L553) — Documento vazio. Estrutura completa: { version, name,
 
      pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
      assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
      styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
      comments: [...] }                          // comentários nas camadas (veja comments.js)
-- **`nextName(page, type)`** · [L531](../src/model.js#L531) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
-- **`fitGroups(list)`** · [L552](../src/model.js#L552) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
+- **`nextName(page, type)`** · [L558](../src/model.js#L558) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
+- **`fitGroups(list)`** · [L579](../src/model.js#L579) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
   - `list` <sub>object[]</sub> — lista de nós a processar (recursivo)
-- **`applyConstraints(frame, ow, oh)`** · [L586](../src/model.js#L586) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
+- **`applyConstraints(frame, ow, oh)`** · [L613](../src/model.js#L613) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
   - `frame` <sub>object</sub> — frame JÁ com o tamanho novo
   - `ow` <sub>number</sub> — largura antiga
   - `oh` <sub>number</sub> — altura antiga
-- **`hasSizeLimits(n)`** · [L613](../src/model.js#L613) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
-- **`hasAspect(n)`** · [L616](../src/model.js#L616) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
-- **`limitSize(n, w, h)`** · [L623](../src/model.js#L623) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
+- **`hasSizeLimits(n)`** · [L640](../src/model.js#L640) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
+- **`hasAspect(n)`** · [L643](../src/model.js#L643) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
+- **`limitSize(n, w, h)`** · [L650](../src/model.js#L650) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
   - ↩︎ `[number, number]` largura e altura já limitadas
-- **`applyLimits(n)`** · [L636](../src/model.js#L636) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
-- **`resizeNode(n, nw, nh, axis = 'w')`** · [L652](../src/model.js#L652) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
+- **`applyLimits(n)`** · [L663](../src/model.js#L663) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
+- **`resizeNode(n, nw, nh, axis = 'w')`** · [L679](../src/model.js#L679) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
   - `n` <sub>object</sub> — camada
   - `nw` <sub>number</sub> — nova largura
   - `nh` <sub>number</sub> — nova altura
   - `[axis='w']` <sub>'w'\|'h'</sub> — qual campo o usuário editou (importa para a trava de proporção)
-- **`scaleNode(node, sx, sy)`** · [L683](../src/model.js#L683) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
-- **`slugify(s)`** · [L700](../src/model.js#L700) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
+- **`scaleNode(node, sx, sy)`** · [L710](../src/model.js#L710) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
+- **`slugify(s)`** · [L727](../src/model.js#L727) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
 
 ---
 
@@ -894,38 +898,34 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ## src/present.js
 
-**MODO APRESENTAR (PROTÓTIPO EM TELA CHEIA)** · [abrir o código](../src/present.js)
+**MODO APRESENTAR (O DESIGN NUM NAVEGADOR DE VERDADE)** · [abrir o código](../src/present.js)
 
 ```text
- Executa as interações definidas na aba Protótipo (clicar/passar o mouse → navegar, voltar, abrir link)
- com transições. Reaproveita css.js, então a apresentação tem exatamente a aparência do design.
+ Cada tela é o HTML + CSS EXPORTADOS (css.js → exportHtml) dentro de um <iframe>: rolagem, :hover, :focus,
+ sticky, @media e fontes funcionam como num site publicado. Por cima, uma barra de navegador: voltar/avançar,
+ recarregar, endereço com a lista de telas, larguras (desenhada, responsiva ou fixas) e "abrir em nova aba".
+ As interações da aba Protótipo (clicar/passar o mouse → navegar, voltar, link) são ligadas dentro do iframe
+ pelo atributo data-node-id. Enquanto aberta, a apresentação se atualiza sozinha quando o documento muda.
 ```
 
-- **`TRANSITIONS`** <sub>do módulo</sub> · [L18](../src/present.js#L18) — Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave` (da que SAI), no formato de keyframes da Web Animations API. 'instant' = null (troca seca). Os transforms são combinados com o `scale` de encaixe na tela em show().
-- **`TRANSITION_OPTIONS`** · [L27](../src/present.js#L27) — Lista [valor, rótulo] das transições, para o menu da aba Protótipo.
-- **`attachStates(el, node, parent, assets, isRoot)`** <sub>do módulo</sub> · [L37](../src/present.js#L37) — Liga os ESTADOS (hover, pressionado, foco) de uma camada ao elemento da apresentação: ao entrar/sair/pressionar, troca o estilo inline pelo da visão correspondente (o `transition` do próprio estilo anima a troca). Pressionado vale em cima do hover, como a cascata do CSS.
-- **`buildDom(node, parent, assets, isRoot)`** <sub>do módulo</sub> · [L68](../src/present.js#L68) — Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão; `data-id` permite achar a camada (e suas interações) no clique.
-- **`createPresent({ store, canvas })`** · [L87](../src/present.js#L87) — Cria o modo APRESENTAR (protótipo em tela cheia).
+- **`TRANSITIONS`** <sub>do módulo</sub> · [L17](../src/present.js#L17) — Transições entre telas (Web Animations no quadro do iframe). 'instant' = troca seca.
+- **`TRANSITION_OPTIONS`** · [L26](../src/present.js#L26) — Lista [valor, rótulo] das transições, para o menu da aba Protótipo.
+- **`PRESENT_WIDTHS`** · [L31](../src/present.js#L31) — Larguras da barra: [valor, rótulo]. 'auto' = largura desenhada da tela; 'fill' = a janela toda (responsivo).
+- **`presentHtml(frame, doc)`** · [L37](../src/present.js#L37) — HTML de uma tela para a apresentação: o mesmo da exportação, com `data-node-id` em cada elemento e o corpo sem a moldura cinza da exportação (a página ocupa a janela, como um site).
+- **`createPresent({ store })`** · [L55](../src/present.js#L55) — Cria o modo APRESENTAR.
 
-   - open(id): abre no frame da camada selecionada (ou no marcado como ponto de partida, ou no primeiro)
-   - cliques/hover disparam as interações da camada (ou do ancestral mais próximo que tenha uma)
-   - `stack` guarda o histórico de telas visitadas, para a ação "Voltar"
-   - Esc fecha · R reinicia
-- **`frames()`** <sub>interna</sub> · [L96](../src/present.js#L96) — Todos os frames do documento (de todas as páginas) — destinos possíveis das interações.
-- **`findFrame(id)`** <sub>interna</sub> · [L102](../src/present.js#L102) — Frame pelo id.
-- **`rootOf(id)`** <sub>interna</sub> · [L104](../src/present.js#L104) — Frame da raiz que contém a camada (sobe os pais).
-- **`fit(board)`** <sub>interna</sub> · [L111](../src/present.js#L111) — Escala a tela para caber na janela (até 200%), centralizada. Devolve o fator usado.
-- **`makeBoard(frame)`** <sub>interna</sub> · [L119](../src/present.js#L119) — Cria o "quadro" de uma tela: caixa do tamanho do frame + DOM + ouvintes de clique e hover.
-- **`trigger(target, kind, related)`** <sub>interna</sub> · [L142](../src/present.js#L142) — Dispara a interação do tipo pedido ('click' | 'hover'). Sobe da camada clicada até um ancestral que tenha uma interação desse tipo (assim clicar no texto dentro de um botão aciona o botão). No hover, ignora movimentos dentro do mesmo elemento (só vale ao ENTRAR).
-- **`run(it)`** <sub>interna</sub> · [L152](../src/present.js#L152) — Executa uma interação: abrir link, voltar para a tela anterior ou navegar para outro frame (com a transição escolhida).
-- **`show(frameId, transition, isBack = false)`** <sub>interna</sub> · [L171](../src/present.js#L171) — Mostra uma tela, animando a troca. A tela antiga fica por baixo durante a transição e é removida ao final; `busy` bloqueia novos cliques nesse intervalo (330ms ≈ duração 320ms).
-  - `frameId` <sub>string</sub> — frame a mostrar
-  - `transition` <sub>string</sub> — chave de TRANSITIONS
-  - `[isBack]` <sub>boolean</sub> — true quando vem de "Voltar" (não empilha no histórico)
-- **`open(startId)`** <sub>interna</sub> · [L195](../src/present.js#L195) — Abre a apresentação. Devolve false se não há nenhum frame para apresentar.
-- **`onKey(e)`** <sub>interna</sub> · [L221](../src/present.js#L221) — Teclas na apresentação (captura antes do editor): Esc fecha, R reinicia; as outras são engolidas para não mexer no editor por trás.
-- **`onResize()`** <sub>interna</sub> · [L233](../src/present.js#L233) — Reencaixa as telas quando a janela muda de tamanho.
-- **`close()`** <sub>interna</sub> · [L238](../src/present.js#L238) — Fecha a apresentação e remove os ouvintes globais.
+   - open(id): abre na tela da camada selecionada (ou na marcada como ponto de partida, ou na primeira)
+   - Esc fecha · R reinicia · Alt+← / Alt+→ voltam e avançam
+- **`frames()`** <sub>interna</sub> · [L61](../src/present.js#L61) — Todos os frames do documento (de todas as páginas): destinos possíveis das interações.
+- **`rootOf(id)`** <sub>interna</sub> · [L69](../src/present.js#L69) — Tela (frame raiz) que contém a camada.
+- **`layout()`** <sub>interna</sub> · [L77](../src/present.js#L77) — Largura do iframe e escala para caber no espaço disponível.
+- **`wire(frameEl)`** <sub>interna</sub> · [L95](../src/present.js#L95) — Liga as interações do protótipo dentro do documento do iframe.
+- **`run(it)`** <sub>interna</sub> · [L113](../src/present.js#L113) — Executa uma interação: link externo, voltar, ou navegar para outra tela.
+- **`show(frameId, transition = 'instant', push = true)`** <sub>interna</sub> · [L121](../src/present.js#L121) — Monta o iframe da tela. `push` = entra no histórico (navegação normal).
+- **`openTab()`** <sub>interna</sub> · [L158](../src/present.js#L158) — Abre numa aba nova do navegador a tela atual, como página HTML independente.
+- **`open(startId)`** <sub>interna</sub> · [L167](../src/present.js#L167) — Abre a apresentação. Devolve false se não há nenhuma tela.
+- **`onKey(e)`** <sub>interna</sub> · [L213](../src/present.js#L213) — Teclas (captura antes do editor). As demais são engolidas para não mexer no editor por trás.
+- **`close()`** <sub>interna</sub> · [L224](../src/present.js#L224) — Fecha a apresentação e remove os ouvintes globais.
 
 ---
 
@@ -1078,7 +1078,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  `store.commit()` — é isso que faz o desfazer, o salvamento e os painéis funcionarem.
 ```
 
-- **`createStore({ initial = null, persist = async () => 'browser' } = {})`** · [L38](../src/store.js#L38) — Cria o STORE: a única fonte de verdade do app. Tudo que o usuário vê (canvas, painéis, menus) é uma função do que está aqui; e toda mudança passa por aqui. Fluxo:
+- **`createStore({ initial = null, persist = async () => 'browser' } = {})`** · [L39](../src/store.js#L39) — Cria o STORE: a única fonte de verdade do app. Tudo que o usuário vê (canvas, painéis, menus) é uma função do que está aqui; e toda mudança passa por aqui. Fluxo:
 
     ação do usuário → store.update(...)/commit() → emit(motivo) → quem assina (canvas, painéis) redesenha
 
@@ -1089,17 +1089,17 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[opts.initial]` <sub>object\|null</sub> — projeto já carregado do navegador ({ doc, views, theme, link }) — ver storage.loadLocal. null/ausente = abre o projeto de exemplo.
   - `[opts.persist]` <sub>(record) => Promise<string></sub> — grava o projeto (navegador e, se ligado, a pasta). Devolve onde gravou ('browser' \| 'folder'). O store só decide QUANDO salvar; o COMO fica em main.js/storage.js.
   - ↩︎ `object` a API do store (get, update, commit, undo, setSelection, subscribe...)
-- **`emit(reason)`** <sub>interna</sub> · [L114](../src/store.js#L114) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
+- **`emit(reason)`** <sub>interna</sub> · [L115](../src/store.js#L115) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
 
    - síncrono (subscribeSync): o canvas e o overlay precisam estar em dia ANTES do próximo evento do mouse,
      senão medem o DOM desatualizado durante um arrasto;
    - 1x por frame (subscribe): painéis pesados (camadas, propriedades) juntam vários motivos em uma só atualização.
-- **`index()`** <sub>interna</sub> · [L139](../src/store.js#L139) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
-- **`restore(snap)`** <sub>interna</sub> · [L225](../src/store.js#L225) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
-- **`scheduleSave()`** <sub>interna</sub> · [L362](../src/store.js#L362) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
-- **`save()`** <sub>interna</sub> · [L377](../src/store.js#L377) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+- **`index()`** <sub>interna</sub> · [L140](../src/store.js#L140) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
+- **`restore(snap)`** <sub>interna</sub> · [L226](../src/store.js#L226) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
+- **`scheduleSave()`** <sub>interna</sub> · [L368](../src/store.js#L368) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
+- **`save()`** <sub>interna</sub> · [L383](../src/store.js#L383) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
   - ↩︎ `Promise<void>` resolve quando o projeto (como estava) terminou de ser gravado
-- **`init()`** <sub>interna</sub> · [L427](../src/store.js#L427) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+- **`init()`** <sub>interna</sub> · [L433](../src/store.js#L433) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 
@@ -1973,10 +1973,14 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`createResponsiveBar({ store, canvas, commands, toast, stage })`** · [L26](../src/ui/responsive.js#L26) — Cria os controles. `topEl` vai para a barra superior; a faixa de resumo é pendurada no palco.
   - ↩︎ `{topEl: HTMLElement, render: () => void` }
-- **`countOverrides(bp)`** <sub>interna</sub> · [L46](../src/ui/responsive.js#L46) — Quantas camadas da página têm sobrescritas neste breakpoint.
-- **`fitScreens()`** <sub>interna</sub> · [L53](../src/ui/responsive.js#L53) — Ajusta a largura das telas (frames da raiz e dentro de seções) para a largura típica do modo.
-- **`makeMode(opts)`** <sub>interna</sub> · [L68](../src/ui/responsive.js#L68) — Cria um modo de cor a partir de uma opção do menu.
-- **`modeMenu(e)`** <sub>interna</sub> · [L74](../src/ui/responsive.js#L74) — Menu único do modo de cor: escolher o modo visto, criar um novo e, no modo ativo, renomear/excluir.
+- **`modeButton(m, i)`** <sub>interna</sub> · [L30](../src/ui/responsive.js#L30) — Botão de um modo (Desktop ou breakpoint). Só o ativo mostra o nome; todos mostram a largura no balão.
+- **`buildSeg()`** <sub>interna</sub> · [L41](../src/ui/responsive.js#L41) — Refaz os botões quando a lista de breakpoints muda.
+- **`saveBps(list, drop)`** <sub>interna</sub> · [L49](../src/ui/responsive.js#L49) — Grava a lista de breakpoints no documento (com desfazer). `drop`: id cujos ajustes são apagados das camadas.
+- **`bpMenu(e)`** <sub>interna</sub> · [L76](../src/ui/responsive.js#L76) — Menu de breakpoints: adicionar presets ou um personalizado; renomear, mudar a largura ou remover os do projeto.
+- **`countOverrides(bp, all = false)`** <sub>interna</sub> · [L108](../src/ui/responsive.js#L108) — Quantas camadas da página têm sobrescritas neste breakpoint.
+- **`fitScreens()`** <sub>interna</sub> · [L115](../src/ui/responsive.js#L115) — Ajusta a largura das telas (frames da raiz e dentro de seções) para a largura típica do modo.
+- **`makeMode(opts)`** <sub>interna</sub> · [L130](../src/ui/responsive.js#L130) — Cria um modo de cor a partir de uma opção do menu.
+- **`modeMenu(e)`** <sub>interna</sub> · [L136](../src/ui/responsive.js#L136) — Menu único do modo de cor: escolher o modo visto, criar um novo e, no modo ativo, renomear/excluir.
 
 ---
 

@@ -415,10 +415,37 @@ export function editState(node, state, fn) {
  * Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular
  * também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
  */
-export const BREAKPOINTS = [
+export const DEFAULT_BREAKPOINTS = [
   { id: 'tablet', name: 'Tablet', max: 1024, preview: 768 },
   { id: 'mobile', name: 'Celular', max: 640, preview: 390 },
 ];
+/** Breakpoints prontos para adicionar ao projeto (os mais usados na web). */
+export const BREAKPOINT_PRESETS = [
+  { id: 'laptop', name: 'Laptop', max: 1280, preview: 1280 },
+  { id: 'tablet', name: 'Tablet', max: 1024, preview: 768 },
+  { id: 'tablet-sm', name: 'Tablet retrato', max: 768, preview: 600 },
+  { id: 'mobile', name: 'Celular', max: 640, preview: 390 },
+  { id: 'mobile-sm', name: 'Celular pequeno', max: 380, preview: 360 },
+];
+/**
+ * Breakpoints ATIVOS do documento aberto, do maior para o menor (a ordem da cascata). É o mesmo array durante toda a
+ * vida do app: `setBreakpoints` troca o conteúdo quando o documento muda (cada projeto guarda os seus em
+ * `doc.breakpoints`; projetos antigos usam DEFAULT_BREAKPOINTS).
+ */
+export const BREAKPOINTS = DEFAULT_BREAKPOINTS.map((b) => ({ ...b }));
+/** Normaliza e aplica a lista de breakpoints (sem duplicados, largura de 200 a 4000px, maior primeiro). */
+export function setBreakpoints(list) {
+  const seen = new Set();
+  const clamp = (v, d) => Math.max(200, Math.min(4000, Math.round(+v) || d));
+  const clean = (Array.isArray(list) ? list : DEFAULT_BREAKPOINTS)
+    .filter((b) => b && typeof b.id === 'string' && b.id && !seen.has(b.id) && seen.add(b.id))
+    .map((b) => ({ id: b.id, name: String(b.name || b.id), max: clamp(b.max, 640), preview: clamp(b.preview || b.max, 390) }))
+    .sort((a, b) => b.max - a.max);
+  BREAKPOINTS.splice(0, BREAKPOINTS.length, ...clean);
+  return BREAKPOINTS;
+}
+/** Ícone de um breakpoint pela largura (desktop / tablet / celular). */
+export const bpIcon = (b) => (b.max > 1100 ? 'desktop' : b.max > 640 ? 'tablet' : 'phone');
 /** Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela). */
 export const BP_KEYS = [
   'x', 'y', 'w', 'h', 'sizeX', 'sizeY', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'margin', 'grow', 'absolute', 'visible',

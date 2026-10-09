@@ -1399,6 +1399,10 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 /* ============================================================ topo: largura da tela e modo de cor (compacto) + faixa do modo responsivo */
 .bp-top { display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; background: var(--panel-2); }
 .bp-seg { display: flex; gap: 2px; }
+.bp-more { width: 22px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.bp-more .ico { transform: rotate(90deg); }
+.bp-more:hover { background: var(--panel-2); color: var(--text); }
+.bp-width { font: 11px var(--mono); color: var(--accent); padding: 0 4px; font-variant-numeric: tabular-nums; }
 .bp-btn { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 7px; border: 0; border-radius: 6px; cursor: pointer; background: transparent; color: var(--muted); font: 600 11px var(--font, inherit); white-space: nowrap; transition: background .12s, color .12s; }
 .bp-btn:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
 .bp-btn.on { color: var(--accent); background: var(--panel); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }

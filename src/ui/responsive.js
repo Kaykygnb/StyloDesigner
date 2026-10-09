@@ -14,9 +14,9 @@
  */
 
 import { h, ico, tip } from './dom.js';
-import { BREAKPOINTS, editBp, hasBps, walk } from '../model.js';
+import { BREAKPOINTS, BREAKPOINT_PRESETS, bpIcon, editBp, hasBps, setBreakpoints, uid, walk } from '../model.js';
 import { modesOf } from '../modes.js';
-import { showMenu, askText } from './menus.js';
+import { showMenu, askText, ask } from './menus.js';
 
 /**
  * Cria os controles. `topEl` vai para a barra superior; a faixa de resumo é pendurada no palco.
@@ -25,27 +25,89 @@ import { showMenu, askText } from './menus.js';
  */
 export function createResponsiveBar({ store, canvas, commands, toast, stage }) {
   const ui = store.ui;
-  const MODES = [
-    { id: null, name: 'Desktop', icon: 'desktop', css: 'Sem @media: este é o desenho base.', text: 'O desenho base, na largura em que você desenhou. Tablet e Celular herdam dele e só guardam o que for diferente.' },
-    ...BREAKPOINTS.map((b) => ({
-      id: b.id, name: b.name, icon: b.id === 'tablet' ? 'tablet' : 'phone', css: `@media (max-width: ${b.max}px) { … }`,
-      text: `Como fica em janelas de até ${b.max}px. Tudo que você mudar no painel Design neste modo vale só aqui${b.id === 'mobile' ? ' (e herda do Tablet o que não mexer)' : ''}.`,
-    })),
-  ];
-  const seg = h('div.bp-seg', { role: 'group', 'aria-label': 'Largura da tela' }, MODES.map((m) => tip(h('button.bp-btn', {
+  const DESKTOP = { id: null, name: 'Desktop', icon: 'desktop', css: 'Sem @media: este é o desenho base.', text: 'O desenho base, na largura em que você desenhou. Os outros breakpoints herdam dele e só guardam o que for diferente.' };
+  /** Botão de um modo (Desktop ou breakpoint). Só o ativo mostra o nome; todos mostram a largura no balão. */
+  const modeButton = (m, i) => tip(h('button.bp-btn', {
     type: 'button', dataset: { bp: m.id || 'desktop' }, 'aria-label': m.name, onclick: () => store.setBp(m.id),
-  }, ico(m.icon, 15), h('span', m.name)), { title: `${m.name}${m.id ? ` · até ${BREAKPOINTS.find((b) => b.id === m.id).max}px` : ''}`, css: m.css, text: m.text })));
+  }, ico(m.icon, 15), h('span', m.name)), {
+    title: m.id ? `${m.name} · até ${m.max}px` : 'Desktop · desenho base', css: m.css || `@media (max-width: ${m.max}px) { … }`,
+    text: m.text || `Como fica em janelas de até ${m.max}px. Tudo que você mudar no painel Design neste modo vale só aqui${i > 0 ? ' (e herda dos breakpoints maiores o que não mexer)' : ''}.`,
+  });
+  const seg = h('div.bp-seg', { role: 'group', 'aria-label': 'Largura da tela' });
+  const more = h('button.bp-more', { type: 'button', 'aria-haspopup': 'menu', 'aria-label': 'Breakpoints: adicionar, renomear ou remover', title: 'Breakpoints', onclick: (e) => bpMenu(e) }, ico('chevron', 12));
+  const width = h('span.bp-width', { 'aria-live': 'polite' });
+  let segKey = '';
+  /** Refaz os botões quando a lista de breakpoints muda. */
+  function buildSeg() {
+    const key = BREAKPOINTS.map((b) => `${b.id}:${b.name}:${b.max}`).join('|');
+    if (key === segKey) return;
+    segKey = key;
+    seg.replaceChildren(modeButton(DESKTOP, -1), ...BREAKPOINTS.map((b, i) => modeButton({ ...b, icon: bpIcon(b) }, i)));
+  }
+
+  /** Grava a lista de breakpoints no documento (com desfazer). `drop`: id cujos ajustes são apagados das camadas. */
+  function saveBps(list, drop) {
+    store.update(() => {
+      const doc = store.state.doc;
+      if (drop) for (const page of doc.pages) walk(page.children, (n) => { if (n.bps?.[drop]) { delete n.bps[drop]; if (!Object.keys(n.bps).length) delete n.bps; } });
+      doc.breakpoints = setBreakpoints(list).map((b) => ({ ...b }));
+    }, { commit: true });
+    if (drop && ui.bp === drop) store.setBp(null);
+  }
+  const askWidth = async (title, value) => {
+    const v = await askText({ title, label: 'Até quantos px de largura de janela (max-width)', value: String(value), confirm: 'Salvar' });
+    const n = Math.round(Number(String(v ?? '').replace(/px/i, '')));
+    if (v == null) return null;
+    if (!(n >= 200 && n <= 4000)) { toast('Use uma largura entre 200 e 4000 px.'); return null; }
+    if (BREAKPOINTS.some((b) => b.max === n)) { toast(`Já existe um breakpoint em ${n}px.`); return null; }
+    return n;
+  };
+  async function addCustom() {
+    const name = await askText({ title: 'Novo breakpoint', label: 'Nome (ex.: Dobra do iPad, TV)', value: 'Personalizado', confirm: 'Continuar' });
+    if (!name) return;
+    const max = await askWidth(`Largura de "${name}"`, 900);
+    if (!max) return;
+    const id = `bp-${uid().slice(-6)}`;
+    saveBps([...BREAKPOINTS, { id, name, max, preview: max }]);
+    store.setBp(id);
+    toast(`Breakpoint "${name}" criado: @media (max-width: ${max}px)`);
+  }
+  /** Menu de breakpoints: adicionar presets ou um personalizado; renomear, mudar a largura ou remover os do projeto. */
+  function bpMenu(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const items = [{ heading: true, label: 'Breakpoints do projeto' }];
+    for (const b of BREAKPOINTS) items.push({ label: `${b.name} · até ${b.max}px`, icon: bpIcon(b), checked: ui.bp === b.id, onClick: () => editMenu(b, r) });
+    const missing = BREAKPOINT_PRESETS.filter((p) => !BREAKPOINTS.some((b) => b.id === p.id || b.max === p.max));
+    items.push('sep', { heading: true, label: 'Adicionar' });
+    for (const p of missing) items.push({ label: `${p.name} · até ${p.max}px`, icon: 'plus', onClick: () => { saveBps([...BREAKPOINTS, p]); store.setBp(p.id); } });
+    items.push({ label: 'Personalizado…', icon: 'plus', onClick: addCustom });
+    showMenu(r.left, r.bottom + 6, items);
+  }
+  function editMenu(b, r) {
+    const count = countOverrides(b.id, true);
+    showMenu(r.left, r.bottom + 6, [
+      { heading: true, label: `${b.name} · @media (max-width: ${b.max}px)` },
+      { label: 'Ver e editar neste breakpoint', onClick: () => store.setBp(b.id) },
+      { label: 'Renomear…', onClick: async () => { const n = await askText({ title: 'Nome do breakpoint', label: 'Nome', value: b.name, confirm: 'Salvar' }); if (n) saveBps(BREAKPOINTS.map((x) => (x.id === b.id ? { ...x, name: n } : x))); } },
+      { label: 'Mudar largura…', onClick: async () => { const n = await askWidth(`Largura de "${b.name}"`, b.max); if (n) saveBps(BREAKPOINTS.map((x) => (x.id === b.id ? { ...x, max: n, preview: Math.min(x.preview, n) } : x))); } },
+      'sep',
+      { label: `Remover${count ? ` (apaga ${count} ${count === 1 ? 'ajuste' : 'ajustes'})` : ''}`, icon: 'trash', danger: true, onClick: async () => {
+        if (count && !(await ask({ title: `Remover "${b.name}"?`, message: `${count} ${count === 1 ? 'camada perde' : 'camadas perdem'} os ajustes deste breakpoint. Dá para desfazer com Ctrl+Z.`, buttons: [{ label: 'Cancelar', value: null }, { label: 'Remover', value: true, primary: true, danger: true }] }))) return;
+        saveBps(BREAKPOINTS.filter((x) => x.id !== b.id), b.id);
+      } },
+    ]);
+  }
   // ---- modo de cor (claro/escuro...): um botão só, com menu
   const modeBtn = h('button.bp-btn.mode-btn', { type: 'button', 'aria-haspopup': 'menu', 'aria-label': 'Modo de cor', onclick: (e) => modeMenu(e) });
-  const topEl = h('div.bp-top', seg, h('span.bp-sep'), modeBtn);
+  const topEl = h('div.bp-top', seg, more, width, h('span.bp-sep'), modeBtn);
   // ---- faixa de resumo (só em Tablet/Celular)
   const strip = h('div.bp-strip', { hidden: true });
   stage.append(strip);
 
   /** Quantas camadas da página têm sobrescritas neste breakpoint. */
-  function countOverrides(bp) {
+  function countOverrides(bp, all = false) {
     let n = 0;
-    walk(store.page().children, (x) => { if (hasBps(x, bp)) n++; });
+    for (const page of all ? store.state.doc.pages : [store.page()]) walk(page.children, (x) => { if (hasBps(x, bp)) n++; });
     return n;
   }
 
@@ -95,6 +157,10 @@ export function createResponsiveBar({ store, canvas, commands, toast, stage }) {
   }
 
   function render() {
+    buildSeg();
+    const cur = BREAKPOINTS.find((x) => x.id === ui.bp);
+    width.textContent = cur ? `≤ ${cur.max}` : '';
+    width.hidden = !cur;
     // modos de cor
     const modes = modesOf(store.state.doc.styles);
     if (ui.mode && !modes.some((m) => m.id === ui.mode)) ui.mode = null; // o modo foi apagado (ou outro projeto aberto)
@@ -121,6 +187,7 @@ export function createResponsiveBar({ store, canvas, commands, toast, stage }) {
   }
 
   store.subscribe((reasons) => { if (['bp', 'doc', 'history', 'selection'].some((r) => reasons.has(r))) render(); });
+  buildSeg();
   render();
   return { topEl, render };
 }

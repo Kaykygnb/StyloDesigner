@@ -112,3 +112,16 @@ test('largura fluida na raiz: width 100%, max-width e min-height; sem fluid fica
   wrap.children = [child];
   assert.ok(!generateCode([wrap], null, {}, { root: true }).css.includes('max-width'));
 });
+
+test('breakpoints do projeto: setBreakpoints ordena, limpa e o CSS sai com o @media personalizado', async () => {
+  const { setBreakpoints, BREAKPOINTS, DEFAULT_BREAKPOINTS, createNode, editBp } = await import('../src/model.js');
+  const { generateCode } = await import('../src/css.js');
+  setBreakpoints([{ id: 'mobile', name: 'Celular', max: 640 }, { id: 'tv', name: 'Dobra', max: 900, preview: 900 }, { id: 'tv', name: 'dup', max: 1 }]);
+  assert.deepEqual(BREAKPOINTS.map((b) => b.id), ['tv', 'mobile']);
+  const f = createNode('frame', { w: 400, h: 200 });
+  editBp(f, 'tv', (d) => { d.w = 300; });
+  const css = generateCode([f], null, {}, { root: true }).css;
+  assert.match(css, /@media \(max-width: 900px\)/);
+  setBreakpoints(undefined);
+  assert.deepEqual(BREAKPOINTS.map((b) => b.id), DEFAULT_BREAKPOINTS.map((b) => b.id));
+});
