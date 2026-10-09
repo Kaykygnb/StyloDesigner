@@ -1,237 +1,223 @@
 /**
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  present.js — MODO APRESENTAR (PROTÓTIPO EM TELA CHEIA)
+ *  present.js — MODO APRESENTAR (O DESIGN NUM NAVEGADOR DE VERDADE)
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Executa as interações definidas na aba Protótipo (clicar/passar o mouse → navegar, voltar, abrir link)
- *  com transições. Reaproveita css.js, então a apresentação tem exatamente a aparência do design.
+ *  Cada tela é o HTML + CSS EXPORTADOS (css.js → exportHtml) dentro de um <iframe>: rolagem, :hover, :focus,
+ *  sticky, @media e fontes funcionam como num site publicado. Por cima, uma barra de navegador: voltar/avançar,
+ *  recarregar, endereço com a lista de telas, larguras (desenhada, responsiva ou fixas) e "abrir em nova aba".
+ *  As interações da aba Protótipo (clicar/passar o mouse → navegar, voltar, link) são ligadas dentro do iframe
+ *  pelo atributo data-node-id. Enquanto aberta, a apresentação se atualiza sozinha quando o documento muda.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { hasStates, isBoard, overflowOf, stateView, walk } from './model.js';
+import { exportHtml } from './css.js';
+import { isBoard, slugify, walk } from './model.js';
 
-/**
- * Transições entre telas no modo Apresentar. Cada uma tem `enter` (animação da tela que ENTRA) e `leave`
- * (da que SAI), no formato de keyframes da Web Animations API. 'instant' = null (troca seca).
- * Os transforms são combinados com o `scale` de encaixe na tela em show().
- */
+/** Transições entre telas (Web Animations no quadro do iframe). 'instant' = troca seca. */
 const TRANSITIONS = {
   instant: null,
-  dissolve: { enter: [{ opacity: 0 }, { opacity: 1 }], leave: null },
-  'slide-left': { enter: [{ transform: 'translateX(100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateX(-30%)' }] },
-  'slide-right': { enter: [{ transform: 'translateX(-100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateX(30%)' }] },
-  'slide-up': { enter: [{ transform: 'translateY(100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateY(-30%)' }] },
-  'slide-down': { enter: [{ transform: 'translateY(-100%)' }, { transform: 'none' }], leave: [{ transform: 'none' }, { transform: 'translateY(30%)' }] },
+  dissolve: [{ opacity: 0 }, { opacity: 1 }],
+  'slide-left': [{ translate: '40% 0', opacity: 0 }, { translate: '0 0', opacity: 1 }],
+  'slide-right': [{ translate: '-40% 0', opacity: 0 }, { translate: '0 0', opacity: 1 }],
+  'slide-up': [{ translate: '0 40%', opacity: 0 }, { translate: '0 0', opacity: 1 }],
+  'slide-down': [{ translate: '0 -40%', opacity: 0 }, { translate: '0 0', opacity: 1 }],
 };
 /** Lista [valor, rótulo] das transições, para o menu da aba Protótipo. */
 export const TRANSITION_OPTIONS = [
   ['instant', 'Instantâneo'], ['dissolve', 'Dissolver'], ['slide-left', 'Deslizar ← (entra pela direita)'],
   ['slide-right', 'Deslizar → (entra pela esquerda)'], ['slide-up', 'Deslizar ↑'], ['slide-down', 'Deslizar ↓'],
 ];
+/** Larguras da barra: [valor, rótulo]. 'auto' = largura desenhada da tela; 'fill' = a janela toda (responsivo). */
+export const PRESENT_WIDTHS = [['auto', 'Desenhada'], ['fill', 'Responsivo'], ['1440', '1440'], ['1280', '1280'], ['1024', '1024'], ['768', '768'], ['390', '390']];
 
 /**
- * Liga os ESTADOS (hover, pressionado, foco) de uma camada ao elemento da apresentação: ao entrar/sair/pressionar,
- * troca o estilo inline pelo da visão correspondente (o `transition` do próprio estilo anima a troca). Pressionado vale
- * em cima do hover, como a cascata do CSS.
+ * HTML de uma tela para a apresentação: o mesmo da exportação, com `data-node-id` em cada elemento e o corpo
+ * sem a moldura cinza da exportação (a página ocupa a janela, como um site).
  */
-function attachStates(el, node, parent, assets, isRoot) {
-  if (!hasStates(node)) return;
-  const css = (states) => toCssText(nodeStyle(stateView(node, states), parent, assets, { root: isRoot }));
-  const keep = el.style.cursor; // o cursor de "tem interação" sobrevive às trocas
-  let hover = false, down = false, focus = false;
-  const apply = () => {
-    const list = [];
-    if (hover && hasStates(node, 'hover')) list.push('hover');
-    if (focus && hasStates(node, 'focus')) list.push('focus');
-    if (down && hasStates(node, 'active')) list.push('active');
-    el.style.cssText = css(list);
-    if (keep) el.style.cursor = keep;
-    // vetor: preenchimento e contorno moram DENTRO do <svg>, então o desenho precisa ser refeito para o estado
-    if (node.type === 'path') el.innerHTML = pathSvg(stateView(node, list), assets);
-  };
-  el.addEventListener('pointerenter', () => { hover = true; apply(); });
-  el.addEventListener('pointerleave', () => { hover = false; down = false; apply(); });
-  el.addEventListener('pointerdown', () => { down = true; apply(); });
-  el.addEventListener('pointerup', () => { if (down) { down = false; apply(); } });
-  if (hasStates(node, 'focus')) {
-    el.tabIndex = 0;
-    el.addEventListener('focus', () => { focus = true; apply(); });
-    el.addEventListener('blur', () => { focus = false; apply(); });
-  }
+export function presentHtml(frame, doc) {
+  const html = exportHtml(frame, doc.assets, frame.name, doc.styles, { ids: true });
+  return html.replace('body { display: grid; place-items: start center; padding: 24px; background: #f3f3f5; }',
+    'body { min-height: 100vh; background: #fff; }\nbody > * { margin-inline: auto; }');
 }
 
-/**
- * Monta o DOM de um frame para apresentação a partir do MODELO (não copia o canvas do editor). Usa o MESMO
- * `nodeStyle` do editor, então a apresentação é idêntica ao design. Camadas com interação ganham cursor de mão;
- * `data-id` permite achar a camada (e suas interações) no clique.
- */
-function buildDom(node, parent, assets, isRoot) {
-  const el = document.createElement('div');
-  el.dataset.id = node.id;
-  el.style.cssText = toCssText(nodeStyle(node, parent, assets, { root: isRoot }));
-  if (node.interactions?.length) el.style.cursor = 'pointer';
-  attachStates(el, node, parent, assets, isRoot);
-  if (node.type === 'text') el.textContent = node.text;
-  else if (node.type === 'path') el.innerHTML = pathSvg(node, assets);
-  else node.children?.forEach((c) => c.visible && el.append(buildDom(c, node, assets, false)));
-  return el;
-}
+const ICONS = {
+  close: '<path d="M6 6l12 12M18 6L6 18"/>', back: '<path d="M15 6l-6 6 6 6"/>', fwd: '<path d="M9 6l6 6-6 6"/>',
+  reload: '<path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/>', ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+};
+const svg = (k, size = 16) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
 
 /**
- * Cria o modo APRESENTAR (protótipo em tela cheia).
- *  - open(id): abre no frame da camada selecionada (ou no marcado como ponto de partida, ou no primeiro)
- *  - cliques/hover disparam as interações da camada (ou do ancestral mais próximo que tenha uma)
- *  - `stack` guarda o histórico de telas visitadas, para a ação "Voltar"
- *  - Esc fecha · R reinicia
+ * Cria o modo APRESENTAR.
+ *  - open(id): abre na tela da camada selecionada (ou na marcada como ponto de partida, ou na primeira)
+ *  - Esc fecha · R reinicia · Alt+← / Alt+→ voltam e avançam
  */
-export function createPresent({ store, canvas }) {
-  // root: container da apresentação (null = fechada) · stack: telas já visitadas (para Voltar) · current: id da tela atual
-  let root = null;
-  let stack = [];
-  let current = null;
-  // busy: uma transição está rolando (ignora cliques até acabar, para não empilhar animações)
-  let busy = false;
+export function createPresent({ store }) {
+  // current: id da tela aberta · back/fwd: histórico · width: largura escolhida · busy: transição em curso
+  let root = null, current = null, back = [], fwd = [], width = 'auto', unsub = null, timer = 0, busy = false;
 
-  /** Todos os frames do documento (de todas as páginas) — destinos possíveis das interações. */
+  const doc = () => store.state.doc;
+  /** Todos os frames do documento (de todas as páginas): destinos possíveis das interações. */
   const frames = () => {
     const out = [];
-    for (const p of store.state.doc.pages) walk(p.children, (n) => { if (n.type === 'frame') out.push(n); return n.type === 'frame' || n.type === 'section'; });
+    for (const p of doc().pages) walk(p.children, (n) => { if (n.type === 'frame') out.push(n); return n.type === 'frame' || n.type === 'section'; });
     return out;
   };
-  /** Frame pelo id. */
+  const boards = () => frames().filter((f) => isBoard(f, store.parentOf(f.id)));
   const findFrame = (id) => frames().find((f) => f.id === id);
-  /** Frame da raiz que contém a camada (sobe os pais). */
+  /** Tela (frame raiz) que contém a camada. */
   const rootOf = (id) => {
     let n = store.get(id);
     while (n && !isBoard(n, store.parentOf(n.id)) && store.parentOf(n.id)) n = store.parentOf(n.id);
-    return n;
+    return n?.type === 'frame' ? n : null;
   };
+  const q = (sel) => root.querySelector(sel);
 
-  /** Escala a tela para caber na janela (até 200%), centralizada. Devolve o fator usado. */
-  function fit(board) {
-    const f = findFrame(board.dataset.board);
-    const k = Math.min(innerWidth / f.w, innerHeight / f.h, 2);
-    board.style.transform = `scale(${k})`;
-    return k;
+  /** Largura do iframe e escala para caber no espaço disponível. */
+  function layout() {
+    if (!root || !current) return;
+    const frame = findFrame(current);
+    const vp = q('.present-viewport');
+    const board = q('.present-board');
+    if (!frame || !board) return;
+    const availW = Math.max(200, vp.clientWidth - 32), availH = Math.max(200, vp.clientHeight - 32);
+    const w = width === 'fill' ? availW : width === 'auto' ? frame.w : Number(width);
+    const k = Math.min(1, availW / w);
+    board.style.width = `${w}px`;
+    board.style.height = `${Math.round(availH / k)}px`;
+    board.style.transform = k < 1 ? `scale(${k})` : '';
+    board.style.marginBottom = k < 1 ? `${Math.round(availH / k - availH) * -1}px` : '';
+    q('.present-size').textContent = `${Math.round(w)} × ${Math.round(availH / k)}${k < 1 ? ` · ${Math.round(k * 100)}%` : ''}`;
+    root.querySelectorAll('[data-w]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.w === width)));
   }
 
-  /** Cria o "quadro" de uma tela: caixa do tamanho do frame + DOM + ouvintes de clique e hover. */
-  function makeBoard(frame) {
-    const wrap = document.createElement('div');
-    wrap.className = 'present-board';
-    wrap.dataset.board = frame.id;
-    wrap.style.width = `${frame.w}px`;
-    wrap.style.height = `${frame.h}px`;
-    const dom = buildDom(frame, null, store.state.doc.assets, true);
-    // a tela inicial corta ou mostra; se o frame tem ROLAGEM (overflow-y/x auto), vale o que o nodeStyle escreveu
-    if (!overflowOf(frame).startsWith('scroll')) dom.style.overflow = frame.clip ? 'hidden' : 'visible';
-    wrap.append(dom);
-    wrap.addEventListener('click', (e) => trigger(e.target, 'click'));
-    wrap.addEventListener('pointerover', (e) => {
-      if (e.target === e.relatedTarget) return;
-      trigger(e.target, 'hover', e.relatedTarget);
-    });
-    return wrap;
+  /** Liga as interações do protótipo dentro do documento do iframe. */
+  function wire(frameEl) {
+    const d = frameEl.contentDocument;
+    if (!d) return;
+    const find = (target, kind, related) => {
+      for (let el = target?.closest?.('[data-node-id]'); el; el = el.parentElement?.closest('[data-node-id]')) {
+        if (kind === 'hover' && related && el.contains(related)) return null;
+        const it = store.get(el.dataset.nodeId)?.interactions?.find((i) => i.trigger === kind);
+        if (it) return it;
+      }
+      return null;
+    };
+    d.querySelectorAll('[data-node-id]').forEach((el) => { if (store.get(el.dataset.nodeId)?.interactions?.length) el.style.cursor = 'pointer'; });
+    d.addEventListener('click', (e) => { const it = find(e.target, 'click'); if (it) { e.preventDefault(); run(it); } });
+    d.addEventListener('pointerover', (e) => { const it = find(e.target, 'hover', e.relatedTarget); if (it) run(it); });
+    d.addEventListener('keydown', onKey, true);
   }
 
-  /**
-   * Dispara a interação do tipo pedido ('click' | 'hover'). Sobe da camada clicada até um ancestral que tenha uma
-   * interação desse tipo (assim clicar no texto dentro de um botão aciona o botão). No hover, ignora movimentos
-   * dentro do mesmo elemento (só vale ao ENTRAR).
-   */
-  function trigger(target, kind, related) {
-    for (let el = target.closest?.('[data-id]'); el; el = el.parentElement?.closest('[data-id]')) {
-      if (kind === 'hover' && related && el.contains(related)) return; // ainda dentro do mesmo elemento
-      const node = store.get(el.dataset.id);
-      const it = node?.interactions?.find((i) => i.trigger === kind);
-      if (it) { run(it); return; }
-    }
-  }
-
-  /** Executa uma interação: abrir link, voltar para a tela anterior ou navegar para outro frame (com a transição escolhida). */
+  /** Executa uma interação: link externo, voltar, ou navegar para outra tela. */
   function run(it) {
     if (busy) return;
     if (it.action === 'url') { if (it.url) window.open(it.url, '_blank', 'noopener'); return; }
-    if (it.action === 'back') {
-      const prev = stack.pop();
-      if (prev) show(prev, 'dissolve', true);
-      return;
-    }
-    const target = findFrame(it.target);
-    if (target) show(target.id, it.transition || 'instant');
+    if (it.action === 'back') { goBack(); return; }
+    if (findFrame(it.target)) show(it.target, it.transition || 'instant');
   }
 
-  /**
-   * Mostra uma tela, animando a troca. A tela antiga fica por baixo durante a transição e é removida ao final;
-   * `busy` bloqueia novos cliques nesse intervalo (330ms ≈ duração 320ms).
-   * @param {string} frameId  frame a mostrar
-   * @param {string} transition  chave de TRANSITIONS
-   * @param {boolean} [isBack]  true quando vem de "Voltar" (não empilha no histórico)
-   */
-  function show(frameId, transition, isBack = false) {
+  /** Monta o iframe da tela. `push` = entra no histórico (navegação normal). */
+  function show(frameId, transition = 'instant', push = true) {
     const frame = findFrame(frameId);
     if (!frame) return;
-    const stage = root.querySelector('.present-stage');
-    const board = makeBoard(frame);
-    fit(board);
-    const old = current ? stage.querySelector(`[data-board="${current}"]`) : null;
-    if (current && !isBack && current !== frameId) stack.push(current);
+    if (push && current && current !== frameId) { back.push(current); fwd = []; }
     current = frameId;
-    root.querySelector('.present-title').textContent = frame.name;
-    stage.append(board);
+    const board = document.createElement('div');
+    board.className = 'present-board';
+    board.dataset.board = frame.id;
+    const iframe = document.createElement('iframe');
+    iframe.className = 'present-frame';
+    iframe.title = `Tela ${frame.name}`;
+    iframe.addEventListener('load', () => wire(iframe));
+    iframe.srcdoc = presentHtml(frame, doc());
+    board.append(iframe);
+    q('.present-viewport').replaceChildren(board);
+    q('.present-title').textContent = frame.name;
+    q('.present-path').textContent = slugify(frame.name) || 'tela';
+    q('.present-pages').value = frame.id;
+    q('[data-act="back"]').disabled = !back.length;
+    q('[data-act="fwd"]').disabled = !fwd.length;
+    layout();
     const t = TRANSITIONS[transition];
-    if (!old) return;
-    if (!t) { old.remove(); return; }
-    busy = true;
-    const k = fit(board);
-    const tf = (x) => (x && x !== 'none' ? `${x} scale(${k})` : `scale(${k})`);
-    const opts = { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' };
-    if (t.enter) board.animate(t.enter.map((f) => ({ ...f, transform: tf(f.transform) })), opts);
-    if (t.leave) old.animate(t.leave.map((f) => ({ ...f, transform: tf(f.transform) })), { ...opts, fill: 'forwards' });
-    setTimeout(() => { old.remove(); busy = false; }, 330);
+    if (t) {
+      busy = true;
+      board.animate(t, { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished.finally(() => { busy = false; });
+    }
   }
 
-  /** Abre a apresentação. Devolve false se não há nenhum frame para apresentar. */
+  function goBack() { const prev = back.pop(); if (prev) { fwd.push(current); show(prev, 'dissolve', false); } }
+  function goFwd() { const next = fwd.pop(); if (next) { back.push(current); show(next, 'dissolve', false); } }
+  function restart() {
+    const start = boards().find((f) => f.flowStart) || rootOf(current) || boards()[0];
+    back = []; fwd = []; current = null;
+    if (start) show(start.id);
+  }
+
+  /** Abre numa aba nova do navegador a tela atual, como página HTML independente. */
+  function openTab() {
+    const frame = findFrame(current);
+    if (!frame) return;
+    const url = URL.createObjectURL(new Blob([presentHtml(frame, doc())], { type: 'text/html' }));
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  /** Abre a apresentação. Devolve false se não há nenhuma tela. */
   function open(startId) {
     close();
-    const list = frames().filter((f) => isBoard(f, store.parentOf(f.id)));
-    const start =
-      (startId && rootOf(startId)) ||
-      list.find((f) => f.flowStart) ||
-      list[0];
-    if (!start) return false;
-    stack = [];
-    current = null;
+    const list = boards();
+    const first = (startId && rootOf(startId)) || list.find((f) => f.flowStart) || list[0];
+    if (!first) return false;
+    back = []; fwd = []; current = null;
+    width = first.fluid ? 'fill' : 'auto';
     root = document.createElement('div');
     root.className = 'present';
-    root.innerHTML = `<div class="present-bar"><strong class="present-title"></strong><span class="present-hint">Esc sai · R reinicia</span><button class="btn" data-act="restart" type="button">Reiniciar</button><button class="btn" data-act="close" type="button">Fechar</button></div><div class="present-stage"></div>`;
+    root.setAttribute('role', 'dialog');
+    root.setAttribute('aria-label', 'Apresentação');
+    const btn = (act, label, icon) => `<button type="button" class="present-ib" data-act="${act}" aria-label="${label}" title="${label}">${svg(icon)}</button>`;
+    root.innerHTML = `<div class="present-bar">
+      ${btn('close', 'Sair da apresentação (Esc)', 'close')}${btn('back', 'Voltar (Alt+←)', 'back')}${btn('fwd', 'Avançar (Alt+→)', 'fwd')}${btn('reload', 'Recarregar', 'reload')}
+      <label class="present-url">${svg('lock', 13)}<span class="present-host">stylo.local/</span><span class="present-path"></span>
+        <select class="present-pages" aria-label="Ir para a tela"></select></label>
+      <strong class="present-title" hidden></strong>
+      <div class="present-widths" role="group" aria-label="Largura da janela">${PRESENT_WIDTHS.map(([v, l]) => `<button type="button" data-w="${v}" aria-pressed="false">${l}</button>`).join('')}</div>
+      <span class="present-size" aria-live="polite"></span>
+      ${btn('tab', 'Abrir em nova aba do navegador', 'ext')}
+    </div><div class="present-viewport"></div>`;
+    const pages = q('.present-pages');
+    list.forEach((f) => { const o = document.createElement('option'); o.value = f.id; o.textContent = f.name; pages.append(o); });
     root.addEventListener('click', (e) => {
-      const act = e.target.closest('[data-act]')?.dataset.act;
-      if (act === 'close') close();
-      if (act === 'restart') { stack = []; root.querySelector('.present-stage').replaceChildren(); current = null; show(start.id, 'instant'); }
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.w) { width = b.dataset.w; layout(); return; }
+      ({ close, back: goBack, fwd: goFwd, reload: () => show(current, 'instant', false), tab: openTab })[b.dataset.act]?.();
     });
+    pages.addEventListener('change', (e) => show(e.target.value, 'dissolve'));
     document.body.append(root);
-    show(start.id, 'instant');
+    show(first.id);
+    q('[data-act="close"]').focus();
     window.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', layout);
+    // o documento mudou (outra pessoa ou um agente editando): recarrega a tela atual, sem mexer no histórico
+    unsub = store.subscribe((reasons) => {
+      const has = (r) => (reasons?.has ? reasons.has(r) : reasons?.includes?.(r));
+      if (!has('doc')) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => { if (root && findFrame(current)) show(current, 'instant', false); }, 250);
+    });
     return true;
   }
 
-  /** Teclas na apresentação (captura antes do editor): Esc fecha, R reinicia; as outras são engolidas para não mexer no editor por trás. */
+  /** Teclas (captura antes do editor). As demais são engolidas para não mexer no editor por trás. */
   function onKey(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); }
-    else if (e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) {
-      e.stopPropagation();
-      stack = [];
-      const start = rootOf(current);
-      root.querySelector('.present-stage').replaceChildren();
-      current = null;
-      show(start.id, 'instant');
-    } else e.stopPropagation();
-  }
-  /** Reencaixa as telas quando a janela muda de tamanho. */
-  function onResize() {
-    root?.querySelectorAll('.present-board').forEach(fit);
+    if (!root) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
+    else if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); goFwd(); }
+    else if (!typing && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) restart();
+    if (e.currentTarget === window && e.key !== 'Tab') e.stopPropagation();
   }
 
   /** Fecha a apresentação e remove os ouvintes globais. */
@@ -239,11 +225,10 @@ export function createPresent({ store, canvas }) {
     if (!root) return;
     root.remove();
     root = null;
+    unsub?.(); unsub = null; clearTimeout(timer);
     window.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', onResize);
+    window.removeEventListener('resize', layout);
   }
 
-  void canvas;
-  // API pública
   return { open, close, isOpen: () => !!root };
 }

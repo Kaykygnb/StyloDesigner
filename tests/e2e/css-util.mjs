@@ -122,7 +122,8 @@ ok('escolher "Rolar na vertical" guarda o modo e mantém clip', tela.ov === 'scr
 ok('no editor o conteúdo continua cortado (sem barra de rolagem no canvas)', tela.canvasOverflow === 'hidden' && tela.canvasX === 'hidden', JSON.stringify(tela));
 await page.locator('button', { hasText: 'Apresentar' }).first().click();
 await page.waitForSelector('.present .present-board');
-const apres = await ev((id) => { const el = document.querySelector('.present [data-id="' + id + '"]'); const cs = getComputedStyle(el); return { y: cs.overflowY, x: cs.overflowX, rolavel: el.scrollHeight > el.clientHeight }; }, sc);
+await page.frameLocator('.present-frame').locator('[data-node-id="' + sc + '"]').waitFor();
+const apres = await ev((id) => { const d = document.querySelector('.present-frame').contentDocument; const el = d.querySelector('[data-node-id="' + id + '"]'); const cs = d.defaultView.getComputedStyle(el); return { y: cs.overflowY, x: cs.overflowX, rolavel: el.scrollHeight > el.clientHeight }; }, sc);
 ok('na apresentação rola de verdade (overflow-y auto, conteúdo maior que a caixa)', apres.y === 'auto' && apres.x === 'hidden' && apres.rolavel, JSON.stringify(apres));
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);

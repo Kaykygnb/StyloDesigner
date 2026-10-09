@@ -40,14 +40,12 @@ await page.click('button:has-text("Apresentar")');
 await page.waitForTimeout(300);
 ok('modo apresentar abre na Home', (await page.locator('.present-title').innerText()) === 'Home');
 // clica no botão (posição na tela)
-const box = await page.locator('.present-board [data-id="' + ids.btn + '"]').boundingBox();
-await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+await page.frameLocator('.present-frame').locator('[data-node-id="' + ids.btn + '"]').click();
 await page.waitForTimeout(700);
 ok('clicar navega para Detalhe', (await page.locator('.present-title').innerText()) === 'Detalhe');
 ok('só um board no stage depois da transição', (await page.locator('.present-board').count()) === 1);
 await page.screenshot({ path: join(tmpdir(), 'proto-present.png') });
-const box2 = await page.locator('.present-board [data-id="' + ids.back + '"]').boundingBox();
-await page.mouse.click(box2.x + 5, box2.y + 5);
+await page.frameLocator('.present-frame').locator('[data-node-id="' + ids.back + '"]').click({ position: { x: 5, y: 5 } });
 await page.waitForTimeout(700);
 ok('Voltar retorna à Home', (await page.locator('.present-title').innerText()) === 'Home');
 await page.keyboard.press('Escape');
