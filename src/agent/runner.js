@@ -13,7 +13,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid, editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates } from '../model.js';
+import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid, editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates, BREAKPOINTS } from '../model.js';
 import { generateCode, joinCss, exportHtml } from '../css.js';
 import { makeComponent, createInstance } from '../components.js';
 import { addComment } from '../comments.js';
@@ -27,7 +27,7 @@ import { toolByName } from './schema.js';
 const SIMPLE = [
   'name', 'x', 'y', 'rotation', 'opacity', 'visible', 'locked', 'blend', 'note', 'sizeX', 'sizeY', 'minW', 'maxW', 'minH',
   'maxH', 'aspect', 'blur', 'bgBlur', 'clip', 'absolute', 'alignSelf', 'justifySelf', 'grow', 'colSpan', 'rowSpan', 'overflow',
-  'href', 'alt', 'fluid',
+  'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor',
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
 ];
@@ -181,7 +181,7 @@ export function describeCall(tool, args, store) {
     case 'insert_icon': return `Inserir o ícone “${args.name}”${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
-    case 'set_responsive': return `No ${args.breakpoint === 'mobile' ? 'Celular' : 'Tablet'}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
+    case 'set_responsive': return `No ${BREAKPOINTS.find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'set_state': return `No estado ${args.state}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'create_component': return `Transformar ${nm(args.id)} em componente`;
     case 'create_instance': return `Criar uma cópia do componente ${nm(args.component_id)}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
@@ -230,6 +230,8 @@ export function createRunner({ store, commands, approve, saving = null, folder =
         colorStyles: (doc.styles?.colors || []).map((c) => ({ id: c.id, name: c.name, color: c.color })),
         textStyles: (doc.styles?.texts || []).map((t) => ({ id: t.id, name: t.name })),
         sizeVars: (doc.styles?.vars || []).map((v) => ({ id: v.id, name: v.name, value: v.value })),
+        breakpoints: BREAKPOINTS.map((b) => ({ id: b.id, name: b.name, maxWidth: b.max })),
+        activeBreakpoint: store.ui.bp,
         hint: 'x/y são relativos ao pai. Camadas dentro de frames com layout são posicionadas pelo navegador (flex/grid).',
       };
     },
@@ -473,7 +475,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
     },
     set_responsive({ id, breakpoint, props }) {
       const n = need(id);
-      if (!['tablet', 'mobile'].includes(breakpoint)) throw new Error('breakpoint: "tablet" ou "mobile".');
+      if (!BREAKPOINTS.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${BREAKPOINTS.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
       const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
       if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
       store.update(() => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle })));

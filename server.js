@@ -441,18 +441,25 @@ async function agentApi(req, res, parts) {
     return sendJson(res, 200, { models: ids });
   }
   if (what === 'chat' && req.method === 'POST') {
-    const { messages, tools } = JSON.parse((await readBody(req)) || '{}');
+    const { messages, tools, model: wanted, memory } = JSON.parse((await readBody(req)) || '{}');
     if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
     const a = agentConfig();
     if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Assistente de IA.`);
     // as instruções (docs/AGENTE.md) entram aqui, no servidor: sempre as mais novas, e o navegador não consegue trocá-las
-    const system = { role: 'system', content: await agentInstructions() };
+    // memória do projeto (notas que o agente guardou com "remember" ou que você escreveu): vai junto das instruções
+    const notes = Array.isArray(memory) ? memory.map((m) => String(m).slice(0, 500)).slice(0, 60) : [];
+    const memoryText = notes.length
+      ? `\n\n## Memória deste projeto\nCoisas que você já combinou com a pessoa ou anotou (use a ferramenta remember para guardar novas):\n${notes.map((n) => `- ${n}`).join('\n')}`
+      : '';
+    const system = { role: 'system', content: (await agentInstructions()) + memoryText };
+    // modelo escolhido na aba do agente (por conversa); sem escolha, vale o das Configurações
+    const model = typeof wanted === 'string' && /^[\w.:/@+-]{1,120}$/.test(wanted) ? wanted : a.model;
     let r;
     try {
       r = await fetch(`${a.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader(a) },
-        body: JSON.stringify({ model: a.model, messages: [system, ...messages.filter((m) => m.role !== 'system')], ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
+        body: JSON.stringify({ model, messages: [system, ...messages.filter((m) => m.role !== 'system')], ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
         signal: AbortSignal.timeout(120000),
       });
     } catch (err) {
@@ -463,11 +470,11 @@ async function agentApi(req, res, parts) {
       const detail = data.error?.message || data.detail || data.title || r.status;
       // modelo que não aceita ferramentas: diga o que fazer em vez de só repassar o erro técnico
       const noTools = /tool|function/i.test(String(detail)) && r.status === 400;
-      throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${detail}${r.status === 401 ? ' (chave inválida?)' : ''}${noTools ? ` — o modelo "${a.model}" parece não aceitar ferramentas; escolha outro em Configurações.` : ''}`);
+      throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${detail}${r.status === 401 ? ' (chave inválida?)' : ''}${noTools ? ` — o modelo "${model}" parece não aceitar ferramentas; escolha outro em Configurações.` : ''}`);
     }
     const message = data.choices?.[0]?.message;
     if (!message) throw httpError(502, 'A API respondeu sem mensagem.');
-    return sendJson(res, 200, { message, usage: data.usage || null });
+    return sendJson(res, 200, { message, model, usage: data.usage || null });
   }
   throw httpError(404, 'Rota não encontrada.');
 }

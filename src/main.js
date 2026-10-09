@@ -320,7 +320,7 @@ async function confirmReplace(question) {
 }
 
 // botão do Assistente de IA (o painel é criado mais abaixo, junto com o MCP)
-const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Assistente de IA: peça mudanças e revisões do design (com a sua permissão)' }, ico('sparkle', 15), h('span.tab-label', ' Assistente'));
+const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Agente de IA: conversas, modelos e memória do projeto' }, ico('sparkle', 15), h('span.tab-label', ' Agente'));
 // monta a barra superior
 $('#topbar').append(
   h('button.brand', { type: 'button', title: 'Página inicial (seus projetos)', onclick: () => home.open() },

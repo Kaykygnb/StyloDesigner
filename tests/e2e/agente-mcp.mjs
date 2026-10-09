@@ -318,7 +318,7 @@ try {
   ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
-  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 33 && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 34 && first.data.tools.some((t) => t.function.name === 'remember') && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
   ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Stylo/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');

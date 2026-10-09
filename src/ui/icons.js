@@ -30,6 +30,8 @@ const P = {
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
   unlock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 017.6-1.7"/>',
   chevron: '<path d="M9 6l6 6-6 6"/>',
+  bookmark: '<path d="M7 4h10v16l-5-4-5 4z"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
