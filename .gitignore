@@ -10,3 +10,6 @@ designer.config.json
 designer.account.json
 tmp-config*
 capturas-fase1/
+
+# capturas de tela dos testes (não vão para o git)
+capturas/
