@@ -112,4 +112,4 @@ export const icon = (name, size = 16) =>
 
 /** Ícone usado na lista de camadas para cada tipo de camada. */
 export const nodeIcon = (type) =>
-  ({ frame: 'frame', rect: 'rect', ellipse: 'ellipse', text: 'text', group: 'group', line: 'line', path: 'pen', section: 'section' })[type] || 'rect';
+  ({ frame: 'frame', rect: 'rect', ellipse: 'ellipse', text: 'text', group: 'group', line: 'line', path: 'pen', section: 'section', html: 'code' })[type] || 'rect';

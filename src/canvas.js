@@ -10,8 +10,9 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { nodeStyle, pathSvg, toCssText } from './css.js';
-import { round, stateView, bpView } from './model.js';
+import { nodeStyle, pathSvg, toCssText, classNamesOf } from './css.js';
+import { round, stateView, bpView, tagOf } from './model.js';
+import { sanitizeHtml, scopePageCss, cleanClasses, cleanId } from './html.js';
 import { modeView } from './modes.js';
 
 /** Limites do zoom: 2% (para ver pranchas enormes) até 6400% (para conferir pixels). */
@@ -43,6 +44,12 @@ export function createCanvas(store, viewport) {
   // els: id da camada → elemento DOM. `alive`: ids vistos no render atual (o resto é removido).
   const els = new Map();
   let alive = new Set();
+  // id da camada → classe no código exportado (refeito a cada render; ver classNamesOf)
+  let classMap = new Map();
+  // <style> com o CSS DA PÁGINA (doc.styles.pageCss) escopado ao canvas: só vale dentro de .world
+  const pageStyle = document.createElement('style');
+  pageStyle.id = 'stylo-page-css';
+  document.head.append(pageStyle);
 
   // ------------------------------------------------------------------ vista (pan/zoom)
   /**
@@ -258,6 +265,18 @@ export function createCanvas(store, viewport) {
       if (!editing && el.isContentEditable) el.contentEditable = 'false';
     }
 
+    // CÓDIGO HTML escrito à mão: entra limpo (sem scripts nem on*); os cliques passam direto para a camada (app.css)
+    if (node.type === 'html') {
+      const inner = sanitizeHtml(node.html).html;
+      if (el._html !== inner) { el.innerHTML = inner; el._html = inner; }
+    }
+
+    // marcas para o CSS DA PÁGINA valer no canvas (ver html.js → scopePageCss): etiqueta, classes e id do código exportado
+    const mark = (k, v) => { if (v) { if (el.dataset[k] !== v) el.dataset[k] = v; } else if (k in el.dataset) delete el.dataset[k]; };
+    mark('tag', tagOf(node));
+    mark('cls', [classMap.get(node.id), ...cleanClasses(node.classes)].filter(Boolean).join(' '));
+    mark('hid', cleanId(node.htmlId));
+
     // garante a ordem dos irmãos no DOM igual à do array (ordem z = ordem de desenho)
     if (parentEl.children[index] !== el) parentEl.insertBefore(el, parentEl.children[index] || null);
 
@@ -296,6 +315,10 @@ export function createCanvas(store, viewport) {
   function render() {
     const page = store.page();
     alive = new Set();
+    // classes do código exportado (cada tela exportada sozinha; telas dentro de seções também) e o CSS da página
+    classMap = classNamesOf(page.children.flatMap((n) => (n.type === 'section' ? [n, ...n.children] : [n])));
+    const pageCss = scopePageCss(store.state.doc.styles?.pageCss || '', '.world');
+    if (pageStyle.textContent !== pageCss) pageStyle.textContent = pageCss;
     page.children.forEach((n, i) => syncNode(n, null, world, i));
     // remove elementos de nós que não existem mais (ou que são de outra página)
     for (const [id, el] of els) {

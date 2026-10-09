@@ -1269,6 +1269,8 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
     if (e.shiftKey && key === 'h') { commands.flip('x'); return; }
     if (e.shiftKey && key === 'v') { commands.flip('y'); return; }
     if (e.shiftKey && key === 'r') { store.toggleRulers(); return; }
+    // Shift+E: nova camada "Código HTML" (HTML escrito à mão)
+    if (e.shiftKey && !e.altKey && key === 'e') { e.preventDefault(); commands.addHtmlEmbed(); return; }
     if (!e.shiftKey && !e.altKey && /^[0-9]$/.test(e.key) && ui.selection.length) {
       const op = e.key === '0' ? 1 : Number(e.key) / 10;
       store.update(() => store.selected().forEach((n) => { n.opacity = op; }), { commit: true });
