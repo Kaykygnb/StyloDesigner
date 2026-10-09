@@ -35,6 +35,12 @@ test('linha vira barra com gradiente e altura mínima de 12px', () => {
   assert.equal(s.outline, undefined);
 });
 
+test('novas linhas e vetores usam traço cinza visível, respeitando cor explícita', () => {
+  assert.equal(createNode('line').stroke.color, '#808080');
+  assert.equal(createNode('path').stroke.color, '#808080');
+  assert.equal(createNode('path', { stroke: { color: '#FF0000' } }).stroke.color, '#FF0000');
+});
+
 test('espelhar combina com rotação', () => {
   assert.equal(transformOf(createNode('rect', { rotation: 30, flipX: true })), 'rotate(30deg) scale(-1, 1)');
   assert.equal(transformOf(createNode('rect')), '');

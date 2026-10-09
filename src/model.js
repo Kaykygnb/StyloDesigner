@@ -264,7 +264,7 @@ export function createNode(type, props = {}) {
     // Linha: uma caixa de 160×12 (a espessura real vem do stroke.width; os 12px extras só facilitam o clique)
     node.w = 160; node.h = 12;
     node.fill = { ...defaultFill(), type: 'none' };
-    node.stroke = { ...defaultStroke(), width: 2, color: '#111111' };
+    node.stroke = { ...defaultStroke(), width: 2, color: '#808080' };
   } else if (type === 'path') {
     // Vetor: `points` guarda os pontos do caminho; hin/hout = alças de Bézier (null = ponto de canto).
     // As coordenadas ficam num espaço próprio de tamanho vw×vh (o "viewBox" do SVG); w/h só esticam esse espaço.
@@ -272,7 +272,7 @@ export function createNode(type, props = {}) {
     node.closed = false;
     node.vw = 100; node.vh = 100;
     node.fill = { ...defaultFill(), type: 'none' };
-    node.stroke = { ...defaultStroke(), width: 2, color: '#111111' };
+    node.stroke = { ...defaultStroke(), width: 2, color: '#808080' };
   } else if (type === 'group') {
     // Grupo: só uma caixa que contém filhos. Não tem estilo próprio; o tamanho é sempre recalculado a partir
     // dos filhos (ver fitGroups).
