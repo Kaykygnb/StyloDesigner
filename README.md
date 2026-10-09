@@ -195,4 +195,4 @@ Contribuições são bem-vindas: leia o [`CONTRIBUTING.md`](CONTRIBUTING.md). Re
 
 **Inspiração:** a organização do produto (páginas, frames, camadas, auto layout, painel de código, componentes, protótipo) é inspirada no [Penpot](https://penpot.app) e no Figma. O código foi escrito do zero e não copia nenhum deles.
 
-**Licença:** ainda não definida. Sem um arquivo `LICENSE`, o código fica com todos os direitos reservados por padrão, mesmo estando público; se quiser que outras pessoas possam usar, adicione uma licença (a [MIT](https://choosealicense.com/licenses/mit/) é a mais comum).
+**Licença:** [MIT](LICENSE). Pode usar, copiar, modificar e distribuir, inclusive em projetos comerciais, mantendo o aviso de autoria. Contribuições são bem-vindas: veja o [guia de contribuição](CONTRIBUTING.md) e as [issues abertas](https://github.com/Kaykygnb/projetodesigner2/issues).

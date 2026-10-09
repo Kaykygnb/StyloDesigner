@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Stylo — editor de design onde o canvas é CSS de verdade. JavaScript puro, local, sem build.",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "node server.js",
