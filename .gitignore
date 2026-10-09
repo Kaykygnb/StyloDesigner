@@ -5,3 +5,8 @@ node_modules/
 # dados locais do usuário (projetos salvos pelo servidor e a configuração da pasta)
 projetos/
 designer.config.json
+
+# conta local (perfil) e configurações temporárias de teste
+designer.account.json
+tmp-config*
+capturas-fase1/
