@@ -7,7 +7,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { EXPORT_RESET, exportHtml, generateCode, joinCss } from './css.js';
+import { EXPORT_RESET, exportHtml, generateCode, joinCss, withPageCss } from './css.js';
 import { toSvg } from './svg.js';
 import { slugify } from './model.js';
 
@@ -82,7 +82,7 @@ export async function renderPng(node, assets, scale = 2, styles = null) {
   const H = Math.ceil(Math.abs(node.w * Math.sin(rad)) + Math.abs(node.h * Math.cos(rad)));
   const gen = generateCode([node], null, assets, { root: true, styles });
   const html = gen.html;
-  const css = joinCss([gen]);
+  const css = withPageCss(joinCss([gen]), styles);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
     `<foreignObject width="100%" height="100%">` +

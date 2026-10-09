@@ -25,6 +25,7 @@
 import { isFlow, hasLayout, hasAspect, hasSizeLimits, round, slugify, stateView, STATE_LIST, cleanTrackList, overflowOf, htmlTagIn, tagOf, BREAKPOINTS, bpView, hasBps } from './model.js';
 import { googleFontsUrl, usedFonts } from './fonts.js';
 import { modesOf, styleValue, varsOf, varCssNames } from './modes.js';
+import { sanitizeHtml, htmlAttrs, safeUrl, safePageCss, cleanClasses, BUTTON_TYPES } from './html.js';
 
 /** Formata um número como pixels CSS, arredondado: px(10.004) → "10px". */
 const px = (v) => `${round(v)}px`;
@@ -222,12 +223,21 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if (t || r || b || l) s.padding = `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
   }
   // Conteúdo que sai da caixa: cortar (overflow:hidden, que também faz os filhos respeitarem o border-radius), mostrar ou rolar.
-  if (node.type === 'frame') overflowCss(node, s, opts);
+  if (node.type === 'frame' || node.type === 'html') overflowCss(node, s, opts);
 
   // Linhas têm um desenho próprio (barra com gradiente) e não usam fill/radius/outline: retorna cedo.
   if (node.type === 'line') {
     lineStyle(node, s, flow);
     return s;
+  }
+
+  // CÓDIGO HTML: texto base próprio (senão, no canvas, o conteúdo herdaria a fonte e a cor da interface do editor e,
+  // no arquivo exportado, as do navegador — ficariam diferentes). O CSS livre e o CSS da página podem trocar.
+  if (node.type === 'html') {
+    s.color = '#111111';
+    s['font-family'] = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    s['font-size'] = '16px';
+    s['line-height'] = '1.5';
   }
 
   // ---- texto ------------------------------------------------------------------------
@@ -690,6 +700,26 @@ function makeClassNamer() {
   };
 }
 
+/**
+ * Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da
+ * lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
+ */
+export function classNamesOf(roots) {
+  const map = new Map();
+  for (const r of roots) {
+    const namer = makeClassNamer();
+    const visit = (n) => { if (!n.visible) return; map.set(n.id, namer(n)); (n.children || []).forEach(visit); };
+    visit(r);
+  }
+  return map;
+}
+
+/** Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata. */
+export function withPageCss(css, styles) {
+  const page = safePageCss(styles?.pageCss);
+  return page ? [css, `/* CSS da página */\n${page}`].filter(Boolean).join('\n\n') : css;
+}
+
 /** Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código. */
 export const noteComment = (node) => {
   if (!node.note || node.noteInCode === false) return '';
@@ -790,9 +820,12 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     // etiqueta conferida contra os pais (htmlTagIn): um <li> fora de lista, por exemplo, vira <div>
     const tag = htmlTagIn(node, ancestors).tag;
     const hasKids = node.type !== 'text' && node.type !== 'path' && (node.children || []).length > 0;
-    const attrs = ` class="${cls}"`
-      + (tag === 'a' ? ` href="${escapeHtml(node.href || '#')}"` : '')
-      + (tag === 'button' ? ' type="button"' : '')
+    // classes: a gerada + as extras escritas pela pessoa; depois id, title, role, target/rel... (html.js → htmlAttrs)
+    const extra = cleanClasses(node.classes).filter((c) => c !== cls);
+    const attrs = ` class="${[cls, ...extra].join(' ')}"`
+      + htmlAttrs(node, tag)
+      + (tag === 'a' ? ` href="${escapeHtml(safeUrl(node.href) || '#')}"` : '')
+      + (tag === 'button' ? ` type="${BUTTON_TYPES.includes(node.buttonType) ? node.buttonType : 'button'}"` : '')
       + (node.alt ? ` aria-label="${escapeHtml(node.alt)}"` : '')
       + (node.alt && node.type !== 'text' && !hasKids ? ' role="img"' : '')
       + focusable
@@ -804,6 +837,12 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     }
     if (node.type === 'path') {
       return `${noteHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
+    }
+    // CÓDIGO HTML escrito à mão: vai limpo (html.js → sanitizeHtml) dentro da caixa da camada
+    if (node.type === 'html') {
+      const inner = sanitizeHtml(node.html).html.trim();
+      if (!inner) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
+      return `${noteHtml}${pad}<${tag}${attrs}>\n${inner.split('\n').map((l) => `${pad}  ${l}`).join('\n')}\n${pad}</${tag}>`;
     }
     const kids = (node.children || []).map((c) => build(c, node, depth + 1, false, [...ancestors, tag])).filter(Boolean);
     if (!kids.length) return `${noteHtml}${pad}<${tag}${attrs}></${tag}>`;
@@ -885,8 +924,11 @@ export const EXPORT_RESET = `*, *::before, *::after { margin: 0; padding: 0; box
 ul, ol { list-style: none; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
-a, span, label, button, li { display: block; }
-h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }`;
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }`;
 
 /**
  * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
@@ -895,7 +937,8 @@ h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }`;
 export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {}) {
   const gen = generateCode([node], null, assets, { root: true, styles, ids });
   const html = gen.html;
-  const css = joinCss([gen]);
+  // CSS DA PÁGINA (escrito à mão na aba Código → Página): vem depois das regras das camadas, então vence na cascata
+  const css = withPageCss(joinCss([gen]), styles);
   // fontes do Google usadas nos textos: o HTML exportado já leva o <link> (sem ele, cairia na fonte padrão)
   const fontsUrl = googleFontsUrl(usedFonts([node]));
   const fontLink = fontsUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fontsUrl}">\n` : '';
