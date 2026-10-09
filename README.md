@@ -104,13 +104,24 @@ Abra **http://localhost:5173**. O app abre com a Vitrine completa: clique em uma
 | `I` | Inspecionar (como o F12) |
 | `Ctrl+Alt+K` | Criar componente |
 | `Ctrl+Alt+Enter` | Apresentar o protótipo |
-| `?` | Todos os atalhos |
+| `?` | Central de ajuda (atalhos, primeiros passos, suporte) |
 
 ---
 
-## IA: Assistente e MCP
+## O que há de novo no Stylo 1.0
 
-**Assistente** (botão ✦ no topo): abra **Configurações → Assistente de IA e MCP**, escolha o **provedor**, cole a chave e clique em **Ver modelos** para escolher o modelo da sua conta (isso também testa a chave). Cada provedor guarda a própria chave, só no seu computador (no arquivo de configuração do servidor); ela nunca vai para o projeto nem volta ao navegador.
+- **Apresentar = navegador de verdade.** O design roda como site (HTML/CSS exportado num iframe): rolagem, :hover, sticky e @media funcionam. Barra com voltar/avançar, endereço com a lista de telas e larguras 1440 a 390.
+- **Breakpoints do projeto.** Desktop é a base; adicione Laptop 1280, Tablet 1024, Tablet retrato 768, Celular 640, Celular pequeno 380 ou um personalizado pelo menu ao lado da barra de larguras.
+- **Aba do Agente.** Conversas por projeto que continuam de onde pararam, troca de modelo por conversa e memória do projeto ("lembre que títulos usam 52px").
+- **Vários agentes ao mesmo tempo.** Cada conexão MCP tem nome próprio; quem altera uma camada a reserva por 10 s. Os avatares no topo mostram pessoas e agentes no projeto e o que cada um fez.
+- **CSS livre.** Qualquer propriedade que o painel não tem, por camada e por breakpoint, validada e incluída no código exportado. Também: `order`, `flex-shrink`, `white-space`, `word-break`, `text-wrap`, `skew`, `position: sticky` e `pointer-events`.
+- **Central de ajuda** (`?`): primeiros passos, atalhos, problemas comuns e suporte com diagnóstico.
+
+---
+
+## IA: Agente e MCP
+
+**Agente** (botão ✦ Agente no topo): abra **Configurações → Assistente de IA e MCP**, escolha o **provedor**, cole a chave e clique em **Ver modelos** para escolher o modelo da sua conta (isso também testa a chave). Cada provedor guarda a própria chave, só no seu computador (no arquivo de configuração do servidor); ela nunca vai para o projeto nem volta ao navegador.
 
 | Provedor | Endereço | Chave |
 |---|---|---|
@@ -154,9 +165,9 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 Sem enrolação, para você decidir se serve:
 
-- **Edição em equipe:** um projeto é um arquivo; duas pessoas não editam juntas, e não há login (o app detecta conflito e para de gravar, mas não junta edições).
+- **Edição em equipe em tempo real:** vários agentes de IA trabalham juntos no mesmo editor (com travas por camada) e a presença mostra quem está no projeto, mas duas PESSOAS em navegadores diferentes ainda não editam o mesmo projeto ao mesmo tempo (o app detecta conflito e para de gravar, mas não junta edições). Não há login: o perfil (nome e cor) é local.
 - **Variantes de componente**, operações booleanas em formas, mais de um preenchimento/contorno por camada e unidades além de `px` (`%`, `rem`, `calc()`).
-- **Responsivo** com dois breakpoints fixos (1024 e 640px) e a mesma estrutura de camadas em todas as larguras.
+- **Responsivo** só com `max-width` (desktop primeiro) e a mesma estrutura de camadas em todas as larguras (dá para reordenar com `order` e ocultar por breakpoint).
 - **Plugins** (a IA já entra pelo MCP e pelo Assistente; extensões próprias, não).
 
 A lista completa, com os detalhes, está na [seção de limitações do guia](docs/GUIA-COMPLETO.md#11-limitações-leia-antes-de-usar-em-trabalho-sério). É uma base sólida para **uso individual**, prototipar, estudar CSS e entregar sites simples; para trabalho de cliente com várias pessoas ou ilustração complexa, o [Penpot](https://penpot.app) é a melhor escolha.
