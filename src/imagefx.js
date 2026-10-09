@@ -280,10 +280,11 @@ export function borderColors(src, w, h) {
  * REMOVER FUNDO AUTOMÁTICO (sem IA): estima as cores do fundo pela borda (borderColors) e "inunda" a partir de
  * todos os pixels da borda que têm essas cores, avançando para vizinhos parecidos com alguma cor de fundo. O que a
  * inundação alcança é fundo (alfa 0); o resto é o objeto. Ilhas de fundo fechadas (ex.: o miolo de um "O") ficam:
- * use a varinha. No fim suaviza a borda do recorte (`feather` px) para não ficar serrilhado.
+ * use a varinha. No fim tira `shrink` px da borda do objeto (a mistura com o fundo) e suaviza o recorte (`feather` px)
+ * para não ficar serrilhado.
  * @returns {{mask: Uint8Array, colors: object[], removed: number}}  mask: 0..255 por pixel (255 = mantém)
  */
-export function autoBackground(src, w, h, { tolerance = 28, feather = 1 } = {}) {
+export function autoBackground(src, w, h, { tolerance = 28, feather = 1, shrink = 1 } = {}) {
   const colors = borderColors(src, w, h);
   const mask = new Uint8Array(w * h).fill(255);
   if (!colors.length) return { mask, colors, removed: 0 };
@@ -310,7 +311,21 @@ export function autoBackground(src, w, h, { tolerance = 28, feather = 1 } = {}) 
     if (py > 0) seed(p - w);
     if (py < h - 1) seed(p + w);
   }
+  // a borda do objeto mistura a cor dele com a do fundo (antisserrilhado): sem tirar 1 px, sobra um "contorno" do fundo
+  for (let k = 0; k < shrink; k++) removed += erodeMask(mask, w, h);
   return { mask: feather > 0 ? featherMask(mask, w, h, feather) : mask, colors, removed };
+}
+
+/** Tira 1 px do objeto em volta de tudo que já é fundo (4 vizinhos). Altera `mask` no lugar; devolve quantos saíram. */
+export function erodeMask(mask, w, h) {
+  const edge = [];
+  for (let p = 0; p < w * h; p++) {
+    if (!mask[p]) continue;
+    const x = p % w;
+    if ((x > 0 && !mask[p - 1]) || (x < w - 1 && !mask[p + 1]) || (p >= w && !mask[p - w]) || (p < w * (h - 1) && !mask[p + w])) edge.push(p);
+  }
+  for (const p of edge) mask[p] = 0;
+  return edge.length;
 }
 
 /** Suaviza a máscara (desfoque em caixa só no canal da máscara). */
@@ -321,8 +336,9 @@ export function featherMask(mask, w, h, radius) {
   for (let p = 0; p < w * h; p++) rgba[p * 4] = mask[p];
   const soft = boxBlur(rgba, w, h, r);
   const out = new Uint8Array(w * h);
-  // só mexe perto da borda: onde já era 0 continua 0 se o desfoque deu quase nada (evita "névoa" no fundo)
-  for (let p = 0; p < w * h; p++) out[p] = soft[p * 4] < 6 ? 0 : soft[p * 4] > 249 ? 255 : soft[p * 4];
+  // suaviza só PARA DENTRO (o menor entre a máscara e a versão desfocada): o que já era fundo continua fundo, senão a
+  // borda desfocada traria de volta um anel com a cor do fundo em volta do objeto
+  for (let p = 0; p < w * h; p++) { const v = soft[p * 4] > 249 ? 255 : soft[p * 4]; out[p] = Math.min(mask[p], v); }
   return out;
 }
 

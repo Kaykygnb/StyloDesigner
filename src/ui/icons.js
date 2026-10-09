@@ -108,6 +108,11 @@ const P = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   play: '<path d="M7 4.5v15l12-7.5z"/>',
   eyedropper: '<path d="M14 6l4 4M5 19l1-4 9-9 3 3-9 9zM16 4l1-1a2 2 0 013 3l-1 1"/>',
+  // editor de imagem (ui/imageai.js): recortar, filtros, varinha mágica (remover fundo) e redimensionar
+  crop: '<path d="M6 2v14a2 2 0 002 2h14"/><path d="M2 6h14a2 2 0 012 2v14"/>',
+  filters: '<circle cx="9" cy="9" r="5.5"/><circle cx="15" cy="9" r="5.5"/><circle cx="12" cy="15" r="5.5"/>',
+  wand: '<path d="M4 20L15 9"/><path d="M13.5 7.5l3 3"/><path d="M18 2.5v3M16.5 4h3M20.5 9v2M19.5 10h2M10 2.5v2M9 3.5h2"/>',
+  resize: '<path d="M14 4h6v6M10 20H4v-6"/><path d="M20 4l-7 7M4 20l7-7"/>',
   sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
   inspect: '<path d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/><path d="M10 10l7 3-3 1-1 3z"/>',
   send: '<path d="M4 12l16-8-6 16-2.5-5.5z"/><path d="M11.5 14.5L20 4"/>',

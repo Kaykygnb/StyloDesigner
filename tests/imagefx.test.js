@@ -94,15 +94,17 @@ test('remover fundo automático: tira o fundo liso da borda e mantém o objeto d
   const src = img(w, h, (x, y) => (x >= 6 && x < 14 && y >= 5 && y < 11 ? [20, 40, 220, 255] : [30 + ((x * 7 + y) % 9), 200, 60, 255]));
   const cols = borderColors(src, w, h);
   assert.ok(cols.length >= 1 && cols[0].g > 180);
-  const { mask, removed } = autoBackground(src, w, h, { tolerance: 20, feather: 0 });
+  const { mask, removed } = autoBackground(src, w, h, { tolerance: 20, feather: 0, shrink: 0 });
   assert.equal(removed, w * h - 8 * 6);
+  const shrunk = autoBackground(src, w, h, { tolerance: 20, feather: 0, shrink: 1 });
+  assert.equal(shrunk.removed, w * h - 6 * 4, 'shrink tira 1 px da borda do objeto');
   assert.equal(mask[0], 0);
   assert.equal(mask[8 * w + 10], 255);
   const out = applyMask(src, mask);
   assert.equal(out[3], 0, 'fundo transparente');
   assert.equal(out[(8 * w + 10) * 4 + 3], 255, 'objeto opaco');
   assert.ok(Math.abs(maskCoverage(mask) - removed / (w * h)) < 1e-9);
-  const soft = autoBackground(src, w, h, { tolerance: 20, feather: 1 }).mask;
+  const soft = autoBackground(src, w, h, { tolerance: 20, feather: 1, shrink: 0 }).mask;
   assert.ok(soft.some((v) => v > 0 && v < 255), 'com suavização há valores intermediários na borda');
 });
 

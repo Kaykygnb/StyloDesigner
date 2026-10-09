@@ -26,6 +26,7 @@ import { browserUsage, requestPersistence, folder } from '../storage.js';
 import { PROVIDERS } from '../agent/providers.js';
 import { ACCOUNT_COLORS, avatarEl, shrinkAvatar } from '../account.js';
 import { VERSION } from '../version.js';
+import { imageModelCard } from './imageai.js';
 
 /** "12345678" bytes → "11,8 MB". */
 export const formatBytes = (b) =>
@@ -459,6 +460,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
           advanced,
           h('div.sp-card-foot', msg, h('div.spacer'), saveBtn)),
         timing,
+        imageModelCard({ card, row, toast }), // IA de foto: endereço/modelo da edição generativa
         ai.hasKey ? null : card(null, null, null, h('p.sp-muted', 'Falta a chave de API. ', h('button.link', { type: 'button', onclick: () => show('keys', true) }, 'Adicionar chave →')))),
       sectionEl('keys',
         card(`Chave do ${providerName}`, ai.hasKey ? 'Há uma chave salva para este provedor.' : 'Nenhuma chave salva para este provedor ainda.',
