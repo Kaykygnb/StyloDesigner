@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-53 arquivos · 818 funções e constantes documentadas.
+53 arquivos · 820 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1548,32 +1548,35 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 **SELETOR DE COR (popover) com gerenciador de paletas** · [abrir o código](../src/ui/colorpicker.js)
 
 ```text
- Abre ao clicar numa amostra de cor do painel. De cima para baixo:
-   1. área saturação/brilho + barra de matiz (+ barra de opacidade quando o campo tem opacidade);
-   2. a cor atual (ao lado da original) com campos HEX · RGB · HSL e conta-gotas;
-   3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível;
-   4. SUGESTÕES de harmonia (complementar, análogas, tríade, tons): um clique escolhe, outro guarda na paleta;
-   5. PALETAS PRÓPRIAS, gerenciáveis aqui mesmo: abas, nova paleta, renomear, guardar a cor atual, tirar cor,
-      duplicar, copiar como variáveis CSS e excluir;
-   6. cores recentes, as do projeto, estilos de cor e paletas prontas.
+ Abre ao clicar numa amostra de cor do painel. Em CIMA, a cor em si:
+   1. área saturação/brilho; conta-gotas + barras de matiz e opacidade + amostra (nova sobre a original);
+   2. formato (HEX · RGB · HSL) e campos;
+   3. contraste da cor sobre branco e sobre preto (WCAG), para saber se o texto fica legível.
+ EMBAIXO, as cores prontas para um clique, como fileiras de amostras com nome:
+   4. MINHAS PALETAS (uma fileira por paleta; a ativa em destaque), gerenciáveis aqui mesmo: nova, renomear,
+      + guardar a cor atual, × tirar cor, duplicar, copiar como variáveis CSS e excluir;
+   5. cores do documento e estilos de cor (vindos de `groups`) e as recentes;
+   6. SUGESTÕES de harmonia (complementar, análogas, tríade, tons) como faixa de amostras, recolhidas;
+   7. paletas prontas, recolhidas.
  Aplica ao vivo (`set`) e grava o histórico (`commit`) ao soltar. Fecha ao clicar fora, com Esc ou quando o campo
  que o abriu some do painel.
 ```
 
-- **`BUILTIN`** <sub>do módulo</sub> · [L27](../src/ui/colorpicker.js#L27) — Paletas prontas (de fábrica).
-- **`closeColorPicker()`** · [L38](../src/ui/colorpicker.js#L38) — Fecha o seletor de cor aberto, se houver.
-- **`colorPickerAnchor()`** · [L40](../src/ui/colorpicker.js#L40) — O campo (amostra) que abriu o seletor agora, ou null.
-- **`openColorPicker({ anchor, get, set, commit, opacity, setOpacity, groups, onClose })`** · [L48](../src/ui/colorpicker.js#L48) — Abre o seletor de cor.
-- **`paint()`** <sub>interna</sub> · [L81](../src/ui/colorpicker.js#L81) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
-- **`buildFields()`** <sub>interna</sub> · [L106](../src/ui/colorpicker.js#L106) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
-- **`paintFields()`** <sub>interna</sub> · [L158](../src/ui/colorpicker.js#L158) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
-- **`paintContrast(c)`** <sub>interna</sub> · [L166](../src/ui/colorpicker.js#L166) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
-- **`push()`** <sub>interna</sub> · [L180](../src/ui/colorpicker.js#L180) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
-- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L183](../src/ui/colorpicker.js#L183) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
-- **`finish(quiet = false)`** <sub>interna</sub> · [L191](../src/ui/colorpicker.js#L191) — Fim de uma edição: grava no histórico e guarda nas recentes.
-- **`pick(c, quiet = false)`** <sub>interna</sub> · [L198](../src/ui/colorpicker.js#L198) — Escolhe uma cor pronta (chip): aplica e grava.
-- **`drag(el, fn)`** <sub>interna</sub> · [L205](../src/ui/colorpicker.js#L205) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
-- **`keyboardAdjust(el, adjust)`** <sub>interna</sub> · [L218](../src/ui/colorpicker.js#L218) — Faz os controles de cor responderem às setas sem roubar os atalhos do canvas.
+- **`BUILTIN`** <sub>do módulo</sub> · [L29](../src/ui/colorpicker.js#L29) — Paletas prontas (de fábrica).
+- **`closeColorPicker()`** · [L44](../src/ui/colorpicker.js#L44) — Fecha o seletor de cor aberto, se houver.
+- **`colorPickerAnchor()`** · [L46](../src/ui/colorpicker.js#L46) — O campo (amostra) que abriu o seletor agora, ou null.
+- **`openColorPicker({ anchor, get, set, commit, opacity, setOpacity, groups, onClose })`** · [L54](../src/ui/colorpicker.js#L54) — Abre o seletor de cor.
+- **`paint()`** <sub>interna</sub> · [L88](../src/ui/colorpicker.js#L88) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
+- **`buildFields()`** <sub>interna</sub> · [L113](../src/ui/colorpicker.js#L113) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
+- **`paintFields()`** <sub>interna</sub> · [L165](../src/ui/colorpicker.js#L165) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
+- **`paintContrast(c)`** <sub>interna</sub> · [L173](../src/ui/colorpicker.js#L173) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
+- **`push()`** <sub>interna</sub> · [L187](../src/ui/colorpicker.js#L187) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
+- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L190](../src/ui/colorpicker.js#L190) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
+- **`finish(quiet = false)`** <sub>interna</sub> · [L198](../src/ui/colorpicker.js#L198) — Fim de uma edição: grava no histórico e guarda nas recentes.
+- **`pick(c, quiet = false)`** <sub>interna</sub> · [L205](../src/ui/colorpicker.js#L205) — Escolhe uma cor pronta (chip): aplica e grava.
+- **`drag(el, fn)`** <sub>interna</sub> · [L212](../src/ui/colorpicker.js#L212) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
+- **`keyboardAdjust(el, adjust)`** <sub>interna</sub> · [L225](../src/ui/colorpicker.js#L225) — Faz os controles de cor responderem às setas sem roubar os atalhos do canvas.
+- **`swatchRow(title, colors)`** <sub>interna</sub> · [L260](../src/ui/colorpicker.js#L260) — Fileira de amostras com o nome em cima (cores do documento, estilos, recentes, paletas prontas).
 
 ---
 
@@ -1824,10 +1827,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `x` <sub>number</sub> — 
   - `y` <sub>number</sub> — 
   - `items` <sub>(object\|'sep')[]</sub> — { label, hint (atalho), icon, onClick, disabled, danger, checked, heading } ou 'sep' (separador). `heading: true` = título de seção, só texto.
-- **`contextMenuItems({ store, commands, tools })`** · [L89](../src/ui/menus.js#L89) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
-- **`SHORTCUTS`** <sub>do módulo</sub> · [L146](../src/ui/menus.js#L146) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
-- **`modalSeq`** <sub>do módulo</sub> · [L158](../src/ui/menus.js#L158) — Contador para dar um id único ao título de cada janela (aria-labelledby).
-- **`openModal({ title, body, cls = '', onClose })`** · [L172](../src/ui/menus.js#L172) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
+- **`contextMenuItems({ store, commands, tools })`** · [L90](../src/ui/menus.js#L90) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
+- **`SHORTCUTS`** <sub>do módulo</sub> · [L147](../src/ui/menus.js#L147) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
+- **`modalSeq`** <sub>do módulo</sub> · [L159](../src/ui/menus.js#L159) — Contador para dar um id único ao título de cada janela (aria-labelledby).
+- **`openModal({ title, body, cls = '', onClose })`** · [L173](../src/ui/menus.js#L173) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
 
    - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
    - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
@@ -1838,7 +1841,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[o.cls]` <sub>string</sub> — classe extra para o .modal (ex.: 'narrow')
   - `[o.onClose]` <sub>() => void</sub> — 
   - ↩︎ `{ el: HTMLElement, close: () => void ` }
-- **`ask({ title, message, buttons })`** · [L219](../src/ui/menus.js#L219) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+- **`ask({ title, message, buttons })`** · [L220](../src/ui/menus.js#L220) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
 
     const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
       { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
@@ -1846,12 +1849,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
   - `[]` <sub>{title: string, message: string\|Node\|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean</sub> — }} o
   - ↩︎ `Promise<any>`
-- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L240](../src/ui/menus.js#L240) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
+- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L241](../src/ui/menus.js#L241) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
   - ↩︎ `Promise<string\|null>` o texto digitado, ou null se cancelou
-- **`GUIDE`** <sub>do módulo</sub> · [L260](../src/ui/menus.js#L260) — Primeiros passos da Central de ajuda: [título, texto].
-- **`FAQ`** <sub>do módulo</sub> · [L268](../src/ui/menus.js#L268) — Problemas comuns: [pergunta, resposta].
-- **`diagnostics(version)`** <sub>do módulo</sub> · [L278](../src/ui/menus.js#L278) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
-- **`showHelp(tab = 'keys', version = '')`** · [L288](../src/ui/menus.js#L288) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+- **`GUIDE`** <sub>do módulo</sub> · [L261](../src/ui/menus.js#L261) — Primeiros passos da Central de ajuda: [título, texto].
+- **`FAQ`** <sub>do módulo</sub> · [L269](../src/ui/menus.js#L269) — Problemas comuns: [pergunta, resposta].
+- **`diagnostics(version)`** <sub>do módulo</sub> · [L279](../src/ui/menus.js#L279) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
+- **`showHelp(tab = 'keys', version = '')`** · [L289](../src/ui/menus.js#L289) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
   - `[tab]` <sub>string</sub> — aba inicial: 'start' \| 'keys' \| 'faq' \| 'support'
   - `[version]` <sub>string</sub> — versão do app, para o diagnóstico
 
@@ -1973,19 +1976,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`docTopColors(max = 14)`** <sub>interna</sub> · [L1264](../src/ui/props.js#L1264) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
 - **`colorGroups()`** <sub>interna</sub> · [L1276](../src/ui/props.js#L1276) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
 - **`docColorChips(apply)`** <sub>interna</sub> · [L1282](../src/ui/props.js#L1282) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`fillSection()`** <sub>interna</sub> · [L1293](../src/ui/props.js#L1293) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1389](../src/ui/props.js#L1389) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1427](../src/ui/props.js#L1427) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1433](../src/ui/props.js#L1433) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1439](../src/ui/props.js#L1439) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1463](../src/ui/props.js#L1463) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1495](../src/ui/props.js#L1495) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1521](../src/ui/props.js#L1521) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`customCssSection()`** <sub>interna</sub> · [L1540](../src/ui/props.js#L1540) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
-- **`exportSection()`** <sub>interna</sub> · [L1566](../src/ui/props.js#L1566) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1592](../src/ui/props.js#L1592) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1612](../src/ui/props.js#L1612) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1639](../src/ui/props.js#L1639) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1294](../src/ui/props.js#L1294) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
+- **`fillSection()`** <sub>interna</sub> · [L1332](../src/ui/props.js#L1332) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1422](../src/ui/props.js#L1422) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1460](../src/ui/props.js#L1460) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1466](../src/ui/props.js#L1466) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1472](../src/ui/props.js#L1472) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1496](../src/ui/props.js#L1496) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1528](../src/ui/props.js#L1528) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1554](../src/ui/props.js#L1554) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`customCssSection()`** <sub>interna</sub> · [L1573](../src/ui/props.js#L1573) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+- **`exportSection()`** <sub>interna</sub> · [L1599](../src/ui/props.js#L1599) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1625](../src/ui/props.js#L1625) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1645](../src/ui/props.js#L1645) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1672](../src/ui/props.js#L1672) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
