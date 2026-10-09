@@ -44,6 +44,9 @@ import { folder } from './storage.js';
 import { createRunner } from './agent/runner.js';
 import { createApprover, connectMcpBridge } from './agent/bridge.js';
 import { createAssistant } from './ui/assistant.js';
+import { createPresence } from './ui/presence.js';
+/** Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo). */
+const presenceSlot = document.createElement('span');
 
 /** Atalho: primeiro elemento que casa com o seletor CSS. */
 const $ = (sel) => document.querySelector(sel);
@@ -334,6 +337,7 @@ $('#topbar').append(
   h('div.spacer'),
   responsive.topEl,
   h('div.spacer'),
+  presenceSlot,
   aiBtn,
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
@@ -547,7 +551,10 @@ const runner = createRunner({ store, commands, approve, saving, folder });
 const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage'), approve, prefs, savePrefs });
 aiBtn.addEventListener('click', () => assistant.toggle());
 // o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
-if (ui.server) connectMcpBridge({ runner, toast });
+let bridge = null;
+const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => bridge?.reconnect() });
+presenceSlot.replaceWith(presence.el);
+if (ui.server) bridge = connectMcpBridge({ runner, toast, profile: () => presence.profile(), onPresence: (d) => presence.update(d) });
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
 window.designer = { store, canvas, commands, tools, agent: { runner, approve, assistant } };

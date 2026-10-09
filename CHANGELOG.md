@@ -10,6 +10,14 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [1.0.0] — 2026-10-08 · Stylo
 
+### Adicionado (rodada 2)
+- **Apresentar = navegador de verdade**: cada tela é o HTML/CSS exportado num iframe. Rolagem, :hover, :focus, sticky e @media funcionam. Barra com voltar/avançar (Alt+←/→), recarregar, endereço com a lista de telas, larguras (Desenhada, Responsivo, 1440, 1280, 1024, 768, 390), abrir em nova aba e atualização ao vivo quando o design muda.
+- **Breakpoints por projeto**: presets (Laptop 1280, Tablet 1024, Tablet retrato 768, Celular 640, Celular pequeno 380) e personalizados (nome + max-width). Renomear, mudar largura e remover pelo menu ao lado da barra; a largura ativa aparece no topo.
+- **Aba do Agente**: painel encaixado à direita com várias conversas por projeto (continuam de onde pararam), modelo escolhido por conversa, memória do projeto (ferramenta `remember` + notas editáveis) e chips de contexto.
+- **Vários agentes ao mesmo tempo (MCP)**: cada conexão é uma sessão com nome próprio (`--agente`, `STYLO_AGENT` ou o cabeçalho `X-Stylo-Agent`); travas de 10 s por camada evitam que um agente sobrescreva o outro; `GET /api/presence`.
+- **Usuários e presença**: perfil local (nome e cor) que assina comentários; avatares no topo com quem está no projeto (pessoas e agentes), o que cada agente fez e o que está travando.
+- **CSS**: CSS livre por camada (qualquer propriedade, vale por breakpoint e na exportação, com validação), `order`, `flex-shrink`, `white-space`, `word-break`, `text-wrap: balance/pretty` e `transform: skew`.
+
 ### Alterado
 - O projeto agora se chama **Stylo**: novo nome, logo e ícone da aba. O identificador do servidor MCP continua `projeto-designer` para não quebrar integrações já configuradas.
 - Nova identidade visual: grafite neutro com azul de destaque (#4c8dff) e âmbar para medidas e guias, sem degradês; a interface usa IBM Plex Sans. Tema claro reajustado com a mesma lógica.

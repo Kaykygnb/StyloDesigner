@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-51 arquivos · 794 funções e constantes documentadas.
+53 arquivos · 811 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -56,6 +56,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/info.js`](#srcuiinfojs) |  |
 | [`src/ui/layers.js`](#srcuilayersjs) | Painel de páginas e camadas |
 | [`src/ui/menus.js`](#srcuimenusjs) | Menus flutuantes, janelas modais e ajuda de atalhos |
+| [`src/ui/presence.js`](#srcuipresencejs) | Quem está no projeto (pessoas e agentes) na barra do topo |
 | [`src/ui/projects.js`](#srcuiprojectsjs) | Janela "projetos na pasta" (salvar com nome, abrir, versões antigas) |
 | [`src/ui/props.js`](#srcuipropsjs) | Painel "design" (propriedades da seleção) |
 | [`src/ui/proto.js`](#srcuiprotojs) | Aba "protótipo" (interações entre telas) |
@@ -63,6 +64,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/ui/settings.js`](#srcuisettingsjs) | Janela "configurações" (onde salvar, versões, cópia no navegador, aparência) |
 | [`server.js`](#serverjs) | Servidor local: entrega o app e salva os projetos numa pasta do seu computador |
 | [`server/mcp.js`](#servermcpjs) | O protocolo MCP (model context protocol), sem dependências |
+| [`server/presence.js`](#serverpresencejs) | Quem está no projeto (pessoas e agentes) e as travas por camada |
 | [`scripts/mcp.mjs`](#scriptsmcpmjs) | Servidor MCP por "stdio" (para Claude Desktop, Codex e outros) |
 
 ---
@@ -396,61 +398,64 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `parent` <sub>object\|null</sub> — o pai (decide se a camada está em fluxo de flex/grid ou é absoluta)
   - `[assets]` <sub>Object<string,string></sub> — imagens do documento
   - ↩︎ `Object<string,string>` propriedades CSS em ordem de inserção (kebab-case)
-- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L351](../src/css.js#L351) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
-- **`marginCss(node, s)`** <sub>do módulo</sub> · [L363](../src/css.js#L363) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
-- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L370](../src/css.js#L370) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
-- **`colorFilters(node)`** · [L371](../src/css.js#L371) — _(sem comentário)_
-- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L387](../src/css.js#L387) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
+- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L359](../src/css.js#L359) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
+- **`marginCss(node, s)`** <sub>do módulo</sub> · [L371](../src/css.js#L371) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
+- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L378](../src/css.js#L378) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
+- **`colorFilters(node)`** · [L379](../src/css.js#L379) — _(sem comentário)_
+- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L395](../src/css.js#L395) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
 
    - 'ellipsis': uma linha só, o que não cabe vira "…"  → white-space:nowrap + overflow:hidden + text-overflow:ellipsis
    - 'clamp': no máximo `lines` linhas, com "…" no fim → display:-webkit-box + -webkit-line-clamp (e line-clamp)
   Os dois precisam de uma LARGURA (fixa ou máxima) para saber onde cortar. O alinhamento vertical por grid
   (centro/fim) é desligado, porque o grid e o -webkit-box/ellipsis não funcionam juntos.
-- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L412](../src/css.js#L412) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
+- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L420](../src/css.js#L420) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
 
    - min-/max-width/height: só aparecem quando o usuário define (campos minW, maxW, minH, maxH).
    - aspect-ratio: só quando ALGUMA medida é flexível (hug/fill). A medida fixa vira `auto` no eixo oposto para a
      proporção valer (com as duas fixas o CSS ignoraria o aspect-ratio, e quem mantém a proporção é o editor).
-- **`transformOf(node)`** · [L432](../src/css.js#L432) — Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale. Devolve '' quando não há nada a aplicar (assim o CSS gerado não ganha `transform` à toa).
-- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L446](../src/css.js#L446) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
-- **`hasStrokeSides(node)`** · [L478](../src/css.js#L478) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
-- **`num(n)`** <sub>do módulo</sub> · [L483](../src/css.js#L483) — Arredonda para 2 casas (coordenadas de SVG).
-- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L493](../src/css.js#L493) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
+- **`parseCustomCss(text)`** · [L446](../src/css.js#L446) — Lê o "CSS livre" de uma camada ("propriedade: valor;" por linha) e devolve só as declarações seguras: nome de propriedade válido (ou variável --x) e valor sem chaves, sinais de tag nem "@". Linhas ruins são ignoradas.
+  - `text` <sub>string</sub> — 
+  - ↩︎ `Record<string, string>`
+- **`transformOf(node)`** · [L459](../src/css.js#L459) — _(sem comentário)_
+- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L474](../src/css.js#L474) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
+- **`hasStrokeSides(node)`** · [L506](../src/css.js#L506) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
+- **`num(n)`** <sub>do módulo</sub> · [L511](../src/css.js#L511) — Arredonda para 2 casas (coordenadas de SVG).
+- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L521](../src/css.js#L521) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
   - `[]` <sub>{x:number,y:number,hin?:object,hout?:object</sub> — } points  pontos; hin/hout = alças de entrada/saída
   - `closed` <sub>boolean</sub> — fecha o caminho com Z (liga o último ao primeiro)
   - `[tx]` <sub>(x:number)=>number</sub> — transformação opcional de x (usada pelo clip-path e pelo SVG exportado)
   - `[ty]` <sub>(y:number)=>number</sub> — idem para y
-- **`nodePathData(node, tx, ty)`** · [L515](../src/css.js#L515) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
+- **`nodePathData(node, tx, ty)`** · [L543](../src/css.js#L543) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
   - `node` <sub>object</sub> — camada do tipo 'path'
   - `[tx]` <sub>(x:number)=>number</sub> — 
   - `[ty]` <sub>(y:number)=>number</sub> — 
-- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L529](../src/css.js#L529) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
-- **`pathSvg(node, assets = {})`** · [L556](../src/css.js#L556) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
+- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L557](../src/css.js#L557) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
+- **`pathSvg(node, assets = {})`** · [L584](../src/css.js#L584) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
 
    - preserveAspectRatio="none": o desenho estica junto com a caixa da camada.
    - vector-effect="non-scaling-stroke": a espessura do traço NÃO muda ao esticar.
    - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
-- **`maskClip(group)`** · [L579](../src/css.js#L579) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
-- **`toCssText(style)`** · [L596](../src/css.js#L596) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
-- **`cssRule(selector, style, indent = '')`** · [L602](../src/css.js#L602) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
-- **`stateStyle(node, parent, assets, opts, states)`** · [L618](../src/css.js#L618) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+- **`maskClip(group)`** · [L607](../src/css.js#L607) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
+- **`toCssText(style)`** · [L624](../src/css.js#L624) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
+- **`cssRule(selector, style, indent = '')`** · [L630](../src/css.js#L630) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
+- **`stateStyle(node, parent, assets, opts, states)`** · [L646](../src/css.js#L646) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
   - `node` <sub>object</sub> — 
   - `parent` <sub>object\|null</sub> — 
   - `assets` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
-- **`pathStateStyle(node, assets, state)`** · [L632](../src/css.js#L632) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
-- **`makeClassNamer()`** <sub>do módulo</sub> · [L655](../src/css.js#L655) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`noteComment(node)`** · [L666](../src/css.js#L666) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L672](../src/css.js#L672) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L683](../src/css.js#L683) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`pathStateStyle(node, assets, state)`** · [L660](../src/css.js#L660) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+- **`makeClassNamer()`** <sub>do módulo</sub> · [L683](../src/css.js#L683) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+- **`noteComment(node)`** · [L694](../src/css.js#L694) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L700](../src/css.js#L700) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L711](../src/css.js#L711) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L809](../src/css.js#L809) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`joinCss(parts)`** · [L826](../src/css.js#L826) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L837](../src/css.js#L837) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`joinCss(parts)`** · [L854](../src/css.js#L854) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L856](../src/css.js#L856) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L867](../src/css.js#L867) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L884](../src/css.js#L884) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L895](../src/css.js#L895) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -524,32 +529,33 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Este arquivo só COLA os módulos; a lógica de cada coisa mora no módulo dela.
 ```
 
-- **`toast(msg)`** <sub>do módulo</sub> · [L55](../src/main.js#L55) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
-- **`savePrefs()`** <sub>do módulo</sub> · [L69](../src/main.js#L69) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings()`** <sub>do módulo</sub> · [L94](../src/main.js#L94) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
-- **`quickSave()`** <sub>do módulo</sub> · [L97](../src/main.js#L97) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L128](../src/main.js#L128) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L152](../src/main.js#L152) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L187](../src/main.js#L187) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L303](../src/main.js#L303) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`presenceSlot`** <sub>do módulo</sub> · [L49](../src/main.js#L49) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
+- **`toast(msg)`** <sub>do módulo</sub> · [L58](../src/main.js#L58) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
+- **`savePrefs()`** <sub>do módulo</sub> · [L72](../src/main.js#L72) — Grava as preferências (falhas silenciosas: é só conveniência).
+- **`openSettings()`** <sub>do módulo</sub> · [L97](../src/main.js#L97) — Janelas de Configurações e Projetos (ver ui/settings.js e ui/projects.js).
+- **`quickSave()`** <sub>do módulo</sub> · [L100](../src/main.js#L100) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L131](../src/main.js#L131) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L155](../src/main.js#L155) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L190](../src/main.js#L190) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L306](../src/main.js#L306) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L346](../src/main.js#L346) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L363](../src/main.js#L363) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L350](../src/main.js#L350) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L367](../src/main.js#L367) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L375](../src/main.js#L375) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L441](../src/main.js#L441) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L479](../src/main.js#L479) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L525](../src/main.js#L525) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L609](../src/main.js#L609) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`syncEmpty()`** <sub>do módulo</sub> · [L663](../src/main.js#L663) — Mostra/esconde a dica conforme a página tem ou não camadas.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L671](../src/main.js#L671) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L379](../src/main.js#L379) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L445](../src/main.js#L445) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L483](../src/main.js#L483) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L529](../src/main.js#L529) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L616](../src/main.js#L616) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`syncEmpty()`** <sub>do módulo</sub> · [L670](../src/main.js#L670) — Mostra/esconde a dica conforme a página tem ou não camadas.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L678](../src/main.js#L678) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -651,46 +657,46 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`setBreakpoints(list)`** · [L437](../src/model.js#L437) — Normaliza e aplica a lista de breakpoints (sem duplicados, largura de 200 a 4000px, maior primeiro).
 - **`bpIcon(b)`** · [L448](../src/model.js#L448) — Ícone de um breakpoint pela largura (desktop / tablet / celular).
 - **`BP_KEYS`** · [L450](../src/model.js#L450) — Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela).
-- **`bpsUpTo(bp)`** · [L457](../src/model.js#L457) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
-- **`hasBps(n, which)`** · [L462](../src/model.js#L462) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
-- **`bpView(node, bp)`** · [L471](../src/model.js#L471) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
+- **`bpsUpTo(bp)`** · [L458](../src/model.js#L458) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
+- **`hasBps(n, which)`** · [L463](../src/model.js#L463) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
+- **`bpView(node, bp)`** · [L472](../src/model.js#L472) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
   - `node` <sub>object</sub> — 
   - `bp` <sub>string\|null</sub> — 'tablet' \| 'mobile' \| null (desktop)
-- **`editBp(node, bp, fn)`** · [L494](../src/model.js#L494) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
+- **`editBp(node, bp, fn)`** · [L495](../src/model.js#L495) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
   - `node` <sub>object</sub> — camada real (é alterada)
   - `bp` <sub>string</sub> — 'tablet' \| 'mobile'
   - `fn` <sub>(draft: object) => void</sub> — recebe o rascunho (só as chaves de BP_KEYS ficam)
-- **`cloneNode(node)`** · [L516](../src/model.js#L516) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
-- **`walk(list, fn, parent = null)`** · [L532](../src/model.js#L532) — Percorre a árvore de camadas em profundidade.
+- **`cloneNode(node)`** · [L517](../src/model.js#L517) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
+- **`walk(list, fn, parent = null)`** · [L533](../src/model.js#L533) — Percorre a árvore de camadas em profundidade.
   - `list` <sub>object[]</sub> — lista de nós (ex.: page.children)
   - `fn` <sub>(node, parent, list, index) => (void\|false)</sub> — chamada para cada nó; retornar `false` NÃO desce nos filhos dele
   - `[parent]` <sub>object\|null</sub> — pai da lista (null na raiz)
-- **`makePage(name = 'Página 1')`** · [L541](../src/model.js#L541) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
-- **`makeDoc()`** · [L553](../src/model.js#L553) — Documento vazio. Estrutura completa: { version, name,
+- **`makePage(name = 'Página 1')`** · [L542](../src/model.js#L542) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
+- **`makeDoc()`** · [L554](../src/model.js#L554) — Documento vazio. Estrutura completa: { version, name,
 
      pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
      assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
      styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
      comments: [...] }                          // comentários nas camadas (veja comments.js)
-- **`nextName(page, type)`** · [L558](../src/model.js#L558) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
-- **`fitGroups(list)`** · [L579](../src/model.js#L579) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
+- **`nextName(page, type)`** · [L559](../src/model.js#L559) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
+- **`fitGroups(list)`** · [L580](../src/model.js#L580) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
   - `list` <sub>object[]</sub> — lista de nós a processar (recursivo)
-- **`applyConstraints(frame, ow, oh)`** · [L613](../src/model.js#L613) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
+- **`applyConstraints(frame, ow, oh)`** · [L614](../src/model.js#L614) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
   - `frame` <sub>object</sub> — frame JÁ com o tamanho novo
   - `ow` <sub>number</sub> — largura antiga
   - `oh` <sub>number</sub> — altura antiga
-- **`hasSizeLimits(n)`** · [L640](../src/model.js#L640) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
-- **`hasAspect(n)`** · [L643](../src/model.js#L643) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
-- **`limitSize(n, w, h)`** · [L650](../src/model.js#L650) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
+- **`hasSizeLimits(n)`** · [L641](../src/model.js#L641) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
+- **`hasAspect(n)`** · [L644](../src/model.js#L644) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
+- **`limitSize(n, w, h)`** · [L651](../src/model.js#L651) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
   - ↩︎ `[number, number]` largura e altura já limitadas
-- **`applyLimits(n)`** · [L663](../src/model.js#L663) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
-- **`resizeNode(n, nw, nh, axis = 'w')`** · [L679](../src/model.js#L679) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
+- **`applyLimits(n)`** · [L664](../src/model.js#L664) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
+- **`resizeNode(n, nw, nh, axis = 'w')`** · [L680](../src/model.js#L680) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
   - `n` <sub>object</sub> — camada
   - `nw` <sub>number</sub> — nova largura
   - `nh` <sub>number</sub> — nova altura
   - `[axis='w']` <sub>'w'\|'h'</sub> — qual campo o usuário editou (importa para a trava de proporção)
-- **`scaleNode(node, sx, sy)`** · [L710](../src/model.js#L710) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
-- **`slugify(s)`** · [L727](../src/model.js#L727) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
+- **`scaleNode(node, sx, sy)`** · [L711](../src/model.js#L711) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
+- **`slugify(s)`** · [L728](../src/model.js#L728) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
 
 ---
 
@@ -1343,11 +1349,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`allowed`** <sub>interna</sub> · [L25](../src/agent/bridge.js#L25) — Programas liberados até recarregar a página ("Permitir tudo nesta sessão").
 - **`auto`** <sub>interna</sub> · [L27](../src/agent/bridge.js#L27) — Programas em "fazer sem perguntar" (opção do painel do Assistente, lembrada nas preferências).
 - **`queue`** <sub>interna</sub> · [L29](../src/agent/bridge.js#L29) — Fila: cada pergunta espera a anterior terminar.
-- **`connectMcpBridge({ runner, toast })`** · [L65](../src/agent/bridge.js#L65) — Liga o editor à ponte do servidor (MCP).
+- **`connectMcpBridge({ runner, toast, profile = () => ({ name: 'Pessoa', color: '' }), o…)`** · [L67](../src/agent/bridge.js#L67) — Liga o editor à ponte do servidor (MCP) e à presença.
   - `deps` <sub>object</sub> — 
   - `deps.toast` <sub>(m: string) => void</sub> — 
-  - ↩︎ `{ close: () => void ` }
-- **`greeted`** <sub>interna</sub> · [L69](../src/agent/bridge.js#L69) — Avisa (uma vez por programa) que uma IA externa começou a usar o editor.
+  - `[deps.onPresence]` <sub>(data: object) => void</sub> — recebe o retrato de quem está no projeto
+  - ↩︎ `{ close: () => void, reconnect: () => void ` }
+- **`greeted`** <sub>interna</sub> · [L74](../src/agent/bridge.js#L74) — Avisa (uma vez por programa) que uma IA externa começou a usar o editor.
 
 ---
 
@@ -1843,6 +1850,23 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/ui/presence.js
+
+**QUEM ESTÁ NO PROJETO (pessoas e agentes) NA BARRA DO TOPO** · [abrir o código](../src/ui/presence.js)
+
+```text
+ Avatares de quem está com o editor aberto (pelo seu perfil: nome e cor) e dos agentes conectados pelo MCP
+ (Claude Code, Codex...). Clicar abre o painel "No projeto agora": cada agente com o que fez por último e as
+ camadas que está travando, a atividade recente e o seu perfil (o nome também assina os comentários).
+ Os dados vêm do servidor (server/presence.js), pelo evento SSE "presence" ou por GET /api/presence.
+```
+
+- **`COLORS`** <sub>do módulo</sub> · [L16](../src/ui/presence.js#L16) — Cores para escolher no perfil (as mesmas da presença no servidor).
+- **`createPresence({ store, prefs, savePrefs, onProfile, toast })`** · [L24](../src/ui/presence.js#L24) — _(sem comentário)_
+- **`profile()`** <sub>interna</sub> · [L31](../src/ui/presence.js#L31) — Perfil desta pessoa (nome + cor). Sem nome ainda: "Você".
+
+---
+
 ## src/ui/projects.js
 
 **JANELA "PROJETOS NA PASTA" (salvar com nome, abrir, versões antigas)** · [abrir o código](../src/ui/projects.js)
@@ -1898,62 +1922,63 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`H_CONS`** <sub>interna</sub> · [L185](../src/ui/props.js#L185) — Opções de constraint horizontal e vertical (ver model.js → applyConstraints).
 - **`NO_RADIUS`** <sub>interna</sub> · [L188](../src/ui/props.js#L188) — Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos).
 - **`positionSection()`** <sub>interna</sub> · [L194](../src/ui/props.js#L194) — Seção "Posição": X/Y (ou a caixa do conjunto, com várias camadas), constraints (em frame sem auto layout), rotação e espelhar. Dentro de um auto layout, X/Y ficam apagados: quem posiciona é o navegador (flex/grid).
-- **`headerBlock()`** <sub>interna</sub> · [L241](../src/ui/props.js#L241) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
-- **`bpBanner(ns)`** <sub>interna</sub> · [L270](../src/ui/props.js#L270) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
-- **`noteSection()`** <sub>interna</sub> · [L289](../src/ui/props.js#L289) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
-- **`htmlSection()`** <sub>interna</sub> · [L319](../src/ui/props.js#L319) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
-- **`sizeSection()`** <sub>interna</sub> · [L348](../src/ui/props.js#L348) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
-- **`ASPECTS`** <sub>interna</sub> · [L406](../src/ui/props.js#L406) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
-- **`limitsBlock(n0)`** <sub>interna</sub> · [L415](../src/ui/props.js#L415) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
-- **`appearanceSection()`** <sub>interna</sub> · [L451](../src/ui/props.js#L451) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
-- **`componentSection()`** <sub>interna</sub> · [L486](../src/ui/props.js#L486) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
-- **`A_START`** <sub>interna</sub> · [L506](../src/ui/props.js#L506) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
-- **`CSS_DOC`** <sub>interna</sub> · [L509](../src/ui/props.js#L509) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
-- **`cssTip(key)`** <sub>interna</sub> · [L588](../src/ui/props.js#L588) — Monta o objeto de dica de uma propriedade do CSS_DOC.
-- **`varButton(prop)`** <sub>interna</sub> · [L594](../src/ui/props.js#L594) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
-- **`autoLayoutSection()`** <sub>interna</sub> · [L643](../src/ui/props.js#L643) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
+- **`headerBlock()`** <sub>interna</sub> · [L244](../src/ui/props.js#L244) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
+- **`bpBanner(ns)`** <sub>interna</sub> · [L273](../src/ui/props.js#L273) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
+- **`noteSection()`** <sub>interna</sub> · [L292](../src/ui/props.js#L292) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
+- **`htmlSection()`** <sub>interna</sub> · [L322](../src/ui/props.js#L322) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
+- **`sizeSection()`** <sub>interna</sub> · [L351](../src/ui/props.js#L351) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
+- **`ASPECTS`** <sub>interna</sub> · [L409](../src/ui/props.js#L409) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
+- **`limitsBlock(n0)`** <sub>interna</sub> · [L418](../src/ui/props.js#L418) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
+- **`appearanceSection()`** <sub>interna</sub> · [L454](../src/ui/props.js#L454) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
+- **`componentSection()`** <sub>interna</sub> · [L489](../src/ui/props.js#L489) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
+- **`A_START`** <sub>interna</sub> · [L509](../src/ui/props.js#L509) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
+- **`CSS_DOC`** <sub>interna</sub> · [L512](../src/ui/props.js#L512) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
+- **`cssTip(key)`** <sub>interna</sub> · [L598](../src/ui/props.js#L598) — Monta o objeto de dica de uma propriedade do CSS_DOC.
+- **`varButton(prop)`** <sub>interna</sub> · [L604](../src/ui/props.js#L604) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
+- **`autoLayoutSection()`** <sub>interna</sub> · [L653](../src/ui/props.js#L653) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
 
    - FLEX: gap, flex-wrap, padding, justify-content (eixo principal) e align-items (eixo cruzado);
    - GRID: colunas/linhas, gap, padding e justify-items/align-items (onde o item fica DENTRO da célula).
-- **`pad(labels)`** <sub>interna</sub> · [L696](../src/ui/props.js#L696) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
-- **`paddingBlock()`** <sub>interna</sub> · [L702](../src/ui/props.js#L702) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
-- **`matrix(jName, aName)`** <sub>interna</sub> · [L719](../src/ui/props.js#L719) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
-- **`opts(list, grid)`** <sub>interna</sub> · [L742](../src/ui/props.js#L742) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
-- **`subTip(text, key)`** <sub>interna</sub> · [L744](../src/ui/props.js#L744) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
-- **`gridPicker()`** <sub>interna</sub> · [L750](../src/ui/props.js#L750) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
-- **`autoSection(body)`** <sub>interna</sub> · [L934](../src/ui/props.js#L934) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
-- **`STATE_DOC`** <sub>interna</sub> · [L940](../src/ui/props.js#L940) — Dicas dos estados.
-- **`statesSection()`** <sub>interna</sub> · [L956](../src/ui/props.js#L956) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
-- **`stateScaleBlock()`** <sub>interna</sub> · [L996](../src/ui/props.js#L996) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
-- **`marginBlock()`** <sub>interna</sub> · [L1004](../src/ui/props.js#L1004) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
-- **`flowItemSection()`** <sub>interna</sub> · [L1029](../src/ui/props.js#L1029) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
+- **`pad(labels)`** <sub>interna</sub> · [L706](../src/ui/props.js#L706) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
+- **`paddingBlock()`** <sub>interna</sub> · [L712](../src/ui/props.js#L712) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
+- **`matrix(jName, aName)`** <sub>interna</sub> · [L729](../src/ui/props.js#L729) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
+- **`opts(list, grid)`** <sub>interna</sub> · [L752](../src/ui/props.js#L752) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
+- **`subTip(text, key)`** <sub>interna</sub> · [L754](../src/ui/props.js#L754) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
+- **`gridPicker()`** <sub>interna</sub> · [L760](../src/ui/props.js#L760) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
+- **`autoSection(body)`** <sub>interna</sub> · [L944](../src/ui/props.js#L944) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
+- **`STATE_DOC`** <sub>interna</sub> · [L950](../src/ui/props.js#L950) — Dicas dos estados.
+- **`statesSection()`** <sub>interna</sub> · [L969](../src/ui/props.js#L969) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+- **`stateScaleBlock()`** <sub>interna</sub> · [L1009](../src/ui/props.js#L1009) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
+- **`marginBlock()`** <sub>interna</sub> · [L1017](../src/ui/props.js#L1017) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+- **`flowItemSection()`** <sub>interna</sub> · [L1042](../src/ui/props.js#L1042) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
 
    - position: absolute (ignora o layout do pai);
    - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
    - flex → align-self (sobrescreve o align-items do pai).
   "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
-- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1044](../src/ui/props.js#L1044) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
-- **`commandsOrigin(n)`** <sub>interna</sub> · [L1073](../src/ui/props.js#L1073) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
-- **`GRID_KINDS`** <sub>interna</sub> · [L1081](../src/ui/props.js#L1081) — Tipos de grade de layout (só guia visual).
-- **`layoutGridsSection()`** <sub>interna</sub> · [L1083](../src/ui/props.js#L1083) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
-- **`vectorSection()`** <sub>interna</sub> · [L1111](../src/ui/props.js#L1111) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
-- **`textSection()`** <sub>interna</sub> · [L1170](../src/ui/props.js#L1170) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
-- **`gradientBar()`** <sub>interna</sub> · [L1232](../src/ui/props.js#L1232) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1242](../src/ui/props.js#L1242) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
-- **`colorGroups()`** <sub>interna</sub> · [L1254](../src/ui/props.js#L1254) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L1260](../src/ui/props.js#L1260) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`fillSection()`** <sub>interna</sub> · [L1271](../src/ui/props.js#L1271) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1367](../src/ui/props.js#L1367) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1405](../src/ui/props.js#L1405) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1411](../src/ui/props.js#L1411) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1417](../src/ui/props.js#L1417) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1441](../src/ui/props.js#L1441) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1473](../src/ui/props.js#L1473) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1499](../src/ui/props.js#L1499) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`exportSection()`** <sub>interna</sub> · [L1515](../src/ui/props.js#L1515) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1541](../src/ui/props.js#L1541) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1561](../src/ui/props.js#L1561) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1588](../src/ui/props.js#L1588) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1057](../src/ui/props.js#L1057) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
+- **`commandsOrigin(n)`** <sub>interna</sub> · [L1091](../src/ui/props.js#L1091) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
+- **`GRID_KINDS`** <sub>interna</sub> · [L1099](../src/ui/props.js#L1099) — Tipos de grade de layout (só guia visual).
+- **`layoutGridsSection()`** <sub>interna</sub> · [L1101](../src/ui/props.js#L1101) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
+- **`vectorSection()`** <sub>interna</sub> · [L1129](../src/ui/props.js#L1129) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+- **`textSection()`** <sub>interna</sub> · [L1188](../src/ui/props.js#L1188) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
+- **`gradientBar()`** <sub>interna</sub> · [L1254](../src/ui/props.js#L1254) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1264](../src/ui/props.js#L1264) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L1276](../src/ui/props.js#L1276) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L1282](../src/ui/props.js#L1282) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`fillSection()`** <sub>interna</sub> · [L1293](../src/ui/props.js#L1293) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1389](../src/ui/props.js#L1389) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1427](../src/ui/props.js#L1427) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1433](../src/ui/props.js#L1433) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1439](../src/ui/props.js#L1439) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1463](../src/ui/props.js#L1463) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1495](../src/ui/props.js#L1495) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1521](../src/ui/props.js#L1521) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`customCssSection()`** <sub>interna</sub> · [L1540](../src/ui/props.js#L1540) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+- **`exportSection()`** <sub>interna</sub> · [L1566](../src/ui/props.js#L1566) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1592](../src/ui/props.js#L1592) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1612](../src/ui/props.js#L1612) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1639](../src/ui/props.js#L1639) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 
@@ -2051,33 +2076,33 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     escapar da pasta com "../" nem sobrescrever outros tipos de arquivo.
 ```
 
-- **`root`** <sub>do módulo</sub> · [L39](../server.js#L39) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
-- **`port`** <sub>do módulo</sub> · [L41](../server.js#L41) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
-- **`allowed`** <sub>do módulo</sub> · [L43](../server.js#L43) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
-- **`configFile`** <sub>do módulo</sub> · [L45](../server.js#L45) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
-- **`DEFAULTS`** <sub>do módulo</sub> · [L47](../server.js#L47) — Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto.
-- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L49](../server.js#L49) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
-- **`MAX_BODY`** <sub>do módulo</sub> · [L51](../server.js#L51) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
-- **`FILE_RE`** <sub>do módulo</sub> · [L53](../server.js#L53) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
-- **`types`** <sub>do módulo</sub> · [L56](../server.js#L56) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
-- **`loadConfig()`** <sub>do módulo</sub> · [L68](../server.js#L68) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
-- **`config`** <sub>do módulo</sub> · [L77](../server.js#L77) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
-- **`expandHome(p)`** <sub>do módulo</sub> · [L80](../server.js#L80) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
-- **`useFolder(input)`** <sub>do módulo</sub> · [L86](../server.js#L86) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
-- **`publicConfig()`** <sub>do módulo</sub> · [L98](../server.js#L98) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
-- **`httpError(status, message)`** <sub>do módulo</sub> · [L102](../server.js#L102) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
-- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L106](../server.js#L106) — Responde JSON.
-- **`readBody(req)`** <sub>do módulo</sub> · [L111](../server.js#L111) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
-- **`localHost(host = '')`** <sub>do módulo</sub> · [L122](../server.js#L122) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
-- **`localOrigin(origin)`** <sub>do módulo</sub> · [L124](../server.js#L124) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
-- **`projectPath(name)`** <sub>do módulo</sub> · [L127](../server.js#L127) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
-- **`versionsDir(name)`** <sub>do módulo</sub> · [L129](../server.js#L129) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
-- **`thumbPath(name)`** <sub>do módulo</sub> · [L131](../server.js#L131) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
-- **`MAX_THUMB`** <sub>do módulo</sub> · [L133](../server.js#L133) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
-- **`checkName(name)`** <sub>do módulo</sub> · [L135](../server.js#L135) — Valida o nome vindo da URL.
-- **`listVersions(name)`** <sub>do módulo</sub> · [L141](../server.js#L141) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
-- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L157](../server.js#L157) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
-- **`api(req, res, path)`** <sub>do módulo</sub> · [L189](../server.js#L189) — Rotas da API (todas respondem JSON):
+- **`root`** <sub>do módulo</sub> · [L41](../server.js#L41) — Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui.
+- **`port`** <sub>do módulo</sub> · [L43](../server.js#L43) — Porta HTTP. Padrão 5173; mude com `PORT=8080 npm start`.
+- **`allowed`** <sub>do módulo</sub> · [L45](../server.js#L45) — Lista branca: SÓ estes caminhos são servidos (o app em si). package.json, .git, tests, projetos etc. nunca saem por aqui.
+- **`configFile`** <sub>do módulo</sub> · [L47](../server.js#L47) — Arquivo onde a configuração (pasta escolhida, nº de versões) é lembrada entre execuções. Fica fora do git (.gitignore).
+- **`DEFAULTS`** <sub>do módulo</sub> · [L49](../server.js#L49) — Configuração padrão: pasta ./projetos ao lado do app, guardando até 20 versões por projeto.
+- **`VERSION_EVERY_MS`** <sub>do módulo</sub> · [L51](../server.js#L51) — Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não).
+- **`MAX_BODY`** <sub>do módulo</sub> · [L53](../server.js#L53) — Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande).
+- **`FILE_RE`** <sub>do módulo</sub> · [L55](../server.js#L55) — Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json.
+- **`types`** <sub>do módulo</sub> · [L58](../server.js#L58) — Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES.
+- **`loadConfig()`** <sub>do módulo</sub> · [L70](../server.js#L70) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
+- **`config`** <sub>do módulo</sub> · [L79](../server.js#L79) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
+- **`expandHome(p)`** <sub>do módulo</sub> · [L82](../server.js#L82) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`useFolder(input)`** <sub>do módulo</sub> · [L88](../server.js#L88) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
+- **`publicConfig()`** <sub>do módulo</sub> · [L100](../server.js#L100) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
+- **`httpError(status, message)`** <sub>do módulo</sub> · [L104](../server.js#L104) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.
+- **`sendJson(res, status, data)`** <sub>do módulo</sub> · [L108](../server.js#L108) — Responde JSON.
+- **`readBody(req)`** <sub>do módulo</sub> · [L113](../server.js#L113) — Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto.
+- **`localHost(host = '')`** <sub>do módulo</sub> · [L124](../server.js#L124) — O Host do pedido é esta máquina? (protege contra DNS rebinding)
+- **`localOrigin(origin)`** <sub>do módulo</sub> · [L126](../server.js#L126) — A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site.
+- **`projectPath(name)`** <sub>do módulo</sub> · [L129](../server.js#L129) — Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE).
+- **`versionsDir(name)`** <sub>do módulo</sub> · [L131](../server.js#L131) — Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/
+- **`thumbPath(name)`** <sub>do módulo</sub> · [L133](../server.js#L133) — Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg
+- **`MAX_THUMB`** <sub>do módulo</sub> · [L135](../server.js#L135) — Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar).
+- **`checkName(name)`** <sub>do módulo</sub> · [L137](../server.js#L137) — Valida o nome vindo da URL.
+- **`listVersions(name)`** <sub>do módulo</sub> · [L143](../server.js#L143) — Lista as versões guardadas de um projeto, da mais nova para a mais antiga.
+- **`snapshotVersion(name)`** <sub>do módulo</sub> · [L159](../server.js#L159) — Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
+- **`api(req, res, path)`** <sub>do módulo</sub> · [L191](../server.js#L191) — Rotas da API (todas respondem JSON):
 
     GET  /api/status                         → { ok, folder, keepVersions }
     PUT  /api/config        { folder?, keepVersions? }  → muda a pasta / nº de versões
@@ -2092,17 +2117,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
     GET  /api/projects/<arquivo>/thumb               → miniatura SVG (página inicial)
     PUT  /api/projects/<arquivo>/thumb   { svg }     → grava a miniatura
     POST /api/projects/<arquivo>/rename  { to }      → renomeia (leva junto versões e miniatura); 409 se o nome existe
-- **`editors`** <sub>do módulo</sub> · [L299](../server.js#L299) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
-- **`pending`** <sub>do módulo</sub> · [L301](../server.js#L301) — Pedidos esperando resposta do editor: id → { resolve, timer }.
-- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L304](../server.js#L304) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
-- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L307](../server.js#L307) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
-- **`mcpSession`** <sub>do módulo</sub> · [L320](../server.js#L320) — Nome do programa de IA conectado pelo MCP (vem no "initialize"), mostrado na janela de permissão.
-- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L326](../server.js#L326) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
-- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L339](../server.js#L339) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
-- **`agentConfig()`** <sub>do módulo</sub> · [L345](../server.js#L345) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
-- **`agentInstructions()`** <sub>do módulo</sub> · [L357](../server.js#L357) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
-- **`authHeader(a)`** <sub>do módulo</sub> · [L359](../server.js#L359) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
-- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L372](../server.js#L372) — Rotas da IA:
+- **`editors`** <sub>do módulo</sub> · [L303](../server.js#L303) — PONTE COM O EDITOR. Quem executa as ferramentas da IA é o editor aberto no navegador (é lá que o projeto está vivo, com desfazer e a janela de permissão). O editor se conecta em GET /api/agent/events (Server-Sent Events: uma conexão que fica aberta e pela qual o servidor manda mensagens); o servidor manda "use a ferramenta X" e espera a resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
+- **`pending`** <sub>do módulo</sub> · [L305](../server.js#L305) — Pedidos esperando resposta do editor: id → { resolve, timer }.
+- **`EDITOR_TIMEOUT_MS`** <sub>do módulo</sub> · [L308](../server.js#L308) — Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão).
+- **`callEditor(tool, args, client)`** <sub>do módulo</sub> · [L311](../server.js#L311) — Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor).
+- **`presence`** <sub>do módulo</sub> · [L328](../server.js#L328) — VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+- **`mcpSessions`** <sub>do módulo</sub> · [L330](../server.js#L330) — Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent).
+- **`broadcastPresence()`** <sub>do módulo</sub> · [L332](../server.js#L332) — Manda o retrato da presença para todas as abas do editor (evento SSE "presence").
+- **`callAgentTool(sid, tool, args, name)`** <sub>do módulo</sub> · [L340](../server.js#L340) — Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade.
+- **`mcpRoute(req, res)`** <sub>do módulo</sub> · [L368](../server.js#L368) — MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples). POST com uma mensagem JSON-RPC (ou uma lista delas). GET não é usado (405), como o protocolo permite.
+- **`DEFAULT_PROVIDER`** <sub>do módulo</sub> · [L394](../server.js#L394) — Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro).
+- **`agentConfig()`** <sub>do módulo</sub> · [L400](../server.js#L400) — Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY, NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
+- **`agentInstructions()`** <sub>do módulo</sub> · [L412](../server.js#L412) — Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
+- **`authHeader(a)`** <sub>do módulo</sub> · [L414](../server.js#L414) — Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave).
+- **`agentApi(req, res, parts)`** <sub>do módulo</sub> · [L427](../server.js#L427) — Rotas da IA:
 
     GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
     POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
@@ -2146,6 +2174,27 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## server/presence.js
+
+**QUEM ESTÁ NO PROJETO (pessoas e agentes) E AS TRAVAS POR CAMADA** · [abrir o código](../server/presence.js)
+
+```text
+ Várias IAs podem usar o mesmo editor ao mesmo tempo pelo MCP (Claude Code, Codex, ChatGPT...). Cada conexão MCP
+ é uma SESSÃO com nome próprio. Para duas não brigarem pela mesma camada, quem altera uma camada fica com a TRAVA
+ dela por alguns segundos: outro agente que tentar mexer nela recebe um aviso claro ("espere") em vez de
+ sobrescrever o trabalho. Pessoas (abas do editor) também aparecem aqui, com nome e cor.
+ Só memória: nada disso é gravado em disco. Sem dependências (o servidor e os testes importam este arquivo).
+```
+
+- **`PRESENCE_COLORS`** · [L14](../server/presence.js#L14) — Cores das pessoas e agentes (escolhidas pelo nome: o mesmo nome tem sempre a mesma cor).
+- **`colorFor(name)`** · [L15](../server/presence.js#L15) — _(sem comentário)_
+- **`LOCK_MS`** · [L22](../server/presence.js#L22) — Tempo da trava de uma camada depois de uma alteração.
+- **`AGENT_IDLE_MS`** · [L24](../server/presence.js#L24) — Agente sem atividade há mais que isso some da lista.
+- **`targetsOf(args = {})`** · [L27](../server/presence.js#L27) — ids de camadas que uma ferramenta vai alterar (para as travas).
+- **`createPresence({ now = Date.now } = {})`** · [L38](../server/presence.js#L38) — Cria o registro de presença.
+
+---
+
 ## scripts/mcp.mjs
 
 **SERVIDOR MCP POR "STDIO" (para Claude Desktop, Codex e outros)** · [abrir o código](../scripts/mcp.mjs)
@@ -2164,4 +2213,6 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    Codex:        ~/.codex/config.toml → [mcp_servers.designer] command = "node", args = ["/caminho/scripts/mcp.mjs"]
 ```
 
-- **`send(obj)`** <sub>do módulo</sub> · [L24](../scripts/mcp.mjs#L24) — Escreve uma resposta (uma linha JSON) na saída. NADA além disso pode ir para a saída: quebraria o protocolo.
+- **`argi`** <sub>do módulo</sub> · [L27](../scripts/mcp.mjs#L27) — Nome deste agente na presença e na janela de permissão (vários agentes no mesmo projeto): --agente "Nome" ou a variável STYLO_AGENT. Sem isso, vale o nome que o programa manda no initialize (ex.: "claude-code").
+- **`session`** <sub>do módulo</sub> · [L30](../scripts/mcp.mjs#L30) — Sessão MCP deste processo (o servidor cria no initialize): cada janela de agente é uma sessão separada.
+- **`send(obj)`** <sub>do módulo</sub> · [L32](../scripts/mcp.mjs#L32) — Escreve uma resposta (uma linha JSON) na saída. NADA além disso pode ir para a saída: quebraria o protocolo.

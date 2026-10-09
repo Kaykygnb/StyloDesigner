@@ -1542,3 +1542,36 @@ body.ai-open .toolbar { left: calc((100% - 400px) / 2); }
 /* "Fazer sem perguntar" no topo do painel do Assistente */
 .ai-auto { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .ai-auto input { accent-color: var(--accent); margin: 0; }
+
+/* ============================================================ presença (quem está no projeto) */
+.pr-btn { display: inline-flex; align-items: center; height: 30px; padding: 0 6px; margin-right: 4px; border: 0; border-radius: 8px; background: transparent; }
+.pr-btn:hover { background: var(--panel-2); }
+.pr-stack { display: inline-flex; }
+.pr-av { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--c); color: #0b0c0e; font: 600 11px/1 var(--font); box-shadow: 0 0 0 2px var(--panel); flex: none; }
+.pr-stack .pr-av + .pr-av { margin-left: -6px; }
+.pr-av.agent { border-radius: 7px; }
+.pr-btn.busy .pr-av.agent { animation: ai-pulse 1.2s ease-in-out infinite; }
+.pr-pop { position: fixed; z-index: 2600; width: 340px; max-height: min(70vh, 560px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); animation: notice-in .15s ease-out; }
+.pr-body { overflow: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+.pr-body h4 { margin: 10px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.pr-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 8px; }
+.pr-row .pr-av { width: 28px; height: 28px; font-size: 12px; box-shadow: none; }
+.pr-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pr-who strong { font-weight: 600; }
+.pr-who span { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+.pr-empty { margin: 4px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.pr-act { display: flex; align-items: baseline; gap: 8px; font-size: 12px; line-height: 1.45; }
+.pr-act span:nth-child(2) { flex: 1; }
+.pr-act time { color: var(--muted); font-size: 11px; }
+.pr-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; transform: translateY(-1px); }
+.pr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+.pr-colors { display: flex; gap: 4px; }
+.pr-color { width: 18px; height: 18px; border-radius: 50%; border: 0; background: var(--c); padding: 0; }
+.pr-color[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--c); }
+
+/* CSS livre (seção do painel Design) */
+.custom-css { width: 100%; min-height: 76px; resize: vertical; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: 11.5px/1.6 var(--mono); outline: none; }
+.custom-css:focus { border-color: var(--accent); }
+.custom-css-status { margin: 4px 0 0; }
+.custom-css-status.bad { color: var(--warn); }

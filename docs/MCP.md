@@ -25,6 +25,15 @@ Os comandos prontos para copiar também aparecem em **Configurações → Assist
 - **Acesso de administrador** (Configurações → Assistente de IA e MCP → caixa *Acesso de administrador*): os programas **deste computador** alteram **sem perguntar** e ganham as ferramentas de **projeto** (listar, abrir, salvar e criar projetos na pasta). Cada alteração aparece num aviso na tela e continua saindo com Ctrl+Z. A opção fica gravada no `designer.config.json` (fora do git).
 - O endereço `/mcp` só aceita pedidos **desta máquina** (`localhost`), nunca de outro computador nem de um site aberto no navegador. Isso vale com ou sem acesso de administrador.
 
+## 2.1 Vários agentes ao mesmo tempo
+
+Cada conexão MCP é uma **sessão** com nome próprio (cabeçalho `Mcp-Session-Id`, criado no `initialize`). Dá para deixar o Claude Code montando o cabeçalho enquanto o Codex ajusta o rodapé, no mesmo projeto:
+
+- **Nome de cada agente**: vem do programa (ex.: `claude-code`). Para dar um nome seu, use `--agente` no script stdio ou a variável `STYLO_AGENT`:
+  `claude mcp add stylo-layout -- node scripts/mcp.mjs --agente "Layout"` e `claude mcp add stylo-revisor -- node scripts/mcp.mjs --agente "Revisor"`. Pelo endereço HTTP, mande o cabeçalho `X-Stylo-Agent`.
+- **Travas**: quem altera uma camada fica com ela por 10 s. Outro agente que tentar mexer nela recebe um erro claro ("está sendo alterada por Layout, espere uns 10s") e pode seguir em outra parte.
+- **Presença**: os avatares no topo do editor mostram as pessoas com o editor aberto e os agentes conectados; o painel "No projeto agora" lista o que cada um fez e o que está travando. `GET /api/presence` devolve o mesmo em JSON.
+
 ## 3. O que a IA consegue fazer (33 ferramentas)
 
 | Grupo | Ferramentas |

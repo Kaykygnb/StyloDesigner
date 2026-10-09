@@ -30,10 +30,12 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
+import { createPresence, targetsOf } from './server/presence.js';
 import { VERSION } from './src/version.js';
 import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
-import { AGENT_INSTRUCTIONS } from './src/agent/schema.js';
+import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -208,6 +210,8 @@ async function api(req, res, path) {
   }
 
   if (parts[0] === 'agent') return agentApi(req, res, parts.slice(1));
+  // quem está no projeto agora (pessoas com o editor aberto e agentes do MCP) e o que fizeram por último
+  if (parts[0] === 'presence' && req.method === 'GET') return sendJson(res, 200, presence.snapshot());
 
   if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') {
     await mkdir(config.folder, { recursive: true });
@@ -316,8 +320,46 @@ function callEditor(tool, args, client) {
   });
 }
 
-/** Nome do programa de IA conectado pelo MCP (vem no "initialize"), mostrado na janela de permissão. */
-const mcpSession = {};
+/**
+ * VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no
+ * "initialize") com o nome do programa. A presença guarda quem está conectado, o que fez e as TRAVAS: alterar uma
+ * camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
+ */
+const presence = createPresence();
+/** Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent). */
+const mcpSessions = new Map();
+/** Manda o retrato da presença para todas as abas do editor (evento SSE "presence"). */
+function broadcastPresence() {
+  const data = JSON.stringify(presence.snapshot());
+  for (const ed of editors) ed.write(`event: presence
+data: ${data}
+
+`);
+}
+/** Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade. */
+async function callAgentTool(sid, tool, args, name) {
+  presence.touchAgent(sid, name);
+  const def = toolByName(tool);
+  if (def?.write) {
+    const lock = presence.lock(sid, targetsOf(args));
+    if (!lock.ok) {
+      presence.done(sid, tool, `esperou a camada ${lock.id} (em uso por ${lock.by})`, false);
+      broadcastPresence();
+      return { error: `A camada ${lock.id} está sendo alterada por ${lock.by} agora. Espere uns ${lock.wait}s e tente de novo, ou trabalhe em outra parte do design.` };
+    }
+  }
+  broadcastPresence();
+  try {
+    const out = await callEditor(tool, args, name);
+    presence.done(sid, tool, def?.write ? (out?._summary || `usou ${tool}`) : null, !(out?.error || out?.refused));
+    return out;
+  } catch (err) {
+    presence.done(sid, tool, `${tool}: ${err.message}`, false);
+    throw err;
+  } finally {
+    broadcastPresence();
+  }
+}
 
 /**
  * MCP por HTTP (http://localhost:5173/mcp, transporte "Streamable HTTP" do MCP, respondendo JSON simples).
@@ -329,8 +371,21 @@ async function mcpRoute(req, res) {
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'Envie JSON.');
   const body = JSON.parse((await readBody(req)) || 'null');
   const instructions = await agentInstructions();
-  const one = (m) => handleMcp(m, { callTool: callEditor, version: VERSION, session: mcpSession, instructions });
+  // sessão: a do cabeçalho; no "initialize" sem cabeçalho, uma nova (devolvida em Mcp-Session-Id)
+  const isInit = (Array.isArray(body) ? body : [body]).some((m) => m?.method === 'initialize');
+  let sid = String(req.headers['mcp-session-id'] || '').slice(0, 80);
+  if (!sid && isInit) sid = randomUUID();
+  if (!sid) sid = 'mcp-sem-sessao'; // programas antigos que não guardam a sessão dividem esta
+  const session = mcpSessions.get(sid) || {};
+  mcpSessions.set(sid, session);
+  const forced = String(req.headers['x-stylo-agent'] || '').slice(0, 40);
+  const callTool = (name, args, client) => callAgentTool(sid, name, args, forced || client);
+  const one = (m) => handleMcp(m, { callTool, version: VERSION, session, instructions });
   const out = Array.isArray(body) ? (await Promise.all(body.map(one))).filter(Boolean) : await one(body);
+  if (isInit) { presence.touchAgent(sid, forced || session.name); broadcastPresence(); }
+  // programa que não reenvia o cabeçalho de sessão: as próximas chamadas sem cabeçalho usam o nome deste initialize
+  if (isInit && !req.headers['mcp-session-id']) mcpSessions.set('mcp-sem-sessao', { name: session.name });
+  res.setHeader('Mcp-Session-Id', sid);
   if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202).end(); return; } // só avisos: nada a responder
   sendJson(res, 200, out);
 }
@@ -375,9 +430,14 @@ async function agentApi(req, res, parts) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
     res.write(': conectado\n\n');
     editors.add(res);
+    // a aba diz quem é (nome e cor do perfil): aparece na presença para os outros
+    const q = new URL(req.url, 'http://x').searchParams;
+    const personId = String(q.get('id') || randomUUID()).slice(0, 60);
+    presence.addPerson(personId, q.get('user') || 'Pessoa', q.get('color'));
+    broadcastPresence();
     // "batimento" a cada 25 s: sem tráfego, alguns navegadores/antivírus derrubam a conexão parada
     const beat = setInterval(() => res.write(': ping\n\n'), 25000);
-    req.on('close', () => { clearInterval(beat); editors.delete(res); });
+    req.on('close', () => { clearInterval(beat); editors.delete(res); presence.removePerson(personId); broadcastPresence(); });
     return;
   }
   if (what === 'reply' && req.method === 'POST') {

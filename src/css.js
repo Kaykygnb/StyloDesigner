@@ -251,7 +251,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     }
     // hug sem largura máxima = uma linha só ('pre'); com largura máxima o texto QUEBRA ao chegar nela ('pre-wrap')
     s['white-space'] = node.sizeX === 'hug' && !(node.maxW > 0) ? 'pre' : 'pre-wrap';
+    if (node.whiteSpace) s['white-space'] = node.whiteSpace; // escolhido no painel (nowrap, pre-line...)
     s['overflow-wrap'] = 'break-word';
+    if (node.wordBreak) s['word-break'] = node.wordBreak;
+    if (node.textWrap) s['text-wrap'] = node.textWrap;
     truncateCss(node, s);
     // Cor do texto vem do fill. Com GRADIENTE usa o truque `background-clip: text` + `color: transparent`.
     const f = node.fill;
@@ -331,6 +334,11 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   if (node.sticky != null && s.position === 'relative' && !opts.editor) { s.position = 'sticky'; s.top = px(node.sticky); s['z-index'] = s['z-index'] || '1'; }
   const tf = transformOf(node);
   if (tf) s.transform = tf;
+  // ordem visual do item dentro de flex/grid (order) e se ele pode encolher (flex-shrink)
+  if (flow && Number.isFinite(node.order) && node.order !== 0) s.order = String(Math.round(node.order));
+  if (flow && node.shrink && s.flex === '0 0 auto') s.flex = '0 1 auto';
+  // CSS LIVRE: declarações escritas à mão no painel (qualquer propriedade). Vêm por último e vencem as do painel.
+  if (node.customCss) Object.assign(s, parseCustomCss(node.customCss));
   // A camada marcada como máscara some (display:none): ela só serve para recortar o grupo via clip-path.
   if (node.isMask) s.display = 'none';
   // Grupo com máscara: recorta os irmãos usando a forma da camada-máscara (ver maskClip).
@@ -429,9 +437,29 @@ function sizeLimitsCss(node, s) {
  * Junta rotação e espelhamento numa única propriedade `transform`. Ordem: rotate primeiro, depois scale.
  * Devolve '' quando não há nada a aplicar (assim o CSS gerado não ganha `transform` à toa).
  */
+/**
+ * Lê o "CSS livre" de uma camada ("propriedade: valor;" por linha) e devolve só as declarações seguras:
+ * nome de propriedade válido (ou variável --x) e valor sem chaves, sinais de tag nem "@". Linhas ruins são ignoradas.
+ * @param {string} text
+ * @returns {Record<string, string>}
+ */
+export function parseCustomCss(text) {
+  const out = {};
+  for (const part of String(text || '').replace(/\/\*[\s\S]*?\*\//g, '').split(';')) {
+    const i = part.indexOf(':');
+    if (i < 0) continue;
+    const prop = part.slice(0, i).trim().toLowerCase();
+    const value = part.slice(i + 1).trim().replace(/\s*!important$/i, '');
+    if (!/^(--[\w-]+|-?[a-z][a-z0-9-]*)$/.test(prop) || !value || value.length > 400 || /[{}<>@]|url\(\s*['"]?\s*javascript:/i.test(value)) continue;
+    out[prop] = value;
+  }
+  return out;
+}
+
 export function transformOf(node) {
   const parts = [];
   if (node.rotation) parts.push(`rotate(${round(node.rotation, 2)}deg)`);
+  if (node.skewX || node.skewY) parts.push(`skew(${round(node.skewX || 0, 2)}deg, ${round(node.skewY || 0, 2)}deg)`);
   if (node.flipX || node.flipY) parts.push(`scale(${node.flipX ? -1 : 1}, ${node.flipY ? -1 : 1})`);
   if (node.scale && node.scale !== 1) parts.push(`scale(${round(node.scale, 3)})`); // só nos estados (ver stateView)
   return parts.join(' ');

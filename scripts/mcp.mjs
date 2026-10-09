@@ -20,6 +20,14 @@
 import { createInterface } from 'node:readline';
 
 const BASE = (process.env.DESIGNER_URL || 'http://localhost:5173').replace(/\/+$/, '');
+/**
+ * Nome deste agente na presença e na janela de permissão (vários agentes no mesmo projeto): --agente "Nome" ou
+ * a variável STYLO_AGENT. Sem isso, vale o nome que o programa manda no initialize (ex.: "claude-code").
+ */
+const argi = process.argv.indexOf('--agente');
+const AGENT = String((argi > 0 && process.argv[argi + 1]) || process.env.STYLO_AGENT || '').slice(0, 40);
+/** Sessão MCP deste processo (o servidor cria no initialize): cada janela de agente é uma sessão separada. */
+let session = '';
 /** Escreve uma resposta (uma linha JSON) na saída. NADA além disso pode ir para a saída: quebraria o protocolo. */
 const send = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 
@@ -29,7 +37,9 @@ rl.on('line', async (line) => {
   let msg;
   try { msg = JSON.parse(line); } catch { return send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'JSON inválido.' } }); }
   try {
-    const r = await fetch(`${BASE}/mcp`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: line });
+    const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...(session ? { 'Mcp-Session-Id': session } : {}), ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
+    const r = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: line });
+    session = r.headers.get('mcp-session-id') || session;
     if (r.status === 202) return; // aviso (notification): sem resposta
     const out = await r.json();
     if (Array.isArray(out)) out.forEach(send); else send(out);

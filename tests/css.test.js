@@ -559,3 +559,24 @@ test('sticky e pointer-events: só itens em fluxo grudam, e só fora do editor',
   const livre = createNode('rect', { x: 5, y: 5 }); livre.sticky = 0;
   assert.equal(nodeStyle(livre, null).position, 'absolute');
 });
+
+test('CSS livre, order, flex-shrink, white-space, word-break, text-wrap e skew', async () => {
+  const { parseCustomCss } = await import('../src/css.js');
+  assert.deepEqual(parseCustomCss('a{b}: 1; scroll-margin-top: 80px; color: red} ; --cor: #fff; background: url(javascript:x)'), { 'scroll-margin-top': '80px', '--cor': '#fff' });
+  const row = createNode('frame');
+  row.layout = { mode: 'row', gap: 0, padding: [0, 0, 0, 0], justify: 'flex-start', align: 'flex-start', wrap: false };
+  const item = createNode('rect', { w: 40, h: 40 });
+  Object.assign(item, { order: -1, shrink: true, skewX: -8, customCss: 'scroll-margin-top: 80px; opacity: .5' });
+  const s = nodeStyle(item, row);
+  assert.equal(s.order, '-1');
+  assert.equal(s.flex, '0 1 auto');
+  assert.match(s.transform, /skew\(-8deg, 0deg\)/);
+  assert.equal(s['scroll-margin-top'], '80px');
+  assert.equal(s.opacity, '.5', 'o CSS livre vem por último e vence');
+  const t = createNode('text', { text: 'Olá' });
+  Object.assign(t, { whiteSpace: 'nowrap', wordBreak: 'break-all', textWrap: 'balance' });
+  const ts = nodeStyle(t, null);
+  assert.equal(ts['white-space'], 'nowrap');
+  assert.equal(ts['word-break'], 'break-all');
+  assert.equal(ts['text-wrap'], 'balance');
+});

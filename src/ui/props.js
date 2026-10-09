@@ -224,6 +224,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       ui.bp ? null : h('div.btn-group',
         h('button.icon-btn.small' + (n0.flipX ? '.on' : ''), { type: 'button', title: 'Espelhar na horizontal (Shift+H)', onclick: () => commands.flip('x') }, ico('flipH', 14)),
         h('button.icon-btn.small' + (n0.flipY ? '.on' : ''), { type: 'button', title: 'Espelhar na vertical (Shift+V)', onclick: () => commands.flip('y') }, ico('flipV', 14))))));
+    body.push(capK('Inclinação', 'skew', row(
+      num('X', () => P().skewX ?? 0, (v) => each((n) => { if (v) n.skewX = v; else delete n.skewX; }), { title: 'inclinar na horizontal (transform: skew)', decimals: 1, min: -80, max: 80, unit: '°' }),
+      num('Y', () => P().skewY ?? 0, (v) => each((n) => { if (v) n.skewY = v; else delete n.skewY; }), { title: 'inclinar na vertical (transform: skew)', decimals: 1, min: -80, max: 80, unit: '°' }))));
     // ordem de empilhamento (z-index): quem fica na frente de quem
     if (!ui.editState && !ui.bp) {
       const stack = (icon, title, mode) => h('button.icon-btn.small', { type: 'button', title, onclick: () => commands.reorder(mode) }, ico(icon, 14));
@@ -565,6 +568,13 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     'font-size': ['Tamanho da fonte', 'font-size: 16px;', 'A altura das letras, em pixels. 16px é o tamanho padrão de texto de leitura na web.'],
     'line-height': ['Altura da linha', 'line-height: 1.5;', 'O espaço vertical de cada linha, como MULTIPLICADOR do tamanho da fonte. 1.5 = respiro confortável para parágrafos; 1.1 a 1.2 = títulos.'],
     'text-align': ['Alinhamento e estilo do texto', 'text-align: center;\nfont-style: italic;\ntext-decoration: underline;', 'Alinha as linhas do texto (esquerda, centro, direita) e liga itálico, sublinhado ou riscado.', 'text-align · font-style'],
+    'white-space': ['white-space', 'white-space: nowrap;', 'Como o texto trata espaços e quebras: "nowrap" deixa tudo numa linha, "pre-line" respeita as quebras que você digitou, "pre" respeita também os espaços. Padrão: quebra ao chegar na borda.'],
+    'word-break': ['word-break', 'word-break: break-word;', 'O que fazer com palavras ou links muito longos que não cabem: "break-all" quebra em qualquer letra, "keep-all" nunca quebra dentro da palavra.'],
+    'text-wrap': ['text-wrap', 'text-wrap: balance;', '"balance" equilibra o tamanho das linhas (ótimo para títulos: nada de uma palavra sozinha na última linha). "pretty" evita linhas curtas no fim de parágrafos.'],
+    order: ['order', 'order: -1;', 'Muda a POSIÇÃO VISUAL do item dentro do flex/grid sem mexer na lista de camadas. Menor vem antes. Útil no responsivo: no Celular, a imagem pode vir antes do texto (order: -1).'],
+    'flex-shrink': ['flex-shrink', 'flex: 0 1 auto;', 'Se falta espaço, o item pode ficar menor que o tamanho dele? "Sim" deixa o navegador encolher (bom para textos e imagens em linhas apertadas).'],
+    skew: ['transform: skew', 'transform: skew(-8deg, 0deg);', 'Inclina a camada (como itálico para caixas). Bom para faixas e selos diagonais. Funciona junto com a rotação.'],
+    'custom-css': ['CSS livre', 'scroll-margin-top: 80px;\naccent-color: #2f6ae0;', 'Qualquer propriedade de CSS que o painel ainda não tem, uma por linha ("propriedade: valor;"). Vale no canvas, na apresentação e no código exportado, e pode ser diferente por breakpoint. Vem por último, então vence o resto do painel.'],
     'text-transform': ['Caixa das letras', 'text-transform: uppercase;', 'Muda as letras para MAIÚSCULAS, minúsculas ou Cada Palavra Com Inicial Grande, sem reescrever o texto.'],
     'vertical-align': ['Alinhamento vertical', 'display: flex;\nalign-content: center;', 'Onde o texto fica dentro da caixa quando ela é mais alta que ele: no topo, no meio ou embaixo. Só vale com altura fixa.', 'align-content'],
     'letter-spacing': ['Espaço entre letras', 'letter-spacing: 0.5px;', 'Abre (positivo) ou fecha (negativo) o espaço entre as LETRAS. Um pouquinho de espaço fica elegante em textos MAIÚSCULOS.'],
@@ -945,6 +955,9 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
   };
   const EASINGS = [['ease', 'Suave (ease)'], ['ease-in-out', 'Entra e sai (ease-in-out)'], ['ease-out', 'Desacelera (ease-out)'], ['ease-in', 'Acelera (ease-in)'], ['linear', 'Constante (linear)']];
   const CURSORS = [['', 'Padrão'], ['pointer', 'Mãozinha (pointer)'], ['text', 'Texto (text)'], ['grab', 'Mão aberta (grab)'], ['not-allowed', 'Bloqueado (not-allowed)'], ['default', 'Seta (default)']];
+  const WHITE_SPACES = [['', 'Normal (quebra na borda)'], ['nowrap', 'Uma linha (nowrap)'], ['pre-line', 'Respeita Enter (pre-line)'], ['pre', 'Exato (pre)']];
+  const WORD_BREAKS = [['', 'Normal'], ['break-word', 'Quebra se precisar'], ['break-all', 'Quebra em qualquer letra'], ['keep-all', 'Nunca dentro da palavra']];
+  const TEXT_WRAPS = [['', 'Normal'], ['balance', 'Equilibrado (balance)'], ['pretty', 'Sem sobras (pretty)']];
   const STICKY = [['', 'Não'], ['0', 'No topo (0px)'], ['16', '16px do topo'], ['64', '64px do topo']];
   const POINTER_EVENTS = [['', 'Normal'], ['none', 'Ignora (none)']];
 
@@ -1065,6 +1078,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           body.push(capK('Peso do espaço', 'flex-grow', num('×', () => P().grow ?? 1, (v) => each((n) => { if (v > 0 && v !== 1) n.grow = v; else delete n.grow; }), { min: 0.1, step: 0.5, decimals: 1, title: 'flex-grow' })));
         }
       }
+    }
+    if (!P().absolute) {
+      body.push(row(
+        capK('Ordem', 'order', num('#', () => P().order ?? 0, (v) => each((n) => { if (Math.round(v)) n.order = Math.round(v); else delete n.order; }), { decimals: 0, min: -99, max: 99, title: 'order: posição visual sem mudar a lista de camadas' })),
+        grid ? null : capK('Pode encolher', 'flex-shrink', select([['', 'Não (0)'], ['1', 'Sim (1)']], () => (P().shrink ? '1' : ''), (v) => each((n) => { if (v) n.shrink = true; else delete n.shrink; }), 'flex-shrink'))));
     }
     return section('Item do layout', body);
   }
@@ -1225,6 +1243,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       P().truncate && P().sizeX === 'hug' && !(P().maxW > 0)
         ? h('p.hint', 'Para cortar o texto, defina uma largura fixa ou uma largura máxima (em Tamanho → Limites). Com a largura "hug" sem limite, o texto nunca passa da própria largura.')
         : null,
+      row(
+        capK('Espaços e quebras', 'white-space', select(WHITE_SPACES, () => P().whiteSpace || '', (v) => each((n) => { if (v) n.whiteSpace = v; else delete n.whiteSpace; }), 'white-space')),
+        capK('Palavras longas', 'word-break', select(WORD_BREAKS, () => P().wordBreak || '', (v) => each((n) => { if (v) n.wordBreak = v; else delete n.wordBreak; }), 'word-break'))),
+      capK('Equilíbrio das linhas', 'text-wrap', select(TEXT_WRAPS, () => P().textWrap || '', (v) => each((n) => { if (v) n.textWrap = v; else delete n.textWrap; }), 'text-wrap')),
     ]);
   }
 
@@ -1511,6 +1533,35 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           used ? h('button.btn', { type: 'button', onclick: () => { each((n) => { delete n.fx; }); commit(); } }, ico('x', 13), ' Limpar') : null)));
   }
 
+  /**
+   * CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint;
+   * linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+   */
+  function customCssSection() {
+    const n0 = P();
+    const area = h('textarea.custom-css', {
+      rows: 4, spellcheck: false, 'aria-label': 'CSS livre desta camada', placeholder: 'scroll-margin-top: 80px;\naccent-color: #2f6ae0;',
+      onkeydown: (e) => e.stopPropagation(),
+    });
+    area.value = n0.customCss || '';
+    const status = h('p.hint.custom-css-status');
+    const check = () => {
+      const bad = area.value.split(/;|\n/).map((l) => l.trim()).filter(Boolean)
+        .filter((l) => {
+          const i = l.indexOf(':');
+          if (i < 0) return true;
+          const prop = l.slice(0, i).trim();
+          return typeof CSS !== 'undefined' && CSS.supports && !prop.startsWith('--') && !CSS.supports(prop, l.slice(i + 1).trim().replace(/!important$/, ''));
+        });
+      status.textContent = bad.length ? `O navegador não entendeu: ${bad.slice(0, 3).join(' · ')}` : area.value.trim() ? 'Tudo certo: vale no canvas e no código exportado.' : '';
+      status.classList.toggle('bad', !!bad.length);
+    };
+    area.addEventListener('input', check);
+    area.addEventListener('change', () => { const v = area.value.trim(); each((n) => { if (v) n.customCss = v; else delete n.customCss; }); commit(); });
+    check();
+    return section('CSS livre', [capK('Declarações', 'custom-css', area), status], null, { closedByDefault: !n0.customCss });
+  }
+
   /** Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção. */
   function exportSection() {
     return section('Exportar', [
@@ -1620,6 +1671,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           if (n.type !== 'group' && n.type !== 'line') parts.push(fillSection());
           if (n.type !== 'group' && n.type !== 'section') parts.push(strokeSection());
           if (n.type !== 'section' && n.type !== 'path') parts.push(effectsSection());
+          if (one) parts.push(customCssSection());
           el.replaceChildren(...parts.filter(Boolean));
           updaters.forEach((u) => { try { u(); } catch (err) { console.error('[painel Design]', err); } });
           return;
@@ -1637,7 +1689,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (n.type !== 'section') parts.push(effectsSection());
         if (canHaveStates(n)) parts.push(statesSection());
         if (canComp && !isComp) parts.push(componentSection());
-        parts.push(htmlSection(), exportSection());
+        parts.push(customCssSection(), htmlSection(), exportSection());
         el.replaceChildren(...parts.filter(Boolean));
       }
     }

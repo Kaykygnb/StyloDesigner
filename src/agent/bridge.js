@@ -56,18 +56,24 @@ export function createApprover() {
 }
 
 /**
- * Liga o editor à ponte do servidor (MCP).
+ * Liga o editor à ponte do servidor (MCP) e à presença.
  * @param {object} deps
  * @param {{ run: Function }} deps.runner
  * @param {(m: string) => void} deps.toast
- * @returns {{ close: () => void }}
+ * @param {() => {name: string, color: string}} [deps.profile]  quem está nesta aba (vai para a presença)
+ * @param {(data: object) => void} [deps.onPresence]  recebe o retrato de quem está no projeto
+ * @returns {{ close: () => void, reconnect: () => void }}
  */
-export function connectMcpBridge({ runner, toast }) {
-  if (typeof EventSource === 'undefined') return { close() {} };
-  const es = new EventSource('/api/agent/events');
+export function connectMcpBridge({ runner, toast, profile = () => ({ name: 'Pessoa', color: '' }), onPresence = () => {} }) {
+  if (typeof EventSource === 'undefined') return { close() {}, reconnect() {} };
+  // id desta aba (igual enquanto ela existir): a presença não duplica a pessoa ao reconectar
+  let tabId = '';
+  try { tabId = sessionStorage.getItem('stylo.tab') || ''; } catch { /* sem sessionStorage */ }
+  if (!tabId) { tabId = `t${Math.random().toString(36).slice(2, 10)}`; try { sessionStorage.setItem('stylo.tab', tabId); } catch { /* idem */ } }
   /** Avisa (uma vez por programa) que uma IA externa começou a usar o editor. */
   const greeted = new Set();
-  es.addEventListener('call', async (ev) => {
+  let es = null;
+  const onCall = async (ev) => {
     let msg;
     try { msg = JSON.parse(ev.data); } catch { return; }
     if (!greeted.has(msg.client)) { greeted.add(msg.client); toast(`${msg.client} está usando o editor pelo MCP.`); }
@@ -78,6 +84,16 @@ export function connectMcpBridge({ runner, toast }) {
     try {
       await fetch('/api/agent/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: msg.id, result }) });
     } catch { /* servidor caiu: o pedido expira do lado de lá */ }
-  });
-  return { close: () => es.close() };
+  };
+  const onPresenceEvent = (ev) => { try { onPresence(JSON.parse(ev.data)); } catch { /* ignora */ } };
+  function connect() {
+    es?.close();
+    const p = profile();
+    const q = new URLSearchParams({ id: tabId, user: p.name || 'Pessoa', color: p.color || '' });
+    es = new EventSource(`/api/agent/events?${q}`);
+    es.addEventListener('call', onCall);
+    es.addEventListener('presence', onPresenceEvent);
+  }
+  connect();
+  return { close: () => es?.close(), reconnect: connect };
 }
