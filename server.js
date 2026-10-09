@@ -39,7 +39,7 @@ import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
 import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
 import { createChatAccumulator, createSseReader, reasoningParams, rejectsExtras, rejectsTools } from './src/agent/stream.js';
 import { JEV_URL, JEV_MODEL, buildJevRequest, readJevAnswer, isJevTool } from './src/agent/jev.js';
-import { createImageAi } from './server/imageai.js';
+import { createImageAi, imageConfigOf } from './server/imageai.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -729,7 +729,9 @@ async function agentApi(req, res, parts) {
     const model = typeof wanted === 'string' && /^[\w.:/@+-]{1,120}$/.test(wanted) ? wanted : a.model;
     // ferramentas do Jev só com chave (sem ela, nem aparecem para o modelo)
     const hasJev = !!jevConfig().apiKey;
-    const offered = Array.isArray(tools) ? tools.filter((t) => hasJev || !isJevTool(t?.function?.name)) : [];
+    // edição generativa de foto só aparece para o modelo se houver modelo de imagem configurado (server/imageai.js)
+    const hasImageAi = imageConfigOf(config).available;
+    const offered = Array.isArray(tools) ? tools.filter((t) => (hasJev || !isJevTool(t?.function?.name)) && (hasImageAi || t?.function?.name !== 'generate_image_edit')) : [];
     // só os campos que a API conhece (o navegador guarda outros, como o raciocínio, que não voltam para a IA)
     const clean = messages.filter((m) => m && m.role !== 'system').map((m) => ({
       role: m.role, content: m.content ?? '',

@@ -169,8 +169,8 @@ test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos intern
   assert.ok(!r.result.content[1].text.includes('iVBOR') && !r.result.content[1].text.includes('_summary'));
 });
 
-test('MCP completo: 33 ferramentas; as de projeto exigem administrador; destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 33);
+test('MCP completo: 35 ferramentas (com edit_image e generate_image_edit); as de projeto exigem administrador; destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 35);
   const admin = AGENT_TOOLS.filter((t) => t.admin).map((t) => t.name).sort();
   assert.deepEqual(admin, ['list_projects', 'new_project', 'open_project', 'save_project']);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
