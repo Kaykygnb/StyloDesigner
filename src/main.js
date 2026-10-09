@@ -14,6 +14,7 @@ import { createStore } from './store.js';
 import { createCanvas } from './canvas.js';
 import { createOverlay } from './overlay.js';
 import { createRulers } from './rulers.js';
+import { openGuides, setGuidesLocked } from './ui/guides.js';
 import { createCommands } from './commands.js';
 import { createTools } from './tools.js';
 import { createLayersPanel } from './ui/layers.js';
@@ -106,7 +107,7 @@ const commands = createCommands(store, canvas);
 commands.notify = (msg) => toast(msg);
 const tools = createTools({ store, canvas, commands, viewport, toast });
 toolsRef = tools;
-createRulers({ store, canvas, stage: $('.stage'), commands });
+createRulers({ store, canvas, stage: $('.stage'), commands, onManageGuides: () => openGuides({ store, commands, canvas }) });
 const responsive = createResponsiveBar({ store, canvas, commands, toast, stage: $('.stage') });
 
 // ---------------------------------------------------------------- painel esquerdo
@@ -394,18 +395,23 @@ imgInput.addEventListener('change', async () => {
   imgInput.value = '';
   try { await commands.addImageFiles(files); } catch { toast('Não consegui abrir a imagem.'); }
 });
-// monta a barra de ferramentas: 9 ferramentas + imagem, separador e a Mão
+// Grupos mantêm juntas as ferramentas relacionadas, inclusive quando a barra quebra em duas linhas.
+const toolGroup = (label, ...buttons) => h('div.tool-group', { role: 'group', 'aria-label': label }, ...buttons);
 $('#toolbar').append(
-  ...toolBtns.slice(0, 9),
-  h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18)),
-  h('span.tool-sep'),
-  toolBtns[9],
-  toolBtns[10],
-  toolBtns[11],
+  toolGroup('Navegar', toolBtns[0], toolBtns[12]),
+  toolGroup('Estruturar', toolBtns[1], toolBtns[2]),
+  toolGroup('Desenhar formas', ...toolBtns.slice(3, 8)),
+  toolGroup('Criar conteúdo', toolBtns[8], toolBtns[9],
+    h('button.tool', { type: 'button', title: 'Imagem (ou arraste/cole no canvas)', 'aria-label': 'Inserir imagem', onclick: () => imgInput.click() }, ico('image', 18))),
+  toolGroup('Revisar', toolBtns[10], toolBtns[11]),
   imgInput,
 );
 $('#toolbar').setAttribute('role', 'toolbar');
 $('#toolbar').setAttribute('aria-label', 'Ferramentas');
+// O zoom acompanha a altura real da barra, mesmo quando os painéis estreitam o canvas.
+new ResizeObserver(() => {
+  $('.stage').style.setProperty('--tools-height', `${$('#toolbar').offsetHeight}px`);
+}).observe($('#toolbar'));
 // ---------------------------------------------------------------- barra da caneta (encaixe na grade + dicas)
 // Aparece sozinha quando a caneta está ativa ou quando se editam pontos de um vetor. O "Encaixe" faz os pontos
 // grudarem numa grade de 1, 2, 4 ou 8 px (contada do canto do frame): é o que deixa um ícone nítido.
@@ -454,6 +460,8 @@ const zoomLabel = h('button.zoom-pct', {
       { label: 'Réguas', hint: 'Ctrl R', checked: ui.showRulers, onClick: () => store.toggleRulers() },
       { label: 'Notas', checked: ui.showNotes !== false, onClick: () => { ui.showNotes = ui.showNotes === false; store.emit('overlay'); } },
       { label: 'Guias', checked: ui.showGuides !== false, onClick: () => { ui.showGuides = ui.showGuides === false; store.emit('overlay'); } },
+      { label: 'Gerenciar guias…', onClick: () => openGuides({ store, commands, canvas }) },
+      { label: 'Travar guias', checked: !!ui.guidesLocked, onClick: () => setGuidesLocked(store, !ui.guidesLocked) },
       { label: 'Grades de layout', checked: ui.showGrids !== false, onClick: () => { ui.showGrids = ui.showGrids === false; store.emit('overlay'); } },
       'sep',
       { label: 'Roda do mouse dá zoom', checked: ui.wheelMode === 'zoom', onClick: () => { ui.wheelMode = ui.wheelMode === 'zoom' ? 'pan' : 'zoom'; prefs.wheelMode = ui.wheelMode; savePrefs(); toast(ui.wheelMode === 'zoom' ? 'Roda = zoom' : 'Roda = rolar (Ctrl + roda = zoom)'); } },

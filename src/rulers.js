@@ -13,16 +13,22 @@ export const RULER = 20;
  * As réguas são <canvas> 2D desenhados com a vista atual (pan/zoom) e destacam a faixa da seleção em azul.
  * Guias são dados da página (page.guides: [{axis, pos}]); quem as DESENHA é o overlay.js.
  */
-export function createRulers({ store, canvas, stage, commands }) {
+export function createRulers({ store, canvas, stage, commands, onManageGuides }) {
   const ui = store.ui;
   // réguas começam ESCONDIDAS (Ctrl+R ou Shift+R alternam; a escolha fica lembrada); guias aparecem quando as réguas estão ligadas
   try { ui.showRulers = localStorage.getItem('pd.rulers') === '1'; } catch { ui.showRulers = false; }
   ui.showGuides = true;
+  try { ui.guidesLocked = localStorage.getItem('pd.guidesLocked') === '1'; } catch { ui.guidesLocked = false; }
 
   // três peças: régua de cima, régua da esquerda e o quadradinho do canto
   const top = document.createElement('canvas');
   const left = document.createElement('canvas');
-  const corner = document.createElement('div');
+  const corner = document.createElement('button');
+  corner.type = 'button';
+  corner.textContent = '+';
+  corner.title = 'Gerenciar guias: adicionar e editar posições';
+  corner.setAttribute('aria-label', 'Gerenciar guias');
+  corner.addEventListener('click', () => onManageGuides?.());
   top.className = 'ruler ruler-top';
   left.className = 'ruler ruler-left';
   corner.className = 'ruler-corner';
@@ -88,6 +94,16 @@ export function createRulers({ store, canvas, stage, commands }) {
       g.font = '9px ui-monospace, Menlo, monospace';
       const off = horiz ? v.x : v.y;
       const first = Math.floor(-off / v.zoom / st) * st;
+      // Subdivisões dão referência visual entre os números sem acrescentar mais rótulos.
+      g.globalAlpha = 0.45;
+      g.beginPath();
+      for (let w = first; w * v.zoom + off < len; w += st / 5) {
+        const p = Math.round(w * v.zoom + off) + 0.5;
+        if (horiz) { g.moveTo(p, RULER - 3); g.lineTo(p, RULER); }
+        else { g.moveTo(RULER - 3, p); g.lineTo(RULER, p); }
+      }
+      g.stroke();
+      g.globalAlpha = 1;
       for (let w = first; w * v.zoom + off < len + st * v.zoom; w += st) {
         const p = Math.round(w * v.zoom + off) + 0.5;
         g.beginPath();
@@ -119,11 +135,22 @@ export function createRulers({ store, canvas, stage, commands }) {
       };
       upd(e);
       const move = (ev) => upd(ev);
-      const up = (ev) => {
+      const cleanup = () => {
         el.removeEventListener('pointermove', move);
         el.removeEventListener('pointerup', up);
+        el.removeEventListener('pointercancel', cancel);
+        el.removeEventListener('lostpointercapture', cancel);
+        window.removeEventListener('keydown', onKey, true);
+        if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      };
+      const cancel = () => { cleanup(); ui.guideDrag = null; store.emit('overlay'); };
+      const onKey = (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancel(); }
+      };
+      const up = (ev) => {
+        cleanup();
         const r = canvas.vpRect();
-        const inside = axis === 'y' ? ev.clientY - r.top > RULER : ev.clientX - r.left > RULER;
+        const inside = ev.clientX > r.left + RULER && ev.clientX < r.right && ev.clientY > r.top + RULER && ev.clientY < r.bottom;
         const g = ui.guideDrag;
         ui.guideDrag = null;
         if (inside && g) commands.addGuide(g.axis, g.pos);
@@ -131,6 +158,9 @@ export function createRulers({ store, canvas, stage, commands }) {
       };
       el.addEventListener('pointermove', move);
       el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', cancel);
+      el.addEventListener('lostpointercapture', cancel);
+      window.addEventListener('keydown', onKey, true);
     });
   }
   // régua de cima → guia horizontal (posição y); régua da esquerda → guia vertical (posição x)

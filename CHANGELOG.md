@@ -9,6 +9,11 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 ## [Unreleased]
 
 ### Alterado
+- Ferramentas agrupadas por tarefa, com Mão disponível na barra, adaptação ao espaço do canvas e zoom posicionado de acordo com a altura da barra.
+- Réguas com subdivisões e gerenciador de guias: posições numéricas, bordas/centro da seleção, remoção individual/em conjunto e trava de arrasto. Criar conjuntos de guias pode ser desfeito em um passo.
+- Criar guias: Esc, perda de captura e soltura fora do canvas cancelam o gesto sem deixar uma guia acidental.
+- Trilhas CSS do grid: validação com aviso preserva o último layout válido; Esc descarta o texto inválido. O seletor visual identifica quando as trilhas são personalizadas.
+- Código: opção de quebra de linhas longas; controles de layout e alinhamento anunciam seu estado para leitores de tela.
 - Configurações: navegação fixa por assunto, conteúdo com rolagem própria, campos mais legíveis e adaptação a telas estreitas. Trocar de seção preserva os rascunhos dos campos.
 - Abas dos painéis: aparência consistente, foco visível, navegação com setas/Home/End e associação acessível entre aba e conteúdo.
 - Seletor de fontes: melhora a semântica para leitores de tela e mantém os controles de paginação fora da lista de opções.

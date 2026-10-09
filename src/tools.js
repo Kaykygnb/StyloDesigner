@@ -311,7 +311,7 @@ export function createTools({ store, canvas, commands, viewport, toast }) {
       pen.exitEdit();
     }
     // arrastar uma guia de régua já criada (soltar em cima da régua apaga)
-    if (t.dataset?.guide !== undefined && t.dataset.guide !== '') {
+    if (!ui.guidesLocked && t.dataset?.guide !== undefined && t.dataset.guide !== '') {
       const i = Number(t.dataset.guide);
       drag = { type: 'guide', i, axis: store.page().guides[i].axis };
       return;

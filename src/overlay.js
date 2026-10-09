@@ -362,6 +362,8 @@ export function createOverlay(store, canvas, viewport, hooks = {}) {
         const vert = g.axis === 'x';
         const el = get(`gl:${i}`, `guide-line ${vert ? 'v' : 'h'}`);
         el.dataset.guide = i;
+        el.style.pointerEvents = ui.guidesLocked ? 'none' : 'auto';
+        el.title = `${vert ? 'Vertical' : 'Horizontal'}: ${g.pos}px${ui.guidesLocked ? ' (travada)' : ''}`;
         const pos = g.pos * z + (vert ? v.x : v.y);
         if (vert) place(el, pos - 3, 0, 7, 99999); else place(el, 0, pos - 3, 99999, 7);
       });

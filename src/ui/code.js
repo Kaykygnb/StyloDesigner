@@ -40,10 +40,12 @@ export function createCodePanel({ store, commands, toast }) {
   let tab = 'css';
   let children = true;
 
-  const pre = h('pre.code-view');
+  const pre = h('pre.code-view', { tabindex: 0, 'aria-label': 'Código gerado' });
   const cssBtn = h('button.tab-chip', { type: 'button', onclick: () => { tab = 'css'; render(); } }, 'CSS');
   const htmlBtn = h('button.tab-chip', { type: 'button', onclick: () => { tab = 'html'; render(); } }, 'HTML');
   const kids = h('input', { type: 'checkbox', checked: true });
+  const wrapLines = h('input', { type: 'checkbox', checked: false });
+  wrapLines.addEventListener('change', () => pre.classList.toggle('wrap-lines', wrapLines.checked));
   kids.addEventListener('change', () => { children = kids.checked; render(); });
   // último código gerado (é o que o botão Copiar copia)
   let current = '';
@@ -57,12 +59,15 @@ export function createCodePanel({ store, commands, toast }) {
   const el = h('div.code-panel',
     h('div.code-head', h('div.tab-chips', cssBtn, htmlBtn), copy),
     h('div.code-sub', title, h('label.check.inline', kids, h('span.box', ico('check', 10)), h('span', 'Incluir filhos'))),
+    h('div.code-options', h('label.check.inline', wrapLines, h('span.box', ico('check', 10)), h('span', 'Quebrar linhas'))),
     pre);
 
   /** Gera o código das camadas-alvo e mostra colorido. Só roda com a aba Código aberta (ver subscribe abaixo). */
   function render() {
     cssBtn.classList.toggle('on', tab === 'css');
     htmlBtn.classList.toggle('on', tab === 'html');
+    cssBtn.setAttribute('aria-pressed', String(tab === 'css'));
+    htmlBtn.setAttribute('aria-pressed', String(tab === 'html'));
     const sel = commands.topSelection();
     const targets = sel.length ? sel : store.page().children;
     title.textContent = sel.length ? (sel.length === 1 ? sel[0].name : `${sel.length} camadas`) : `${store.page().name} (tudo)`;
@@ -74,6 +79,7 @@ export function createCodePanel({ store, commands, toast }) {
     // CSS: um só bloco :root com as variáveis (estilos de cor) de todas as partes; HTML: só junta
     const code = tab === 'css' ? joinCss(parts) : parts.map((p) => p.html).filter(Boolean).join('\n');
     current = code;
+    copy.disabled = !code;
     pre.innerHTML = code ? (tab === 'css' ? highlightCss(code) : highlightHtml(code)) : '<span class="muted">Nada para mostrar.</span>';
   }
 

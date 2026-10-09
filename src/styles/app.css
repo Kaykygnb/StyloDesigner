@@ -435,6 +435,14 @@ button.brand:hover { background: var(--panel-2); }
 .tool:active { transform: scale(0.92); }
 .tool.on { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
 .tool-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+.tool-group { display: flex; align-items: center; gap: 2px; padding: 0 3px; }
+.tool-group + .tool-group { border-left: 1px solid var(--border); }
+.toolbar .tool { width: 34px; height: 36px; }
+.toolbar { width: max-content; max-width: calc(100% - 24px); flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+@container (max-width: 900px) {
+  .zoom-widget { bottom: calc(var(--tools-height, 54px) + 30px); }
+}
 .zoom-pct { min-width: 52px; height: 24px; border: 0; background: transparent; border-radius: 7px; font: 600 11px var(--mono); color: var(--text); }
 .zoom-pct:hover { background: var(--panel-2); }
 
@@ -495,6 +503,28 @@ button.brand:hover { background: var(--panel-2); }
 .set-label { font-weight: 600; min-width: 110px; }
 .set-radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .set-radio input { accent-color: var(--accent); margin: 0; }
+.guides-panel { padding: 4px 24px 24px; }
+.guides-panel > p { line-height: 1.6; }
+.guide-create { display: flex; gap: 10px; align-items: flex-end; margin: 20px 0 12px; flex-wrap: wrap; }
+.guide-create label { display: grid; gap: 6px; flex: 1; min-width: 130px; font-size: 12px; color: var(--muted); }
+.guide-create input, .guide-create select { width: 100%; min-width: 0; height: 34px; }
+.guide-create input, .guide-create select, .guide-row input { border: 1px solid var(--border); background: var(--panel-2); border-radius: 6px; padding: 7px 9px; color: var(--text); }
+.guide-create select { appearance: auto; }
+.guide-create input:focus-visible, .guide-create select:focus-visible, .guide-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.guide-list { max-height: 40vh; overflow: auto; }
+.guide-presets, .guide-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; }
+.guide-actions { justify-content: space-between; font-size: 12px; }
+.guide-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.guide-row > span:first-child { flex: 1; font-size: 12px; }
+.guide-row input { width: 100px; min-width: 0; text-align: right; }
+.guide-empty { padding: 24px; text-align: center; color: var(--muted); background: var(--panel-2); border-radius: 8px; }
+.ruler-corner { border: 0; padding: 0; color: var(--muted); font: 14px var(--mono); cursor: pointer; }
+.track-field { display: grid; gap: 5px; min-width: 0; }
+.track-field input[aria-invalid="true"] { border-color: var(--danger); }
+.track-error { margin: 0; color: var(--danger); font-size: 11px; line-height: 1.5; }
+.code-options { padding: 0 14px 10px; }
+.code-view.wrap-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ruler-corner:hover, .ruler-corner:focus-visible { color: var(--accent); background: var(--accent-soft); }
 /* Preferências: navegação fixa e conteúdo com rolagem própria. */
 .modal.settings-modal { width: min(920px, 94vw); height: min(740px, 90vh); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
 .settings-modal .modal-head { flex: none; padding: 18px 24px; }
@@ -1328,7 +1358,7 @@ button.asset-swatch:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
 
 @container (max-width: 560px) {
   .toolbar { padding: 4px; gap: 1px; }
-  .tool { width: 30px; height: 36px; }
+  .toolbar .tool { width: 30px; height: 36px; }
   .tool-sep { margin: 0 2px; }
 }
 

@@ -653,7 +653,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const cards = MODES.map(([v, icon, name, css, doc]) => {
       const b = h('button.al-mode', { type: 'button', dataset: { v }, onclick: () => { if (ui.bp) each((n) => { n.layout = { ...n.layout, mode: v }; }); else store.update(() => commands.setLayoutMode(nodes(), v)); commit(); } },
         ico(icon, 20), h('span.al-mode-name', name), h('span.al-mode-css', css));
-      updaters.push(() => b.classList.toggle('on', L().mode === v));
+      updaters.push(() => { b.classList.toggle('on', L().mode === v); b.setAttribute('aria-pressed', String(L().mode === v)); });
       return tip(b, doc);
     });
     const body = [h('div.al-modes', cards)];
@@ -724,9 +724,10 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
           const j = three[mainI][0], a = three[crossI][0];
           const btn = h('button.al-cell', {
             type: 'button',
+            'aria-label': `${jName}: ${j}; ${aName}: ${a}`,
             onclick: () => { each((n) => { n.layout.justify = j; n.layout.align = a; }); commit(); },
           }, h('i'));
-          updaters.push(() => btn.classList.toggle('on', L().justify === j && L().align === a));
+          updaters.push(() => { const active = L().justify === j && L().align === a; btn.classList.toggle('on', active); btn.setAttribute('aria-pressed', String(active)); });
           cells.push(btn);
         }
       }
@@ -753,6 +754,11 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       const showCur = () => {
         const selected = P();
         if (!selected?.layout) return; // a seleção pode sumir enquanto o painel ainda está redesenhando
+        if (selected.layout.colsTemplate || selected.layout.rowsTemplate) {
+          paint(0, 0, 'on');
+          label.textContent = 'Trilhas CSS personalizadas';
+          return;
+        }
         const c = selected.layout.cols ?? 2, r = selected.layout.rows || Math.ceil((selected.children?.filter((k) => !k.absolute).length || 1) / c);
         paint(c, r, 'on');
         label.textContent = `${c} × ${L().rows ? L().rows : 'auto'}`;
@@ -809,6 +815,44 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
 
     if (mode === 'grid') {
       const gridAligns = [A_START, A_CENTER, A_END, A_STRETCH];
+      // O CSS só chega ao documento quando o navegador reconhece a sintaxe. Um rascunho inválido continua editável.
+      const trackField = (key, property, placeholder) => {
+        let invalid = false;
+        let modelValue = L()[key] || '';
+        const message = h('p.track-error', { id: `track-error-${n0.id}-${key}`, role: 'status', hidden: true });
+        const field = textField({ mono: true, placeholder, get: () => L()[key] || '',
+          set: (value) => {
+            const cleaned = cleanTrackList(value);
+            invalid = !!value.trim() && (!cleaned || !CSS.supports(property, cleaned));
+            field.input.setAttribute('aria-invalid', String(invalid));
+            message.hidden = !invalid;
+            message.textContent = invalid ? 'CSS inválido. O último layout válido foi mantido. Esc cancela a edição.' : '';
+            if (!invalid) { modelValue = cleaned; each((n) => { if (cleaned) n.layout[key] = cleaned; else delete n.layout[key]; }); }
+          }, commit: () => { if (!invalid) commit(); },
+        });
+        field.input.setAttribute('aria-label', property);
+        field.input.setAttribute('aria-describedby', message.id);
+        field.input.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape') return;
+          event.stopPropagation();
+          invalid = false;
+          message.hidden = true;
+          field.input.setAttribute('aria-invalid', 'false');
+          field.input.value = L()[key] || '';
+          field.input.blur();
+          commit();
+        });
+        return reg({ el: h('div.track-field', field.el, message), update: () => {
+          const current = L()[key] || '';
+          if (invalid && current !== modelValue) {
+            invalid = false;
+            message.hidden = true;
+            field.input.setAttribute('aria-invalid', 'false');
+          }
+          modelValue = current;
+          if (!invalid) field.update();
+        } });
+      };
       const TRACK_PRESETS = [
         ['', 'Escolher um modelo…'],
         ['repeat(2, minmax(0, 1fr))', '2 colunas iguais'],
@@ -844,10 +888,8 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
               if (!v) return;
               each((n) => { n.layout.colsTemplate = cleanTrackList(v); });
             }, 'Aplicar um modelo de colunas CSS')),
-            capK('Colunas', 'grid-template-columns', reg(textField({ mono: true, placeholder: '200px 1fr 2fr', get: () => L().colsTemplate || '',
-              set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.colsTemplate = t; else delete n.layout.colsTemplate; }), commit }))),
-            capK('Linhas', 'grid-template-rows', reg(textField({ mono: true, placeholder: 'auto 1fr auto', get: () => L().rowsTemplate || '',
-              set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.rowsTemplate = t; else delete n.layout.rowsTemplate; }), commit }))),
+            capK('Colunas', 'grid-template-columns', trackField('colsTemplate', 'grid-template-columns', '200px 1fr 2fr')),
+            capK('Linhas', 'grid-template-rows', trackField('rowsTemplate', 'grid-template-rows', 'auto 1fr auto')),
             h('p.hint', 'Escolha um modelo e depois edite o CSS nos campos. Aceita px, %, fr, auto, minmax() e repeat(). As trilhas personalizadas substituem Colunas/Linhas; apague o campo para voltar aos controles numéricos.'))),
         capK('Espaço entre células', 'gap', gapRow),
         paddingBlock(),
