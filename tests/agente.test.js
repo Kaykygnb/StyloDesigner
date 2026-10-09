@@ -188,6 +188,6 @@ test('plugin do Claude Code: arquivos válidos, nomes batendo e MCP apontando pa
   assert.ok(market.owner?.name && plugin.version && plugin.description);
   assert.deepEqual(mcpCfg.mcpServers['projeto-designer'], { type: 'http', url: 'http://localhost:5173/mcp' });
   const skill = readFileSync(new URL('../integrations/claude-code/skills/projeto-designer/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skill, /^---\nname: projeto-designer\ndescription: .+\n---/);
+  assert.match(skill, /^---\r?\nname: projeto-designer\r?\ndescription: .+\r?\n---/);
   assert.ok(existsSync(new URL('../integrations/codex/config.toml', import.meta.url)) && existsSync(new URL('../integrations/codex/AGENTS.md', import.meta.url)));
 });

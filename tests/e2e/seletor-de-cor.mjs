@@ -34,6 +34,18 @@ ok('o seletor tem área de cor, matiz e barra de opacidade', (await page.locator
 await page.locator('.cp .cp-hex').fill('FF0000');
 await page.waitForTimeout(200);
 ok('digitar um HEX aplica ao vivo', (await node(id)).fill.color === '#FF0000');
+const hueSlider = page.locator('.cp .cp-hue');
+await hueSlider.focus();
+await page.keyboard.press('ArrowRight');
+await page.waitForTimeout(200);
+ok('matiz tem semântica de slider e responde à seta do teclado', await hueSlider.getAttribute('role') === 'slider' && await hueSlider.getAttribute('aria-valuenow') === '1' && (await node(id)).fill.color !== '#FF0000');
+const svControl = page.locator('.cp .cp-sv');
+const saturationBefore = await svControl.getAttribute('aria-label');
+await svControl.focus();
+await page.keyboard.press('ArrowLeft');
+ok('área de saturação/brilho aceita setas e anuncia os valores atuais', await svControl.getAttribute('role') === 'group' && await svControl.getAttribute('aria-label') !== saturationBefore);
+await page.locator('.cp .cp-hex').fill('FF0000'); // restaura a cor de referência para os passos seguintes
+await page.waitForTimeout(200);
 await page.locator('.cp .cp-mode').click();
 ok('o botão de formato alterna para RGB e mostra R, G, B', (await page.locator('.cp .cp-mode').innerText()) === 'RGB' && (await page.locator('.cp .cp-fields .cp-num').evaluateAll((l) => l.slice(0, 3).map((i) => i.value))).join() === '255,0,0');
 const g = page.locator('.cp .cp-fields .cp-num').nth(1);
@@ -55,6 +67,12 @@ await op.press('Enter');
 await page.waitForTimeout(250);
 ok('o campo % muda a opacidade do preenchimento (0.5)', (await node(id)).fill.opacity === 0.5);
 // barra de opacidade
+const alphaSlider = page.locator('.cp .cp-alpha');
+await alphaSlider.focus();
+await page.keyboard.press('End');
+await page.waitForTimeout(200);
+ok('opacidade tem semântica de slider e End define 100%', await alphaSlider.getAttribute('role') === 'slider' && await alphaSlider.getAttribute('aria-valuenow') === '100' && (await node(id)).fill.opacity === 1);
+await op.fill('50'); await op.press('Enter'); await page.waitForTimeout(200);
 const bar = await page.locator('.cp .cp-alpha').boundingBox();
 await page.mouse.click(bar.x + bar.width * 0.25, bar.y + bar.height / 2);
 await page.waitForTimeout(250);

@@ -98,6 +98,19 @@ await page.waitForTimeout(150);
 await page.click('.al-mode[data-v="grid"]');
 const gd = await ev(() => { const f = designer.store.page().children[0]; return { mode: f.layout.mode, cols: f.layout.cols, disp: getComputedStyle(designer.canvas.els.get(f.id)).display, tpl: getComputedStyle(designer.canvas.els.get(f.id)).gridTemplateColumns }; });
 ok('modo Grid: display:grid no DOM com colunas', gd.mode === 'grid' && gd.disp === 'grid' && gd.tpl.split(' ').length === gd.cols, JSON.stringify(gd));
+await page.locator('.gp-cell').first().focus();
+await page.keyboard.press('ArrowRight');
+await page.keyboard.press('ArrowDown');
+const gridNav = await page.evaluate(() => ({
+  label: document.activeElement.getAttribute('aria-label'),
+  tabStops: document.querySelectorAll('.gp-cell[tabindex="0"]').length,
+  rows: document.querySelectorAll('.gp-row[role="row"]').length,
+  gridRole: document.querySelector('.gp-cells')?.getAttribute('role'),
+}));
+ok('grade rápida navega com setas e mantém um único ponto de Tab', gridNav.label === '2 colunas × 2 linhas' && gridNav.tabStops === 1 && gridNav.rows === 6 && gridNav.gridRole === 'grid', JSON.stringify(gridNav));
+await page.keyboard.press('Enter');
+const gridApplied = await ev(() => { const f = designer.store.page().children[0]; return [f.layout.cols, f.layout.rows]; });
+ok('Enter aplica a célula ativa da grade rápida', gridApplied[0] === 2 && gridApplied[1] === 2, JSON.stringify(gridApplied));
 
 // ---- componente + instância + override
 await ev(() => { designer.store.page().children.length = 0; designer.store.commit(); });

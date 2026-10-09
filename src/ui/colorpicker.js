@@ -60,9 +60,13 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
 
   // ------------------------------------------------------------ 1. área de cor e barras
   const svKnob = h('div.cp-knob'), hueKnob = h('div.cp-knob'), alphaKnob = h('div.cp-knob');
-  const sv = h('div.cp-sv', svKnob);
-  const hue = h('div.cp-hue', hueKnob);
-  const alphaBar = opacity ? h('div.cp-alpha', h('div.cp-alpha-fill'), alphaKnob) : null;
+  const sv = h('div.cp-sv', { role: 'group', tabindex: 0, 'aria-label': 'Saturação e brilho. Use as setas para ajustar.' }, svKnob);
+  const hue = h('div.cp-hue', {
+    role: 'slider', tabindex: 0, 'aria-label': 'Matiz', 'aria-valuemin': 0, 'aria-valuemax': 360,
+  }, hueKnob);
+  const alphaBar = opacity ? h('div.cp-alpha', {
+    role: 'slider', tabindex: 0, 'aria-label': 'Opacidade', 'aria-valuemin': 0, 'aria-valuemax': 100,
+  }, h('div.cp-alpha-fill'), alphaKnob) : null;
   const prevNew = h('div.cp-prev-new'), prevOld = h('div.cp-prev-old', { title: 'Cor original: clique para voltar a ela' });
   const prev = h('div.cp-prev', prevOld, prevNew);
   const fields = h('div.cp-fields');
@@ -80,10 +84,15 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
     svKnob.style.left = `${hsv.s * 100}%`;
     svKnob.style.top = `${(1 - hsv.v) * 100}%`;
     hueKnob.style.left = `${(hsv.h / 360) * 100}%`;
+    hue.setAttribute('aria-valuenow', String(round(hsv.h)));
+    hue.setAttribute('aria-valuetext', `${round(hsv.h)} graus`);
+    sv.setAttribute('aria-label', `Saturação ${round(hsv.s * 100)}%, brilho ${round(hsv.v * 100)}%. Use as setas para ajustar.`);
     const c = current();
     if (alphaBar) {
       alphaBar.firstChild.style.background = `linear-gradient(to right, transparent, ${c})`;
       alphaKnob.style.left = `${alpha * 100}%`;
+      alphaBar.setAttribute('aria-valuenow', String(round(alpha * 100)));
+      alphaBar.setAttribute('aria-valuetext', `${round(alpha * 100)}%`);
     }
     prevNew.style.background = c;
     prevNew.style.opacity = String(alpha);
@@ -205,6 +214,36 @@ export function openColorPicker({ anchor, get, set, commit, opacity, setOpacity,
   drag(sv, (x, y) => { hsv.s = x; hsv.v = 1 - y; push(); paint(); });
   drag(hue, (x) => { hsv.h = x * 360; push(); paint(); });
   if (alphaBar) drag(alphaBar, (x) => { alpha = x; pushAlpha(); });
+  /** Faz os controles de cor responderem às setas sem roubar os atalhos do canvas. */
+  const keyboardAdjust = (el, adjust) => el.addEventListener('keydown', (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    adjust(e);
+    push();
+    paint();
+    finish();
+  });
+  keyboardAdjust(sv, (e) => {
+    const step = e.shiftKey ? 0.1 : 0.01;
+    if (e.key === 'ArrowLeft') hsv.s = clamp01(hsv.s - step);
+    else if (e.key === 'ArrowRight') hsv.s = clamp01(hsv.s + step);
+    else if (e.key === 'ArrowDown') hsv.v = clamp01(hsv.v - step);
+    else if (e.key === 'ArrowUp') hsv.v = clamp01(hsv.v + step);
+    else if (e.key === 'Home') hsv.s = 0;
+    else if (e.key === 'End') hsv.s = 1;
+  });
+  keyboardAdjust(hue, (e) => {
+    if (e.key === 'Home') hsv.h = 0;
+    else if (e.key === 'End') hsv.h = 360;
+    else hsv.h = (hsv.h + ((e.key === 'ArrowLeft' || e.key === 'ArrowDown') ? -1 : 1) * (e.shiftKey ? 10 : 1) + 360) % 360;
+  });
+  if (alphaBar) keyboardAdjust(alphaBar, (e) => {
+    if (e.key === 'Home') alpha = 0;
+    else if (e.key === 'End') alpha = 1;
+    else alpha = clamp01(alpha + ((e.key === 'ArrowLeft' || e.key === 'ArrowDown') ? -1 : 1) * (e.shiftKey ? 0.1 : 0.01));
+    setOpacity?.(alpha);
+  });
   prevOld.addEventListener('click', () => pick(original));
   modeBtn.addEventListener('click', () => { mode = mode === 'hex' ? 'rgb' : mode === 'rgb' ? 'hsl' : 'hex'; buildFields(); paint(); });
 

@@ -74,6 +74,11 @@ const grid = await ev(async () => {
 await page.waitForTimeout(350);
 const tr = page.locator('#right details.size-limits', { has: page.locator('summary', { hasText: 'Trilhas personalizadas' }) });
 await tr.locator('summary').click();
+const modelo = tr.locator('select').first();
+await modelo.selectOption('repeat(auto-fit, minmax(180px, 1fr))');
+await page.waitForTimeout(250);
+const responsiva = await ev((id) => designer.canvas.els.get(id).style.gridTemplateColumns, grid.g);
+ok('modelo responsivo aplica CSS Grid diretamente no canvas', responsiva === 'repeat(auto-fit, minmax(180px, 1fr))', responsiva);
 const colsTpl = tr.locator('input').first();
 await colsTpl.fill('100px 1fr'); await colsTpl.press('Enter');
 await page.waitForTimeout(250);

@@ -686,7 +686,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         if (liveCssOpen) fillCode();
       },
     }, h('span.al-dot'), 'CSS ao vivo', h('span.al-chev', ico('chevron', 12)));
-    tip(head, { title: 'Ver o CSS gerado', text: 'Clique para abrir ou fechar. Mostra exatamente o que este frame escreve no código exportado, e muda junto com os controles. É só uma curiosidade: não é editável.' });
+    tip(head, { title: 'CSS gerado em tempo real', text: 'Mostra o CSS exato que este frame exporta. Edite pelos controles de layout abaixo; no modo Grade, Trilhas personalizadas permite digitar grid-template-columns e grid-template-rows diretamente.' });
     wrap.append(head, code);
     body.push(wrap);
 
@@ -741,35 +741,82 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     const subTip = (text, key) => tip(h('div.sub-label', text), cssTip(key));
 
     /**
-     * Seletor visual de grade 6×6 (como o de tabela de um editor de texto): passar o mouse destaca "colunas × linhas",
-     * clicar aplica as duas contagens de uma vez. A grade atual (se couber em 6×6) fica marcada.
+     * Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica.
+     * A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
      */
     const gridPicker = () => {
       const N = 6;
       const cells = [];
-      const label = h('div.gp-label');
+      let activeCell = 0;
+      const label = h('div.gp-label', { 'aria-live': 'polite' });
       const paint = (c, r, cls) => cells.forEach((el, i) => el.classList.toggle(cls, i % N < c && Math.floor(i / N) < r));
       const showCur = () => {
-        const c = L().cols ?? 2, r = L().rows || Math.ceil((P().children?.filter((k) => !k.absolute).length || 1) / c);
+        const selected = P();
+        if (!selected?.layout) return; // a seleção pode sumir enquanto o painel ainda está redesenhando
+        const c = selected.layout.cols ?? 2, r = selected.layout.rows || Math.ceil((selected.children?.filter((k) => !k.absolute).length || 1) / c);
         paint(c, r, 'on');
         label.textContent = `${c} × ${L().rows ? L().rows : 'auto'}`;
       };
+      const grid = h('div.gp-cells', { role: 'grid', 'aria-label': 'Escolher colunas e linhas', 'aria-rowcount': N, 'aria-colcount': N });
       for (let r = 0; r < N; r++) {
+        const row = h('div.gp-row', { role: 'row' });
         for (let c = 0; c < N; c++) {
-          const cell = h('button.gp-cell', { type: 'button', 'aria-label': `${c + 1} colunas × ${r + 1} linhas` });
-          cell.addEventListener('mouseenter', () => { paint(c + 1, r + 1, 'hover'); label.textContent = `${c + 1} × ${r + 1}`; });
+          const i = r * N + c;
+          const cell = h('button.gp-cell', { type: 'button', 'aria-label': `${c + 1} colunas × ${r + 1} linhas`, tabindex: i === activeCell ? 0 : -1 });
+          const preview = () => { paint(c + 1, r + 1, 'hover'); label.textContent = `${c + 1} × ${r + 1}`; };
+          cell.addEventListener('mouseenter', preview);
+          cell.addEventListener('focus', () => {
+            activeCell = i;
+            cells.forEach((el, index) => { el.tabIndex = index === activeCell ? 0 : -1; });
+            preview();
+          });
           cell.addEventListener('click', () => { each((n) => { n.layout.cols = c + 1; n.layout.rows = r + 1; delete n.layout.colsTemplate; delete n.layout.rowsTemplate; }); commit(); });
           cells.push(cell);
+          row.append(h('div', { role: 'gridcell' }, cell));
         }
+        grid.append(row);
       }
-      const box = h('div.grid-picker', h('div.gp-cells', cells), label);
+      grid.addEventListener('keydown', (e) => {
+        const index = cells.indexOf(document.activeElement);
+        if (index < 0) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          cells[index].click();
+          return;
+        }
+        const row = Math.floor(index / N), col = index % N;
+        let next = index;
+        if (e.key === 'ArrowLeft') next = row * N + Math.max(0, col - 1);
+        else if (e.key === 'ArrowRight') next = row * N + Math.min(N - 1, col + 1);
+        else if (e.key === 'ArrowUp') next = Math.max(0, row - 1) * N + col;
+        else if (e.key === 'ArrowDown') next = Math.min(N - 1, row + 1) * N + col;
+        else if (e.key === 'Home') next = e.ctrlKey ? 0 : row * N;
+        else if (e.key === 'End') next = e.ctrlKey ? N * N - 1 : row * N + N - 1;
+        else return;
+        e.preventDefault();
+        e.stopPropagation();
+        cells[next].focus();
+      });
+      const box = h('div.grid-picker', grid, label);
       box.addEventListener('mouseleave', () => { paint(0, 0, 'hover'); showCur(); });
+      grid.addEventListener('focusout', (e) => {
+        if (!grid.contains(e.relatedTarget)) { paint(0, 0, 'hover'); showCur(); }
+      });
       updaters.push(showCur);
       return box;
     };
 
     if (mode === 'grid') {
       const gridAligns = [A_START, A_CENTER, A_END, A_STRETCH];
+      const TRACK_PRESETS = [
+        ['', 'Escolher um modelo…'],
+        ['repeat(2, minmax(0, 1fr))', '2 colunas iguais'],
+        ['repeat(3, minmax(0, 1fr))', '3 colunas iguais'],
+        ['repeat(4, minmax(0, 1fr))', '4 colunas iguais'],
+        ['repeat(auto-fit, minmax(180px, 1fr))', 'Cards responsivos (mín. 180 px)'],
+        ['240px minmax(0, 1fr)', 'Lateral + conteúdo'],
+      ];
       // O espaço só aparece "junto" quando colunas e linhas têm o mesmo valor (senão mostra os dois)
       const split = gapSplit || (L().colGap ?? 8) !== (L().rowGap ?? 8);
       const gapRow = split
@@ -785,7 +832,7 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
       body.push(
         tip(h('div.cap-group', h('div.cap', 'Grade rápida'), gridPicker()), {
           title: 'Colunas × linhas', css: 'grid-template-columns: repeat(N, 1fr);\ngrid-template-rows: repeat(M, 1fr);',
-          text: 'Passe o mouse para ver o tamanho da grade e clique para aplicar. Para algo diferente, use os campos logo abaixo.',
+          text: 'Passe o mouse ou use as setas para escolher colunas × linhas; clique ou Enter aplica. Para algo diferente, use os campos logo abaixo.',
         }),
         row(
           capK('Colunas', 'grid-template-columns', num('col', () => L().cols ?? 2, (v) => each((n) => { n.layout.cols = Math.max(1, Math.round(v)); delete n.layout.colsTemplate; }), { min: 1, decimals: 0 })),
@@ -793,11 +840,15 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
         // trilhas personalizadas em CSS (ex.: "200px 1fr 2fr"): vazio = usa os números acima
         fold('tracks', !!(L().colsTemplate || L().rowsTemplate), 'Trilhas personalizadas (CSS)',
           h('div.section-body',
+            capK('Modelos de coluna', 'grid-template-columns', select(TRACK_PRESETS, () => '', (v) => {
+              if (!v) return;
+              each((n) => { n.layout.colsTemplate = cleanTrackList(v); });
+            }, 'Aplicar um modelo de colunas CSS')),
             capK('Colunas', 'grid-template-columns', reg(textField({ mono: true, placeholder: '200px 1fr 2fr', get: () => L().colsTemplate || '',
               set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.colsTemplate = t; else delete n.layout.colsTemplate; }), commit }))),
             capK('Linhas', 'grid-template-rows', reg(textField({ mono: true, placeholder: 'auto 1fr auto', get: () => L().rowsTemplate || '',
               set: (v) => each((n) => { const t = cleanTrackList(v); if (t) n.layout.rowsTemplate = t; else delete n.layout.rowsTemplate; }), commit }))),
-            h('p.hint', 'Larguras de cada coluna/linha: px, %, fr (fração do espaço), auto, minmax(), repeat(). Ex.: barra lateral + conteúdo = 240px 1fr. Vazio = usa o número de colunas acima.'))),
+            h('p.hint', 'Escolha um modelo e depois edite o CSS nos campos. Aceita px, %, fr, auto, minmax() e repeat(). As trilhas personalizadas substituem Colunas/Linhas; apague o campo para voltar aos controles numéricos.'))),
         capK('Espaço entre células', 'gap', gapRow),
         paddingBlock(),
         capK('Posição na célula', 'justify-items',

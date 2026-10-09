@@ -10,6 +10,12 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ### Alterado
 - Seletor de fontes: melhora a semântica para leitores de tela e mantém os controles de paginação fora da lista de opções.
+- Auto layout em Grid: grade rápida 6×6 navegável pelas setas e com foco único por Tab; trilhas CSS editáveis ganharam modelos de colunas comuns e orientação sobre como voltar aos controles numéricos.
+- CSS ao vivo: a dica agora explica como editar o layout pelos controles e onde inserir trilhas CSS diretamente.
+- Seletor de cores: matiz e opacidade expõem valores acessíveis, e os controles de cor respondem ao teclado.
+
+### Verificação
+- Cenários E2E adicionados para navegação da grade rápida, controles do seletor de cores e semântica da busca de fontes.
 
 ## [0.17.0] — 2026-10-08 — MCP completo, acesso de administrador e plugin do Claude
 

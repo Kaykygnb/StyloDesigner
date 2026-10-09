@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-50 arquivos · 775 funções e constantes documentadas.
+50 arquivos · 776 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1540,15 +1540,16 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`closeColorPicker()`** · [L38](../src/ui/colorpicker.js#L38) — Fecha o seletor de cor aberto, se houver.
 - **`colorPickerAnchor()`** · [L40](../src/ui/colorpicker.js#L40) — O campo (amostra) que abriu o seletor agora, ou null.
 - **`openColorPicker({ anchor, get, set, commit, opacity, setOpacity, groups, onClose })`** · [L48](../src/ui/colorpicker.js#L48) — Abre o seletor de cor.
-- **`paint()`** <sub>interna</sub> · [L77](../src/ui/colorpicker.js#L77) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
-- **`buildFields()`** <sub>interna</sub> · [L97](../src/ui/colorpicker.js#L97) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
-- **`paintFields()`** <sub>interna</sub> · [L149](../src/ui/colorpicker.js#L149) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
-- **`paintContrast(c)`** <sub>interna</sub> · [L157](../src/ui/colorpicker.js#L157) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
-- **`push()`** <sub>interna</sub> · [L171](../src/ui/colorpicker.js#L171) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
-- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L174](../src/ui/colorpicker.js#L174) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
-- **`finish(quiet = false)`** <sub>interna</sub> · [L182](../src/ui/colorpicker.js#L182) — Fim de uma edição: grava no histórico e guarda nas recentes.
-- **`pick(c, quiet = false)`** <sub>interna</sub> · [L189](../src/ui/colorpicker.js#L189) — Escolhe uma cor pronta (chip): aplica e grava.
-- **`drag(el, fn)`** <sub>interna</sub> · [L196](../src/ui/colorpicker.js#L196) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
+- **`paint()`** <sub>interna</sub> · [L81](../src/ui/colorpicker.js#L81) — Redesenha os controles a partir de `hsv`/`alpha` (sem mexer no campo que a pessoa está digitando).
+- **`buildFields()`** <sub>interna</sub> · [L106](../src/ui/colorpicker.js#L106) — Campos do formato atual: HEX | R G B | H S L (+ opacidade em %, se houver).
+- **`paintFields()`** <sub>interna</sub> · [L158](../src/ui/colorpicker.js#L158) — Atualiza só os valores dos campos (se a pessoa não está digitando num deles).
+- **`paintContrast(c)`** <sub>interna</sub> · [L166](../src/ui/colorpicker.js#L166) — Contraste da cor sobre branco e sobre preto, no padrão WCAG.
+- **`push()`** <sub>interna</sub> · [L180](../src/ui/colorpicker.js#L180) — Aplica a cor atual (e a opacidade) ao campo, ao vivo.
+- **`applyRgb(rgb, keepHue = false)`** <sub>interna</sub> · [L183](../src/ui/colorpicker.js#L183) — Cor nova vinda de RGB (campos, chips). `keepHue`: mantém o matiz quando a cor fica sem saturação.
+- **`finish(quiet = false)`** <sub>interna</sub> · [L191](../src/ui/colorpicker.js#L191) — Fim de uma edição: grava no histórico e guarda nas recentes.
+- **`pick(c, quiet = false)`** <sub>interna</sub> · [L198](../src/ui/colorpicker.js#L198) — Escolhe uma cor pronta (chip): aplica e grava.
+- **`drag(el, fn)`** <sub>interna</sub> · [L205](../src/ui/colorpicker.js#L205) — Arrasto numa área/barra: `fn(x, y)` recebe a posição relativa 0–1; grava ao soltar.
+- **`keyboardAdjust(el, adjust)`** <sub>interna</sub> · [L218](../src/ui/colorpicker.js#L218) — Faz os controles de cor responderem às setas sem roubar os atalhos do canvas.
 
 ---
 
@@ -1657,10 +1658,10 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`CATS`** <sub>do módulo</sub> · [L18](../src/ui/fontpicker.js#L18) — Categorias (rótulo na tela → valor salvo na lista).
 - **`PAGE`** <sub>do módulo</sub> · [L20](../src/ui/fontpicker.js#L20) — Quantas linhas por vez (a lista tem quase 2 mil fontes).
-- **`fontField({ get, set })`** · [L31](../src/ui/fontpicker.js#L31) — Campo de fonte para o painel de propriedades.
+- **`fontField({ get, set })`** · [L32](../src/ui/fontpicker.js#L32) — Campo de fonte para o painel de propriedades.
   - ↩︎ `{el: HTMLElement, update: () => void` }
-- **`openPicker(anchor, current, onPick)`** <sub>do módulo</sub> · [L47](../src/ui/fontpicker.js#L47) — Abre a caixa de escolha embaixo de `anchor`.
-- **`close()`** <sub>do módulo</sub> · [L134](../src/ui/fontpicker.js#L134) — Fecha a caixa aberta (se houver).
+- **`openPicker(anchor, current, onPick)`** <sub>do módulo</sub> · [L48](../src/ui/fontpicker.js#L48) — Abre a caixa de escolha embaixo de `anchor`.
+- **`close()`** <sub>do módulo</sub> · [L149](../src/ui/fontpicker.js#L149) — Fecha a caixa aberta (se houver).
 
 ---
 
@@ -1894,40 +1895,40 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`matrix(jName, aName)`** <sub>interna</sub> · [L717](../src/ui/props.js#L717) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
 - **`opts(list, grid)`** <sub>interna</sub> · [L739](../src/ui/props.js#L739) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
 - **`subTip(text, key)`** <sub>interna</sub> · [L741](../src/ui/props.js#L741) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
-- **`gridPicker()`** <sub>interna</sub> · [L747](../src/ui/props.js#L747) — Seletor visual de grade 6×6 (como o de tabela de um editor de texto): passar o mouse destaca "colunas × linhas", clicar aplica as duas contagens de uma vez. A grade atual (se couber em 6×6) fica marcada.
-- **`autoSection(body)`** <sub>interna</sub> · [L839](../src/ui/props.js#L839) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
-- **`STATE_DOC`** <sub>interna</sub> · [L845](../src/ui/props.js#L845) — Dicas dos estados.
-- **`statesSection()`** <sub>interna</sub> · [L859](../src/ui/props.js#L859) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
-- **`stateScaleBlock()`** <sub>interna</sub> · [L896](../src/ui/props.js#L896) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
-- **`marginBlock()`** <sub>interna</sub> · [L904](../src/ui/props.js#L904) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
-- **`flowItemSection()`** <sub>interna</sub> · [L929](../src/ui/props.js#L929) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
+- **`gridPicker()`** <sub>interna</sub> · [L747](../src/ui/props.js#L747) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
+- **`autoSection(body)`** <sub>interna</sub> · [L890](../src/ui/props.js#L890) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
+- **`STATE_DOC`** <sub>interna</sub> · [L896](../src/ui/props.js#L896) — Dicas dos estados.
+- **`statesSection()`** <sub>interna</sub> · [L910](../src/ui/props.js#L910) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+- **`stateScaleBlock()`** <sub>interna</sub> · [L947](../src/ui/props.js#L947) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
+- **`marginBlock()`** <sub>interna</sub> · [L955](../src/ui/props.js#L955) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+- **`flowItemSection()`** <sub>interna</sub> · [L980](../src/ui/props.js#L980) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
 
    - position: absolute (ignora o layout do pai);
    - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
    - flex → align-self (sobrescreve o align-items do pai).
   "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
-- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L944](../src/ui/props.js#L944) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
-- **`commandsOrigin(n)`** <sub>interna</sub> · [L973](../src/ui/props.js#L973) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
-- **`GRID_KINDS`** <sub>interna</sub> · [L981](../src/ui/props.js#L981) — Tipos de grade de layout (só guia visual).
-- **`layoutGridsSection()`** <sub>interna</sub> · [L983](../src/ui/props.js#L983) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
-- **`vectorSection()`** <sub>interna</sub> · [L1011](../src/ui/props.js#L1011) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
-- **`textSection()`** <sub>interna</sub> · [L1070](../src/ui/props.js#L1070) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
-- **`gradientBar()`** <sub>interna</sub> · [L1132](../src/ui/props.js#L1132) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1142](../src/ui/props.js#L1142) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
-- **`colorGroups()`** <sub>interna</sub> · [L1154](../src/ui/props.js#L1154) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L1160](../src/ui/props.js#L1160) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`fillSection()`** <sub>interna</sub> · [L1171](../src/ui/props.js#L1171) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1267](../src/ui/props.js#L1267) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1305](../src/ui/props.js#L1305) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1311](../src/ui/props.js#L1311) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1317](../src/ui/props.js#L1317) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1341](../src/ui/props.js#L1341) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1373](../src/ui/props.js#L1373) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1399](../src/ui/props.js#L1399) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`exportSection()`** <sub>interna</sub> · [L1415](../src/ui/props.js#L1415) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1441](../src/ui/props.js#L1441) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1461](../src/ui/props.js#L1461) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1488](../src/ui/props.js#L1488) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L995](../src/ui/props.js#L995) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
+- **`commandsOrigin(n)`** <sub>interna</sub> · [L1024](../src/ui/props.js#L1024) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
+- **`GRID_KINDS`** <sub>interna</sub> · [L1032](../src/ui/props.js#L1032) — Tipos de grade de layout (só guia visual).
+- **`layoutGridsSection()`** <sub>interna</sub> · [L1034](../src/ui/props.js#L1034) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
+- **`vectorSection()`** <sub>interna</sub> · [L1062](../src/ui/props.js#L1062) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+- **`textSection()`** <sub>interna</sub> · [L1121](../src/ui/props.js#L1121) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
+- **`gradientBar()`** <sub>interna</sub> · [L1183](../src/ui/props.js#L1183) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1193](../src/ui/props.js#L1193) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L1205](../src/ui/props.js#L1205) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L1211](../src/ui/props.js#L1211) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`fillSection()`** <sub>interna</sub> · [L1222](../src/ui/props.js#L1222) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1318](../src/ui/props.js#L1318) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1356](../src/ui/props.js#L1356) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1362](../src/ui/props.js#L1362) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1368](../src/ui/props.js#L1368) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1392](../src/ui/props.js#L1392) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1424](../src/ui/props.js#L1424) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1450](../src/ui/props.js#L1450) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`exportSection()`** <sub>interna</sub> · [L1466](../src/ui/props.js#L1466) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1492](../src/ui/props.js#L1492) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1512](../src/ui/props.js#L1512) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1539](../src/ui/props.js#L1539) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 

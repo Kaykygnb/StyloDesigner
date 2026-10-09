@@ -146,6 +146,17 @@ try {
   await p.click('.font-field');
   await p.waitForSelector('.font-picker');
   ok('seletor de fontes abre com busca e categorias', (await p.locator('.font-cats .tab-chip').count()) === 6);
+  const fontA11y = await p.evaluate(() => {
+    const trigger = document.querySelector('.font-field');
+    const search = document.querySelector('.font-search input');
+    const list = document.querySelector('.font-list');
+    return {
+      popup: trigger.getAttribute('aria-haspopup'), expanded: trigger.getAttribute('aria-expanded'),
+      combo: search.getAttribute('role'), activeExists: !!document.getElementById(search.getAttribute('aria-activedescendant')),
+      onlyOptions: [...list.children].every((child) => child.getAttribute('role') === 'option'),
+    };
+  });
+  ok('busca de fontes anuncia o diálogo, opção ativa e lista sem controles misturados', fontA11y.popup === 'dialog' && fontA11y.expanded === 'true' && fontA11y.combo === 'combobox' && fontA11y.activeExists && fontA11y.onlyOptions, JSON.stringify(fontA11y));
   await p.fill('.font-search input', 'lobs');
   await p.waitForTimeout(300);
   ok('busca encontra Lobster', (await p.locator('.font-row').first().getAttribute('data-font')) === 'Lobster');
@@ -164,6 +175,7 @@ try {
   ok('filtro por categoria (Mono)', await p.locator('.font-row .font-cat').evaluateAll((els) => els.length > 0 && els.every((e) => e.textContent === 'mono')));
   await p.keyboard.press('Escape');
   ok('Esc fecha o seletor', (await p.locator('.font-picker').count()) === 0);
+  ok('fechar o seletor atualiza o estado expandido do botão', await p.locator('.font-field').getAttribute('aria-expanded') === 'false');
 } catch (err) {
   ok('cenário terminou sem exceção', false, err.stack);
 }
