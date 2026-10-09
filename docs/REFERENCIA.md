@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-60 arquivos · 932 funções e constantes documentadas.
+60 arquivos · 934 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -528,6 +528,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `text` <sub>string</sub> — declarações ("prop: valor;" por linha) ou a regra inteira
   - ↩︎ `{ mapped: string[], custom: string[], unset: string[], ignored: string[] ` }
 - **`layerCssText(node, parent, assets)`** · [L202](../src/cssedit.js#L202) — Declarações que a camada mostra no editor (o CSS da exportação), uma por linha.
+- **`releaseOverrides(node, beforePlain, afterPlain)`** · [L215](../src/cssedit.js#L215) — O painel Design mandou de novo: tira do CSS livre da camada as propriedades cujo valor GERADO pelo modelo mudou nesta edição (ex.: o CSS editado à mão fixou `width` e agora a pessoa mexeu na largura pelo painel). Sem isso, o CSS livre (que vem por último) continuaria vencendo e o painel pareceria não funcionar.
+  - `node` <sub>object</sub> — 
+  - `beforePlain` <sub>Record<string, string></sub> — nodeStyle da camada SEM o CSS livre, antes da edição
+  - `afterPlain` <sub>Record<string, string></sub> — idem, depois da edição
+  - ↩︎ `string[]` propriedades liberadas
 
 ---
 
@@ -2167,7 +2172,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  quem usa o painel aprende CSS sem perceber, e o código gerado bate com o que está escrito aqui.
 ```
 
-- **`createDesignPanel({ store, canvas, commands, tools, toast })`** · [L39](../src/ui/props.js#L39) — Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
+- **`createDesignPanel({ store, canvas, commands, tools, toast })`** · [L40](../src/ui/props.js#L40) — Cria o painel DESIGN (aba direita): editor das propriedades da seleção, com nomes e valores do CSS.
 
   COMO FUNCIONA (importante para entender o arquivo):
    - Cada seção (alinhar, camada, auto layout, texto, preenchimento, contorno, efeitos, exportar) é uma função que
@@ -2176,78 +2181,79 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
      detectado pela `signature()`. Em qualquer outra mudança só roda os `updaters` — assim digitar num campo nunca
      perde o foco por o painel ter sido refeito.
    - Campos usam `each(fn)` para aplicar a mudança a TODAS as camadas selecionadas (valores mostrados vêm da 1ª).
-- **`parentOf(id)`** <sub>interna</sub> · [L72](../src/ui/props.js#L72) — Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular).
-- **`commit()`** <sub>interna</sub> · [L74](../src/ui/props.js#L74) — Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar.
-- **`reg(ctl)`** <sub>interna</sub> · [L76](../src/ui/props.js#L76) — Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho).
-- **`row(...c)`** <sub>interna</sub> · [L78](../src/ui/props.js#L78) — Linha horizontal de campos.
-- **`SECTION_INFO`** <sub>interna</sub> · [L83](../src/ui/props.js#L83) — Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do CSS por trás. A explicação abre pelo ícone de informação ao lado do título.
-- **`cap(label, ...c)`** <sub>interna</sub> · [L135](../src/ui/props.js#L135) — Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...).
-- **`check(label, get, set)`** <sub>interna</sub> · [L143](../src/ui/props.js#L143) — Caixa de seleção (checkbox) estilizada: `get` lê, `set` aplica; grava no histórico ao alternar.
-- **`pickImage(cb)`** <sub>interna</sub> · [L151](../src/ui/props.js#L151) — Abre o seletor de arquivos, importa a imagem escolhida (reduzida) e entrega { assetId, w, h } ao callback.
-- **`alignRow()`** <sub>interna</sub> · [L162](../src/ui/props.js#L162) — Linha de alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). Fica dentro da seção Posição.
-- **`booleanRow()`** <sub>interna</sub> · [L181](../src/ui/props.js#L181) — Botões das operações BOOLEANAS (unir, subtrair, interseção, excluir) — aparecem com 2+ formas selecionadas (vetores, retângulos, elipses ou frames vazios). Atalhos: Ctrl+Alt+U / S / I / X.
-- **`PRESETS`** <sub>interna</sub> · [L197](../src/ui/props.js#L197) — Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA".
-- **`H_CONS`** <sub>interna</sub> · [L204](../src/ui/props.js#L204) — Opções de constraint horizontal e vertical (ver model.js → applyConstraints).
-- **`NO_RADIUS`** <sub>interna</sub> · [L207](../src/ui/props.js#L207) — Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos).
-- **`positionSection()`** <sub>interna</sub> · [L213](../src/ui/props.js#L213) — Seção "Posição": X/Y (ou a caixa do conjunto, com várias camadas), constraints (em frame sem auto layout), rotação e espelhar. Dentro de um auto layout, X/Y ficam apagados: quem posiciona é o navegador (flex/grid).
-- **`headerBlock()`** <sub>interna</sub> · [L264](../src/ui/props.js#L264) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
-- **`bpBanner(ns)`** <sub>interna</sub> · [L293](../src/ui/props.js#L293) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
-- **`noteSection()`** <sub>interna</sub> · [L312](../src/ui/props.js#L312) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
-- **`htmlSection()`** <sub>interna</sub> · [L342](../src/ui/props.js#L342) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
-- **`sizeSection()`** <sub>interna</sub> · [L371](../src/ui/props.js#L371) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
-- **`ASPECTS`** <sub>interna</sub> · [L429](../src/ui/props.js#L429) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
-- **`limitsBlock(n0)`** <sub>interna</sub> · [L438](../src/ui/props.js#L438) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
-- **`appearanceSection()`** <sub>interna</sub> · [L474](../src/ui/props.js#L474) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
-- **`componentSection()`** <sub>interna</sub> · [L509](../src/ui/props.js#L509) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
-- **`A_START`** <sub>interna</sub> · [L529](../src/ui/props.js#L529) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
-- **`CSS_DOC`** <sub>interna</sub> · [L532](../src/ui/props.js#L532) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
-- **`cssTip(key)`** <sub>interna</sub> · [L620](../src/ui/props.js#L620) — Monta o objeto de dica de uma propriedade do CSS_DOC.
-- **`varButton(prop)`** <sub>interna</sub> · [L626](../src/ui/props.js#L626) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
-- **`autoLayoutSection()`** <sub>interna</sub> · [L675](../src/ui/props.js#L675) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
+- **`plainStyle(n)`** <sub>interna</sub> · [L72](../src/ui/props.js#L72) — Estilo gerado pelo modelo, sem o CSS livre (para saber o que uma edição do painel mudou).
+- **`parentOf(id)`** <sub>interna</sub> · [L82](../src/ui/props.js#L82) — Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular).
+- **`commit()`** <sub>interna</sub> · [L84](../src/ui/props.js#L84) — Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar.
+- **`reg(ctl)`** <sub>interna</sub> · [L86](../src/ui/props.js#L86) — Registra o `update` de um campo e devolve o elemento dele (para usar direto como filho).
+- **`row(...c)`** <sub>interna</sub> · [L88](../src/ui/props.js#L88) — Linha horizontal de campos.
+- **`SECTION_INFO`** <sub>interna</sub> · [L93](../src/ui/props.js#L93) — Para cada seção: ícone e uma explicação curta, em português simples, de PARA QUE ELA SERVE e qual é a propriedade do CSS por trás. A explicação abre pelo ícone de informação ao lado do título.
+- **`cap(label, ...c)`** <sub>interna</sub> · [L145](../src/ui/props.js#L145) — Grupo "legenda pequena em cima + controle embaixo" (visual do Figma: "Posição", "Dimensões", "Opacidade"...).
+- **`check(label, get, set)`** <sub>interna</sub> · [L153](../src/ui/props.js#L153) — Caixa de seleção (checkbox) estilizada: `get` lê, `set` aplica; grava no histórico ao alternar.
+- **`pickImage(cb)`** <sub>interna</sub> · [L161](../src/ui/props.js#L161) — Abre o seletor de arquivos, importa a imagem escolhida (reduzida) e entrega { assetId, w, h } ao callback.
+- **`alignRow()`** <sub>interna</sub> · [L172](../src/ui/props.js#L172) — Linha de alinhar (esquerda/centro/direita, topo/meio/base) e distribuir (precisa de 3+ camadas). Fica dentro da seção Posição.
+- **`booleanRow()`** <sub>interna</sub> · [L191](../src/ui/props.js#L191) — Botões das operações BOOLEANAS (unir, subtrair, interseção, excluir) — aparecem com 2+ formas selecionadas (vetores, retângulos, elipses ou frames vazios). Atalhos: Ctrl+Alt+U / S / I / X.
+- **`PRESETS`** <sub>interna</sub> · [L207](../src/ui/props.js#L207) — Tamanhos prontos para frames da raiz (telas e formatos comuns). Valor "LxA".
+- **`H_CONS`** <sub>interna</sub> · [L214](../src/ui/props.js#L214) — Opções de constraint horizontal e vertical (ver model.js → applyConstraints).
+- **`NO_RADIUS`** <sub>interna</sub> · [L217](../src/ui/props.js#L217) — Tipos que não têm cantos arredondados no painel (elipse já é redonda; texto/linha/vetor/grupo não têm cantos).
+- **`positionSection()`** <sub>interna</sub> · [L223](../src/ui/props.js#L223) — Seção "Posição": X/Y (ou a caixa do conjunto, com várias camadas), constraints (em frame sem auto layout), rotação e espelhar. Dentro de um auto layout, X/Y ficam apagados: quem posiciona é o navegador (flex/grid).
+- **`headerBlock()`** <sub>interna</sub> · [L274](../src/ui/props.js#L274) — Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar e Nota sob demanda.
+- **`bpBanner(ns)`** <sub>interna</sub> · [L303](../src/ui/props.js#L303) — Aviso do modo responsivo: em que largura se está editando e o botão para voltar uma camada ao Desktop.
+- **`noteSection()`** <sub>interna</sub> · [L322](../src/ui/props.js#L322) — Seção "Nota": uma anotação sobre PARA QUE SERVE a camada ("Botão principal: leva ao checkout"). Fica no projeto, aparece como selo na lista de camadas e vira comentário no HTML/CSS gerado (dá para desligar).
+- **`htmlSection()`** <sub>interna</sub> · [L352](../src/ui/props.js#L352) — Seção "HTML": a etiqueta (tag) que a camada vira no código exportado, o endereço (para link) e a descrição para leitores de tela e buscadores (aria-label). Só afeta o código gerado; o canvas continua igual.
+- **`sizeSection()`** <sub>interna</sub> · [L381](../src/ui/props.js#L381) — Seção "Tamanho": W/H (+ travar proporção), modo de largura/altura (fixo / hug = do tamanho do conteúdo / fill = preenche o espaço do auto layout) e, em frames da raiz, os tamanhos prontos (celular, desktop...).
+- **`ASPECTS`** <sub>interna</sub> · [L439](../src/ui/props.js#L439) — Proporções prontas do select (valor = largura/altura; 'atual' usa o tamanho de agora).
+- **`limitsBlock(n0)`** <sub>interna</sub> · [L448](../src/ui/props.js#L448) — "Limites e proporção": min/max de largura e altura (CSS min-width, max-width, min-height, max-height) e aspect-ratio. Fica recolhido (abre sozinho se algum já está em uso). Campo vazio = sem limite. Em medidas FIXAS o valor é limitado na hora; em Hug/Fill quem obedece é o navegador (o canvas mede de volta).
+- **`appearanceSection()`** <sub>interna</sub> · [L484](../src/ui/props.js#L484) — Seção "Aparência": opacidade, mistura (mix-blend-mode), cantos arredondados (border-radius, juntos ou um por canto), cortar conteúdo (overflow: hidden) e máscara.
+- **`componentSection()`** <sub>interna</sub> · [L519](../src/ui/props.js#L519) — Seção "Componente": criar componente / (no principal) criar instância / (na instância) ir ao principal e desanexar.
+- **`A_START`** <sub>interna</sub> · [L539](../src/ui/props.js#L539) — Opções de alinhamento (valores do modelo = os do flexbox; no grid o css.js traduz flex-start → start).
+- **`CSS_DOC`** <sub>interna</sub> · [L542](../src/ui/props.js#L542) — Explicações (em português) das propriedades CSS do auto layout: alimentam as dicas e a caixa "CSS ao vivo".
+- **`cssTip(key)`** <sub>interna</sub> · [L630](../src/ui/props.js#L630) — Monta o objeto de dica de uma propriedade do CSS_DOC.
+- **`varButton(prop)`** <sub>interna</sub> · [L636](../src/ui/props.js#L636) — Botãozinho "variável" na legenda de um campo: liga/desliga o campo a uma variável do projeto (--espaco-md).
+- **`autoLayoutSection()`** <sub>interna</sub> · [L685](../src/ui/props.js#L685) — Seção "Auto layout": modo em 4 cartões (livre / linha / coluna / grade), uma caixa "CSS ao vivo" com o CSS REAL que o frame está gerando agora e os controles agrupados por assunto. Cada coisa tem uma dica ao passar o mouse (título, CSS e explicação), para quem usa perceber: "isso aqui é CSS puro".
 
    - FLEX: gap, flex-wrap, padding, justify-content (eixo principal) e align-items (eixo cruzado);
    - GRID: colunas/linhas, gap, padding e justify-items/align-items (onde o item fica DENTRO da célula).
-- **`pad(labels)`** <sub>interna</sub> · [L728](../src/ui/props.js#L728) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
-- **`paddingBlock()`** <sub>interna</sub> · [L734](../src/ui/props.js#L734) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
-- **`matrix(jName, aName)`** <sub>interna</sub> · [L751](../src/ui/props.js#L751) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
-- **`opts(list, grid)`** <sub>interna</sub> · [L774](../src/ui/props.js#L774) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
-- **`subTip(text, key)`** <sub>interna</sub> · [L776](../src/ui/props.js#L776) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
-- **`gridPicker()`** <sub>interna</sub> · [L782](../src/ui/props.js#L782) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
-- **`autoSection(body)`** <sub>interna</sub> · [L966](../src/ui/props.js#L966) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
-- **`STATE_DOC`** <sub>interna</sub> · [L972](../src/ui/props.js#L972) — Dicas dos estados.
-- **`statesSection()`** <sub>interna</sub> · [L991](../src/ui/props.js#L991) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
-- **`stateScaleBlock()`** <sub>interna</sub> · [L1031](../src/ui/props.js#L1031) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
-- **`marginBlock()`** <sub>interna</sub> · [L1039](../src/ui/props.js#L1039) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
-- **`flowItemSection()`** <sub>interna</sub> · [L1064](../src/ui/props.js#L1064) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
+- **`pad(labels)`** <sub>interna</sub> · [L738](../src/ui/props.js#L738) — Campos de padding de vários lados (T/R/B/L = topo/direita/baixo/esquerda, mesma ordem do CSS).
+- **`paddingBlock()`** <sub>interna</sub> · [L744](../src/ui/props.js#L744) — padding: ou 2 campos (horizontal/vertical) ou os 4 lados, alternável pelo botão.
+- **`matrix(jName, aName)`** <sub>interna</sub> · [L761](../src/ui/props.js#L761) — Matriz 3×3 do alinhamento: um clique define os dois alinhamentos de uma vez. Em coluna, o eixo principal é o vertical, então linhas e colunas da matriz trocam de papel. A célula ativa é marcada quando os valores coincidem.
+- **`opts(list, grid)`** <sub>interna</sub> · [L784](../src/ui/props.js#L784) — Opções de um <select> mostrando o valor CSS de verdade (ex.: "flex-start", "space-between").
+- **`subTip(text, key)`** <sub>interna</sub> · [L786](../src/ui/props.js#L786) — Legenda mono pequena com dica (usada acima dos selects de alinhamento).
+- **`gridPicker()`** <sub>interna</sub> · [L792](../src/ui/props.js#L792) — Seletor visual de grade 6×6: passar o mouse ou mover o foco destaca "colunas × linhas"; clique/Enter aplica. A navegação usa foco roving e setas, para a pessoa não precisar atravessar 36 paradas de Tab.
+- **`autoSection(body)`** <sub>interna</sub> · [L976](../src/ui/props.js#L976) — Casca da seção Auto layout: título + selo "CSS puro" (com dica) à direita.
+- **`STATE_DOC`** <sub>interna</sub> · [L982](../src/ui/props.js#L982) — Dicas dos estados.
+- **`statesSection()`** <sub>interna</sub> · [L1001](../src/ui/props.js#L1001) — Seção "Estados": alterna entre Normal, Hover, Pressionado e Foco. Num estado, o painel passa a editar SÓ as sobrescritas dele (cor, contorno, sombra, filtros, opacidade, cantos, escala): o canvas mostra a camada naquele estado e o CSS ganha `.camada:hover { … }`. No Normal ficam a transição (`transition`) e o cursor.
+- **`stateScaleBlock()`** <sub>interna</sub> · [L1041](../src/ui/props.js#L1041) — Escala do estado (`transform: scale()`): só existe dentro de um estado.
+- **`marginBlock()`** <sub>interna</sub> · [L1049](../src/ui/props.js#L1049) — "Margem" do item (CSS margin): horizontal/vertical, ou os 4 lados (botão) — igual ao padding do container. Valores zerados somem do documento (e do CSS). Só aparece para itens em fluxo e não absolutos.
+- **`flowItemSection()`** <sub>interna</sub> · [L1074](../src/ui/props.js#L1074) — Seção "Item do layout": só para camadas dentro de auto layout. Mostra as propriedades CSS do FILHO:
 
    - position: absolute (ignora o layout do pai);
    - grid → grid-column / grid-row (span N), justify-self e align-self (sobrescrevem o justify-items/align-items do pai);
    - flex → align-self (sobrescreve o align-items do pai).
   "stretch" é o mesmo que tamanho "Preencher" naquele eixo, então os dois ficam ligados.
-- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1079](../src/ui/props.js#L1079) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
-- **`commandsOrigin(n)`** <sub>interna</sub> · [L1113](../src/ui/props.js#L1113) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
-- **`GRID_KINDS`** <sub>interna</sub> · [L1121](../src/ui/props.js#L1121) — Tipos de grade de layout (só guia visual).
-- **`layoutGridsSection()`** <sub>interna</sub> · [L1123](../src/ui/props.js#L1123) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
-- **`vectorSection()`** <sub>interna</sub> · [L1151](../src/ui/props.js#L1151) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
-- **`textSection()`** <sub>interna</sub> · [L1214](../src/ui/props.js#L1214) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
-- **`gradientBar()`** <sub>interna</sub> · [L1280](../src/ui/props.js#L1280) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
-- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1290](../src/ui/props.js#L1290) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
-- **`colorGroups()`** <sub>interna</sub> · [L1302](../src/ui/props.js#L1302) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
-- **`docColorChips(apply)`** <sub>interna</sub> · [L1308](../src/ui/props.js#L1308) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
-- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1320](../src/ui/props.js#L1320) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
-- **`fillSection()`** <sub>interna</sub> · [L1358](../src/ui/props.js#L1358) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
-- **`strokeSection()`** <sub>interna</sub> · [L1448](../src/ui/props.js#L1448) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
-- **`sidesOn()`** <sub>interna</sub> · [L1493](../src/ui/props.js#L1493) — O contorno da camada selecionada está "por lado"?
-- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1499](../src/ui/props.js#L1499) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
-- **`current()`** <sub>interna</sub> · [L1505](../src/ui/props.js#L1505) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
-- **`toggleSide(i)`** <sub>interna</sub> · [L1529](../src/ui/props.js#L1529) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
-- **`effectsSection()`** <sub>interna</sub> · [L1561](../src/ui/props.js#L1561) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
-- **`colorFiltersBlock()`** <sub>interna</sub> · [L1587](../src/ui/props.js#L1587) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
-- **`customCssSection()`** <sub>interna</sub> · [L1606](../src/ui/props.js#L1606) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
-- **`exportSection()`** <sub>interna</sub> · [L1632](../src/ui/props.js#L1632) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
-- **`emptySection()`** <sub>interna</sub> · [L1658](../src/ui/props.js#L1658) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
-- **`signature()`** <sub>interna</sub> · [L1678](../src/ui/props.js#L1678) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
-- **`render()`** <sub>interna</sub> · [L1705](../src/ui/props.js#L1705) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
+- **`selfSelect(key, axis, list, title)`** <sub>interna</sub> · [L1089](../src/ui/props.js#L1089) — Select de *-self ligado ao tamanho: stretch ⇔ 'fill' no eixo; outro valor tira o 'fill'.
+- **`commandsOrigin(n)`** <sub>interna</sub> · [L1123](../src/ui/props.js#L1123) — Posição atual da camada relativa ao pai (lida do DOM): usada ao marcar "absoluta" para ela não pular de lugar.
+- **`GRID_KINDS`** <sub>interna</sub> · [L1131](../src/ui/props.js#L1131) — Tipos de grade de layout (só guia visual).
+- **`layoutGridsSection()`** <sub>interna</sub> · [L1133](../src/ui/props.js#L1133) — Seção "Grades de layout" de um frame: lista de grades (colunas/linhas/quadrícula) com quantidade, gutter, margem e cor.
+- **`vectorSection()`** <sub>interna</sub> · [L1161](../src/ui/props.js#L1161) — Seção "Vetor": editar pontos, o ponto selecionado (tipo canto/suave e posição X/Y), caminho fechado, inverter direção e o código SVG (`d`) do desenho — para copiar, ou colar o `d` de outro SVG e trocar a forma.
+- **`textSection()`** <sub>interna</sub> · [L1224](../src/ui/props.js#L1224) — Seção "Texto": estilo compartilhado, fonte, peso, tamanho, altura de linha, espaçamento, alinhamento, itálico, decoração, MAIÚSCULAS e alinhamento vertical.
+- **`gradientBar()`** <sub>interna</sub> · [L1290](../src/ui/props.js#L1290) — Faixa de pré-visualização do gradiente (sempre mostrada em 90° só para ver as cores/posições).
+- **`docTopColors(max = 14)`** <sub>interna</sub> · [L1300](../src/ui/props.js#L1300) — As cores mais usadas no projeto (até `max`), da mais usada para a menos.
+- **`colorGroups()`** <sub>interna</sub> · [L1312](../src/ui/props.js#L1312) — Grupos de cores que o seletor de cor mostra: as do projeto e os estilos de cor (as paletas prontas vêm do próprio seletor).
+- **`docColorChips(apply)`** <sub>interna</sub> · [L1318](../src/ui/props.js#L1318) — Quadradinhos com as cores mais usadas no projeto (até 14): clicar aplica. Só aparece se houver 2+ cores.
+- **`colorStylePicker(styles, styleOf)`** <sub>interna</sub> · [L1330](../src/ui/props.js#L1330) — Seletor de ESTILO DE COR (visual do Figma): um botão com a amostra e o nome do estilo ligado (ou "Sem estilo de cor"). Abre um menu com as amostras dos estilos do documento, "Criar estilo a partir desta cor" e "Desvincular". Ao lado, um atalho: + cria estilo (sem estilo ligado) ou desvincula (com estilo ligado).
+- **`fillSection()`** <sub>interna</sub> · [L1368](../src/ui/props.js#L1368) — Seção "Preenchimento" (ou "Cor do texto" em texto): tipo (nenhum/sólido/linear/radial/imagem) e os campos de cada tipo — cor + estilo de cor; ângulo + paradas do gradiente; imagem + ajuste.
+- **`strokeSection()`** <sub>interna</sub> · [L1458](../src/ui/props.js#L1458) — Seção "Contorno": cor, espessura, estilo (sólido/tracejado/pontilhado) e posição (dentro/centro/fora). O botão +/− liga e desliga.
+- **`sidesOn()`** <sub>interna</sub> · [L1503](../src/ui/props.js#L1503) — O contorno da camada selecionada está "por lado"?
+- **`strokeSidesRows(st)`** <sub>interna</sub> · [L1509](../src/ui/props.js#L1509) — Linhas "Lados" do contorno: atalhos (todos, só em cima, só embaixo, esquerda, direita, em cima e embaixo, nas laterais) e "Personalizado", que mostra a espessura de cada lado. Gera o CSS `border-top`, `border-bottom`...
+- **`current()`** <sub>interna</sub> · [L1515](../src/ui/props.js#L1515) — Qual atalho corresponde aos lados atuais (ou 'custom' se as espessuras forem diferentes entre si).
+- **`toggleSide(i)`** <sub>interna</sub> · [L1539](../src/ui/props.js#L1539) — Liga/desliga um lado: de "todos", o clique escolhe SÓ aquele lado; depois soma/tira; os 4 ligados voltam a "todos".
+- **`effectsSection()`** <sub>interna</sub> · [L1571](../src/ui/props.js#L1571) — Seção "Efeitos": lista de sombras (x, y, blur, spread, cor, interna) + blur da camada + desfoque de fundo (vidro).
+- **`colorFiltersBlock()`** <sub>interna</sub> · [L1597](../src/ui/props.js#L1597) — Filtros de COR (brightness, contrast, saturate, grayscale, hue-rotate): recolhido, abre sozinho se algum está em uso.
+- **`customCssSection()`** <sub>interna</sub> · [L1616](../src/ui/props.js#L1616) — CSS LIVRE: qualquer declaração que o painel ainda não tem ("propriedade: valor;" por linha). Vale por breakpoint; linhas que o navegador não entende ficam marcadas em amarelo (o navegador as ignora).
+- **`exportSection()`** <sub>interna</sub> · [L1642](../src/ui/props.js#L1642) — Seção "Exportar": escala (1x–4x) e botões PNG, SVG e HTML da seleção.
+- **`emptySection()`** <sub>interna</sub> · [L1668](../src/ui/props.js#L1668) — Painel quando nada está selecionado: resumo da página e dicas de atalhos.
+- **`signature()`** <sub>interna</sub> · [L1688](../src/ui/props.js#L1688) — "Assinatura" da ESTRUTURA do painel: tudo que, se mudar, exige reconstruir os campos (outra seleção, outro tipo de preenchimento, +1 sombra, layout ligado/desligado...). NÃO inclui valores como a espessura ou o padding — esses só pedem para reler os campos, e reconstruir no meio da digitação faria o campo perder o foco.
+- **`render()`** <sub>interna</sub> · [L1715](../src/ui/props.js#L1715) — Reconstrói o painel se a estrutura mudou; em qualquer caso, atualiza os valores dos campos.
 
 ---
 

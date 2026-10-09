@@ -202,3 +202,27 @@ export function applyLayerCss(node, parent, assets, text) {
 export function layerCssText(node, parent, assets) {
   return Object.entries(nodeStyle(node, parent, assets, { fluid: true })).map(([k, v]) => `${k}: ${v};`).join('\n');
 }
+
+/**
+ * O painel Design mandou de novo: tira do CSS livre da camada as propriedades cujo valor GERADO pelo modelo mudou
+ * nesta edição (ex.: o CSS editado à mão fixou `width` e agora a pessoa mexeu na largura pelo painel). Sem isso,
+ * o CSS livre (que vem por último) continuaria vencendo e o painel pareceria não funcionar.
+ * @param {object} node
+ * @param {Record<string, string>} beforePlain  nodeStyle da camada SEM o CSS livre, antes da edição
+ * @param {Record<string, string>} afterPlain   idem, depois da edição
+ * @returns {string[]} propriedades liberadas
+ */
+export function releaseOverrides(node, beforePlain, afterPlain) {
+  if (!node.customCss) return [];
+  const custom = parseCustomCss(node.customCss);
+  const changed = new Set([...Object.keys(beforePlain), ...Object.keys(afterPlain)].filter((k) => beforePlain[k] !== afterPlain[k]));
+  // mexer na posição/tamanho também libera as formas "atalho" que as escrevem (inset, flex, margin…)
+  const related = { left: ['inset'], top: ['inset'], width: ['flex', 'flex-basis'], height: ['flex', 'flex-basis'], flex: ['flex-grow', 'flex-basis', 'flex-shrink'] };
+  for (const k of [...changed]) for (const r of related[k] || []) changed.add(r);
+  const freed = Object.keys(custom).filter((k) => changed.has(k));
+  if (!freed.length) return [];
+  for (const k of freed) delete custom[k];
+  const text = Object.entries(custom).map(([k, v]) => `${k}: ${v};`).join('\n');
+  if (text) node.customCss = text; else delete node.customCss;
+  return freed;
+}

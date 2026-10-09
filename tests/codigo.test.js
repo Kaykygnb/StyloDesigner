@@ -122,3 +122,12 @@ test('lintLayerCss e parseColor', () => {
   assert.deepEqual(parseColor('rgb(0 128 255 / 50%)'), { color: '#0080FF', opacity: 0.5 });
   assert.equal(parseColor('red'), null);
 });
+
+test('painel Design volta a mandar: a edição tira do CSS livre só o que mudou', async () => {
+  const { releaseOverrides } = await import('../src/cssedit.js');
+  const n = { customCss: 'width: 500px;\nborder-radius: 40px;\ninset: 0;' };
+  const freed = releaseOverrides(n, { width: '200px', left: '10px' }, { width: '320px', left: '30px' });
+  assert.deepEqual(freed.sort(), ['inset', 'width']);
+  assert.equal(n.customCss, 'border-radius: 40px;');
+  assert.deepEqual(releaseOverrides({ customCss: 'color: red;' }, { width: '1px' }, { width: '1px' }), []);
+});

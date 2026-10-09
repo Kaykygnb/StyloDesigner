@@ -21,6 +21,7 @@ import {
   BREAKPOINTS, bpView, editBp, hasBps,
 } from '../model.js';
 import { fillCss, nodeStyle } from '../css.js';
+import { releaseOverrides } from '../cssedit.js';
 import { exportHtmlFile, exportPng, exportSvgFile } from '../export.js';
 
 /**
@@ -67,7 +68,16 @@ export function createDesignPanel({ store, canvas, commands, tools, toast }) {
     if (!n) return n;
     return ui.editState ? stateView(n, ui.editState) : ui.bp ? bpView(n, ui.bp) : n;
   };
-  const each = (fn) => store.update(() => nodes().forEach((n) => (ui.editState ? editState(n, ui.editState, fn) : ui.bp ? editBp(n, ui.bp, fn) : fn(n))), { structural: false });
+  /** Estilo gerado pelo modelo, sem o CSS livre (para saber o que uma edição do painel mudou). */
+  const plainStyle = (n) => { const { customCss, ...rest } = n; void customCss; return nodeStyle(rest, store.parentOf(n.id), store.state.doc.assets, { fluid: true }); };
+  const each = (fn) => store.update(() => nodes().forEach((n) => {
+    if (ui.editState) return editState(n, ui.editState, fn);
+    if (ui.bp) return editBp(n, ui.bp, fn);
+    // camada base com CSS escrito à mão: o que o painel mudar agora deixa de ser sobrescrito pelo CSS livre
+    const before = n.customCss ? plainStyle(n) : null;
+    fn(n);
+    if (before && n.customCss) releaseOverrides(n, before, plainStyle(n));
+  }), { structural: false });
   /** Pai da camada, na visão do breakpoint atual (o layout do pai pode ser outro no Celular). */
   const parentOf = (id) => { const p = store.parentOf(id); return p && ui.bp ? bpView(p, ui.bp) : p; };
   /** Fecha a edição (grava no histórico). Passado aos campos para chamarem ao terminar. */
