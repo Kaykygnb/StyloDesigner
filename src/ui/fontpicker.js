@@ -22,6 +22,7 @@ const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // caixa aberta no momento (só uma por vez)
 let open = null;
+let pickerSeq = 0;
 
 /**
  * Campo de fonte para o painel de propriedades.
@@ -31,7 +32,7 @@ let open = null;
 export function fontField({ get, set }) {
   const label = h('span.font-current');
   const btn = h('button.field.font-field', {
-    type: 'button', title: 'font-family — clique para escolher entre as fontes do Google e do sistema', 'aria-haspopup': 'listbox',
+    type: 'button', title: 'font-family — clique para escolher entre as fontes do Google e do sistema', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
     onclick: () => openPicker(btn, get(), set),
   }, label, ico('chevron', 12));
   const update = () => {
@@ -52,14 +53,21 @@ function openPicker(anchor, current, onPick) {
   let active = 0;
   let rows = [];
   const returnFocus = document.activeElement;
+  const pickerId = `font-picker-${++pickerSeq}`;
+  const listId = `${pickerId}-list`;
 
-  const search = h('input.text', { type: 'search', placeholder: `Buscar entre ${GOOGLE.size + SYSTEM_FONTS.length} fontes`, 'aria-label': 'Buscar fonte' });
+  const search = h('input.text', {
+    type: 'search', role: 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'true', 'aria-controls': listId,
+    placeholder: `Buscar entre ${GOOGLE.size + SYSTEM_FONTS.length} fontes`, 'aria-label': 'Buscar fonte',
+  });
   const chips = h('div.font-cats', CATS.map(([v, l]) => h('button.tab-chip' + (v === cat ? '.on' : ''), {
     type: 'button', dataset: { cat: v }, onclick: () => { cat = v; shown = PAGE; chips.querySelectorAll('.tab-chip').forEach((c) => c.classList.toggle('on', c.dataset.cat === v)); render(); search.focus(); },
   }, l)));
-  const list = h('div.font-list', { role: 'listbox', 'aria-label': 'Fontes' });
-  const box = h('div.font-picker', { role: 'dialog', 'aria-label': 'Escolher fonte' },
-    h('div.field.font-search', ico('search', 14), search), chips, list,
+  const list = h('div.font-list', { id: listId, role: 'listbox', 'aria-label': 'Fontes' });
+  const empty = h('p.hint.font-empty');
+  const more = h('button.btn.font-more', { type: 'button', onclick: () => { shown += PAGE; render(); search.focus(); } });
+  const box = h('div.font-picker', { id: pickerId, role: 'dialog', 'aria-label': 'Escolher fonte' },
+    h('div.field.font-search', ico('search', 14), search), chips, list, empty, more,
     h('p.hint', 'Google Fonts: baixadas da internet quando usadas. No PNG exportado, só fontes instaladas no computador aparecem.'));
 
   // só baixa a prévia das linhas que estão VISÍVEIS na lista
@@ -83,15 +91,19 @@ function openPicker(anchor, current, onPick) {
     list.replaceChildren(...rows.map(([name, meta], i) => {
       const isGoogle = GOOGLE.has(name);
       const el = h('div.font-row' + (name === current ? '.selected' : '') + (i === active ? '.active' : ''), {
-        role: 'option', 'aria-selected': String(name === current), dataset: { font: name, i: String(i) },
+        id: `${listId}-option-${i}`, role: 'option', 'aria-selected': String(name === current), dataset: { font: name, i: String(i) },
         onclick: () => pick(name),
       }, h('span.font-name', { style: { fontFamily: isGoogle ? `'${previewFamily(name)}', system-ui` : `'${name}', system-ui` } }, name),
       h('span.font-cat', meta.category));
       if (isGoogle) io.observe(el);
       return el;
     }));
-    if (!all.length) list.append(h('p.hint.font-empty', `Nenhuma fonte com "${query}".`));
-    if (all.length > shown) list.append(h('button.btn.font-more', { type: 'button', onclick: () => { shown += PAGE; render(); } }, `Mostrar mais (${all.length - shown})`));
+    if (rows.length) search.setAttribute('aria-activedescendant', `${listId}-option-${active}`);
+    else search.removeAttribute('aria-activedescendant');
+    empty.textContent = `Nenhuma fonte com "${query}".`;
+    empty.style.display = all.length ? 'none' : '';
+    more.textContent = `Mostrar mais (${all.length - shown})`;
+    more.style.display = all.length > shown ? '' : 'none';
     list.querySelector('.active')?.scrollIntoView({ block: 'nearest' });
   }
 
@@ -104,6 +116,7 @@ function openPicker(anchor, current, onPick) {
     if (!rows.length) return;
     active = (active + delta + rows.length) % rows.length;
     list.querySelectorAll('.font-row').forEach((r) => r.classList.toggle('active', Number(r.dataset.i) === active));
+    search.setAttribute('aria-activedescendant', `${listId}-option-${active}`);
     list.querySelector('.font-row.active')?.scrollIntoView({ block: 'nearest' });
   }
 
@@ -125,7 +138,9 @@ function openPicker(anchor, current, onPick) {
   box.style.left = `${Math.max(8, Math.min(r.right - bw, innerWidth - bw - 8))}px`;
   const outside = (e) => { if (!box.contains(e.target) && !anchor.contains(e.target)) close(); };
   setTimeout(() => window.addEventListener('pointerdown', outside, true));
-  open = { box, io, outside };
+  anchor.setAttribute('aria-expanded', 'true');
+  anchor.setAttribute('aria-controls', pickerId);
+  open = { box, io, outside, anchor };
   render();
   search.focus();
 }
@@ -136,5 +151,7 @@ function close() {
   open.io.disconnect();
   open.box.remove();
   window.removeEventListener('pointerdown', open.outside, true);
+  open.anchor.setAttribute('aria-expanded', 'false');
+  open.anchor.removeAttribute('aria-controls');
   open = null;
 }

@@ -6,6 +6,11 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ---
 
+## [Unreleased]
+
+### Alterado
+- Seletor de fontes: melhora a semântica para leitores de tela e mantém os controles de paginação fora da lista de opções.
+
 ## [0.17.0] — 2026-10-08 — MCP completo, acesso de administrador e plugin do Claude
 
 ### Adicionado
