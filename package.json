@@ -4,6 +4,14 @@
   "description": "Stylo — editor de design onde o canvas é CSS de verdade. JavaScript puro, local, sem build.",
   "private": true,
   "license": "MIT",
+  "homepage": "https://github.com/Kaykygnb/StyloDesigner#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kaykygnb/StyloDesigner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Kaykygnb/StyloDesigner/issues"
+  },
   "type": "module",
   "scripts": {
     "start": "node server.js",

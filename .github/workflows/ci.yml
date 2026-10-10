@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unitarios:
+    name: Testes unitários (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # o teste da referência confere docs/REFERENCIA.md: se falhar, rode `npm run docs` e faça commit
+      - run: npm test
+
+  navegador:
+    name: Testes de navegador (Chromium)
+    runs-on: ubuntu-latest
+    needs: unitarios
+    # AINDA NÃO VERIFICADO NO GITHUB: a bateria foi validada no Windows (43/43). Enquanto não houver uma execução verde
+    # aqui, uma falha não derruba o CI. Quando passar uma vez, remova a linha abaixo para valer como bloqueio.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # o runner sobe um servidor isolado (porta livre, pasta de projetos temporária) e limita cada suíte a 4 min
+      - run: npm run test:e2e

@@ -28,3 +28,6 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 
 ## Plugin oficial do Codex para o Claude Code (`openai/codex-plugin-cc`)
 - [x] RESOLVIDO em 10/10/2026: plugin instalado, `/reload-plugins` feito pela pessoa, sandbox do Windows corrigida e tarefas `--write` sem sandbox (autorizado). Detalhes e como reverter em `docs/estado/CODEX.md`. Padrão: `codex:codex-rescue` para tarefas mecânicas (modelo/esforço pela tabela), sempre em worktree.
+
+## CSS da página com endereço externo (decisão de segurança vs. recurso)
+- [ ] Hoje o CSS da página aceita `url(https://...)`, `@font-face` e `image-set` de fora (útil para fontes e imagens de CDN) e, ao abrir um projeto, o Stylo **avisa** os hosts. Um projeto hostil ainda faria o navegador buscar o endereço (rastreamento) antes de você ver o aviso. Opções: **manter assim com o aviso (padrão)** / bloquear fora do Google Fonts no canvas (a exportação continuaria igual) / bloquear tudo. O CSS por camada já só aceita `data:image` e `#id`.

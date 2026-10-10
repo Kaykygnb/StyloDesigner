@@ -1,0 +1,28 @@
+Stylo
+Copyright (c) 2026 Kaykygnb. Licença MIT (arquivo LICENSE).
+
+Este arquivo lista o que o Stylo usa de terceiros e sob quais licenças. Nada abaixo é redistribuído no repositório
+como arquivo binário de fonte ou de ícone: tudo é carregado da rede na hora do uso, exceto o que está dito.
+
+Fontes (Google Fonts)
+  A interface e os exemplos carregam fontes do Google Fonts (https://fonts.google.com) em fonts.googleapis.com. A maioria
+  das famílias usa a SIL Open Font License 1.1 (por exemplo IBM Plex Sans, JetBrains Mono, Inter, DM Sans); algumas usam
+  a Apache License 2.0. Cada família traz a licença na sua página do Google Fonts. Quando você exporta um site, o HTML
+  referencia as famílias escolhidas, e a licença de cada uma continua valendo para o seu site.
+
+Ícones (Material Symbols)
+  A lista de nomes em src/data/material-icons.js vem do repositório google/material-design-icons
+  (https://github.com/google/material-design-icons), licença Apache License 2.0. O desenho de cada ícone é baixado na hora
+  de fonts.gstatic.com e fica embutido no seu projeto como vetor.
+
+Fotos (Openverse e Pexels)
+  A busca de fotos usa o Openverse (https://openverse.org; apenas licenças que permitem uso comercial e derivação, com o
+  crédito do autor guardado na camada e escrito no HTML exportado) e o Pexels (https://www.pexels.com/license/; chave
+  sua, guardada só no servidor). Cada foto mantém a licença do autor: respeite a atribuição quando a licença a exigir.
+
+Modelos de IA (opcional)
+  O assistente fala com o provedor que você configurar (OpenAI, NVIDIA NIM, Ollama ou um endereço compatível) usando a
+  SUA chave. O Jev (https://typesafe.ai) é um serviço externo opcional; consulte os termos dele antes de usar.
+
+Dependências de desenvolvimento
+  playwright (Apache License 2.0), usado só nos testes de navegador. O Stylo não tem dependências de execução.

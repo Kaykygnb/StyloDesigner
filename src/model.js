@@ -578,8 +578,11 @@ export function makePage(name = 'Página 1') {
  *    styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
  *    comments: [...] }                          // comentários nas camadas (veja comments.js)
  */
+/** Versão do formato do arquivo de projeto (.json). Suba quando uma mudança NÃO for compatível com versões anteriores e escreva a migração em validate.js. */
+export const FORMAT_VERSION = 1;
+
 export function makeDoc() {
-  return { version: 1, projectId: createProjectId(), name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
+  return { version: FORMAT_VERSION, projectId: createProjectId(), name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
 }
 
 /** Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página. */

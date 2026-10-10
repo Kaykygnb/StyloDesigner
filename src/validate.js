@@ -2,7 +2,7 @@
 // Módulo puro (sem DOM) e que NUNCA lança: conserta o que dá, descarta o que é perigoso ou impossível de desenhar e
 // devolve uma lista de avisos em português. A defesa final contra CSS/SVG malicioso fica na saída (css.js:
 // isSafeCssValue, safeIdent, cssUrl); aqui o objetivo é não deixar lixo estrutural chegar até lá.
-import { uid } from './model.js';
+import { uid, FORMAT_VERSION } from './model.js';
 
 /** Imagens aceitas no documento: só dados embutidos. Endereços externos (rastreamento) e esquemas como javascript: não. */
 const DATA_IMAGE = /^data:image\/(png|jpe?g|gif|webp|avif|bmp|svg\+xml)[;,]/i;
@@ -55,6 +55,10 @@ export function sanitizeDoc(doc) {
   const warnings = [];
   if (!isObj(doc)) return warnings;
 
+  // versão do formato: sem versão (ou inválida) = 1; de uma versão MAIS NOVA que a deste Stylo abre com aviso e a versão não é
+  // rebaixada (regravar não pode fingir que o arquivo é do formato antigo)
+  if (!Number.isInteger(doc.version) || doc.version < 1) doc.version = 1;
+  else if (doc.version > FORMAT_VERSION) warnings.push(`Este projeto foi criado numa versão mais nova do Stylo (formato ${doc.version}; esta lê até o ${FORMAT_VERSION}). Algumas coisas podem não aparecer; atualize o Stylo antes de editar.`);
   if (!Array.isArray(doc.pages)) doc.pages = [];
   const pages = doc.pages.filter(isObj);
   if (pages.length !== doc.pages.length) warnings.push(`${doc.pages.length - pages.length} página(s) inválida(s) descartada(s).`);
@@ -77,9 +81,32 @@ export function sanitizeDoc(doc) {
   if (!Array.isArray(doc.styles.colors)) doc.styles.colors = [];
   if (!Array.isArray(doc.styles.texts)) doc.styles.texts = [];
   if (doc.comments !== undefined && !Array.isArray(doc.comments)) doc.comments = [];
+  // CSS da página pode carregar fontes e imagens de fora (recurso legítimo): não bloqueamos, mas quem abre um projeto
+  // de terceiros precisa saber que o navegador vai acessar esses endereços
+  const hosts = externalHosts(doc.styles.pageCss);
+  if (hosts.length) warnings.push(`O CSS da página carrega recursos de fora (${hosts.join(', ')}). Abrir este projeto faz o navegador acessar esses endereços.`);
   if (typeof doc.name !== 'string') doc.name = 'Sem título';
   if (scrub(doc.styles) + scrub(doc.comments) + scrub(doc.breakpoints)) warnings.push('Chaves reservadas removidas dos estilos ou comentários.');
   return warnings;
+}
+
+/** Hosts que o Stylo e a exportação já usam por padrão (Google Fonts): não são surpresa. */
+const KNOWN_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
+
+/**
+ * Hosts externos que um texto de CSS acessa (url(), @import, image-set), sem repetir e sem os conhecidos.
+ * @param {unknown} css
+ * @returns {string[]}
+ */
+function externalHosts(css) {
+  if (typeof css !== 'string' || !css) return [];
+  const hosts = new Set();
+  const re = /(?:url\(\s*|@import\s+|image-set\(\s*|,\s*)["']?(?:https?:)?\/\/([^\/"'()\s?#]+)/gi;
+  for (const m of css.matchAll(re)) {
+    const host = m[1].toLowerCase().replace(/:\d+$/, '');
+    if (host && !KNOWN_HOSTS.has(host)) hosts.add(host);
+  }
+  return [...hosts];
 }
 
 /** Limpa uma lista de camadas (recursivo): descarta o que não é camada e conserta campos básicos. */

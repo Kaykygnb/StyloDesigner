@@ -32,4 +32,5 @@ Status: `FEITO` · `EM ANDAMENTO` · `PENDENTE` · `BLOQUEADO (humano)`. Atualiz
 | S9 | Acessibilidade | PENDENTE | | | |
 | S10b | Aplicar marca | BLOQUEADO (humano: escolher em S10) | | | |
 | S11 | Novo projeto-exemplo | PENDENTE | | | |
+| S19-S21 | CI, SECURITY.md, NOTICE, template de PR, campos do package.json e versão do formato | FEITO (CI ainda não rodou no GitHub) | `.github/workflows/ci.yml` (unitários Node 20/22; navegador com `continue-on-error` até a primeira execução verde), `SECURITY.md` (relato privado, o que protege e o que não é suportado), `NOTICE` (Google Fonts, Material Symbols, Openverse/Pexels, Jev, Playwright), `.github/pull_request_template.md`, `repository`/`bugs`/`homepage` em `package.json`. `FORMAT_VERSION` em `model.js`; `sanitizeDoc` trata versão ausente (=1) e avisa versão mais nova sem rebaixar. **Aviso de hosts externos** no CSS da página | `tests/formato-versao.test.js` (4), `tests/validacao-recursos-externos.test.js` (5); 356 unitários | eu |
 | F | Fechamento: README, CHANGELOG, E2E 3×, aceite humano | PENDENTE | | | |
