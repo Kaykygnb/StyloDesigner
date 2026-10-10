@@ -2,6 +2,10 @@
 
 Editor de design local em JavaScript puro (módulos ES, sem build, sem dependências de runtime) onde o canvas é DOM + CSS reais. Branch de trabalho: `feat/versao-estavel` (nunca commitar na `main`).
 
+## Meta permanente (definida pela pessoa em 10/10/2026)
+Deixar o Stylo o melhor possível: polido, estável, sem lixo, com identidade própria, pronto para uso padrão e à altura de uma ferramenta que valeria ~US$ 100/mês. Pensar como um time de engenheiros e designers e como um usuário humano (testar fluxos reais, estranhar o que for confuso). Economizar tokens: leituras pontuais, relatórios curtos, trabalho mecânico para o Codex (modelo e esforço por `docs/estado/CODEX.md`), `codex exec` ou OpenCode só quando fizer sentido, Jev para decidir dúvidas pequenas.
+Autonomia: commits locais na branch de trabalho; **sem push, sem merge, sem apagar dados do usuário**; parar nos portões humanos do `PLANO-MESTRE.md` e registrar em `PENDENTE-HUMANO.md`.
+
 ## Ordem de leitura
 1. `docs/estado/LEDGER.md` — o que já foi feito, como, como foi testado e o que falta. **Atualize ao fim de cada etapa.**
 2. `docs/estado/PENDENTE-HUMANO.md` — perguntas abertas para a pessoa; não bloqueie nelas, siga com o que não depende delas.

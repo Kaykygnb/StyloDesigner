@@ -11,3 +11,4 @@
 | D7 | 10/10/2026 | Manter `ROTEIRO-ACEITE-HUMANO.md` (Jev sugeriu apagar, 0,91; será o roteiro de teste humano) | Engenheiro |
 | D8 | 10/10/2026 | O Jev não guarda estado; o histórico fica em `docs/estado/` | Verificação das ferramentas `jev_*` |
 | D9 | 10/10/2026 | Codex pode ser subagente via `codex app-server` (autorizado pela pessoa); só em worktree descartável, testes rodados por mim | Pessoa + prova em `docs/estado/CODEX.md` |
+| D10 | 10/10/2026 | Meta: produto polido e estável, ~US$ 100/mês de valor percebido; economizar tokens; Codex (`codex exec` também) e OpenCode liberados; autonomia local sem push | Pessoa |
