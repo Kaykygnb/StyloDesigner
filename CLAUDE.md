@@ -14,6 +14,7 @@ Autonomia: commits locais na branch de trabalho; **sem push, sem merge, sem apag
 - **Skills**: engenharia (`testes-primeiro`, `diagnosticar-bugs`, `desenhar-modulos`, `revisar-diff`, `pesquisar`...) para código; `design:design-impecavel` e `prototipar` para qualquer interface (anti "cara de IA"). Escolher pelo classificador do Jev (`classify-skills.mjs`).
 
 ## Ordem de leitura
+0. `docs/estado/RETOMADA.md` — **estado exato e passos seguintes; atualize ao fim de cada etapa e ANTES de qualquer compactação de contexto** (a pessoa pediu: vigie o saldo de tokens/sessão e grave o estado em arquivo antes de perder o contexto).
 1. `docs/estado/LEDGER.md` — o que já foi feito, como, como foi testado e o que falta. **Atualize ao fim de cada etapa.**
 2. `docs/estado/PENDENTE-HUMANO.md` — perguntas abertas para a pessoa; não bloqueie nelas, siga com o que não depende delas.
 3. `docs/estado/DECISOES.md` — decisões tomadas (inclui as do Jev) para não reabrir.
