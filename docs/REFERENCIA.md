@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-74 arquivos · 1176 funções e constantes documentadas.
+74 arquivos · 1177 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1294,21 +1294,22 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`TRANSITIONS`** <sub>do módulo</sub> · [L17](../src/present.js#L17) — Transições entre telas (Web Animations no quadro do iframe). 'instant' = troca seca.
 - **`TRANSITION_OPTIONS`** · [L26](../src/present.js#L26) — Lista [valor, rótulo] das transições, para o menu da aba Protótipo.
 - **`PRESENT_WIDTHS`** · [L31](../src/present.js#L31) — Larguras da barra: [valor, rótulo]. 'auto' = largura desenhada da tela; 'fill' = a janela toda (responsivo).
-- **`presentHtml(frame, doc)`** · [L37](../src/present.js#L37) — HTML de uma tela para a apresentação: o mesmo da exportação, com `data-node-id` em cada elemento e o corpo sem a moldura cinza da exportação (a página ocupa a janela, como um site).
-- **`createPresent({ store })`** · [L55](../src/present.js#L55) — Cria o modo APRESENTAR.
+- **`presentHtml(frame, doc)`** · [L36](../src/present.js#L36) — HTML de uma tela para a apresentação: o mesmo da exportação, com `data-node-id` em cada elemento.
+- **`createPresent({ store })`** · [L52](../src/present.js#L52) — Cria o modo APRESENTAR.
 
    - open(id): abre na tela da camada selecionada (ou na marcada como ponto de partida, ou na primeira)
    - Esc fecha · R reinicia · Alt+← / Alt+→ voltam e avançam
-- **`frames()`** <sub>interna</sub> · [L61](../src/present.js#L61) — Todos os frames do documento (de todas as páginas): destinos possíveis das interações.
-- **`rootOf(id)`** <sub>interna</sub> · [L69](../src/present.js#L69) — Tela (frame raiz) que contém a camada.
-- **`layout()`** <sub>interna</sub> · [L77](../src/present.js#L77) — Largura do iframe e escala para caber no espaço disponível.
-- **`wire(frameEl)`** <sub>interna</sub> · [L95](../src/present.js#L95) — Liga as interações do protótipo dentro do documento do iframe.
-- **`run(it)`** <sub>interna</sub> · [L113](../src/present.js#L113) — Executa uma interação: link externo, voltar, ou navegar para outra tela.
-- **`show(frameId, transition = 'instant', push = true)`** <sub>interna</sub> · [L121](../src/present.js#L121) — Monta o iframe da tela. `push` = entra no histórico (navegação normal).
-- **`openTab()`** <sub>interna</sub> · [L158](../src/present.js#L158) — Abre numa aba nova do navegador a tela atual, como página HTML independente.
-- **`open(startId)`** <sub>interna</sub> · [L167](../src/present.js#L167) — Abre a apresentação. Devolve false se não há nenhuma tela.
-- **`onKey(e)`** <sub>interna</sub> · [L213](../src/present.js#L213) — Teclas (captura antes do editor). As demais são engolidas para não mexer no editor por trás.
-- **`close()`** <sub>interna</sub> · [L224](../src/present.js#L224) — Fecha a apresentação e remove os ouvintes globais.
+- **`frames()`** <sub>interna</sub> · [L59](../src/present.js#L59) — Todos os frames do documento (de todas as páginas): destinos possíveis das interações.
+- **`rootOf(id)`** <sub>interna</sub> · [L67](../src/present.js#L67) — Tela (frame raiz) que contém a camada.
+- **`layout()`** <sub>interna</sub> · [L75](../src/present.js#L75) — Largura do iframe e escala para caber no espaço disponível.
+- **`wire(frameEl)`** <sub>interna</sub> · [L93](../src/present.js#L93) — Liga as interações do protótipo dentro do documento do iframe.
+- **`run(it)`** <sub>interna</sub> · [L136](../src/present.js#L136) — Executa uma interação: link externo, voltar, ou navegar para outra tela.
+- **`show(frameId, transition = 'instant', push = true)`** <sub>interna</sub> · [L144](../src/present.js#L144) — Monta o iframe da tela. `push` = entra no histórico (navegação normal).
+- **`openTab()`** <sub>interna</sub> · [L190](../src/present.js#L190) — Abre numa aba nova do navegador a tela atual, como página HTML independente.
+- **`open(startId)`** <sub>interna</sub> · [L199](../src/present.js#L199) — Abre a apresentação. Devolve false se não há nenhuma tela.
+- **`renderTabs()`** <sub>interna</sub> · [L271](../src/present.js#L271) — A ordem de apresentação é local à sessão e não altera a ordem das camadas no documento.
+- **`onKey(e)`** <sub>interna</sub> · [L304](../src/present.js#L304) — Teclas (captura antes do editor). As demais são engolidas para não mexer no editor por trás.
+- **`close()`** <sub>interna</sub> · [L331](../src/present.js#L331) — Fecha a apresentação e remove os ouvintes globais.
 
 ---
 

@@ -36,9 +36,55 @@ await ev((id) => designer.store.update(() => { designer.store.get(id).interactio
 await page.screenshot({ path: join(tmpdir(), 'proto-edit.png') });
 
 // apresentar
-await page.click('button:has-text("Apresentar")');
+const presentButton = page.getByRole('button', { name: /Apresentar protótipo/ });
+await presentButton.click();
 await page.waitForTimeout(300);
 ok('modo apresentar abre na Home', (await page.locator('.present-title').innerText()) === 'Home');
+ok('apresentação anuncia modal e isola o editor', await page.locator('.present[aria-modal="true"]').count() === 1 && await ev(() => document.querySelector('#app')?.inert));
+await page.locator('.present-widths [data-w="1280"]').click();
+const fixedBoard = await page.frameLocator('.present-frame').locator('body > *').evaluate((el) => {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, width: r.width, viewport: document.documentElement.clientWidth };
+});
+ok('tela fixa fica centralizada quando a janela de apresentação é mais larga', Math.abs(fixedBoard.left - (fixedBoard.viewport - fixedBoard.width) / 2) < 1, JSON.stringify(fixedBoard));
+ok('telas aparecem como abas acessíveis', await page.locator('.present-tabs [role="tab"]').count() === 2);
+await page.locator('[data-act="close"]').focus();
+await page.keyboard.press('Shift+Tab');
+ok('foco modal volta ao conteúdo apresentado', await ev(() => document.activeElement.tagName === 'IFRAME'));
+await page.keyboard.press('Tab');
+ok('Tab não escapa do modo Apresentar', await ev(() => document.activeElement.dataset.act === 'close'));
+await page.locator('.present-tabs [role="tab"]').first().focus();
+await page.keyboard.press('ArrowRight');
+ok('setas do teclado navegam pelas telas', (await page.locator('.present-title').innerText()) === 'Detalhe');
+await page.keyboard.press('ArrowLeft');
+await page.waitForTimeout(350);
+await page.locator('.present-tabs [role="tab"]').nth(1).click();
+ok('clicar na aba abre a tela', (await page.locator('.present-title').innerText()) === 'Detalhe');
+await page.locator('.present-tabs [role="tab"]').nth(0).click();
+await page.locator('.present-tabs [role="tab"]').nth(1).click();
+await page.waitForTimeout(350);
+ok('trocas rápidas de tela encerram transições sem erro', (await page.locator('.present-title').innerText()) === 'Detalhe' && errors.length === 0, errors.join(' | '));
+await page.waitForTimeout(350);
+await page.locator('.present-tabs [role="tab"]').nth(1).dragTo(page.locator('.present-tabs [role="tab"]').nth(0));
+const orderedTabs = await page.locator('.present-tabs [role="tab"]').allTextContents();
+ok('abas podem ser arrastadas para reordenar', orderedTabs[0] === 'Detalhe' && orderedTabs[1] === 'Home', orderedTabs.join(', '));
+const documentOrder = await ev(() => designer.store.state.doc.pages[0].children.filter((n) => n.type === 'frame').map((n) => n.name));
+ok('reordenar a apresentação preserva a ordem do documento', documentOrder[0] === 'Home' && documentOrder[1] === 'Detalhe', documentOrder.join(', '));
+await page.emulateMedia({ reducedMotion: 'reduce' });
+await page.locator('.present-tabs [role="tab"]').nth(1).click();
+ok('movimento reduzido dispensa animação de navegação', (await ev(() => matchMedia('(prefers-reduced-motion: reduce)').matches)) && await page.locator('.present-board').evaluate((el) => el.getAnimations().length === 0));
+await page.waitForTimeout(150);
+await page.emulateMedia({ reducedMotion: 'no-preference' });
+await page.setViewportSize({ width: 390, height: 844 });
+const mobile = await ev(() => {
+  const bar = document.querySelector('.present-bar');
+  return { width: document.documentElement.scrollWidth, viewport: innerWidth, tabs: document.querySelector('.present-tabs').getBoundingClientRect().width,
+    bar: { x: bar.getBoundingClientRect().x, width: bar.getBoundingClientRect().width, scroll: bar.scrollWidth },
+    children: [...bar.children].map((el) => [el.className, Math.round(el.getBoundingClientRect().x), Math.round(el.getBoundingClientRect().width)]) };
+});
+ok('apresentação mantém as abas utilizáveis no celular', mobile.bar.scroll <= mobile.bar.width && mobile.tabs > 0, JSON.stringify(mobile));
+await page.screenshot({ path: join(tmpdir(), 'proto-present-mobile.png') });
+await page.setViewportSize({ width: 1440, height: 860 });
 // clica no botão (posição na tela)
 await page.frameLocator('.present-frame').locator('[data-node-id="' + ids.btn + '"]').click();
 await page.waitForTimeout(700);
@@ -48,8 +94,21 @@ await page.screenshot({ path: join(tmpdir(), 'proto-present.png') });
 await page.frameLocator('.present-frame').locator('[data-node-id="' + ids.back + '"]').click({ position: { x: 5, y: 5 } });
 await page.waitForTimeout(700);
 ok('Voltar retorna à Home', (await page.locator('.present-title').innerText()) === 'Home');
+await ev(({ a, b }) => {
+  const s = designer.store;
+  s.update(() => { s.get(a).children = []; s.get(b).children = []; }, { commit: true });
+}, ids);
+await page.waitForTimeout(350);
+await page.locator('.present-frame').focus();
+await page.keyboard.press('Tab');
+ok('Tab numa tela sem controles foca e abre a próxima aba de tela',
+  (await page.locator('.present-title').innerText()) === 'Detalhe' && await page.locator('.present-tabs [role="tab"][aria-selected="true"]').innerText() === 'Detalhe');
+await page.locator('.present-frame').focus();
+await page.keyboard.press('Shift+Tab');
+ok('Shift+Tab numa tela sem controles foca e abre a aba de tela anterior',
+  (await page.locator('.present-title').innerText()) === 'Home' && await page.locator('.present-tabs [role="tab"][aria-selected="true"]').innerText() === 'Home');
 await page.keyboard.press('Escape');
-ok('Esc fecha o modo apresentar', (await page.locator('.present').count()) === 0);
+ok('Esc fecha o modo apresentar e devolve o foco', (await page.locator('.present').count()) === 0 && await presentButton.evaluate((el) => document.activeElement === el) && !(await ev(() => document.querySelector('#app')?.inert)));
 console.log(errors.join('\n') || 'no console errors');
 console.log(fails ? `${fails} FAILURES` : 'ALL PASS');
 await browser.close();
