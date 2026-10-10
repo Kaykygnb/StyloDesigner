@@ -43,6 +43,10 @@ const started = await request('thread/start', { cwd, ephemeral: true, approvalPo
 log.threadId = started?.thread?.id ?? started?.threadId;
 await request('turn/start', { threadId: log.threadId, cwd, effort, ...(model && { model }), input: [{ type: 'text', text: task }] });
 await Promise.race([finished, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 300000))]).catch((e) => console.error(e.message));
-console.log(JSON.stringify({ seconds: (Date.now() - t0) / 1000, threadId: log.threadId, usage: log.usage, itemTypes: log.items, lastMessage: log.messages.at(-1), status: log.completed?.turn?.status ?? log.completed }, null, 2));
+// a resposta final vai primeiro e em texto puro (e, se CODEX_OUT estiver definido, também para esse arquivo): filtros de saída não podem comê-la
+const final = log.messages.at(-1) ?? '(sem mensagem final)';
+if (process.env.CODEX_OUT) (await import('node:fs')).writeFileSync(process.env.CODEX_OUT, final);
+console.log(`--- RESPOSTA ---\n${final}\n--- FIM ---`);
+console.log(JSON.stringify({ seconds: (Date.now() - t0) / 1000, threadId: log.threadId, usage: log.usage, itemTypes: log.items, status: log.completed?.turn?.status ?? log.completed }, null, 2));
 child.kill();
 process.exit(0);

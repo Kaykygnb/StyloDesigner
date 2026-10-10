@@ -58,7 +58,9 @@ const DEFAULTS = { folder: join(root, 'projetos'), keepVersions: 20 };
 /** Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não). */
 const VERSION_EVERY_MS = 10 * 60 * 1000;
 /** Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande). */
-const MAX_BODY = 200 * 1024 * 1024;
+const MAX_BODY = 200 * 1024 * 1024; // só o PUT de um projeto (pode levar imagens embutidas)
+const MAX_JSON = 1024 * 1024; // padrão das rotas JSON: configuração, conta, renomear etc.
+const MAX_MEDIUM = 32 * 1024 * 1024; // mensagens do agente e respostas de ferramentas (podem levar imagens), miniaturas, MCP
 /** Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json. */
 const FILE_RE = /^[a-z0-9][a-z0-9._-]{0,90}\.json$/i;
 
@@ -143,20 +145,23 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data));
 }
 /** Lê o corpo do pedido inteiro (com limite de tamanho) e devolve como texto. */
-async function readBody(req) {
+async function readBody(req, max = MAX_JSON) {
+  // recusa logo, sem ler nada, quando o cabeçalho já declara mais do que a rota aceita
+  if (Number(req.headers['content-length']) > max) throw httpError(413, `Conteúdo grande demais (limite ${Math.round(max / 1048576)} MB para esta rota).`);
   const chunks = [];
   let size = 0;
   for await (const c of req) {
     size += c.length;
-    if (size > MAX_BODY) throw httpError(413, 'Projeto grande demais (limite 200 MB).');
+    if (size > max) throw httpError(413, `Conteúdo grande demais (limite ${Math.round(max / 1048576)} MB para esta rota).`);
     chunks.push(c);
   }
   return Buffer.concat(chunks).toString('utf8');
 }
 /** O Host do pedido é esta máquina? (protege contra DNS rebinding) */
 const localHost = (host = '') => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(host);
-/** A página que fez o pedido (Origin) é local? Pedidos sem Origin (curl, testes) são aceitos: não vêm de um site. */
-const localOrigin = (origin) => !origin || /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin);
+/** A página que fez o pedido (Origin) é ESTE servidor (mesma porta)? Outra porta de localhost é outro programa e é recusada. Pedidos sem Origin (curl, MCP stdio, testes) são aceitos; as escritas de navegador sempre enviam Origin, e GET/HEAD não alteram nada. */
+const OWN_ORIGINS = [`http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://[::1]:${port}`];
+const localOrigin = (origin) => !origin || OWN_ORIGINS.includes(String(origin).toLowerCase());
 
 /** Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE). */
 const projectPath = (name) => join(config.folder, name);
@@ -291,7 +296,7 @@ async function api(req, res, path) {
       return res.end(data);
     }
     if (parts.length === 2 && req.method === 'PUT') {
-      const text = await readBody(req);
+      const text = await readBody(req, MAX_BODY);
       let doc;
       try { doc = JSON.parse(text); } catch { throw httpError(400, 'O conteúdo não é JSON válido.'); }
       if (!Array.isArray(doc?.pages)) throw httpError(400, 'Isso não parece um projeto (faltam as páginas).');
@@ -334,7 +339,7 @@ async function api(req, res, path) {
       return res.end(data);
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'PUT') {
-      const { svg } = JSON.parse((await readBody(req)) || '{}');
+      const { svg } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
       if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) throw httpError(400, 'Miniatura inválida.');
       if (svg.length > MAX_THUMB) throw httpError(413, 'Miniatura grande demais.');
       await stat(projectPath(name)); // só aceita miniatura de projeto que existe (senão: 404)
@@ -473,7 +478,7 @@ async function mcpRoute(req, res) {
   }
   if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST, DELETE' }).end(); return; }
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'Envie JSON.');
-  const body = JSON.parse((await readBody(req)) || 'null');
+  const body = JSON.parse((await readBody(req, MAX_MEDIUM)) || 'null');
   const instructions = await agentInstructions();
   // sessão: a do cabeçalho; no "initialize" sem cabeçalho, uma nova (devolvida em Mcp-Session-Id)
   const isInit = (Array.isArray(body) ? body : [body]).some((m) => m?.method === 'initialize');
@@ -733,7 +738,7 @@ async function agentApi(req, res, parts) {
     return;
   }
   if (what === 'reply' && req.method === 'POST') {
-    const { id, result } = JSON.parse((await readBody(req)) || '{}');
+    const { id, result } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
     if (!editorBridge.reply(String(id), result)) return sendJson(res, 410, { ok: false, error: 'A chamada MCP já foi encerrada.' });
     return sendJson(res, 200, { ok: true });
   }
@@ -817,7 +822,7 @@ async function agentApi(req, res, parts) {
     return sendJson(res, 200, { models: ids });
   }
   if (what === 'chat' && req.method === 'POST') {
-    const { messages, tools, model: wanted, memory, subagent } = JSON.parse((await readBody(req)) || '{}');
+    const { messages, tools, model: wanted, memory, subagent } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
     if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
     const a = agentConfig();
     if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Chaves de API.`);
