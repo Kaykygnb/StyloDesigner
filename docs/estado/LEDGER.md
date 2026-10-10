@@ -10,6 +10,7 @@ Status: `FEITO` · `EM ANDAMENTO` · `PENDENTE` · `BLOQUEADO (humano)`. Atualiz
 | Id | Etapa | Status | O que foi feito / como | Teste e evidência | Executor |
 |---|---|---|---|---|---|
 | P0 | Entender o código, relatório e planos | FEITO | 3 revisões só-leitura + verificação própria; `docs/planos/RELATORIO-ENGENHARIA.md`, `PLANO-ETAPAS.md` | achados confirmados por execução: slug com dígito, breakpoints no `init`, Origin, corpo 200 MB | eu + 3 sonnet (leitura) |
+| P3 | Plano mestre e prompts para outras IAs | FEITO | `docs/planos/PLANO-MESTRE.md`, `docs/estado/PROMPTS-OUTRAS-IAS.md`; backlog classificado com Jev (só confiança alta usada direto) | revisão de leitura | eu + Jev |
 | P2 | Pesquisa de produto (CSS, export, agentes, armazenamento, licença) | FEITO | 3 pesquisadores só-leitura; resultado em `docs/estado/PRODUTO.md` | achados por leitura de código; nada executado ao vivo | 3 sonnet |
 | P1 | Limpeza de arquivos inúteis | EM ANDAMENTO | Removidos `docs/screenshots/polimento-v0.13` e `BASELINE-AUDITORIA.md`; falta fundir `GUIA-DO-CODIGO.md` em `ARQUITETURA.md` e decidir ROADMAP/benchmarks/capturas | `npm test` após cada remoção | eu |
 | S6 | Runner E2E isolado + suítes instáveis | PENDENTE | | | |
