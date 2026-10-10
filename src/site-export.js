@@ -3,7 +3,7 @@
  * Este módulo não toca no DOM nem inicia downloads: a UI e o MCP podem reutilizar o mesmo resultado.
  */
 import { exportHtml } from './css.js';
-import { isBoard, slugify } from './model.js';
+import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
 
 const boardsOf = (doc) => {
   const boards = [];
@@ -59,6 +59,15 @@ export function exportSite(doc) {
     content: exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null),
   }));
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
+
+  // Tela de largura FIXA maior que o menor aparelho do projeto vira rolagem horizontal no celular. Não mudamos o
+  // padrão (alteraria exportações existentes): avisamos e dizemos onde ligar a largura fluida.
+  const smallest = (doc.breakpoints?.length ? doc.breakpoints : DEFAULT_BREAKPOINTS).reduce((a, b) => (b.preview < a.preview ? b : a));
+  for (const board of boards) {
+    if (!board.fluid && board.sizeX !== 'hug' && board.w > smallest.preview) {
+      warnings.push(`“${board.name || 'Página'}” tem largura fixa de ${Math.round(board.w)} px: em ${smallest.name.toLowerCase()} (${smallest.preview} px) ela vai rolar na horizontal. Ative “Largura fluida no site exportado” nas propriedades da tela.`);
+    }
+  }
 
   for (const board of boards) {
     const boardName = board.name || 'Página';
