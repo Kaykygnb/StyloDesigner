@@ -9,11 +9,12 @@
  *      (Permitir / Permitir tudo nesta sessão / Recusar). Recusado = nada muda;
  *    - cada alteração aprovada termina com UM `store.commit()`: um Ctrl+Z desfaz a alteração inteira;
  *    - só as propriedades conhecidas são aceitas (veja PROPS): a IA não consegue gravar lixo no projeto.
+ *    - falha assíncrona não restaura uma cópia velha se o documento mudou enquanto a ferramenta aguardava.
  *  Erros viram mensagens em português devolvidas à IA (ela lê e corrige), nunca quebram o editor.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid, editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates, BREAKPOINTS } from '../model.js';
+import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS, walk, uid, editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates, BREAKPOINTS, slugify } from '../model.js';
 import { generateCode, joinCss, exportHtml } from '../css.js';
 import { makeComponent, createInstance } from '../components.js';
 import { addComment } from '../comments.js';
@@ -21,7 +22,10 @@ import { renderPng } from '../export.js';
 import { importSvg } from '../svgimport.js';
 import { GOOGLE, SYSTEM_FONTS } from '../fonts.js';
 import { iconUrl, iconExists, searchIcons } from '../ui/googleicons.js';
+import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName } from './schema.js';
+import { exportSite } from '../site-export.js';
+import { agentContentLimit, boundedUtf8Chunk, DEFAULT_AGENT_CONTENT_BYTES } from './content.js';
 
 /** Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada. */
 const SIMPLE = [
@@ -139,6 +143,7 @@ export function applyProps(node, props, ctx = {}) {
 /** Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos). */
 export function summarize(n, depth = 0) {
   const out = { id: n.id, name: n.name, type: n.type, tag: tagOf(n), w: Math.round(n.w), h: Math.round(n.h) };
+  if (typeof n.note === 'string' && n.note.trim()) out.note = n.note.length > 180 ? `${n.note.slice(0, 180)}…` : n.note;
   if (n.x || n.y) Object.assign(out, { x: Math.round(n.x), y: Math.round(n.y) });
   if (n.sizeX !== 'fixed' || n.sizeY !== 'fixed') out.size = `${n.sizeX}/${n.sizeY}`;
   if (n.layout && n.layout.mode !== 'none') {
@@ -169,6 +174,7 @@ export function describeCall(tool, args, store) {
       return `Alterar ${nm(args.id)}: ${keys.join(', ') || '(nada)'}`;
     }
     case 'create_layer': return `Criar ${args.type === 'text' ? 'um texto' : `um ${args.type}`}${args.props?.name ? ` “${args.props.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
+    case 'insert_asset': return `Inserir a imagem do projeto${args.name ? ` “${args.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' no canvas'}`;
     case 'delete_layers': return `Apagar ${(args.ids || []).map(nm).join(', ')}`;
     case 'move_layer': return `Mover ${nm(args.id)}${args.parent_id ? ` para ${args.parent_id === 'root' ? 'a raiz da página' : `dentro de ${nm(args.parent_id)}`}` : ''}${Number.isInteger(args.index) ? ` (posição ${args.index})` : ''}`;
     case 'undo': return 'Desfazer a última alteração (Ctrl+Z)';
@@ -181,6 +187,7 @@ export function describeCall(tool, args, store) {
     case 'insert_icon': return `Inserir o ícone “${args.name}”${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
+    case 'set_project_css': return `${String(args.css || '').trim() ? 'Substituir' : 'Limpar'} CSS global do projeto (${String(args.css || '').length} caracteres)`;
     case 'set_responsive': return `No ${BREAKPOINTS.find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'set_state': return `No estado ${args.state}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'create_component': return `Transformar ${nm(args.id)} em componente`;
@@ -203,6 +210,15 @@ export function describeCall(tool, args, store) {
     case 'generate_image_edit': return `IA de imagem em ${nm(args.id)} (${({ fill: 'preencher área', replace: 'trocar objeto', expand: 'expandir', generate: 'imagem nova' })[args.mode] || args.mode}): “${String(args.prompt || '').slice(0, 80)}” — a imagem vai para o modelo de imagem configurado`;
     default: return tool;
   }
+}
+
+/** Confere que uma operação assíncrona ainda aponta para o mesmo documento e a mesma imagem. */
+export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
+  const current = store.get(id);
+  if (store.state.doc !== doc || current !== node || JSON.stringify(current?.fill) !== fill || doc.assets[current?.fill?.assetId] !== source) {
+    throw new Error('A imagem desta camada mudou enquanto a ferramenta aguardava; não apliquei o resultado antigo. Confira a imagem atual e tente de novo.');
+  }
+  return current;
 }
 
 /**
@@ -242,6 +258,28 @@ export function createRunner({ store, commands, approve, saving = null, folder =
         activeBreakpoint: store.ui.bp,
         hint: 'x/y são relativos ao pai. Camadas dentro de frames com layout são posicionadas pelo navegador (flex/grid).',
       };
+    },
+    get_comments({ id, page_id, unresolved_only = false } = {}) {
+      const doc = store.state.doc;
+      const nodePages = new Map();
+      for (const page of doc.pages) walk(page.children, (node) => nodePages.set(node.id, page));
+      const comments = (doc.comments || []).filter((comment) => {
+        const page = nodePages.get(comment.nodeId);
+        return page && (!id || comment.nodeId === id) && (!page_id || page.id === page_id) && (!unresolved_only || !comment.resolved);
+      }).map((comment) => {
+        const page = nodePages.get(comment.nodeId);
+        const node = store.get(comment.nodeId);
+        return { ...comment, page: { id: page.id, name: page.name }, layer: { id: node.id, name: node.name } };
+      });
+      return { count: comments.length, comments };
+    },
+    get_project_css() {
+      return { css: store.state.doc.styles?.pageCss || '' };
+    },
+    list_assets({ query = '' } = {}) {
+      const q = String(query).trim().toLowerCase();
+      const assets = imageAssetCatalog(store.state.doc).filter((asset) => !q || [asset.name, asset.id, asset.format, ...asset.usedBy.map((x) => x.page)].some((value) => value.toLowerCase().includes(q)));
+      return { count: assets.length, assets, hint: 'Use insert_asset com o id para reutilizar uma imagem. O conteúdo binário não é enviado na listagem.' };
     },
     get_layer({ id }) {
       const n = need(id);
@@ -302,10 +340,28 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       // _image: o servidor MCP transforma em conteúdo de imagem; o Assistente interno descarta (o modelo de chat não recebe imagem)
       return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes da web aparecem com a fonte do sistema e o efeito vidro pode não aparecer na imagem (o editor e o HTML estão certos).' };
     },
-    export_html({ id }) {
+    export_html({ id, offset = 0, maxBytes = DEFAULT_AGENT_CONTENT_BYTES } = {}) {
       const n = need(id);
       const doc = store.state.doc;
-      return { file: `${n.name}.html`, html: exportHtml(n, doc.assets, n.name, doc.styles) };
+      const html = exportHtml(n, doc.assets, n.name, doc.styles);
+      const { content, ...chunk } = boundedUtf8Chunk(html, { offset, maxBytes });
+      return { file: `${slugify(n.name || 'pagina')}.html`, html: content, ...chunk };
+    },
+    export_site({ includeContent = false, path, maxBytes = DEFAULT_AGENT_CONTENT_BYTES, offset = 0 } = {}) {
+      const site = exportSite(store.state.doc);
+      const files = path ? site.files.filter((file) => file.path === path) : site.files;
+      if (path && !files.length) throw new Error(`O arquivo “${path}” não existe no pacote de site.`);
+      const metadata = files.map(({ path: filePath, content }) => ({ path: filePath, bytes: new TextEncoder().encode(content).byteLength }));
+      const totalBytes = metadata.reduce((sum, file) => sum + file.bytes, 0);
+      if (includeContent) {
+        if (!path && offset) throw new Error('Informe path para continuar o conteúdo de uma página específica.');
+        if (!path && totalBytes > agentContentLimit(maxBytes)) throw new Error(`O conteúdo total tem ${totalBytes} bytes. Consulte os caminhos e solicite uma página por vez com path; use offset e nextOffset para páginas maiores.`);
+        for (const file of metadata) {
+          const source = files.find((item) => item.path === file.path).content;
+          Object.assign(file, boundedUtf8Chunk(source, { offset: path ? offset : 0, maxBytes }));
+        }
+      }
+      return { files: metadata, totalBytes, warnings: site.warnings };
     },
     async list_projects() {
       if (!folder) throw new Error('Sem servidor (npm start): não há pasta de projetos.');
@@ -419,6 +475,20 @@ export function createRunner({ store, commands, approve, saving = null, folder =
     const url = store.state.doc.assets[n.fill.assetId] || '';
     return { w: n.fill.natW, h: n.fill.natH, kb: Math.round((url.length * 0.75) / 1024), format: (/^data:image\/(\w+)/.exec(url) || [])[1] };
   };
+  /** Impede uma operação de imagem lenta de aplicar o resultado sobre uma imagem que a pessoa já trocou. */
+  const imageTarget = (id) => {
+    const doc = store.state.doc;
+    const node = imageLayer(id);
+    const fill = JSON.stringify(node.fill);
+    const source = doc.assets[node.fill.assetId];
+    return {
+      node,
+      source,
+      assertCurrent() {
+        return assertCurrentImageTarget(store, id, doc, node, fill, source);
+      },
+    };
+  };
 
   const WRITE = {
     update_layer({ id, props }) {
@@ -439,6 +509,10 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       });
       store.setSelection([node.id]);
       return { created: summarize(node, 0) };
+    },
+    async insert_asset({ id, parent_id, index, at, name }) {
+      const node = await commands.insertImageAsset(id, at, { parentId: parent_id || null, index, name });
+      return { assetId: id, created: summarize(node, 0), hint: 'A camada reutiliza a imagem existente do projeto; não foi criado outro arquivo de imagem.' };
     },
     delete_layers({ ids = [] }) {
       const nodes = ids.map(need);
@@ -492,6 +566,16 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const page = store.page();
       store.update(() => { page.name = String(name || page.name).trim().slice(0, 60) || page.name; });
       return { page: { id: page.id, name: page.name } };
+    },
+    set_project_css({ css }) {
+      if (typeof css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');
+      const text = css.trim();
+      store.update(() => {
+        const styles = (store.state.doc.styles ||= { colors: [], texts: [], vars: [] });
+        if (text) styles.pageCss = css;
+        else delete styles.pageCss;
+      }, { structural: false });
+      return { characters: css.length, cleared: !text, hint: 'Aplique get_image para revisar o canvas. O CSS exportado passa pelo sanitizador da plataforma.' };
     },
     set_responsive({ id, breakpoint, props }) {
       const n = need(id);
@@ -587,27 +671,30 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { project: store.state.doc.name };
     },
     async edit_image(args) {
-      const n = imageLayer(args.id);
+      const target = imageTarget(args.id);
+      const n = target.node;
       // o editor de imagem só é carregado quando usado (ele mexe com canvas; o resto do executor roda até no Node)
       const ia = await import('../ui/imageai.js');
       if (args.restore_original) {
-        if (!(await ia.restoreOriginal(store, n.id, { commit: false }))) throw new Error('Esta camada não tem imagem original guardada (ela ainda não foi editada pelo editor de imagem).');
+        if (!(await ia.restoreOriginal(store, n.id, { commit: false, beforeApply: target.assertCurrent }))) throw new Error('Esta camada não tem imagem original guardada (ela ainda não foi editada pelo editor de imagem).');
         return { restored: true, image: imageInfo(n) };
       }
       const ops = ['rotate', 'flip_h', 'flip_v', 'crop', 'ratio', 'remove_background', 'filter', 'adjust', 'max_width', 'format'];
       if (!ops.some((k) => args[k] !== undefined && args[k] !== false && args[k] !== null)) throw new Error(`Diga o que mudar: ${ops.join(', ')} ou restore_original.`);
-      const res = await ia.editImageLocal(store.state.doc.assets[n.fill.assetId], {
+      const res = await ia.editImageLocal(target.source, {
         ...args, remove_background: args.remove_background ? { tolerance: args.background_tolerance ?? 28 } : false,
       });
-      ia.applyImageToNode(store, n.id, res, { commit: false });
-      return { image: imageInfo(n), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
+      const current = target.assertCurrent();
+      ia.applyImageToNode(store, current.id, res, { commit: false });
+      return { image: imageInfo(current), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
     },
     async generate_image_edit({ id, mode, prompt, area, expand }) {
-      const n = imageLayer(id);
+      const target = imageTarget(id);
       const ia = await import('../ui/imageai.js');
-      const res = await ia.generativeEdit({ src: store.state.doc.assets[n.fill.assetId], mode, prompt: String(prompt || '').trim(), area, expand });
-      ia.applyImageToNode(store, n.id, res, { commit: false });
-      return { image: imageInfo(n), hint: 'Confira com get_image. A original fica guardada (edit_image com restore_original volta para ela).' };
+      const res = await ia.generativeEdit({ src: target.source, mode, prompt: String(prompt || '').trim(), area, expand });
+      const current = target.assertCurrent();
+      ia.applyImageToNode(store, current.id, res, { commit: false });
+      return { image: imageInfo(current), hint: 'Confira com get_image. A original fica guardada (edit_image com restore_original volta para ela).' };
     },
     undo() {
       if (!store.canUndo()) throw new Error('Não há nada para desfazer.');
@@ -622,16 +709,18 @@ export function createRunner({ store, commands, approve, saving = null, folder =
    * @param {object} args
    * @param {string} [client]  quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
    */
-  async function run(tool, args = {}, client = 'Assistente', { external = false, admin = false } = {}) {
+  async function run(tool, args = {}, client = 'Assistente', { external = false, admin = false, signal } = {}) {
     const def = toolByName(tool);
     if (!def) return { error: `Ferramenta desconhecida: ${tool}.` };
     try {
+      if (signal?.aborted) throw new Error('A operação foi cancelada pelo cliente MCP.');
       // arquivos de projeto: programas externos (MCP) só com o "Acesso de administrador" ligado
       if (def.admin && external && !admin) throw new Error('Esta ferramenta mexe nos arquivos de projeto e precisa do "Acesso de administrador" (Configurações → Assistente de IA e MCP).');
       if (!def.write) return await READ[tool](args || {});
       // alteração: confere o pedido ANTES de perguntar (não adianta pedir permissão para algo que vai falhar)
       if (tool === 'update_layer' || tool === 'move_layer') need(args?.id);
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);
+      if (tool === 'set_project_css' && typeof args?.css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
       if (tool === 'edit_image' || tool === 'generate_image_edit') imageLayer(args?.id);
@@ -644,23 +733,32 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       }
       const summary = describeCall(tool, args || {}, store);
       // administrador: o programa externo age sem perguntar (a pessoa ligou isso de propósito em Configurações)
-      const ok = admin || (approve ? await approve({ client, tool, args, summary }) : false);
+      const ok = admin || (approve ? await approve({ client, tool, args, summary, signal }) : false);
+      if (signal?.aborted) throw new Error('A operação foi cancelada pelo cliente MCP.');
       if (!ok) return { refused: true, message: 'A pessoa recusou esta alteração. Pergunte o que ela prefere.' };
+      const beforeRevision = store.docRevision?.();
       const before = JSON.stringify(store.state.doc);
       try {
         const out = await WRITE[tool](args || {}, client);
         if (!['undo', 'redo', 'open_project', 'new_project', 'save_project'].includes(tool)) store.commit();
         return { ok: true, ...out, ...(admin ? { _summary: summary } : {}) };
       } catch (err) {
-        // falhou no meio: volta o documento para como estava (nada pela metade)
-        if (!['undo', 'redo', 'open_project', 'new_project'].includes(tool) && JSON.stringify(store.state.doc) !== before) restoreDoc(before);
+        // Não restaure uma foto global se alguém editou enquanto esta ferramenta aguardava rede/disco.
+        // Isso apagava alterações humanas ou de outro agente feitas em partes não relacionadas do documento.
+        const changedWhileRunning = beforeRevision !== undefined && store.docRevision?.() !== beforeRevision;
+        if (changedWhileRunning) {
+          throw new Error(`${err?.message || String(err)} O documento mudou enquanto a ferramenta rodava; mantive o estado atual para preservar trabalho. Confira o resultado e use Ctrl+Z se necessário.`);
+        }
+        if (!['undo', 'redo', 'open_project', 'new_project'].includes(tool) && JSON.stringify(store.state.doc) !== before) {
+          restoreDoc(before);
+        }
         throw err;
       }
     } catch (err) {
       return { error: err.message || String(err) };
     }
   }
-  /** Desfaz uma alteração que falhou no meio, sem criar passo no histórico. */
+  /** Restaura uma alteração parcial que falhou, sem criar passo no histórico (só sem mudanças concorrentes). */
   function restoreDoc(json) {
     const saved = JSON.parse(json);
     store.update(() => { Object.assign(store.state.doc, saved); }, { structural: true });

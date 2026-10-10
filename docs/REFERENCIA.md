@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-71 arquivos · 1167 funções e constantes documentadas.
+74 arquivos · 1176 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -26,6 +26,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/fonts.js`](#srcfontsjs) | Fontes do Google Fonts (lista, carregamento sob demanda e prévia) |
 | [`src/geom.js`](#srcgeomjs) | Geometria dos vetores (sem DOM, sem dependências; testável no node) |
 | [`src/html.js`](#srchtmljs) | HTML e CSS escritos à mão (sanitização, CSS da página, atributos HTML) |
+| [`src/image-assets.js`](#srcimage-assetsjs) |  |
 | [`src/imagefx.js`](#srcimagefxjs) | Matemática da IA de foto (funções puras sobre pixels, sem DOM) |
 | [`src/main.js`](#srcmainjs) | Ponto de entrada: monta o app |
 | [`src/model.js`](#srcmodeljs) | Modelo de dados do documento |
@@ -37,6 +38,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/rulers.js`](#srcrulersjs) | Réguas e criação de guias |
 | [`src/sample-vitrine.js`](#srcsample-vitrinejs) | Exemplo "vitrine": um site inteiro que usa tudo que o editor faz |
 | [`src/saving.js`](#srcsavingjs) | Regras de salvamento (navegador + pasta do computador) |
+| [`src/site-export.js`](#srcsite-exportjs) |  |
 | [`src/storage.js`](#srcstoragejs) | Onde o projeto é guardado: navegador (IndexedDB) e pasta do computador (servidor) |
 | [`src/store.js`](#srcstorejs) | Estado central, histórico (desfazer) e salvamento |
 | [`src/svg.js`](#srcsvgjs) | Exportação SVG vetorial (módulo puro: sem DOM) |
@@ -45,6 +47,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/tools.js`](#srctoolsjs) | Interação: mouse e teclado no canvas |
 | [`src/version.js`](#srcversionjs) |  |
 | [`src/agent/bridge.js`](#srcagentbridgejs) | Permissão e ponte com o MCP (lado do navegador) |
+| [`src/agent/content.js`](#srcagentcontentjs) |  |
 | [`src/agent/jev.js`](#srcagentjevjs) | O jev (typesafe) como "segunda opinião" rápida do agente |
 | [`src/agent/providers.js`](#srcagentprovidersjs) | De onde vem a IA do assistente (provedores prontos) |
 | [`src/agent/runner.js`](#srcagentrunnerjs) | Executa as ferramentas do agente no editor aberto |
@@ -271,33 +274,33 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  Atalhos (tools.js), menus (ui/menus.js) e painéis (ui/*.js) chamam estas funções — a lógica não se repete.
 ```
 
-- **`createCommands(store, canvas)`** · [L30](../src/commands.js#L30) — Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez (excluir, duplicar, copiar/colar, agrupar, ordem z, auto layout, alinhar, distribuir, componentes, máscara, guias, vetores, imagens). É chamado por atalhos de teclado (tools.js), menus (menus.js) e painéis (ui/*.js), então a lógica fica em UM lugar só.
+- **`createCommands(store, canvas)`** · [L31](../src/commands.js#L31) — Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez (excluir, duplicar, copiar/colar, agrupar, ordem z, auto layout, alinhar, distribuir, componentes, máscara, guias, vetores, imagens). É chamado por atalhos de teclado (tools.js), menus (menus.js) e painéis (ui/*.js), então a lógica fica em UM lugar só.
 
   Padrão de todo comando: (1) descobre as camadas-alvo, (2) `store.update(...)` aplica a mudança, (3) ajusta a
   seleção, (4) `store.commit()` grava no histórico (um desfazer desfaz o comando inteiro).
   - `store` <sub>object</sub> — 
   - `canvas` <sub>object</sub> — precisa da geometria do DOM (posições reais em auto layout)
-- **`topSelection()`** <sub>interna</sub> · [L38](../src/commands.js#L38) — Seleção "de topo": camadas selecionadas que NÃO têm um ancestral também selecionado. Se você seleciona um frame e um filho dele, mover/duplicar/excluir deve agir só no frame (o filho vai junto).
-- **`parentOrigin(parent)`** <sub>interna</sub> · [L47](../src/commands.js#L47) — Origem (canto superior esquerdo, no mundo) do pai; (0,0) quando a camada está na raiz da página.
-- **`freezePositions(nodes, parent)`** <sub>interna</sub> · [L54](../src/commands.js#L54) — "Congela" a posição VISUAL atual como x/y. Em auto layout x/y do modelo são ignorados (o navegador posiciona), então, antes de uma camada sair do fluxo (agrupar, desligar auto layout...), lemos onde ela está no DOM e gravamos em x/y — assim nada "pula" de lugar.
-- **`deleteSelection()`** <sub>interna</sub> · [L65](../src/commands.js#L65) — Exclui as camadas selecionadas (e tudo dentro delas).
-- **`duplicate()`** <sub>interna</sub> · [L80](../src/commands.js#L80) — Duplica a seleção logo acima do original, deslocada 20px (em auto layout entra no fluxo, sem deslocar).
-- **`copy()`** <sub>interna</sub> · [L105](../src/commands.js#L105) — Copia a seleção para a área de transferência INTERNA do app (ui.clipboard). Guardamos uma cópia JSON, assim ela sobrevive mesmo que o original seja editado/apagado depois. Devolve false se não havia nada selecionado.
-- **`cut()`** <sub>interna</sub> · [L117](../src/commands.js#L117) — Recortar = copiar + excluir.
-- **`paste()`** <sub>interna</sub> · [L127](../src/commands.js#L127) — Cola o que está na área de transferência interna.
+- **`topSelection()`** <sub>interna</sub> · [L39](../src/commands.js#L39) — Seleção "de topo": camadas selecionadas que NÃO têm um ancestral também selecionado. Se você seleciona um frame e um filho dele, mover/duplicar/excluir deve agir só no frame (o filho vai junto).
+- **`parentOrigin(parent)`** <sub>interna</sub> · [L48](../src/commands.js#L48) — Origem (canto superior esquerdo, no mundo) do pai; (0,0) quando a camada está na raiz da página.
+- **`freezePositions(nodes, parent)`** <sub>interna</sub> · [L55](../src/commands.js#L55) — "Congela" a posição VISUAL atual como x/y. Em auto layout x/y do modelo são ignorados (o navegador posiciona), então, antes de uma camada sair do fluxo (agrupar, desligar auto layout...), lemos onde ela está no DOM e gravamos em x/y — assim nada "pula" de lugar.
+- **`deleteSelection()`** <sub>interna</sub> · [L66](../src/commands.js#L66) — Exclui as camadas selecionadas (e tudo dentro delas).
+- **`duplicate()`** <sub>interna</sub> · [L81](../src/commands.js#L81) — Duplica a seleção logo acima do original, deslocada 20px (em auto layout entra no fluxo, sem deslocar).
+- **`copy()`** <sub>interna</sub> · [L106](../src/commands.js#L106) — Copia a seleção para a área de transferência INTERNA do app (ui.clipboard). Guardamos uma cópia JSON, assim ela sobrevive mesmo que o original seja editado/apagado depois. Devolve false se não havia nada selecionado.
+- **`cut()`** <sub>interna</sub> · [L118](../src/commands.js#L118) — Recortar = copiar + excluir.
+- **`paste()`** <sub>interna</sub> · [L128](../src/commands.js#L128) — Cola o que está na área de transferência interna.
 
    - Com UM frame selecionado (que não seja o próprio copiado): cola DENTRO dele, mantendo a posição se couber
      ou centralizando se não couber.
    - Caso contrário: cola no mesmo pai de onde foi copiado, deslocando 16px a cada colagem seguida.
-- **`setSelectionBox({ x, y, w, h })`** <sub>interna</sub> · [L170](../src/commands.js#L170) — Move e/ou redimensiona várias camadas como UM conjunto, pelos campos X/Y/W/H do painel. Cada campo é opcional. Mudar W/H escala cada camada e a distância dela até a borda do conjunto (como esticar a caixa de seleção). Camadas dentro de auto layout só mudam de tamanho (a posição é do navegador). `structural:false`: só números mudam, o índice do store continua válido (mais rápido).
-- **`STYLE_KEYS`** <sub>interna</sub> · [L198](../src/commands.js#L198) — "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
-- **`copyStyle()`** <sub>interna</sub> · [L202](../src/commands.js#L202) — Guarda a aparência da 1ª camada selecionada em ui.styleClipboard.
-- **`pasteStyle()`** <sub>interna</sub> · [L215](../src/commands.js#L215) — Aplica a aparência guardada a todas as camadas selecionadas, ignorando o que não faz sentido para o tipo do destino (ex.: tipografia em retângulo, cantos em elipse/texto, fill em grupo).
-- **`group()`** <sub>interna</sub> · [L239](../src/commands.js#L239) — Agrupa as camadas selecionadas (Ctrl+G). Só agrupa irmãs do MESMO pai (a 1ª selecionada manda). O grupo entra na posição da camada mais alta e os filhos mantêm a ordem z. Antes, congela as posições (ver freezePositions). A caixa do grupo é calculada depois, no commit, por fitGroups.
-- **`ungroup()`** <sub>interna</sub> · [L262](../src/commands.js#L262) — Desagrupa (Ctrl+Shift+G): os filhos sobem um nível, no lugar do grupo, mantendo a posição visual (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
-- **`reorder(mode)`** <sub>interna</sub> · [L289](../src/commands.js#L289) — Muda a ordem z (quem fica na frente). A ordem do array É a ordem de desenho: o último é o que fica por cima.
+- **`setSelectionBox({ x, y, w, h })`** <sub>interna</sub> · [L171](../src/commands.js#L171) — Move e/ou redimensiona várias camadas como UM conjunto, pelos campos X/Y/W/H do painel. Cada campo é opcional. Mudar W/H escala cada camada e a distância dela até a borda do conjunto (como esticar a caixa de seleção). Camadas dentro de auto layout só mudam de tamanho (a posição é do navegador). `structural:false`: só números mudam, o índice do store continua válido (mais rápido).
+- **`STYLE_KEYS`** <sub>interna</sub> · [L199](../src/commands.js#L199) — "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
+- **`copyStyle()`** <sub>interna</sub> · [L203](../src/commands.js#L203) — Guarda a aparência da 1ª camada selecionada em ui.styleClipboard.
+- **`pasteStyle()`** <sub>interna</sub> · [L216](../src/commands.js#L216) — Aplica a aparência guardada a todas as camadas selecionadas, ignorando o que não faz sentido para o tipo do destino (ex.: tipografia em retângulo, cantos em elipse/texto, fill em grupo).
+- **`group()`** <sub>interna</sub> · [L240](../src/commands.js#L240) — Agrupa as camadas selecionadas (Ctrl+G). Só agrupa irmãs do MESMO pai (a 1ª selecionada manda). O grupo entra na posição da camada mais alta e os filhos mantêm a ordem z. Antes, congela as posições (ver freezePositions). A caixa do grupo é calculada depois, no commit, por fitGroups.
+- **`ungroup()`** <sub>interna</sub> · [L263](../src/commands.js#L263) — Desagrupa (Ctrl+Shift+G): os filhos sobem um nível, no lugar do grupo, mantendo a posição visual (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
+- **`reorder(mode)`** <sub>interna</sub> · [L290](../src/commands.js#L290) — Muda a ordem z (quem fica na frente). A ordem do array É a ordem de desenho: o último é o que fica por cima.
   - `mode` <sub>'front'\|'back'\|'forward'\|'backward'</sub> — frente / fundo / um passo à frente / um passo atrás
-- **`enableAutoLayout(frame)`** <sub>interna</sub> · [L323](../src/commands.js#L323) — Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão, para nada "pular" de lugar:
+- **`enableAutoLayout(frame)`** <sub>interna</sub> · [L324](../src/commands.js#L324) — Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão, para nada "pular" de lugar:
 
    - direção: filhos espalhados mais na horizontal → 'row'; senão 'column'. Um filho só: frame alto (ex.: uma
      sidebar) → 'column'; largo → 'row';
@@ -308,9 +311,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - alinhamento: conteúdo centralizado no frame → 'center'; encostado no fim → 'flex-end'. No eixo cruzado, com
      vários filhos, olha se eles estavam alinhados pelo início, pelo centro ou pelo fim.
   Também reordena os filhos na ordem em que aparecem na tela, e tira o "absoluto" de todos.
-- **`disableAutoLayout(frame)`** <sub>interna</sub> · [L371](../src/commands.js#L371) — Desliga o auto layout congelando as posições atuais (nada muda visualmente).
-- **`setLayoutMode(frames, mode)`** <sub>interna</sub> · [L381](../src/commands.js#L381) — Troca o modo do layout (none | row | column | grid). Ao LIGAR numa frame livre, deduz a configuração (enableAutoLayout); ao DESLIGAR, congela as posições. Em grid, sugere um nº de colunas pela raiz da qtd de filhos. Chamado de dentro de `store.update`, por isso não faz commit.
-- **`toggleAutoLayout()`** <sub>interna</sub> · [L411](../src/commands.js#L411) — Shift+A — "Adicionar auto layout", tentando entender a INTENÇÃO (como no Figma), em vez de só embrulhar:
+- **`disableAutoLayout(frame)`** <sub>interna</sub> · [L372](../src/commands.js#L372) — Desliga o auto layout congelando as posições atuais (nada muda visualmente).
+- **`setLayoutMode(frames, mode)`** <sub>interna</sub> · [L382](../src/commands.js#L382) — Troca o modo do layout (none | row | column | grid). Ao LIGAR numa frame livre, deduz a configuração (enableAutoLayout); ao DESLIGAR, congela as posições. Em grid, sugere um nº de colunas pela raiz da qtd de filhos. Chamado de dentro de `store.update`, por isso não faz commit.
+- **`toggleAutoLayout()`** <sub>interna</sub> · [L412](../src/commands.js#L412) — Shift+A — "Adicionar auto layout", tentando entender a INTENÇÃO (como no Figma), em vez de só embrulhar:
 
    - FRAME selecionado → liga/desliga o auto layout dele;
    - um RETÂNGULO sozinho → ele VIRA um frame com auto layout (mesma cor, cantos, contorno, sombra e id), pronto
@@ -319,67 +322,68 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - várias camadas → um frame novo envolve todas. Se a camada MAIS AO FUNDO for um retângulo que contém todas as
      outras (ex.: o fundo de uma sidebar com itens em cima), ele vira o FUNDO do frame em vez de mais um item —
      senão o auto layout colocaria o fundo e os itens lado a lado. Sem fundo, o frame abraça o conteúdo (hug).
-- **`frameFrom(r, props)`** <sub>interna</sub> · [L424](../src/commands.js#L424) — Frame com a APARÊNCIA de um retângulo (para o retângulo "virar" o frame).
-- **`shift(node, dx, dy)`** <sub>interna</sub> · [L484](../src/commands.js#L484) — Soma dx/dy à posição x/y da camada (arredondando).
-- **`align(kind)`** <sub>interna</sub> · [L494](../src/commands.js#L494) — Alinha a seleção. Com UMA camada, alinha dentro do pai; com várias, alinha entre si (pela caixa do conjunto). Camadas em auto layout são ignoradas (o navegador decide a posição delas).
+- **`frameFrom(r, props)`** <sub>interna</sub> · [L425](../src/commands.js#L425) — Frame com a APARÊNCIA de um retângulo (para o retângulo "virar" o frame).
+- **`shift(node, dx, dy)`** <sub>interna</sub> · [L485](../src/commands.js#L485) — Soma dx/dy à posição x/y da camada (arredondando).
+- **`align(kind)`** <sub>interna</sub> · [L495](../src/commands.js#L495) — Alinha a seleção. Com UMA camada, alinha dentro do pai; com várias, alinha entre si (pela caixa do conjunto). Camadas em auto layout são ignoradas (o navegador decide a posição delas).
   - `kind` <sub>'left'\|'hcenter'\|'right'\|'top'\|'vcenter'\|'bottom'</sub> — 
-- **`distribute(axis)`** <sub>interna</sub> · [L525](../src/commands.js#L525) — Distribui 3+ camadas com vãos IGUAIS entre elas, mantendo a primeira e a última no lugar.
+- **`distribute(axis)`** <sub>interna</sub> · [L526](../src/commands.js#L526) — Distribui 3+ camadas com vãos IGUAIS entre elas, mantendo a primeira e a última no lugar.
   - `axis` <sub>'h'\|'v'</sub> — horizontal ou vertical
-- **`reparent(nodes, newParent, index = null)`** <sub>interna</sub> · [L558](../src/commands.js#L558) — Move camadas para outro pai (ou para a raiz da página) MANTENDO a posição visual: lê a origem de cada uma no DOM antes e recalcula x/y relativo ao novo pai. Usado ao arrastar para dentro de frames e no arrastar da lista de camadas. Não deixa mover uma camada para dentro de si mesma/de um descendente.
+- **`reparent(nodes, newParent, index = null)`** <sub>interna</sub> · [L559](../src/commands.js#L559) — Move camadas para outro pai (ou para a raiz da página) MANTENDO a posição visual: lê a origem de cada uma no DOM antes e recalcula x/y relativo ao novo pai. Usado ao arrastar para dentro de frames e no arrastar da lista de camadas. Não deixa mover uma camada para dentro de si mesma/de um descendente.
   - `nodes` <sub>object[]</sub> — camadas a mover
   - `newParent` <sub>object\|null</sub> — novo pai (null = raiz)
   - `[index]` <sub>number\|null</sub> — posição na lista do novo pai (null = no topo)
-- **`importAsset(file)`** <sub>interna</sub> · [L586](../src/commands.js#L586) — Lê o arquivo de imagem (reduzindo se for grande), guarda em doc.assets e devolve { assetId, w, h }.
-- **`addImageFiles(files, at)`** <sub>interna</sub> · [L598](../src/commands.js#L598) — Cria uma camada-retângulo com preenchimento de imagem para cada arquivo (botão, arrastar, colar). A imagem é reduzida para caber em 520px de maior lado e fica centralizada na posição `at` (ou no centro da vista).
+- **`importAsset(file)`** <sub>interna</sub> · [L587](../src/commands.js#L587) — Lê o arquivo de imagem (reduzindo se for grande), guarda em doc.assets e devolve { assetId, w, h }.
+- **`addImageFiles(files, at)`** <sub>interna</sub> · [L599](../src/commands.js#L599) — Cria uma camada-retângulo com preenchimento de imagem para cada arquivo (botão, arrastar, colar). A imagem é reduzida para caber em 520px de maior lado e fica centralizada na posição `at` (ou no centro da vista).
   - ↩︎ `Promise<boolean>` true se criou alguma camada
-- **`notify(msg)`** <sub>interna</sub> · [L635](../src/commands.js#L635) — Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`).
-- **`placeNew(node, at)`** <sub>interna</sub> · [L641](../src/commands.js#L641) — Insere uma camada NOVA já pronta: dentro do frame selecionado (centralizada nele; se o frame tem auto layout, ela entra no fluxo) ou na raiz da página, centralizada em `at` (mundo) ou no meio da tela. Seleciona e grava.
-- **`insertSvg(text, { at, name, currentColor, fill, size } = {})`** <sub>interna</sub> · [L668](../src/commands.js#L668) — Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa O QUE do SVG ficou de fora (ex.: "sombra interna, máscara"). Lança erro se o texto não for um SVG com formas.
+- **`insertImageAsset(assetId, at, { parentId = null, index, name } = {})`** <sub>interna</sub> · [L636](../src/commands.js#L636) — Reutiliza uma imagem já importada no projeto, sem duplicar seu data URL.
+- **`notify(msg)`** <sub>interna</sub> · [L681](../src/commands.js#L681) — Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`).
+- **`placeNew(node, at)`** <sub>interna</sub> · [L687](../src/commands.js#L687) — Insere uma camada NOVA já pronta: dentro do frame selecionado (centralizada nele; se o frame tem auto layout, ela entra no fluxo) ou na raiz da página, centralizada em `at` (mundo) ou no meio da tela. Seleciona e grava.
+- **`insertSvg(text, { at, name, currentColor, fill, size } = {})`** <sub>interna</sub> · [L714](../src/commands.js#L714) — Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa O QUE do SVG ficou de fora (ex.: "sombra interna, máscara"). Lança erro se o texto não for um SVG com formas.
   - `text` <sub>string</sub> — 
-- **`addHtmlEmbed(at)`** <sub>interna</sub> · [L679](../src/commands.js#L679) — Cria uma camada "Código HTML" (HTML escrito à mão, ver html.js → sanitizeHtml) no frame selecionado ou no meio da tela e abre a aba Código já no modo de edição do HTML.
-- **`addText(textValue, at)`** <sub>interna</sub> · [L687](../src/commands.js#L687) — Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas).
-- **`wrapInFrame(same, name)`** <sub>interna</sub> · [L703](../src/commands.js#L703) — Envolve camadas irmãs num frame novo (sem layout, sem preenchimento) do tamanho do conjunto. Base de "Envolver em frame", "Criar componente" de vários itens e "Auto layout" de vários itens. Deve ser chamada dentro de `store.update`.
-- **`sameLevel(nodes)`** <sub>interna</sub> · [L719](../src/commands.js#L719) — Filtra a seleção para as camadas que estão na mesma lista que a primeira (irmãs), ordenadas pela ordem z.
-- **`createComponent()`** <sub>interna</sub> · [L728](../src/commands.js#L728) — Ctrl+Alt+K: transforma a seleção em COMPONENTE PRINCIPAL. Várias camadas (ou texto/linha soltos) são primeiro envolvidas num frame, porque componente precisa de uma raiz.
-- **`insertInstance(mainId, at)`** <sub>interna</sub> · [L749](../src/commands.js#L749) — Cria uma INSTÂNCIA de um componente. Sem posição dada, entra ao lado do principal; com `at`, centralizada ali (usado ao clicar no componente na aba Recursos).
+- **`addHtmlEmbed(at)`** <sub>interna</sub> · [L725](../src/commands.js#L725) — Cria uma camada "Código HTML" (HTML escrito à mão, ver html.js → sanitizeHtml) no frame selecionado ou no meio da tela e abre a aba Código já no modo de edição do HTML.
+- **`addText(textValue, at)`** <sub>interna</sub> · [L733](../src/commands.js#L733) — Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas).
+- **`wrapInFrame(same, name)`** <sub>interna</sub> · [L749](../src/commands.js#L749) — Envolve camadas irmãs num frame novo (sem layout, sem preenchimento) do tamanho do conjunto. Base de "Envolver em frame", "Criar componente" de vários itens e "Auto layout" de vários itens. Deve ser chamada dentro de `store.update`.
+- **`sameLevel(nodes)`** <sub>interna</sub> · [L765](../src/commands.js#L765) — Filtra a seleção para as camadas que estão na mesma lista que a primeira (irmãs), ordenadas pela ordem z.
+- **`createComponent()`** <sub>interna</sub> · [L774](../src/commands.js#L774) — Ctrl+Alt+K: transforma a seleção em COMPONENTE PRINCIPAL. Várias camadas (ou texto/linha soltos) são primeiro envolvidas num frame, porque componente precisa de uma raiz.
+- **`insertInstance(mainId, at)`** <sub>interna</sub> · [L795](../src/commands.js#L795) — Cria uma INSTÂNCIA de um componente. Sem posição dada, entra ao lado do principal; com `at`, centralizada ali (usado ao clicar no componente na aba Recursos).
   - `mainId` <sub>string</sub> — id do componente principal
-- **`detach()`** <sub>interna</sub> · [L770](../src/commands.js#L770) — Ctrl+Alt+B: desanexa as instâncias selecionadas (viram camadas comuns).
-- **`goToMain(id)`** <sub>interna</sub> · [L777](../src/commands.js#L777) — "Ir ao principal": abre a página do componente principal, seleciona e enquadra.
-- **`toggleMask()`** <sub>interna</sub> · [L792](../src/commands.js#L792) — Ctrl+Alt+M: máscara. Com várias camadas: agrupa e usa a de baixo como máscara (recorta as outras, via clip-path). Com uma camada que já está num grupo: liga/desliga o papel de máscara dela.
-- **`flip(axis)`** <sub>interna</sub> · [L807](../src/commands.js#L807) — Espelha as camadas selecionadas na horizontal ('x') ou vertical ('y').
-- **`addColorStyle(node, name)`** <sub>interna</sub> · [L816](../src/commands.js#L816) — Cria um estilo de cor compartilhado a partir do preenchimento de uma camada e já liga a camada a ele.
-- **`addColorStyles(items)`** <sub>interna</sub> · [L824](../src/commands.js#L824) — Cria vários estilos de cor de uma vez (ex.: a partir de uma paleta): [{ name, color }]. Um único passo de desfazer.
-- **`addColorMode({ name, scheme = null, auto = false })`** <sub>interna</sub> · [L830](../src/commands.js#L830) — Cria um modo de cor (escuro...) e já o mostra no canvas. `auto`: gera os valores invertendo a luminosidade.
-- **`renameColorMode(id, name)`** <sub>interna</sub> · [L837](../src/commands.js#L837) — Muda o nome de um modo de cor (o atributo data-theme no CSS acompanha).
-- **`setModeScheme(id, scheme)`** <sub>interna</sub> · [L844](../src/commands.js#L844) — Define se o modo vale sozinho pela preferência do sistema ('dark' | 'light' | null = só com data-theme).
-- **`deleteColorMode(id)`** <sub>interna</sub> · [L851](../src/commands.js#L851) — Apaga um modo de cor (os valores dele nos estilos também).
-- **`addSizeVar(name, value)`** <sub>interna</sub> · [L857](../src/commands.js#L857) — Cria uma variável de tamanho (espaçamento, raio, fonte).
-- **`setSizeVar(id, patch)`** <sub>interna</sub> · [L863](../src/commands.js#L863) — Muda o valor de uma variável e leva o valor a todas as camadas ligadas a ela.
-- **`deleteSizeVar(id)`** <sub>interna</sub> · [L872](../src/commands.js#L872) — Apaga uma variável (as camadas mantêm o valor que tinham).
-- **`bindSizeVar(nodes, prop, v)`** <sub>interna</sub> · [L877](../src/commands.js#L877) — Liga (ou, com `v` nulo, desliga) um campo de várias camadas a uma variável de tamanho.
-- **`addTextStyle(node, name)`** <sub>interna</sub> · [L882](../src/commands.js#L882) — Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele.
-- **`removeStyle(kind, id)`** <sub>interna</sub> · [L890](../src/commands.js#L890) — Apaga um estilo ('colors' ou 'texts'); as camadas ligadas mantêm os valores que tinham.
-- **`guides()`** <sub>interna</sub> · [L899](../src/commands.js#L899) — Lista de guias da página atual (cria se não existir, para páginas de projetos antigos).
-- **`addGuide(axis, pos)`** <sub>interna</sub> · [L901](../src/commands.js#L901) — Cria uma guia de régua. axis 'x' = linha vertical na posição x; 'y' = linha horizontal na posição y.
-- **`removeGuide(i)`** <sub>interna</sub> · [L905](../src/commands.js#L905) — Remove a guia de índice `i`.
-- **`addPathFromWorld(pts, closed, parent)`** <sub>interna</sub> · [L917](../src/commands.js#L917) — Cria uma camada-vetor a partir de pontos em coordenadas do MUNDO (o que a caneta coleta). Calcula a caixa que envolve o desenho (incluindo as curvas) e converte os pontos para o espaço local do vetor.
+- **`detach()`** <sub>interna</sub> · [L816](../src/commands.js#L816) — Ctrl+Alt+B: desanexa as instâncias selecionadas (viram camadas comuns).
+- **`goToMain(id)`** <sub>interna</sub> · [L823](../src/commands.js#L823) — "Ir ao principal": abre a página do componente principal, seleciona e enquadra.
+- **`toggleMask()`** <sub>interna</sub> · [L838](../src/commands.js#L838) — Ctrl+Alt+M: máscara. Com várias camadas: agrupa e usa a de baixo como máscara (recorta as outras, via clip-path). Com uma camada que já está num grupo: liga/desliga o papel de máscara dela.
+- **`flip(axis)`** <sub>interna</sub> · [L853](../src/commands.js#L853) — Espelha as camadas selecionadas na horizontal ('x') ou vertical ('y').
+- **`addColorStyle(node, name)`** <sub>interna</sub> · [L862](../src/commands.js#L862) — Cria um estilo de cor compartilhado a partir do preenchimento de uma camada e já liga a camada a ele.
+- **`addColorStyles(items)`** <sub>interna</sub> · [L870](../src/commands.js#L870) — Cria vários estilos de cor de uma vez (ex.: a partir de uma paleta): [{ name, color }]. Um único passo de desfazer.
+- **`addColorMode({ name, scheme = null, auto = false })`** <sub>interna</sub> · [L876](../src/commands.js#L876) — Cria um modo de cor (escuro...) e já o mostra no canvas. `auto`: gera os valores invertendo a luminosidade.
+- **`renameColorMode(id, name)`** <sub>interna</sub> · [L883](../src/commands.js#L883) — Muda o nome de um modo de cor (o atributo data-theme no CSS acompanha).
+- **`setModeScheme(id, scheme)`** <sub>interna</sub> · [L890](../src/commands.js#L890) — Define se o modo vale sozinho pela preferência do sistema ('dark' | 'light' | null = só com data-theme).
+- **`deleteColorMode(id)`** <sub>interna</sub> · [L897](../src/commands.js#L897) — Apaga um modo de cor (os valores dele nos estilos também).
+- **`addSizeVar(name, value)`** <sub>interna</sub> · [L903](../src/commands.js#L903) — Cria uma variável de tamanho (espaçamento, raio, fonte).
+- **`setSizeVar(id, patch)`** <sub>interna</sub> · [L909](../src/commands.js#L909) — Muda o valor de uma variável e leva o valor a todas as camadas ligadas a ela.
+- **`deleteSizeVar(id)`** <sub>interna</sub> · [L918](../src/commands.js#L918) — Apaga uma variável (as camadas mantêm o valor que tinham).
+- **`bindSizeVar(nodes, prop, v)`** <sub>interna</sub> · [L923](../src/commands.js#L923) — Liga (ou, com `v` nulo, desliga) um campo de várias camadas a uma variável de tamanho.
+- **`addTextStyle(node, name)`** <sub>interna</sub> · [L928](../src/commands.js#L928) — Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele.
+- **`removeStyle(kind, id)`** <sub>interna</sub> · [L936](../src/commands.js#L936) — Apaga um estilo ('colors' ou 'texts'); as camadas ligadas mantêm os valores que tinham.
+- **`guides()`** <sub>interna</sub> · [L945](../src/commands.js#L945) — Lista de guias da página atual (cria se não existir, para páginas de projetos antigos).
+- **`addGuide(axis, pos)`** <sub>interna</sub> · [L947](../src/commands.js#L947) — Cria uma guia de régua. axis 'x' = linha vertical na posição x; 'y' = linha horizontal na posição y.
+- **`removeGuide(i)`** <sub>interna</sub> · [L951](../src/commands.js#L951) — Remove a guia de índice `i`.
+- **`addPathFromWorld(pts, closed, parent)`** <sub>interna</sub> · [L963](../src/commands.js#L963) — Cria uma camada-vetor a partir de pontos em coordenadas do MUNDO (o que a caneta coleta). Calcula a caixa que envolve o desenho (incluindo as curvas) e converte os pontos para o espaço local do vetor.
   - `[]` <sub>{x,y,hin?,hout?</sub> — } pts  pontos com alças opcionais
   - `closed` <sub>boolean</sub> — caminho fechado (ganha preenchimento cinza)
   - `parent` <sub>object\|null</sub> — frame onde inserir (null = raiz)
-- **`updatePathFromWorld(id, pts, closed)`** <sub>interna</sub> · [L938](../src/commands.js#L938) — Atualiza um vetor EXISTENTE com novos pontos (em coordenadas do mundo): usado ao CONTINUAR um caminho aberto com a caneta. Como addPathFromWorld, recalcula a caixa; nome, cor e contorno do vetor continuam.
-- **`newIcon(size = 24)`** <sub>interna</sub> · [L961](../src/commands.js#L961) — Cria um frame de ÍCONE (24×24 por padrão, fundo branco, cortando o que sai) no centro da vista, com a grade de 1px ligada, enquadra com zoom grande, liga o encaixe de 1px e deixa a caneta pronta. É o começo de "desenhar o meu SVG".
-- **`normalizePath(node)`** <sub>interna</sub> · [L985](../src/commands.js#L985) — Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
-- **`addShapePath(kind, box, parent, sides = 5)`** <sub>interna</sub> · [L1010](../src/commands.js#L1010) — Cria um polígono regular (`sides` lados) ou estrela (pontas alternando raio 100% e 45%) já como vetor editável.
+- **`updatePathFromWorld(id, pts, closed)`** <sub>interna</sub> · [L984](../src/commands.js#L984) — Atualiza um vetor EXISTENTE com novos pontos (em coordenadas do mundo): usado ao CONTINUAR um caminho aberto com a caneta. Como addPathFromWorld, recalcula a caixa; nome, cor e contorno do vetor continuam.
+- **`newIcon(size = 24)`** <sub>interna</sub> · [L1007](../src/commands.js#L1007) — Cria um frame de ÍCONE (24×24 por padrão, fundo branco, cortando o que sai) no centro da vista, com a grade de 1px ligada, enquadra com zoom grande, liga o encaixe de 1px e deixa a caneta pronta. É o começo de "desenhar o meu SVG".
+- **`normalizePath(node)`** <sub>interna</sub> · [L1031](../src/commands.js#L1031) — Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
+- **`addShapePath(kind, box, parent, sides = 5)`** <sub>interna</sub> · [L1056](../src/commands.js#L1056) — Cria um polígono regular (`sides` lados) ou estrela (pontas alternando raio 100% e 45%) já como vetor editável.
   - `kind` <sub>'polygon'\|'star'</sub> — 
-- **`BOOL_TYPES`** <sub>interna</sub> · [L1027](../src/commands.js#L1027) — Tipos que entram numa operação booleana.
-- **`worldContours(n)`** <sub>interna</sub> · [L1034](../src/commands.js#L1034) — Contornos de uma camada em coordenadas do MUNDO (rotação e espelhamento aplicados), ainda com curvas. Retângulo/frame (com cantos arredondados), elipse e vetor (com todos os contornos). Devolve { contours, rule }.
-- **`booleanOp(op)`** <sub>interna</sub> · [L1063](../src/commands.js#L1063) — OPERAÇÃO BOOLEANA com a seleção (2+ vetores/retângulos/elipses/frames): 'union' unir, 'subtract' subtrair (a camada de BAIXO menos as de cima, como no Figma), 'intersect' interseção, 'exclude' excluir a sobreposição. As curvas são achatadas em polígonos (geom.js) e o resultado é reajustado em curvas onde era curvo: o vetor final pode ter alguns pontos a mais que o original. O resultado fica no lugar da camada de baixo, com o estilo dela.
+- **`BOOL_TYPES`** <sub>interna</sub> · [L1073](../src/commands.js#L1073) — Tipos que entram numa operação booleana.
+- **`worldContours(n)`** <sub>interna</sub> · [L1080](../src/commands.js#L1080) — Contornos de uma camada em coordenadas do MUNDO (rotação e espelhamento aplicados), ainda com curvas. Retângulo/frame (com cantos arredondados), elipse e vetor (com todos os contornos). Devolve { contours, rule }.
+- **`booleanOp(op)`** <sub>interna</sub> · [L1109](../src/commands.js#L1109) — OPERAÇÃO BOOLEANA com a seleção (2+ vetores/retângulos/elipses/frames): 'union' unir, 'subtract' subtrair (a camada de BAIXO menos as de cima, como no Figma), 'intersect' interseção, 'exclude' excluir a sobreposição. As curvas são achatadas em polígonos (geom.js) e o resultado é reajustado em curvas onde era curvo: o vetor final pode ter alguns pontos a mais que o original. O resultado fica no lugar da camada de baixo, com o estilo dela.
   - ↩︎ `{node?: object, error?: string` }
-- **`localBox(node)`** <sub>interna</sub> · [L1121](../src/commands.js#L1121) — Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG.
-- **`frameSelection()`** <sub>interna</sub> · [L1130](../src/commands.js#L1130) — Ctrl+Alt+G: envolve a seleção num frame novo, sem layout.
-- **`cssOf(nodes)`** <sub>interna</sub> · [L1141](../src/commands.js#L1141) — CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS".
-- **`readImage(file)`** <sub>do módulo</sub> · [L1165](../src/commands.js#L1165) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
-- **`pathBounds(pts, closed = false)`** · [L1198](../src/commands.js#L1198) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
+- **`localBox(node)`** <sub>interna</sub> · [L1167](../src/commands.js#L1167) — Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG.
+- **`frameSelection()`** <sub>interna</sub> · [L1176](../src/commands.js#L1176) — Ctrl+Alt+G: envolve a seleção num frame novo, sem layout.
+- **`cssOf(nodes)`** <sub>interna</sub> · [L1187](../src/commands.js#L1187) — CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS".
+- **`readImage(file)`** <sub>do módulo</sub> · [L1212](../src/commands.js#L1212) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
+- **`pathBounds(pts, closed = false)`** · [L1245](../src/commands.js#L1245) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
   - `[]` <sub>{x,y,hin?,hout?</sub> — } pts
   - `[closed]` <sub>boolean</sub> — considera o segmento de volta ao primeiro ponto
 
@@ -784,6 +788,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`htmlAttrs(node, tag)`** · [L506](../src/html.js#L506) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
   - `node` <sub>object</sub> — 
   - `tag` <sub>string</sub> — etiqueta efetiva no HTML exportado
+
+---
+
+## src/image-assets.js
+
+- **`imageAssetCatalog(doc)`** · [L7](../src/image-assets.js#L7) — _(sem comentário)_
 
 ---
 
@@ -1399,6 +1409,13 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/site-export.js
+
+- **`exportSite(doc)`** · [L53](../src/site-export.js#L53) — _(sem comentário)_
+  - ↩︎ `{files: {path: string, content: string` [], warnings: string[]}}
+
+---
+
 ## src/storage.js
 
 **ONDE O PROJETO É GUARDADO: NAVEGADOR (IndexedDB) E PASTA DO COMPUTADOR (servidor)** · [abrir o código](../src/storage.js)
@@ -1732,6 +1749,15 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 ---
 
+## src/agent/content.js
+
+- **`DEFAULT_AGENT_CONTENT_BYTES`** · [L2](../src/agent/content.js#L2) — Limites para conteúdo de código devolvido ao agente: resposta moderada por padrão, nunca acima de 1 MiB.
+- **`MAX_AGENT_CONTENT_BYTES`** · [L3](../src/agent/content.js#L3) — _(sem comentário)_
+- **`agentContentLimit(value)`** · [L5](../src/agent/content.js#L5) — _(sem comentário)_
+- **`boundedUtf8Chunk(value, { offset = 0, maxBytes = DEFAULT_AGENT_CONTENT_BYTES } = {})`** · [L14](../src/agent/content.js#L14) — Retorna uma parte UTF-8 segura de um texto. `offset` e `nextOffset` são posições em bytes e nunca cortam um caractere multibyte. O chamador usa `nextOffset` na chamada seguinte até `complete` ser true.
+
+---
+
 ## src/agent/jev.js
 
 **O JEV (TypeSafe) COMO "SEGUNDA OPINIÃO" RÁPIDA DO AGENTE** · [abrir o código](../src/agent/jev.js)
@@ -1800,45 +1826,48 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
      (Permitir / Permitir tudo nesta sessão / Recusar). Recusado = nada muda;
    - cada alteração aprovada termina com UM `store.commit()`: um Ctrl+Z desfaz a alteração inteira;
    - só as propriedades conhecidas são aceitas (veja PROPS): a IA não consegue gravar lixo no projeto.
+   - falha assíncrona não restaura uma cópia velha se o documento mudou enquanto a ferramenta aguardava.
  Erros viram mensagens em português devolvidas à IA (ela lê e corrige), nunca quebram o editor.
 ```
 
-- **`SIMPLE`** <sub>do módulo</sub> · [L27](../src/agent/runner.js#L27) — Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada.
-- **`SPECIAL`** <sub>do módulo</sub> · [L35](../src/agent/runner.js#L35) — Campos com tratamento próprio (ver applyProps).
-- **`PROPS`** · [L37](../src/agent/runner.js#L37) — Tudo que update_layer / create_layer aceitam.
-- **`ENUMS`** <sub>do módulo</sub> · [L39](../src/agent/runner.js#L39) — Valores válidos de alguns campos (o resto é conferido pelo tipo).
-- **`hex(v)`** <sub>do módulo</sub> · [L47](../src/agent/runner.js#L47) — "#abc" / "#AABBCC" → "#AABBCC"; outra coisa → null.
-- **`four(v, what)`** <sub>do módulo</sub> · [L54](../src/agent/runner.js#L54) — Número ou lista de 4 → lista de 4 (padding, margin, radius).
-- **`applyProps(node, props, ctx = {})`** · [L67](../src/agent/runner.js#L67) — Aplica `props` numa camada (dentro de um store.update). Lança Error com mensagem clara se algo não vale.
+- **`SIMPLE`** <sub>do módulo</sub> · [L31](../src/agent/runner.js#L31) — Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada.
+- **`SPECIAL`** <sub>do módulo</sub> · [L39](../src/agent/runner.js#L39) — Campos com tratamento próprio (ver applyProps).
+- **`PROPS`** · [L41](../src/agent/runner.js#L41) — Tudo que update_layer / create_layer aceitam.
+- **`ENUMS`** <sub>do módulo</sub> · [L43](../src/agent/runner.js#L43) — Valores válidos de alguns campos (o resto é conferido pelo tipo).
+- **`hex(v)`** <sub>do módulo</sub> · [L51](../src/agent/runner.js#L51) — "#abc" / "#AABBCC" → "#AABBCC"; outra coisa → null.
+- **`four(v, what)`** <sub>do módulo</sub> · [L58](../src/agent/runner.js#L58) — Número ou lista de 4 → lista de 4 (padding, margin, radius).
+- **`applyProps(node, props, ctx = {})`** · [L71](../src/agent/runner.js#L71) — Aplica `props` numa camada (dentro de um store.update). Lança Error com mensagem clara se algo não vale.
   - `node` <sub>object</sub> — 
   - `props` <sub>object</sub> — 
-- **`summarize(n, depth = 0)`** · [L140](../src/agent/runner.js#L140) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
-- **`describeCall(tool, args, store)`** · [L164](../src/agent/runner.js#L164) — Descrição em português de uma alteração, para a janela de permissão.
-- **`createRunner({ store, commands, approve, saving = null, folder = null })`** · [L218](../src/agent/runner.js#L218) — Cria o executor.
+- **`summarize(n, depth = 0)`** · [L144](../src/agent/runner.js#L144) — Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos).
+- **`describeCall(tool, args, store)`** · [L169](../src/agent/runner.js#L169) — Descrição em português de uma alteração, para a janela de permissão.
+- **`assertCurrentImageTarget(store, id, doc, node, fill, source)`** · [L216](../src/agent/runner.js#L216) — Confere que uma operação assíncrona ainda aponta para o mesmo documento e a mesma imagem.
+- **`createRunner({ store, commands, approve, saving = null, folder = null })`** · [L234](../src/agent/runner.js#L234) — Cria o executor.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.commands` <sub>object</sub> — 
   - `[deps.saving]` <sub>object</sub> — salvamento (abrir/salvar projetos da pasta) · @param {object} [deps.folder]  API da pasta (listar)
   - ↩︎ `{ run: (tool: string, args: object, client?: string, opts?: {external?: boolean, admin?: boolean` ) => Promise<object> }}
-- **`need(id)`** <sub>interna</sub> · [L220](../src/agent/runner.js#L220) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
-- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L226](../src/agent/runner.js#L226) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
-- **`iconCache`** <sub>interna</sub> · [L325](../src/agent/runner.js#L325) — SVGs de ícones já baixados (não baixa o mesmo duas vezes).
-- **`fetchIcon(name, style = 'outlined', filled = false)`** <sub>interna</sub> · [L327](../src/agent/runner.js#L327) — Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto).
-- **`iconNode(svg, { name, color = '#111111', size = 24 })`** <sub>interna</sub> · [L342](../src/agent/runner.js#L342) — Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos.
-- **`colorStyle(id)`** <sub>interna</sub> · [L348](../src/agent/runner.js#L348) — Cor e opacidade de um estilo de cor do projeto (ou null).
-- **`targetList(parent_id)`** <sub>interna</sub> · [L350](../src/agent/runner.js#L350) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
-- **`insertAt(list, node, index)`** <sub>interna</sub> · [L356](../src/agent/runner.js#L356) — Insere na posição pedida (ou no fim).
-- **`placeBeside(node)`** <sub>interna</sub> · [L358](../src/agent/runner.js#L358) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
-- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L366](../src/agent/runner.js#L366) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
-- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L378](../src/agent/runner.js#L378) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
-- **`guardSwitch()`** <sub>interna</sub> · [L403](../src/agent/runner.js#L403) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
-- **`imageLayer(id)`** <sub>interna</sub> · [L412](../src/agent/runner.js#L412) — Camada com preenchimento de imagem (ou erro claro).
-- **`imageInfo(n)`** <sub>interna</sub> · [L418](../src/agent/runner.js#L418) — Resumo da imagem gravada (tamanho e peso).
-- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L625](../src/agent/runner.js#L625) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
+- **`need(id)`** <sub>interna</sub> · [L236](../src/agent/runner.js#L236) — Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes).
+- **`setLayoutMode(node, mode)`** <sub>interna</sub> · [L242](../src/agent/runner.js#L242) — Liga/desliga o layout com a lógica do painel (deduz direção, gap e padding ao ligar).
+- **`iconCache`** <sub>interna</sub> · [L381](../src/agent/runner.js#L381) — SVGs de ícones já baixados (não baixa o mesmo duas vezes).
+- **`fetchIcon(name, style = 'outlined', filled = false)`** <sub>interna</sub> · [L383](../src/agent/runner.js#L383) — Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto).
+- **`iconNode(svg, { name, color = '#111111', size = 24 })`** <sub>interna</sub> · [L398](../src/agent/runner.js#L398) — Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos.
+- **`colorStyle(id)`** <sub>interna</sub> · [L404](../src/agent/runner.js#L404) — Cor e opacidade de um estilo de cor do projeto (ou null).
+- **`targetList(parent_id)`** <sub>interna</sub> · [L406](../src/agent/runner.js#L406) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
+- **`insertAt(list, node, index)`** <sub>interna</sub> · [L412](../src/agent/runner.js#L412) — Insere na posição pedida (ou no fim).
+- **`placeBeside(node)`** <sub>interna</sub> · [L414](../src/agent/runner.js#L414) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
+- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L422](../src/agent/runner.js#L422) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
+- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L434](../src/agent/runner.js#L434) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
+- **`guardSwitch()`** <sub>interna</sub> · [L459](../src/agent/runner.js#L459) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
+- **`imageLayer(id)`** <sub>interna</sub> · [L468](../src/agent/runner.js#L468) — Camada com preenchimento de imagem (ou erro claro).
+- **`imageInfo(n)`** <sub>interna</sub> · [L474](../src/agent/runner.js#L474) — Resumo da imagem gravada (tamanho e peso).
+- **`imageTarget(id)`** <sub>interna</sub> · [L479](../src/agent/runner.js#L479) — Impede uma operação de imagem lenta de aplicar o resultado sobre uma imagem que a pessoa já trocou.
+- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L712](../src/agent/runner.js#L712) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
   - `tool` <sub>string</sub> — 
   - `args` <sub>object</sub> — 
   - `[client]` <sub>string</sub> — quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
-- **`restoreDoc(json)`** <sub>interna</sub> · [L664](../src/agent/runner.js#L664) — Desfaz uma alteração que falhou no meio, sem criar passo no histórico.
+- **`restoreDoc(json)`** <sub>interna</sub> · [L762](../src/agent/runner.js#L762) — Restaura uma alteração parcial que falhou, sem criar passo no histórico (só sem mudanças concorrentes).
 
 ---
 
@@ -2405,14 +2434,14 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`imageNodeOf(store, id)`** · [L132](../src/ui/imageai.js#L132) — A camada tem imagem de preenchimento (com o arquivo presente)?
 - **`applyImageToNode(store, id, { dataUrl, w, h }, { commit = true } = {})`** · [L141](../src/ui/imageai.js#L141) — Grava a imagem nova como ARQUIVO NOVO em doc.assets e troca a imagem da camada. A original fica guardada em fill.origAssetId (só a primeira: editar de novo não perde a original). Com `commit` (padrão) vira um passo do Ctrl+Z.
 - **`hasOriginal(n)`** · [L158](../src/ui/imageai.js#L158) — A camada tem uma imagem original guardada (e a imagem atual é uma edição dela)?
-- **`restoreOriginal(store, id, { commit = true } = {})`** · [L161](../src/ui/imageai.js#L161) — Volta para a imagem original (antes de qualquer edição). Devolve false se não houver original guardada.
-- **`editImageLocal(src, ops = {})`** · [L186](../src/ui/imageai.js#L186) — EDIÇÃO LOCAL em lote (ferramenta edit_image do agente). Ordem: girar/espelhar → recortar → remover fundo → filtro → ajustes → largura máxima → codificar.
+- **`restoreOriginal(store, id, { commit = true, beforeApply = null } = {})`** · [L161](../src/ui/imageai.js#L161) — Volta para a imagem original (antes de qualquer edição). Devolve false se não houver original guardada.
+- **`editImageLocal(src, ops = {})`** · [L189](../src/ui/imageai.js#L189) — EDIÇÃO LOCAL em lote (ferramenta edit_image do agente). Ordem: girar/espelhar → recortar → remover fundo → filtro → ajustes → largura máxima → codificar.
   - `src` <sub>string</sub> — data URL da imagem
   - `ops` <sub>object</sub> — { rotate: 90\|180\|270\|-90, flip_h, flip_v, crop: {x,y,w,h} (px) \| ratio: '1:1'\|'4:3'\|'16:9'\|'3:2', remove_background: true \| {tolerance, feather}, filter, adjust: {...}, max_width, format, quality }
   - ↩︎ `Promise<{dataUrl:string, w:number, h:number, bytes:number, removed?:number` >}
-- **`imageAiConfig()`** · [L223](../src/ui/imageai.js#L223) — Configuração do modelo de imagem do servidor ({ available, reason, model, ... }) ou null sem servidor.
-- **`postImageAi(path, body, signal)`** <sub>do módulo</sub> · [L232](../src/ui/imageai.js#L232) — POST na API de imagem do servidor; erro com a mensagem que o servidor mandou.
-- **`generativeEdit({ src, mode, prompt, mask = null, area = null, expand = null, signal })`** · [L259](../src/ui/imageai.js#L259) — EDIÇÃO GENERATIVA (servidor + modelo de imagem). Monta o quadrado que a API espera (planGenerative), a máscara (transparente = a IA pode mudar), manda, recorta a resposta de volta e cola a imagem original por cima do que não era para mudar (assim o resto fica idêntico, sem perder nitidez).
+- **`imageAiConfig()`** · [L226](../src/ui/imageai.js#L226) — Configuração do modelo de imagem do servidor ({ available, reason, model, ... }) ou null sem servidor.
+- **`postImageAi(path, body, signal)`** <sub>do módulo</sub> · [L235](../src/ui/imageai.js#L235) — POST na API de imagem do servidor; erro com a mensagem que o servidor mandou.
+- **`generativeEdit({ src, mode, prompt, mask = null, area = null, expand = null, signal })`** · [L262](../src/ui/imageai.js#L262) — EDIÇÃO GENERATIVA (servidor + modelo de imagem). Monta o quadrado que a API espera (planGenerative), a máscara (transparente = a IA pode mudar), manda, recorta a resposta de volta e cola a imagem original por cima do que não era para mudar (assim o resto fica idêntico, sem perder nitidez).
   - `o` <sub>object</sub> — 
   - `o.src` <sub>string</sub> — data URL da imagem atual
   - `o.mode` <sub>'fill'\|'replace'\|'variation'\|'expand'\|'generate'</sub> — 
@@ -2420,30 +2449,30 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[o.mask]` <sub>Uint8Array</sub> — área pintada (w×h, >0 = mudar) — editor
   - `[o.signal]` <sub>AbortSignal</sub> — 
   - ↩︎ `Promise<{dataUrl:string, w:number, h:number` >}
-- **`TOOLS`** <sub>do módulo</sub> · [L332](../src/ui/imageai.js#L332) — Ferramentas da barra da esquerda: id, ícone, nome.
-- **`current`** <sub>do módulo</sub> · [L341](../src/ui/imageai.js#L341) — Editor aberto agora (só um por vez).
-- **`openImageEditor({ store, nodeId, toast = () => {}, tool = 'adjust' })`** · [L351](../src/ui/imageai.js#L351) — Abre o editor de imagem da camada `nodeId` (precisa ter preenchimento de imagem).
+- **`TOOLS`** <sub>do módulo</sub> · [L335](../src/ui/imageai.js#L335) — Ferramentas da barra da esquerda: id, ícone, nome.
+- **`current`** <sub>do módulo</sub> · [L344](../src/ui/imageai.js#L344) — Editor aberto agora (só um por vez).
+- **`openImageEditor({ store, nodeId, toast = () => {}, tool = 'adjust' })`** · [L354](../src/ui/imageai.js#L354) — Abre o editor de imagem da camada `nodeId` (precisa ter preenchimento de imagem).
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — 
   - `deps.nodeId` <sub>string</sub> — 
   - `[deps.toast]` <sub>(msg: string) => void</sub> — 
   - `[deps.tool]` <sub>string</sub> — ferramenta inicial ('crop', 'adjust', 'filters', 'background', 'ai', 'size')
-- **`hist`** <sub>interna</sub> · [L365](../src/ui/imageai.js#L365) — Histórico do editor: cada item é uma foto do estado (canvases não mudam depois de criados: são compartilhados).
-- **`commit()`** <sub>interna</sub> · [L368](../src/ui/imageai.js#L368) — Fecha uma alteração: entra no desfazer do editor.
-- **`workResized()`** <sub>interna</sub> · [L430](../src/ui/imageai.js#L430) — Recalcula a escala da prévia (tamanho do palco) e a cópia reduzida.
-- **`maskChanged()`** <sub>interna</sub> · [L445](../src/ui/imageai.js#L445) — A máscara de fundo mudou: refaz a versão reduzida.
-- **`schedule()`** <sub>interna</sub> · [L447](../src/ui/imageai.js#L447) — Agenda um redesenho (no máximo um por quadro).
-- **`summary()`** <sub>interna</sub> · [L449](../src/ui/imageai.js#L449) — Resumo do estado em data-state (testes automáticos e depuração leem daqui).
-- **`drawOverlay()`** <sub>interna</sub> · [L464](../src/ui/imageai.js#L464) — Camada por cima da prévia: a área pintada da IA generativa (vermelho) e o contorno do Expandir.
-- **`afterMask()`** <sub>interna</sub> · [L561](../src/ui/imageai.js#L561) — A máscara de fundo terminou de mudar: prévia, histórico, formato com transparência e painel.
-- **`rendered()`** <sub>interna</sub> · [L572](../src/ui/imageai.js#L572) — Imagem de trabalho com filtro, ajustes e fundo removido já aplicados (tamanho real).
-- **`setWork(c, { bake = false } = {})`** <sub>interna</sub> · [L577](../src/ui/imageai.js#L577) — Troca a imagem de trabalho (giro, recorte, resultado da IA). `bake` = aplica antes os ajustes/filtro/fundo.
-- **`geometry(fn)`** <sub>interna</sub> · [L586](../src/ui/imageai.js#L586) — Giro/espelho: o fundo removido é aplicado antes (a máscara é do tamanho antigo).
-- **`slider(label, value, min, max, step, onInput, onDone, fmt = (v) => String(v))`** <sub>interna</sub> · [L596](../src/ui/imageai.js#L596) — Controle deslizante com valor: `onInput` ao vivo, `onDone` ao soltar (histórico).
-- **`finalImage()`** <sub>interna</sub> · [L784](../src/ui/imageai.js#L784) — A imagem final (tudo aplicado, no tamanho e formato escolhidos).
-- **`dirty()`** <sub>interna</sub> · [L835](../src/ui/imageai.js#L835) — Houve alguma mudança (para perguntar antes de fechar e para o Aplicar não gravar uma cópia igual).
-- **`imageEditorOpen()`** · [L908](../src/ui/imageai.js#L908) — O editor de imagem está aberto?
-- **`imageModelCard({ card, row, toast })`** · [L916](../src/ui/imageai.js#L916) — Cartão "Modelo de imagem" da seção Agente de IA e modelos (ui/settings.js). Mostra se a edição generativa está disponível e permite escolher outro endereço/modelo/chave só para imagens.
+- **`hist`** <sub>interna</sub> · [L368](../src/ui/imageai.js#L368) — Histórico do editor: cada item é uma foto do estado (canvases não mudam depois de criados: são compartilhados).
+- **`commit()`** <sub>interna</sub> · [L371](../src/ui/imageai.js#L371) — Fecha uma alteração: entra no desfazer do editor.
+- **`workResized()`** <sub>interna</sub> · [L433](../src/ui/imageai.js#L433) — Recalcula a escala da prévia (tamanho do palco) e a cópia reduzida.
+- **`maskChanged()`** <sub>interna</sub> · [L448](../src/ui/imageai.js#L448) — A máscara de fundo mudou: refaz a versão reduzida.
+- **`schedule()`** <sub>interna</sub> · [L450](../src/ui/imageai.js#L450) — Agenda um redesenho (no máximo um por quadro).
+- **`summary()`** <sub>interna</sub> · [L452](../src/ui/imageai.js#L452) — Resumo do estado em data-state (testes automáticos e depuração leem daqui).
+- **`drawOverlay()`** <sub>interna</sub> · [L467](../src/ui/imageai.js#L467) — Camada por cima da prévia: a área pintada da IA generativa (vermelho) e o contorno do Expandir.
+- **`afterMask()`** <sub>interna</sub> · [L564](../src/ui/imageai.js#L564) — A máscara de fundo terminou de mudar: prévia, histórico, formato com transparência e painel.
+- **`rendered()`** <sub>interna</sub> · [L575](../src/ui/imageai.js#L575) — Imagem de trabalho com filtro, ajustes e fundo removido já aplicados (tamanho real).
+- **`setWork(c, { bake = false } = {})`** <sub>interna</sub> · [L580](../src/ui/imageai.js#L580) — Troca a imagem de trabalho (giro, recorte, resultado da IA). `bake` = aplica antes os ajustes/filtro/fundo.
+- **`geometry(fn)`** <sub>interna</sub> · [L589](../src/ui/imageai.js#L589) — Giro/espelho: o fundo removido é aplicado antes (a máscara é do tamanho antigo).
+- **`slider(label, value, min, max, step, onInput, onDone, fmt = (v) => String(v))`** <sub>interna</sub> · [L599](../src/ui/imageai.js#L599) — Controle deslizante com valor: `onInput` ao vivo, `onDone` ao soltar (histórico).
+- **`finalImage()`** <sub>interna</sub> · [L787](../src/ui/imageai.js#L787) — A imagem final (tudo aplicado, no tamanho e formato escolhidos).
+- **`dirty()`** <sub>interna</sub> · [L838](../src/ui/imageai.js#L838) — Houve alguma mudança (para perguntar antes de fechar e para o Aplicar não gravar uma cópia igual).
+- **`imageEditorOpen()`** · [L911](../src/ui/imageai.js#L911) — O editor de imagem está aberto?
+- **`imageModelCard({ card, row, toast })`** · [L919](../src/ui/imageai.js#L919) — Cartão "Modelo de imagem" da seção Agente de IA e modelos (ui/settings.js). Mostra se a edição generativa está disponível e permite escolher outro endereço/modelo/chave só para imagens.
 
 ---
 

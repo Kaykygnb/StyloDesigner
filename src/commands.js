@@ -14,6 +14,7 @@ import { createInstance, detachInstance, makeComponent, syncInstances, textStyle
 import { importSvg } from './svgimport.js';
 import { booleanPolygons, ellipseContour, flattenContour, polygonsToContours, rectContour } from './geom.js';
 import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
+import { imageAssetCatalog } from './image-assets.js';
 
 /**
  * Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez
@@ -631,6 +632,51 @@ export function createCommands(store, canvas) {
     return true;
   }
 
+  /** Reutiliza uma imagem já importada no projeto, sem duplicar seu data URL. */
+  async function insertImageAsset(assetId, at, { parentId = null, index, name } = {}) {
+    const doc = store.state.doc;
+    const src = doc.assets?.[assetId];
+    if (typeof src !== 'string' || !src.startsWith('data:image/')) throw new Error('Imagem do projeto não encontrada. Atualize a lista de assets e tente novamente.');
+    const meta = imageAssetCatalog(doc).find((a) => a.id === assetId);
+    let w = meta?.width, h = meta?.height;
+    if (!(w > 0 && h > 0)) {
+      const image = new Image();
+      image.src = src;
+      try { await image.decode(); } catch { throw new Error('Não consegui ler as dimensões desta imagem.'); }
+      w = image.naturalWidth;
+      h = image.naturalHeight;
+    }
+    if (!(w > 0 && h > 0)) throw new Error('Esta imagem não tem dimensões válidas.');
+    const scale = Math.min(1, 520 / Math.max(w, h));
+    const node = createNode('rect', {
+      name: String(name || meta?.name || 'Imagem').trim().slice(0, 120) || 'Imagem',
+      w: Math.max(1, Math.round(w * scale)), h: Math.max(1, Math.round(h * scale)),
+      fill: { ...defaultFill(), type: 'image', assetId, fit: 'cover', natW: w, natH: h },
+    });
+    const parent = parentId ? store.get(parentId) : null;
+    if (parentId && !parent) throw new Error(`Frame "${parentId}" não existe.`);
+    if (parent && !parent.children) throw new Error(`“${parent.name}” não pode receber uma imagem.`);
+    store.update((page) => {
+      if (parent) {
+        const origin = canvas.originOf(parent.id);
+        const center = at ? { x: at.x - origin.x, y: at.y - origin.y } : { x: parent.w / 2, y: parent.h / 2 };
+        node.x = Math.round(center.x - node.w / 2);
+        node.y = Math.round(center.y - node.h / 2);
+        const list = parent.children;
+        list.splice(Number.isInteger(index) ? Math.max(0, Math.min(index, list.length)) : list.length, 0, node);
+      } else {
+        const rect = canvas.vpRect();
+        const point = at || canvas.toWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        node.x = Math.round(point.x - node.w / 2);
+        node.y = Math.round(point.y - node.h / 2);
+        page.children.push(node);
+      }
+    });
+    store.setSelection([node.id]);
+    store.commit();
+    return node;
+  }
+
   /** Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`). */
   const notify = (msg) => api.notify?.(msg);
 
@@ -1152,6 +1198,7 @@ export function createCommands(store, canvas) {
     addColorMode, renameColorMode, setModeScheme, deleteColorMode, addSizeVar, setSizeVar, deleteSizeVar, bindSizeVar, removeStyle,
     addGuide, removeGuide, addPathFromWorld, updatePathFromWorld, newIcon, normalizePath, addShapePath, syncInstances,
     notify: null, // função de aviso (toast); main.js liga
+    insertImageAsset,
   };
   return api;
 }

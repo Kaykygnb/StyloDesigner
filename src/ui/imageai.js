@@ -158,12 +158,15 @@ export function applyImageToNode(store, id, { dataUrl, w, h }, { commit = true }
 export const hasOriginal = (n) => !!(n?.fill?.origAssetId && n.fill.assetId === n.fill.editedAssetId);
 
 /** Volta para a imagem original (antes de qualquer edição). Devolve false se não houver original guardada. */
-export async function restoreOriginal(store, id, { commit = true } = {}) {
+export async function restoreOriginal(store, id, { commit = true, beforeApply = null } = {}) {
   const n = store.get(id);
   const orig = hasOriginal(n) && n.fill.origAssetId;
   const src = orig && store.state.doc.assets?.[orig];
   if (!src) return false;
   const img = await loadImage(src);
+  // Uma operação MCP pode estar esperando o decode enquanto a pessoa troca de imagem.
+  // O callback permite ao chamador validar o alvo imediatamente antes da escrita.
+  beforeApply?.();
   store.update(() => {
     n.fill.assetId = orig;
     delete n.fill.origAssetId;
