@@ -37,6 +37,8 @@ O conjunto unitário passou de 289 para 290 testes. A comparação de nomes conf
 | `5e86e6b` feat(assets): organiza as imagens do projeto | 288/288 |
 | `e21ced6` chore: adiciona scripts de auditoria e desempenho | 288/288 |
 | `b5c3566` fix(auditoria): corrige testes instáveis encontrados | 290/290 |
-| `38988b1` docs: registra resultados e próximos passos da auditoria | 290/290 |
+| `7607d31` docs: registra resultados e próximos passos da auditoria | 290/290 |
 
 Na primeira execução E2E completa da branch reconstruída, `desempenho.mjs` marcou 16,6 ms contra o limite de 16 ms; as outras 40 suítes passaram. A suíte isolada mediu 11,5 ms, e a execução E2E completa repetida passou 41/41 (11,5 ms no cenário de desempenho). O resultado indica variação da medição sob carga, registrada para não ocultar o evento.
+
+Após a tradução de um comentário em um teste E2E, `npm test` foi executado novamente no estado final: 290/290 passaram.

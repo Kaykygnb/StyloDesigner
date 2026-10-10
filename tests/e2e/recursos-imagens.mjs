@@ -13,7 +13,7 @@ await page.goto(new URL('?editor', APP).href);
 await page.waitForFunction(() => window.designer?.store);
 const ids = await ev(() => {
   const { createNode, defaultFill, uid } = window.__styloModel || {};
-  // Vite modules are imported explicitly so the fixture uses the real document model.
+  // Importa os módulos do Vite explicitamente para usar o modelo real do documento no cenário.
   return Promise.resolve().then(async () => {
     const m = await import('/src/model.js');
     const s = designer.store;
