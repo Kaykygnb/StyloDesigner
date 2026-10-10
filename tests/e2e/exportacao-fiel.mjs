@@ -75,7 +75,7 @@ async function compareScreens(title, screens) {
         const s = designer.store;
         return exportHtml(s.get(id), s.state.doc.assets, 'teste', s.state.doc.styles, { ids: true });
       }, sc.id);
-      const width = Math.round(ed.width) + 48; // o <body> do arquivo exportado tem 24px de margem de cada lado
+      const width = Math.round(ed.width); // a exportação ocupa a janela, sem margem de apresentação
       const q = await (await b.newContext({ viewport: { width, height: 900 } })).newPage();
       q.on('pageerror', (e) => errors.push('exportado: ' + e.message));
       await q.setContent(html, { waitUntil: 'load' });
@@ -87,7 +87,7 @@ async function compareScreens(title, screens) {
       await q.close();
 
       // ---- compara camada por camada
-      const label = `${title} · ${sc.name} · ${bp || 'desktop'} (${width - 48}px)`;
+      const label = `${title} · ${sc.name} · ${bp || 'desktop'} (${width}px)`;
       const names = await ev((ids) => Object.fromEntries(ids.map((id) => [id, designer.store.get(id)?.name || id])), Object.keys(ed.boxes));
       const missing = Object.keys(ed.boxes).filter((id) => !ex[id]);
       const diffs = [];

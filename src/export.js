@@ -9,7 +9,9 @@
 
 import { EXPORT_RESET, exportHtml, generateCode, joinCss, withPageCss } from './css.js';
 import { toSvg } from './svg.js';
-import { slugify } from './model.js';
+import { createProjectId, slugify } from './model.js';
+import { exportSite } from './site-export.js';
+import { createZip } from './zip.js';
 
 /**
  * Faz o navegador BAIXAR um arquivo gerado na memória: cria um Blob, uma URL temporária e clica num <a download>
@@ -35,12 +37,20 @@ export function exportHtmlFile(node, assets, styles = null) {
   download(`${slugify(node.name)}.html`, exportHtml(node, assets, node.name, styles), 'text/html');
 }
 
+/** Baixa todas as pranchetas visíveis como um site estático de páginas HTML dentro de um ZIP. */
+export function exportSiteFile(doc) {
+  const site = exportSite(doc);
+  const archive = createZip(site.files.map(({ path, content }) => ({ path, content })));
+  download(`${slugify(doc?.name || 'site')}-site.zip`, new Blob([archive], { type: 'application/zip' }));
+  return { files: site.files.map(({ path }) => path), warnings: site.warnings };
+}
+
 /**
  * Baixa o PROJETO inteiro como `.designer.json` (todas as páginas, imagens e estilos). É o backup de verdade:
  * o salvamento automático fica só no navegador. Para abrir de novo: Arquivo → Abrir.
  */
 export function saveProject(doc) {
-  download(`${slugify(doc.name)}.designer.json`, JSON.stringify(doc), 'application/json');
+  download(`${slugify(doc?.name || 'projeto')}.designer.json`, JSON.stringify(doc), 'application/json');
 }
 
 /**
@@ -51,6 +61,8 @@ export function saveProject(doc) {
 export async function openProjectFile(file) {
   const doc = JSON.parse(await file.text());
   if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
+  // Importação é uma cópia nova, inclusive quando o arquivo veio de um backup do mesmo projeto.
+  doc.projectId = createProjectId();
   doc.assets ||= {};
   return doc;
 }

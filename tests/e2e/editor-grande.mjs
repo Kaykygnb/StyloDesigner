@@ -192,7 +192,7 @@ try {
 
   // ---- HTML: etiquetas, atributos, fechamento automático e Emmet
   await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
-  await page.locator('#viewport').click({ position: { x: 1000, y: 120 } }).catch(() => {});
+  await page.locator('#viewport').click({ position: { x: 1000, y: 120 }, timeout: 500 }).catch(() => {});
   await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
   await page.keyboard.press('Shift+E');
   await page.waitForTimeout(300);
@@ -237,7 +237,7 @@ try {
   ok('Ctrl+Shift+E fecha', !(await dock.isVisible()));
   const back = await ev(() => document.querySelector('#viewport').getBoundingClientRect().height);
   ok('canvas volta ao tamanho', Math.abs(back - vpBefore) < 2, `${vpBefore} vs ${back}`);
-  await page.locator('#viewport').click({ position: { x: 1000, y: 700 } }).catch(() => {});
+  await page.locator('#viewport').click({ position: { x: 1000, y: 700 }, timeout: 500 }).catch(() => {});
   await kb.press('Control+Shift+E');
   await page.waitForTimeout(200);
   ok('Ctrl+Shift+E abre com a altura lembrada', await dock.isVisible() && Math.abs((await ev(() => document.querySelector('.code-dock').getBoundingClientRect().height)) - h2) < 2);

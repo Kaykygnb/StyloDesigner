@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-74 arquivos · 1177 funções e constantes documentadas.
+75 arquivos · 1180 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -46,6 +46,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/thumbnail.js`](#srcthumbnailjs) | Miniatura do projeto (SVG) para a página inicial |
 | [`src/tools.js`](#srctoolsjs) | Interação: mouse e teclado no canvas |
 | [`src/version.js`](#srcversionjs) |  |
+| [`src/zip.js`](#srczipjs) |  |
 | [`src/agent/bridge.js`](#srcagentbridgejs) | Permissão e ponte com o MCP (lado do navegador) |
 | [`src/agent/content.js`](#srcagentcontentjs) |  |
 | [`src/agent/jev.js`](#srcagentjevjs) | O jev (typesafe) como "segunda opinião" rápida do agente |
@@ -520,70 +521,70 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `parent` <sub>object\|null</sub> — o pai (decide se a camada está em fluxo de flex/grid ou é absoluta)
   - `[assets]` <sub>Object<string,string></sub> — imagens do documento
   - ↩︎ `Object<string,string>` propriedades CSS em ordem de inserção (kebab-case)
-- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L398](../src/css.js#L398) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
-- **`marginCss(node, s)`** <sub>do módulo</sub> · [L410](../src/css.js#L410) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
-- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L417](../src/css.js#L417) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
-- **`colorFilters(node)`** · [L418](../src/css.js#L418) — _(sem comentário)_
-- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L434](../src/css.js#L434) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
+- **`overflowCss(node, s, opts = {})`** <sub>do módulo</sub> · [L401](../src/css.js#L401) — Overflow do frame. Altera `s` diretamente. `opts.editor` = desenho do CANVAS: as variações de rolagem viram "cortar", porque barras de rolagem dentro do canvas atrapalhariam o editor (a rolagem de verdade vale na apresentação e no código exportado).
+- **`marginCss(node, s)`** <sub>do módulo</sub> · [L413](../src/css.js#L413) — Margem de um item EM FLUXO (flex/grid): atalho `margin` com 1 valor (todos iguais) ou 4 (topo direita baixo esquerda). Só aparece quando algum lado não é zero. Altera `s` diretamente. Camadas livres (position:absolute) não usam margem: a posição delas já é o left/top.
+- **`COLOR_FILTERS`** <sub>do módulo</sub> · [L420](../src/css.js#L420) — Funções de filtro de COR da camada, na ordem do CSS, só as que fogem do padrão: brightness, contrast, saturate, grayscale, hue-rotate.
+- **`colorFilters(node)`** · [L421](../src/css.js#L421) — _(sem comentário)_
+- **`truncateCss(node, s)`** <sub>do módulo</sub> · [L437](../src/css.js#L437) — Truncar texto (campo `truncate`). Altera `s` diretamente; vale DEPOIS do alinhamento vertical e do white-space.
 
    - 'ellipsis': uma linha só, o que não cabe vira "…"  → white-space:nowrap + overflow:hidden + text-overflow:ellipsis
    - 'clamp': no máximo `lines` linhas, com "…" no fim → display:-webkit-box + -webkit-line-clamp (e line-clamp)
   Os dois precisam de uma LARGURA (fixa ou máxima) para saber onde cortar. O alinhamento vertical por grid
   (centro/fim) é desligado, porque o grid e o -webkit-box/ellipsis não funcionam juntos.
-- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L459](../src/css.js#L459) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
+- **`sizeLimitsCss(node, s)`** <sub>do módulo</sub> · [L462](../src/css.js#L462) — Limites de tamanho e proporção da camada. Altera `s` diretamente. Ficam DEPOIS do tamanho, então `min-width` substitui o `min-width: 0` que o item "fill" de um flex escreve sozinho.
 
    - min-/max-width/height: só aparecem quando o usuário define (campos minW, maxW, minH, maxH).
    - aspect-ratio: só quando ALGUMA medida é flexível (hug/fill). A medida fixa vira `auto` no eixo oposto para a
      proporção valer (com as duas fixas o CSS ignoraria o aspect-ratio, e quem mantém a proporção é o editor).
-- **`parseCustomCss(text)`** · [L485](../src/css.js#L485) — Lê o "CSS livre" de uma camada ("propriedade: valor;" por linha) e devolve só as declarações seguras: nome de propriedade válido (ou variável --x) e valor sem chaves, sinais de tag nem "@". Linhas ruins são ignoradas.
+- **`parseCustomCss(text)`** · [L488](../src/css.js#L488) — Lê o "CSS livre" de uma camada ("propriedade: valor;" por linha) e devolve só as declarações seguras: nome de propriedade válido (ou variável --x) e valor sem chaves, sinais de tag nem "@". Linhas ruins são ignoradas.
   - `text` <sub>string</sub> — 
   - ↩︎ `Record<string, string>`
-- **`transformOf(node)`** · [L498](../src/css.js#L498) — _(sem comentário)_
-- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L513](../src/css.js#L513) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
-- **`hasStrokeSides(node)`** · [L545](../src/css.js#L545) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
-- **`num(n)`** <sub>do módulo</sub> · [L550](../src/css.js#L550) — Arredonda para 2 casas (coordenadas de SVG).
-- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L560](../src/css.js#L560) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
+- **`transformOf(node)`** · [L501](../src/css.js#L501) — _(sem comentário)_
+- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L516](../src/css.js#L516) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
+- **`hasStrokeSides(node)`** · [L548](../src/css.js#L548) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
+- **`num(n)`** <sub>do módulo</sub> · [L553](../src/css.js#L553) — Arredonda para 2 casas (coordenadas de SVG).
+- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L563](../src/css.js#L563) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
   - `[]` <sub>{x:number,y:number,hin?:object,hout?:object</sub> — } points  pontos; hin/hout = alças de entrada/saída
   - `closed` <sub>boolean</sub> — fecha o caminho com Z (liga o último ao primeiro)
   - `[tx]` <sub>(x:number)=>number</sub> — transformação opcional de x (usada pelo clip-path e pelo SVG exportado)
   - `[ty]` <sub>(y:number)=>number</sub> — idem para y
-- **`nodePathData(node, tx, ty)`** · [L582](../src/css.js#L582) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
+- **`nodePathData(node, tx, ty)`** · [L585](../src/css.js#L585) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
   - `node` <sub>object</sub> — camada do tipo 'path'
   - `[tx]` <sub>(x:number)=>number</sub> — 
   - `[ty]` <sub>(y:number)=>number</sub> — 
-- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L596](../src/css.js#L596) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
-- **`pathSvg(node, assets = {})`** · [L623](../src/css.js#L623) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
+- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L599](../src/css.js#L599) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
+- **`pathSvg(node, assets = {})`** · [L626](../src/css.js#L626) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
 
    - preserveAspectRatio="none": o desenho estica junto com a caixa da camada.
    - vector-effect="non-scaling-stroke": a espessura do traço NÃO muda ao esticar.
    - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
-- **`strokeAlign(node)`** · [L659](../src/css.js#L659) — Onde fica o contorno de um VETOR: 'center' (padrão), 'inside' ou 'outside' (`stroke.align`). Dentro/fora só valem em caminho fechado; num caminho aberto o traço é sempre centrado. (Retângulos e frames usam `stroke.position`.)
-- **`dashAttr(st, w = st?.width)`** · [L669](../src/css.js#L669) — `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade; senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
-- **`dashList(text)`** · [L676](../src/css.js#L676) — "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → '').
-- **`maskClip(group)`** · [L686](../src/css.js#L686) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
-- **`toCssText(style)`** · [L703](../src/css.js#L703) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
-- **`cssRule(selector, style, indent = '')`** · [L709](../src/css.js#L709) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
-- **`stateStyle(node, parent, assets, opts, states)`** · [L725](../src/css.js#L725) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+- **`strokeAlign(node)`** · [L662](../src/css.js#L662) — Onde fica o contorno de um VETOR: 'center' (padrão), 'inside' ou 'outside' (`stroke.align`). Dentro/fora só valem em caminho fechado; num caminho aberto o traço é sempre centrado. (Retângulos e frames usam `stroke.position`.)
+- **`dashAttr(st, w = st?.width)`** · [L672](../src/css.js#L672) — `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade; senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
+- **`dashList(text)`** · [L679](../src/css.js#L679) — "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → '').
+- **`maskClip(group)`** · [L689](../src/css.js#L689) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
+- **`toCssText(style)`** · [L706](../src/css.js#L706) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
+- **`cssRule(selector, style, indent = '')`** · [L712](../src/css.js#L712) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
+- **`stateStyle(node, parent, assets, opts, states)`** · [L728](../src/css.js#L728) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
   - `node` <sub>object</sub> — 
   - `parent` <sub>object\|null</sub> — 
   - `assets` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
-- **`pathStateStyle(node, assets, state)`** · [L739](../src/css.js#L739) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
-- **`makeClassNamer()`** <sub>do módulo</sub> · [L762](../src/css.js#L762) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`classNamesOf(roots)`** · [L776](../src/css.js#L776) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
-- **`withPageCss(css, styles)`** · [L787](../src/css.js#L787) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
-- **`noteComment(node)`** · [L793](../src/css.js#L793) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L799](../src/css.js#L799) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L810](../src/css.js#L810) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`pathStateStyle(node, assets, state)`** · [L742](../src/css.js#L742) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+- **`makeClassNamer()`** <sub>do módulo</sub> · [L765](../src/css.js#L765) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+- **`classNamesOf(roots)`** · [L779](../src/css.js#L779) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
+- **`withPageCss(css, styles)`** · [L790](../src/css.js#L790) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
+- **`noteComment(node)`** · [L796](../src/css.js#L796) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L802](../src/css.js#L802) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L813](../src/css.js#L813) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L951](../src/css.js#L951) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`docCssVars(styles)`** · [L968](../src/css.js#L968) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
-- **`joinCss(parts)`** · [L985](../src/css.js#L985) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L954](../src/css.js#L954) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`docCssVars(styles)`** · [L971](../src/css.js#L971) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L988](../src/css.js#L988) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L1015](../src/css.js#L1015) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1029](../src/css.js#L1029) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L1018](../src/css.js#L1018) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1032](../src/css.js#L1032) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -631,24 +632,25 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  salvar/abrir). Cada função "baixa" o arquivo pelo navegador, sem servidor.
 ```
 
-- **`download(filename, data, type)`** · [L21](../src/export.js#L21) — Faz o navegador BAIXAR um arquivo gerado na memória: cria um Blob, uma URL temporária e clica num <a download> invisível. A URL é liberada depois de 2s para não vazar memória.
+- **`download(filename, data, type)`** · [L23](../src/export.js#L23) — Faz o navegador BAIXAR um arquivo gerado na memória: cria um Blob, uma URL temporária e clica num <a download> invisível. A URL é liberada depois de 2s para não vazar memória.
   - `filename` <sub>string</sub> — nome do arquivo
   - `data` <sub>string\|Blob</sub> — conteúdo
   - `[type]` <sub>string</sub> — tipo MIME (ignorado se `data` já for Blob)
-- **`exportHtmlFile(node, assets, styles = null)`** · [L34](../src/export.js#L34) — Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html".
-- **`saveProject(doc)`** · [L42](../src/export.js#L42) — Baixa o PROJETO inteiro como `.designer.json` (todas as páginas, imagens e estilos). É o backup de verdade: o salvamento automático fica só no navegador. Para abrir de novo: Arquivo → Abrir.
-- **`openProjectFile(file)`** · [L51](../src/export.js#L51) — Lê um arquivo de projeto (.json) escolhido pelo usuário. Valida o mínimo (tem páginas) e completa campos que projetos antigos não tinham. Lança um erro com mensagem amigável se o arquivo não for um projeto.
+- **`exportHtmlFile(node, assets, styles = null)`** · [L36](../src/export.js#L36) — Baixa a camada como HTML completo e independente (um arquivo só). Nome: "<nome-da-camada>.html".
+- **`exportSiteFile(doc)`** · [L41](../src/export.js#L41) — Baixa todas as pranchetas visíveis como um site estático de páginas HTML dentro de um ZIP.
+- **`saveProject(doc)`** · [L52](../src/export.js#L52) — Baixa o PROJETO inteiro como `.designer.json` (todas as páginas, imagens e estilos). É o backup de verdade: o salvamento automático fica só no navegador. Para abrir de novo: Arquivo → Abrir.
+- **`openProjectFile(file)`** · [L61](../src/export.js#L61) — Lê um arquivo de projeto (.json) escolhido pelo usuário. Valida o mínimo (tem páginas) e completa campos que projetos antigos não tinham. Lança um erro com mensagem amigável se o arquivo não for um projeto.
   - `file` <sub>File</sub> — 
-- **`exportPng(node, assets, scale = 2, styles = null)`** · [L69](../src/export.js#L69) — Exporta a camada como PNG. Técnica: monta o HTML+CSS da camada (o MESMO do painel Código), embrulha num SVG com <foreignObject>, carrega como imagem e desenha num <canvas> na escala pedida (2x = dobro de pixels, nítido em telas HiDPI). Se a camada está girada, a imagem tem o tamanho da caixa rotacionada e a camada fica centralizada nela.
+- **`exportPng(node, assets, scale = 2, styles = null)`** · [L81](../src/export.js#L81) — Exporta a camada como PNG. Técnica: monta o HTML+CSS da camada (o MESMO do painel Código), embrulha num SVG com <foreignObject>, carrega como imagem e desenha num <canvas> na escala pedida (2x = dobro de pixels, nítido em telas HiDPI). Se a camada está girada, a imagem tem o tamanho da caixa rotacionada e a camada fica centralizada nela.
 
   LIMITAÇÕES: o navegador não carrega fontes da web dentro de uma imagem SVG, então só valem as fontes INSTALADAS no
   computador; e efeitos como backdrop-filter podem não aparecer. (O HTML/SVG exportados não têm essas limitações.)
   - `node` <sub>object</sub> — camada
   - `assets` <sub>object</sub> — imagens do documento
   - `[scale=2]` <sub>number</sub> — 1 a 4
-- **`renderPng(node, assets, scale = 2, styles = null)`** · [L79](../src/export.js#L79) — Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
+- **`renderPng(node, assets, scale = 2, styles = null)`** · [L91](../src/export.js#L91) — Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
   - ↩︎ `Promise<Blob>`
-- **`exportSvgFile(node, assets, boxOf)`** · [L107](../src/export.js#L107) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
+- **`exportSvgFile(node, assets, boxOf)`** · [L119](../src/export.js#L119) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
 
 ---
 
@@ -891,29 +893,29 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`presenceSlot`** <sub>do módulo</sub> · [L52](../src/main.js#L52) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
 - **`toast(msg)`** <sub>do módulo</sub> · [L61](../src/main.js#L61) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
 - **`savePrefs()`** <sub>do módulo</sub> · [L75](../src/main.js#L75) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings(section)`** <sub>do módulo</sub> · [L103](../src/main.js#L103) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
-- **`quickSave()`** <sub>do módulo</sub> · [L108](../src/main.js#L108) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L139](../src/main.js#L139) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L163](../src/main.js#L163) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L203](../src/main.js#L203) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L336](../src/main.js#L336) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`openSettings(section)`** <sub>do módulo</sub> · [L109](../src/main.js#L109) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
+- **`quickSave()`** <sub>do módulo</sub> · [L114](../src/main.js#L114) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L145](../src/main.js#L145) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L169](../src/main.js#L169) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L209](../src/main.js#L209) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L354](../src/main.js#L354) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L382](../src/main.js#L382) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L399](../src/main.js#L399) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L400](../src/main.js#L400) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L417](../src/main.js#L417) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L411](../src/main.js#L411) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L492](../src/main.js#L492) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L530](../src/main.js#L530) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L578](../src/main.js#L578) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L668](../src/main.js#L668) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L731](../src/main.js#L731) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L430](../src/main.js#L430) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L511](../src/main.js#L511) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L549](../src/main.js#L549) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L597](../src/main.js#L597) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L687](../src/main.js#L687) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L750](../src/main.js#L750) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1718,6 +1720,13 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 ## src/version.js
 
 - **`VERSION`** · [L2](../src/version.js#L2) — Versão do app mostrada na página inicial. Mantida igual à do package.json (tests/versao.test.js confere).
+
+---
+
+## src/zip.js
+
+- **`encoder`** <sub>do módulo</sub> · [L2](../src/zip.js#L2) — ZIP Store writer para bundles pequenos gerados pelo editor. Não precisa de dependências ou servidor.
+- **`createZip(files)`** · [L46](../src/zip.js#L46) — Gera um ZIP Store (sem compressão) para manter o escritor mínimo e funcionar offline.
 
 ---
 

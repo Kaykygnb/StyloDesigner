@@ -51,6 +51,19 @@ test('HTML exportado zera os estilos padrão do navegador (lista, link, botão, 
   assert.ok(html.indexOf('list-style: none') < html.indexOf('.tela {'));
 });
 
+test('HTML exportado ocupa o viewport sem a moldura de apresentação do editor', () => {
+  const html = exportHtml(frame('Site', undefined, [], { w: 1440, h: 800, fluid: true }), {}, 'Site');
+  assert.match(html, /body \{ min-height: 100vh; background: #fff; \}/);
+  assert.ok(!html.includes('padding: 24px'), html);
+  assert.ok(!html.includes('background: #f3f3f5'), html);
+});
+
+test('tela fixa fica centralizada na exportação e na apresentação', () => {
+  const tela = frame('Tela', 'main', [], { w: 390, h: 844 });
+  assert.equal(nodeStyle(tela, null, {}, { root: true }).margin, '0 auto');
+  assert.match(exportHtml(tela, {}, 'Tela'), /\.tela \{[^}]*margin: 0 auto;/s);
+});
+
 test('tela "Hug" sai sem altura fixa no HTML exportado (o conteúdo que cresceu não é cortado)', () => {
   const tela = frame('Tela', undefined, [], { w: 400, h: 300, sizeX: 'fixed', sizeY: 'hug' });
   const s = nodeStyle(tela, null, {}, { root: true });

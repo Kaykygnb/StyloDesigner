@@ -175,6 +175,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       // tela "Hug" (do tamanho do conteúdo) não pode sair com altura/largura fixa: cortaria o que cresceu
       s.width = node.sizeX === 'hug' ? 'max-content' : px(node.w);
       s.height = node.sizeY === 'hug' ? 'auto' : px(node.h);
+      // Centraliza telas de largura desenhada na exportação e na apresentação; se forem maiores que o viewport,
+      // o navegador resolve as margens automáticas como zero e mantém o início acessível.
+      s.margin = '0 auto';
     }
   } else if (flow && parent.layout.mode === 'grid') {
     // (b) Item de GRID: o tamanho 'fill' vira justify-self/align-self: stretch; colSpan/rowSpan viram `span N`.
@@ -1042,7 +1045,7 @@ export function exportHtml(node, assets, title = 'Design', styles = null, { ids 
 <title>${escapeHtml(title)}</title>
 ${fontLink}<style>
 ${EXPORT_RESET}
-body { display: grid; place-items: start center; padding: 24px; background: #f3f3f5; }
+body { min-height: 100vh; background: #fff; }
 ${css}
 </style>
 </head>

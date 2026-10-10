@@ -33,7 +33,7 @@ import { createPresent } from './present.js';
 import { contextMenuItems, showHelp, showMenu, ask } from './ui/menus.js';
 import { VERSION } from './version.js';
 import { h, ico, iconButton, tip, installAutoTips } from './ui/dom.js';
-import { openProjectFile, saveProject, exportHtmlFile, exportPng } from './export.js';
+import { openProjectFile, saveProject, exportHtmlFile, exportSiteFile, exportPng } from './export.js';
 import { buildSampleShowcase } from './sample-vitrine.js';
 import { loadLocal, loadPrefs, savePrefs as writePrefs } from './storage.js';
 import { createSaving } from './saving.js';
@@ -91,9 +91,15 @@ ui.wheelMode = prefs.wheelMode || 'pan';
 // avisa só UMA vez que o salvamento automático falhou (senão encheria a tela de avisos)
 let warnedSave = false;
 // quando o navegador recusa gravar (espaço cheio), orienta a salvar na pasta
-store.onSaveError = () => {
+store.onSaveError = (err) => {
   if (warnedSave) return;
   warnedSave = true;
+  if (err?.code === 'LOCAL_CONFLICT') {
+    toast(err.draftSaved
+      ? 'Outra aba salvou uma versão mais nova. Guardei esta cópia separada no navegador; salve-a como outro projeto para continuar.'
+      : 'Outra aba salvou uma versão mais nova. Esta cópia continua aberta; use Ctrl+Shift+S para salvá-la separadamente.');
+    return;
+  }
   toast('Não consegui salvar no navegador (espaço cheio?). Use Arquivo → Salvar na pasta.');
 };
 // CONTA LOCAL (perfil guardado pelo servidor; ver account.js). Carrega sem travar a abertura do app: comentários e
@@ -233,7 +239,10 @@ nameInput.addEventListener('change', () => {
 nameInput.addEventListener('keydown', (e) => e.key === 'Enter' && nameInput.blur());
 
 // indicador de salvamento (atualizado em syncTopbar). É um botão: clicar abre as Configurações de onde salvar.
-const saveEl = h('button.save-state', { type: 'button', onclick: () => openSettings('folder') }, 'Salvo');
+const saveEl = h('button.save-state', {
+  type: 'button',
+  onclick: () => ui.saveState === 'conflict' ? openProjects('save') : openSettings('folder'),
+}, 'Salvo');
 const undoBtn = iconButton('undo', 'Desfazer (Ctrl+Z)', () => store.undo());
 const redoBtn = iconButton('redo', 'Refazer (Ctrl+Shift+Z)', () => store.redo());
 const themeBtn = iconButton('sun', 'Alternar tema claro/escuro', () => store.setTheme(ui.theme === 'dark' ? 'light' : 'dark'));
@@ -305,6 +314,15 @@ const fileBtn = h('button.btn.ghost', {
       {
         label: 'Exportar seleção como HTML', icon: 'code', disabled: !ui.selection.length,
         onClick: () => commands.topSelection().forEach((n) => exportHtmlFile(n, store.state.doc.assets, store.state.doc.styles)),
+      },
+      {
+        label: 'Exportar site completo (.zip)', icon: 'download',
+        onClick: () => {
+          try {
+            const result = exportSiteFile(store.state.doc);
+            toast(result.warnings.length ? `Site exportado: ${result.files.length} páginas. ${result.warnings.join(' ')}` : `Site exportado: ${result.files.length} páginas HTML.`);
+          } catch (err) { toast(err.message || 'Não foi possível exportar o site.'); }
+        },
       },
       {
         label: 'Exportar todos os frames da página (PNG 2x)', icon: 'image',
@@ -398,6 +416,7 @@ function syncTopbar() {
  */
 function saveStatus() {
   if (ui.saveState === 'saving') return ['saving', 'Salvando…', 'Gravando as últimas mudanças'];
+  if (ui.saveState === 'conflict') return ['warn', 'Conflito em outra aba', 'Outra aba salvou uma versão mais nova. Guardei esta cópia separada no navegador; clique aqui ou use Ctrl+Shift+S para salvá-la como outro projeto.'];
   if (ui.saveState === 'error') return ['error', 'Não salvou!', 'O navegador recusou gravar. Use Arquivo → Salvar na pasta.'];
   if (ui.link && ui.savedWhere === 'folder') return ['saved', 'Salvo na pasta', `Gravado em ${ui.link.file} — ${ui.server?.folder || ''}`];
   if (ui.link && ui.link.conflict) return ['warn', 'Conflito no arquivo', `${ui.link.file} mudou fora do editor. Ctrl+S para decidir; enquanto isso, salvo só no navegador.`];
