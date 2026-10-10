@@ -33,7 +33,8 @@ import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
-import { createPresence, targetsOf } from './server/presence.js';
+import { createPresence, targetsOf, DOCUMENT_LOCK } from './server/presence.js';
+import { createEditorBridge } from './server/editor-bridge.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
 import { VERSION } from './src/version.js';
 import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
@@ -122,6 +123,20 @@ function httpError(status, message) {
 const knownContent = new Map();
 /** Hash curto do conteúdo de um arquivo de projeto. */
 const hashOf = (data) => createHash('sha1').update(data).digest('hex');
+/** Serializa comparação de revisão + gravação por arquivo, sem bloquear projetos independentes. */
+const projectWriteQueues = new Map();
+async function withProjectWrite(name, task) {
+  const previous = projectWriteQueues.get(name) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => { release = resolve; });
+  projectWriteQueues.set(name, current);
+  await previous;
+  try { return await task(); }
+  finally {
+    release();
+    if (projectWriteQueues.get(name) === current) projectWriteQueues.delete(name);
+  }
+}
 
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -267,11 +282,12 @@ async function api(req, res, path) {
     const name = checkName(parts[1]);
     if (parts.length === 2 && req.method === 'GET') {
       const [data, s] = await Promise.all([readFile(projectPath(name)), stat(projectPath(name))]);
+      const contentHash = hashOf(data);
       // só registra se a data mudou: com a MESMA data, o registro do último salvamento daqui é que vale (é com ele
       // que o PUT descobre uma alteração feita por fora no mesmo instante)
       const prev = knownContent.get(name);
-      if (!prev || Math.abs(prev.mtime - s.mtimeMs) > 1) knownContent.set(name, { mtime: s.mtimeMs, hash: hashOf(data) });
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(s.mtimeMs) });
+      if (!prev || Math.abs(prev.mtime - s.mtimeMs) > 1) knownContent.set(name, { mtime: s.mtimeMs, hash: contentHash });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(s.mtimeMs), 'X-Content-Hash': contentHash });
       return res.end(data);
     }
     if (parts.length === 2 && req.method === 'PUT') {
@@ -279,27 +295,32 @@ async function api(req, res, path) {
       let doc;
       try { doc = JSON.parse(text); } catch { throw httpError(400, 'O conteúdo não é JSON válido.'); }
       if (!Array.isArray(doc?.pages)) throw httpError(400, 'Isso não parece um projeto (faltam as páginas).');
-      // proteção contra sobrescrever trabalho alheio: compara a data que o editor conhece com a do disco
-      const cur = await stat(projectPath(name)).catch(() => null);
-      const base = Number(req.headers['x-base-modified']);
-      const known = knownContent.get(name);
-      const sameDate = base && Math.abs(cur?.mtimeMs - base) <= 1;
-      // mesma data, mas o conteúdo no disco não é o último que vimos: alguém mudou o arquivo fora daqui
-      const changedInside = cur && sameDate && known && Math.abs(known.mtime - base) <= 1 && known.hash !== hashOf(await readFile(projectPath(name)));
-      if (cur && req.headers['x-overwrite'] !== '1' && (!sameDate || changedInside)) {
-        // o editor agora sabe do conflito: a versão do disco passa a ser a conhecida (recarregar e salvar volta a funcionar)
-        if (changedInside) knownContent.set(name, { mtime: cur.mtimeMs, hash: hashOf(await readFile(projectPath(name))) });
-        return sendJson(res, 409, { error: 'O arquivo foi alterado fora deste editor.', modified: cur.mtimeMs });
-      }
-      await mkdir(config.folder, { recursive: true });
-      await snapshotVersion(name);
-      // grava num arquivo temporário e só então renomeia: se a luz cair no meio, o projeto antigo continua inteiro
-      const tmp = projectPath(`.${name}.${process.pid}.tmp`);
-      await writeFile(tmp, text);
-      await rename(tmp, projectPath(name));
-      const saved = (await stat(projectPath(name))).mtimeMs;
-      knownContent.set(name, { mtime: saved, hash: hashOf(text) });
-      return sendJson(res, 200, { ok: true, file: name, modified: saved });
+      return withProjectWrite(name, async () => {
+        // A comparação fica dentro da fila: duas abas com a mesma revisão não podem passar juntas.
+        const cur = await stat(projectPath(name)).catch(() => null);
+        const base = Number(req.headers['x-base-modified']);
+        const baseHash = String(req.headers['x-base-hash'] || '');
+        const known = knownContent.get(name);
+        const sameDate = !!base && Math.abs(cur?.mtimeMs - base) <= 1;
+        const diskText = cur ? await readFile(projectPath(name)) : null;
+        const diskHash = diskText === null ? '' : hashOf(diskText);
+        const changedInside = cur && sameDate && known && Math.abs(known.mtime - base) <= 1 && known.hash !== diskHash;
+        const staleHash = cur && baseHash && baseHash !== diskHash;
+        if (cur && req.headers['x-overwrite'] !== '1' && (staleHash || (!baseHash && (!sameDate || changedInside)))) {
+          if (changedInside || staleHash) knownContent.set(name, { mtime: cur.mtimeMs, hash: diskHash });
+          return sendJson(res, 409, { error: 'O arquivo foi alterado fora deste editor.', modified: cur.mtimeMs, contentHash: diskHash });
+        }
+        await mkdir(config.folder, { recursive: true });
+        await snapshotVersion(name);
+        // Nome exclusivo evita colisão entre processos e mantém o projeto antigo até o rename atômico.
+        const tmp = projectPath(`.${name}.${process.pid}.${randomUUID()}.tmp`);
+        await writeFile(tmp, text);
+        await rename(tmp, projectPath(name));
+        const saved = (await stat(projectPath(name))).mtimeMs;
+        const contentHash = hashOf(text);
+        knownContent.set(name, { mtime: saved, hash: contentHash });
+        return sendJson(res, 200, { ok: true, file: name, modified: saved, contentHash });
+      });
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
       const data = await readFile(thumbPath(name));
@@ -351,24 +372,11 @@ async function api(req, res, path) {
  * resposta em POST /api/agent/reply. Com várias abas abertas, vale a última que conectou.
  */
 const editors = new Set();
-/** Pedidos esperando resposta do editor: id → { resolve, timer }. */
-const pending = new Map();
-let callSeq = 0;
-/** Tempo máximo esperando o editor (inclui a pessoa decidir na janela de permissão). */
-const EDITOR_TIMEOUT_MS = 3 * 60 * 1000;
-
-/** Pede ao editor aberto para rodar uma ferramenta; devolve o resultado (ou erro claro se não houver editor). */
-function callEditor(tool, args, client) {
-  const editor = [...editors].pop();
-  if (!editor) return Promise.reject(new Error(`O editor não está aberto. Abra http://localhost:${port} no navegador (com o npm start rodando) e tente de novo.`));
-  const id = String(++callSeq);
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { pending.delete(id); reject(new Error('O editor não respondeu a tempo (a pessoa não decidiu na janela de permissão em 3 minutos).')); }, EDITOR_TIMEOUT_MS);
-    pending.set(id, { resolve, timer });
-    // admin: a pessoa ligou o "Acesso de administrador" do MCP → o editor executa sem a janela de permissão
-    editor.write(`event: call\ndata: ${JSON.stringify({ id, tool, args, client, admin: !!config.mcp?.admin })}\n\n`);
-  });
-}
+/** Identidade visual (aba e pessoa) de cada conexão SSE do editor. */
+const editorSessions = new Map();
+/** Pede cancelamento ao editor ao atingir 3 min; encerra após 5 s sem confirmação para não prender o MCP. */
+const editorBridge = createEditorBridge({ getEditors: () => editors, getEditorId: (editor) => editorSessions.get(editor)?.id || '' });
+const callEditor = (tool, args, client, signal, editorId = '') => editorBridge.callEditor(tool, args, client, signal, !!config.mcp?.admin, editorId);
 
 /**
  * VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no
@@ -376,37 +384,71 @@ function callEditor(tool, args, client) {
  * camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
  */
 const presence = createPresence();
-/** Sessões MCP: id → { name } (o nome vem do initialize ou do cabeçalho X-Stylo-Agent). */
+/** Sessões MCP: identidade e chamadas em voo, para o DELETE não soltar travas antes do fim de uma edição. */
 const mcpSessions = new Map();
+/** Chamadas JSON-RPC ativas, indexadas por sessão e id para notifications/cancelled. */
+const activeMcpCalls = new Map();
+/** Remove sessões abandonadas pelo cliente sem expirar operações ainda em andamento. */
+const mcpSessionSweep = setInterval(() => {
+  const expired = [];
+  for (const [id, state] of mcpSessions) {
+    if (!state.activeCalls && state.lastSeen && Date.now() - state.lastSeen > 10 * 60 * 1000) {
+      mcpSessions.delete(id);
+      expired.push(id);
+    }
+  }
+  if (expired.length) { expired.forEach((id) => presence.removeAgent(id)); broadcastPresence(); }
+}, 60 * 1000);
+mcpSessionSweep.unref();
 /** Manda o retrato da presença para todas as abas do editor (evento SSE "presence"). */
 function broadcastPresence() {
   const data = JSON.stringify(presence.snapshot());
-  for (const ed of editors) ed.write(`event: presence
+  for (const ed of editors) {
+    try { ed.write(`event: presence
 data: ${data}
 
-`);
+`); }
+    catch { editors.delete(ed); editorSessions.delete(ed); }
+  }
 }
 /** Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade. */
-async function callAgentTool(sid, tool, args, name) {
+async function callAgentTool(sid, state, tool, args, name, signal, editorId = '') {
+  state.activeCalls = (state.activeCalls || 0) + 1;
+  state.lastSeen = Date.now();
   presence.touchAgent(sid, name);
   const def = toolByName(tool);
+  const writeTargets = def?.write ? targetsOf(args) : [];
+  const lockTargets = def?.write ? (writeTargets.length ? writeTargets : [DOCUMENT_LOCK]) : [];
+  let locked = false;
+  // Trave por chamada, não por sessão: uma mesma IA pode disparar ferramentas em paralelo.
+  // Chamadas diferentes do mesmo agente não podem escrever ao mesmo tempo na mesma camada.
+  const lockId = randomUUID();
   if (def?.write) {
-    const lock = presence.lock(sid, targetsOf(args));
+    const lock = presence.lock(lockId, lockTargets, 0, { agentId: sid, name });
     if (!lock.ok) {
       presence.done(sid, tool, `esperou a camada ${lock.id} (em uso por ${lock.by})`, false);
+      state.activeCalls--;
+      if (state.closing && state.activeCalls === 0) presence.removeAgent(sid);
       broadcastPresence();
-      return { error: `A camada ${lock.id} está sendo alterada por ${lock.by} agora. Espere uns ${lock.wait}s e tente de novo, ou trabalhe em outra parte do design.` };
+      const message = lock.id === DOCUMENT_LOCK ? 'O documento inteiro está sendo alterado' : `A camada ${lock.id} está sendo alterada`;
+      return { error: `${message} por ${lock.by} agora. Espere uns ${lock.wait}s e tente de novo, ou trabalhe em outra parte do design.` };
     }
+    locked = true;
   }
   broadcastPresence();
   try {
-    const out = await callEditor(tool, args, name);
+    const out = await callEditor(tool, args, name, signal, editorId);
     presence.done(sid, tool, def?.write ? (out?._summary || `usou ${tool}`) : null, !(out?.error || out?.refused));
     return out;
   } catch (err) {
     presence.done(sid, tool, `${tool}: ${err.message}`, false);
     throw err;
   } finally {
+    if (locked) presence.finishLocks(lockId, lockTargets);
+    state.activeCalls--;
+    if (state.closing && state.activeCalls === 0) {
+      presence.removeAgent(sid);
+    }
     broadcastPresence();
   }
 }
@@ -417,24 +459,71 @@ async function callAgentTool(sid, tool, args, name) {
  */
 async function mcpRoute(req, res) {
   if (!localHost(req.headers.host) || !localOrigin(req.headers.origin)) throw httpError(403, 'Acesso negado.');
-  if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }).end(); return; }
+  const requestSid = String(req.headers['mcp-session-id'] || '').slice(0, 80);
+  if (req.method === 'DELETE') {
+    if (!requestSid || !mcpSessions.has(requestSid)) { res.writeHead(404).end(); return; }
+    const closingSession = mcpSessions.get(requestSid);
+    mcpSessions.delete(requestSid);
+    closingSession.closing = true;
+    for (const [key, controller] of activeMcpCalls) if (key.startsWith(`${requestSid}:`)) controller.abort();
+    if (!closingSession.activeCalls) presence.removeAgent(requestSid);
+    broadcastPresence();
+    res.writeHead(204).end();
+    return;
+  }
+  if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST, DELETE' }).end(); return; }
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'Envie JSON.');
   const body = JSON.parse((await readBody(req)) || 'null');
   const instructions = await agentInstructions();
   // sessão: a do cabeçalho; no "initialize" sem cabeçalho, uma nova (devolvida em Mcp-Session-Id)
   const isInit = (Array.isArray(body) ? body : [body]).some((m) => m?.method === 'initialize');
-  let sid = String(req.headers['mcp-session-id'] || '').slice(0, 80);
+  const messages = Array.isArray(body) ? body : [body];
+  // tools/call precisa da sessão devolvida no initialize. Um alias global para clientes sem cabeçalho
+  // mistura identidade, cancelamento e travas de clientes MCP independentes.
+  if (!requestSid && !isInit && messages.some((m) => m?.method === 'tools/call')) {
+    return sendJson(res, 400, { error: 'Mcp-Session-Id ausente. Envie o cabeçalho devolvido pelo initialize para executar ferramentas sem misturar sessões MCP.' });
+  }
+  let sid = requestSid;
   if (!sid && isInit) sid = randomUUID();
   if (!sid) sid = 'mcp-sem-sessao'; // programas antigos que não guardam a sessão dividem esta
-  const session = mcpSessions.get(sid) || {};
+  if (!isInit && requestSid && !mcpSessions.has(requestSid)) { res.writeHead(404).end(); return; }
+  const session = mcpSessions.get(sid) || { activeCalls: 0, closing: false, lastSeen: Date.now() };
+  session.lastSeen = Date.now();
   mcpSessions.set(sid, session);
   const forced = String(req.headers['x-stylo-agent'] || '').slice(0, 40);
-  const callTool = (name, args, client) => callAgentTool(sid, name, args, forced || client);
-  const one = (m) => handleMcp(m, { callTool, version: VERSION, session, instructions });
+  const requestControllers = [];
+  const one = async (m) => {
+    if (m?.method === 'notifications/cancelled') {
+      activeMcpCalls.get(`${sid}:${String(m.params?.requestId ?? '')}`)?.abort();
+      return null;
+    }
+    if (m?.method !== 'tools/call' || m.id == null) return handleMcp(m, { version: VERSION, session, instructions, admin: !!config.mcp?.admin });
+    const key = `${sid}:${String(m.id)}`;
+    const controller = new AbortController();
+    requestControllers.push(controller);
+    activeMcpCalls.set(key, controller);
+    try {
+      const callTool = (name, args, client, signal) => {
+        if (name === 'list_editors') {
+          const byId = new Map();
+          for (const info of editorSessions.values()) byId.set(info.id, { editor_id: info.id, name: info.name });
+          return { editors: [...byId.values()], selected_editor: session.editorId || null };
+        }
+        if (name === 'select_editor') {
+          const editorId = String(args.editor_id || '');
+          const info = [...editorSessions.values()].find((editor) => editor.id === editorId);
+          if (!info) return { error: `A aba "${editorId || '(vazia)'}" não está conectada. Use list_editors para ver as abas disponíveis.` };
+          session.editorId = editorId;
+          return { selected_editor: editorId, name: info.name };
+        }
+        return callAgentTool(sid, session, name, args, forced || client, signal, session.editorId || '');
+      };
+      return await handleMcp(m, { callTool, version: VERSION, session, instructions, signal: controller.signal, admin: !!config.mcp?.admin });
+    } finally { if (activeMcpCalls.get(key) === controller) activeMcpCalls.delete(key); }
+  };
+  res.once('close', () => { if (!res.writableEnded) requestControllers.forEach((controller) => controller.abort()); });
   const out = Array.isArray(body) ? (await Promise.all(body.map(one))).filter(Boolean) : await one(body);
   if (isInit) { presence.touchAgent(sid, forced || session.name); broadcastPresence(); }
-  // programa que não reenvia o cabeçalho de sessão: as próximas chamadas sem cabeçalho usam o nome deste initialize
-  if (isInit && !req.headers['mcp-session-id']) mcpSessions.set('mcp-sem-sessao', { name: session.name });
   res.setHeader('Mcp-Session-Id', sid);
   if (!out || (Array.isArray(out) && !out.length)) { res.writeHead(202).end(); return; } // só avisos: nada a responder
   sendJson(res, 200, out);
@@ -627,18 +716,26 @@ async function agentApi(req, res, parts) {
     // a aba diz quem é (nome e cor do perfil): aparece na presença para os outros
     const q = new URL(req.url, 'http://x').searchParams;
     const personId = String(q.get('id') || randomUUID()).slice(0, 60);
-    presence.addPerson(personId, q.get('user') || 'Pessoa', q.get('color'));
+    const personName = q.get('user') || 'Pessoa';
+    editorSessions.set(res, { id: personId, name: personName });
+    presence.addPerson(personId, personName, q.get('color'));
     broadcastPresence();
     // "batimento" a cada 25 s: sem tráfego, alguns navegadores/antivírus derrubam a conexão parada
     const beat = setInterval(() => res.write(': ping\n\n'), 25000);
-    req.on('close', () => { clearInterval(beat); editors.delete(res); presence.removePerson(personId); broadcastPresence(); });
+    req.on('close', () => {
+      clearInterval(beat);
+      editors.delete(res);
+      editorSessions.delete(res);
+      presence.removePerson(personId);
+      editorBridge.closeEditor(res);
+      broadcastPresence();
+    });
     return;
   }
   if (what === 'reply' && req.method === 'POST') {
     const { id, result } = JSON.parse((await readBody(req)) || '{}');
-    const p = pending.get(String(id));
-    if (p) { clearTimeout(p.timer); pending.delete(String(id)); p.resolve(result ?? {}); }
-    return sendJson(res, 200, { ok: !!p });
+    if (!editorBridge.reply(String(id), result)) return sendJson(res, 410, { ok: false, error: 'A chamada MCP já foi encerrada.' });
+    return sendJson(res, 200, { ok: true });
   }
   if (what === 'config' && req.method === 'GET') {
     const a = agentConfig();

@@ -35,11 +35,36 @@ export const AGENT_TOOLS = [
   {
     name: 'get_document',
     write: false,
-    description: 'Resumo do projeto aberto no editor: páginas, a árvore de camadas da página atual (id, nome, tipo, etiqueta HTML, tamanho, layout), a seleção, os estilos de cor/texto e as variáveis. Comece por aqui.',
+    description: 'Resumo do projeto aberto no editor: páginas, árvore de camadas da página atual (id, nome, tipo, etiqueta HTML, tamanho, layout e notas curtas), seleção, estilos de cor/texto e variáveis. Comece por aqui; para notas completas, leia a camada com get_layer.',
     inputSchema: {
       type: 'object',
       properties: { depth: { type: 'integer', description: 'Quantos níveis da árvore mostrar (padrão 3, máximo 8).' } },
     },
+  },
+  {
+    name: 'get_comments',
+    write: false,
+    description: 'Lê as anotações do projeto, incluindo respostas, autor, estado e camada/página associadas. Use antes de revisar ou alterar uma camada comentada. Pode filtrar por camada, página ou somente comentários em aberto.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'id opcional da camada' },
+        page_id: { type: 'string', description: 'id opcional da página' },
+        unresolved_only: { type: 'boolean', description: 'se true, devolve somente comentários não resolvidos' },
+      },
+    },
+  },
+  {
+    name: 'get_project_css',
+    write: false,
+    description: 'Lê a folha CSS global do projeto antes de revisá-la ou substituí-la com set_project_css.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_assets',
+    write: false,
+    description: 'Lista as imagens já importadas neste projeto, com id, nome derivado da camada, formato, tamanho aproximado e camadas que as usam. Não envia o conteúdo binário. Use insert_asset para reutilizar uma imagem.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'filtra por nome, id, formato ou página' } } },
   },
   {
     name: 'get_layer',
@@ -103,6 +128,22 @@ export const AGENT_TOOLS = [
         props: { type: 'object', additionalProperties: true },
       },
       required: ['type'],
+    },
+  },
+  {
+    name: 'insert_asset',
+    write: true,
+    description: 'Insere no canvas uma imagem já existente no projeto, reutilizando o asset sem duplicar o arquivo. Descubra os ids com list_assets. Pode inserir dentro de um frame com parent_id; at usa coordenadas do canvas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'id devolvido por list_assets' },
+        name: { type: 'string', description: 'nome opcional da nova camada' },
+        parent_id: { type: 'string', description: 'id opcional de frame/grupo que recebe a imagem' },
+        index: { type: 'integer', description: 'posição opcional dentro do pai' },
+        at: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], description: 'ponto opcional do canvas (centro da imagem)' },
+      },
+      required: ['id'],
     },
   },
   {
@@ -188,6 +229,12 @@ ${PROP_HELP}`,
     inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
   },
   {
+    name: 'set_project_css',
+    write: true,
+    description: 'Substitui o CSS global do projeto, incluindo seletores, @media, estados, @keyframes e efeitos CSS 3D. Leia get_project_css antes de editar uma folha existente. Envie a folha completa em css; string vazia limpa o CSS global. Confira o resultado com get_image e get_code.',
+    inputSchema: { type: 'object', properties: { css: { type: 'string', description: 'Folha CSS completa do projeto; substitui o conteúdo atual.' } }, required: ['css'] },
+  },
+  {
     name: 'switch_page',
     write: false,
     description: 'Abre outra página do projeto (ids em get_document → pages). Não altera nada.',
@@ -202,8 +249,23 @@ ${PROP_HELP}`,
   {
     name: 'export_html',
     write: false,
-    description: 'O arquivo HTML COMPLETO de uma tela (página independente, com o CSS no <head>, @media e variáveis) — o mesmo do "Exportar HTML".',
-    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'id da tela (frame)' } }, required: ['id'] },
+    description: 'HTML de uma tela independente. O conteúdo vem em trechos UTF-8 de 256 KiB por padrão; continue com offset=nextOffset até complete=true. maxBytes pode chegar a 1 MiB.',
+    inputSchema: { type: 'object', properties: {
+      id: { type: 'string', description: 'id da tela (frame)' },
+      offset: { type: 'integer', description: 'Posição em bytes da resposta anterior (nextOffset).' },
+      maxBytes: { type: 'integer', description: 'Tamanho máximo do trecho: 256 KiB por padrão, máximo 1 MiB.' },
+    }, required: ['id'] },
+  },
+  {
+    name: 'export_site',
+    write: false,
+    description: 'Lista os arquivos HTML estáticos de todas as pranchetas visíveis. Inclua includeContent:true para receber conteúdo; use path para buscar uma página por vez. O conteúdo incluído tem limite de 256 KiB por chamada (máximo configurável de 1 MiB). CSS e imagens ficam embutidos; fontes Google carregam pela rede. Interações de protótipo e JavaScript arbitrário não são executados.',
+    inputSchema: { type: 'object', properties: {
+      includeContent: { type: 'boolean', description: 'Padrão false: retorna caminhos/tamanhos. true inclui o HTML, respeitando maxBytes.' },
+      path: { type: 'string', description: 'Retorna somente este caminho do pacote, por exemplo index.html.' },
+      maxBytes: { type: 'integer', description: 'Limite do conteúdo por chamada: 256 KiB por padrão, máximo 1 MiB.' },
+      offset: { type: 'integer', description: 'Posição em bytes da resposta anterior (nextOffset); requer path e includeContent:true.' },
+    } },
   },
   {
     name: 'set_responsive',
@@ -357,6 +419,23 @@ ${PROP_HELP}`,
 /** Procura uma ferramenta pelo nome. */
 export const toolByName = (name) => AGENT_TOOLS.find((t) => t.name === name) || null;
 
+/** Ferramentas de controle da sessão HTTP MCP; não são oferecidas ao Assistente interno. */
+const MCP_SESSION_TOOLS = [
+  {
+    name: 'list_editors',
+    write: false,
+    description: 'Lista as abas do Stylo conectadas e mostra qual aba esta sessão MCP está usando. Chame antes de trabalhar quando houver mais de uma aba.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'select_editor',
+    write: false,
+    description: 'Vincula esta sessão MCP a uma aba específica. Use o editor_id devolvido por list_editors. A seleção persiste nesta sessão; se a aba desconectar, as ferramentas falham em vez de mudar para outra aba.',
+    inputSchema: { type: 'object', properties: { editor_id: { type: 'string', description: 'id da aba devolvido por list_editors' } }, required: ['editor_id'] },
+  },
+];
+export const mcpToolByName = (name) => toolByName(name) || MCP_SESSION_TOOLS.find((tool) => tool.name === name) || null;
+
 /** As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`). */
 export const openAiTools = () => AGENT_TOOLS.map((t) => ({
   type: 'function',
@@ -369,7 +448,12 @@ export const mcpTools = () => AGENT_TOOLS.map((t) => ({
   description: t.description,
   inputSchema: t.inputSchema,
   annotations: { readOnlyHint: !t.write, destructiveHint: ['delete_layers', 'delete_page', 'open_project', 'new_project'].includes(t.name) },
-}));
+})).concat(MCP_SESSION_TOOLS.map((t) => ({
+  name: t.name,
+  description: t.description,
+  inputSchema: t.inputSchema,
+  annotations: { readOnlyHint: t.name === 'list_editors', destructiveHint: false },
+})));
 
 /**
  * Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o
@@ -379,6 +463,7 @@ export const AGENT_INSTRUCTIONS = `Você ajuda numa ferramenta de design em que 
 Regras:
 - Responda em português do Brasil, de forma simples e direta.
 - Antes de alterar, LEIA: get_document, get_selection ou get_layer. Use os ids que essas ferramentas devolvem; nunca invente ids.
+- Com mais de uma aba conectada, use list_editors e select_editor antes de ler ou alterar: a aba escolhida vale só para esta sessão MCP.
 - Prefira layout (flex/grid com gap e padding) a posicionar com x/y. Use os nomes do CSS ao explicar.
 - Pedido claro = FAÇA, sem pedir confirmação nem descrever o plano antes. Só pergunte se for impossível decidir. Para criar estruturas (página, seção, card), use build_layout numa chamada só; sem seleção, ela vira uma tela nova.
 - Toda alteração passa pela permissão da pessoa; se ela recusar, não insista: pergunte o que ela prefere.

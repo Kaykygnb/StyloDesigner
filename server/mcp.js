@@ -17,7 +17,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { mcpTools, toolByName, AGENT_INSTRUCTIONS } from '../src/agent/schema.js';
+import { mcpTools, mcpToolByName, AGENT_INSTRUCTIONS } from '../src/agent/schema.js';
 
 /** Versões do protocolo MCP que este servidor entende (a mais nova primeiro). */
 export const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -35,7 +35,7 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
  * @param {string} [deps.instructions]  quem a IA é e como trabalhar (o servidor lê de docs/AGENTE.md)
  * @returns {Promise<object|null>}  a resposta, ou null quando a mensagem é um aviso (sem id)
  */
-export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}, instructions = AGENT_INSTRUCTIONS }) {
+export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}, instructions = AGENT_INSTRUCTIONS, signal, admin = false }) {
   if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
     return rpcError(msg?.id ?? null, -32600, 'Pedido inválido (esperado JSON-RPC 2.0).');
   }
@@ -52,7 +52,7 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'projeto-designer', title: 'Stylo', version },
-        instructions: `${instructions}\n\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Cada alteração aparece para a pessoa aprovar.`,
+        instructions: `${instructions}\n\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Se houver mais de uma aba conectada, use list_editors e select_editor antes de ler ou alterar o projeto; a seleção vale só para esta sessão MCP e não muda de aba automaticamente se desconectar. ${admin ? 'O Acesso de administrador está ativo: alterações de escrita podem ser executadas sem confirmação; a interface ainda mostra avisos.' : 'Cada alteração de escrita pede aprovação da pessoa no editor.'}`,
       },
     };
   }
@@ -60,10 +60,10 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
   if (method === 'tools/list') return { jsonrpc: '2.0', id, result: { tools: mcpTools() } };
   if (method === 'tools/call') {
     const name = params.name;
-    if (!toolByName(name)) return rpcError(id, -32602, `Ferramenta desconhecida: ${name}`);
+    if (!mcpToolByName(name)) return rpcError(id, -32602, `Ferramenta desconhecida: ${name}`);
     let out;
     try {
-      out = await callTool(name, params.arguments || {}, session.name || 'IA externa');
+      out = await callTool(name, params.arguments || {}, session.name || 'IA externa', signal);
     } catch (err) {
       // erro de execução (editor fechado, tempo esgotado...): volta como resultado com isError, para a IA ler e explicar
       return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: err.message || String(err) }], isError: true } };

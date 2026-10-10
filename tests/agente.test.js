@@ -22,6 +22,14 @@ test('MCP initialize: devolve a versão pedida (se conhecida) e guarda o nome do
   assert.equal(unknown.result.protocolVersion, PROTOCOL_VERSIONS[0]);
 });
 
+test('MCP explica o modo real de aprovação durante initialize', async () => {
+  const normal = await handleMcp(rpc('initialize', {}), { callTool: null });
+  const admin = await handleMcp(rpc('initialize', {}), { callTool: null, admin: true });
+  assert.match(normal.result.instructions, /Cada alteração de escrita pede aprovação/);
+  assert.match(admin.result.instructions, /Acesso de administrador está ativo.*sem confirmação/s);
+  assert.doesNotMatch(admin.result.instructions, /Cada alteração de escrita pede aprovação/);
+});
+
 test('MCP: aviso sem id não tem resposta; método desconhecido e pedido inválido dão erro JSON-RPC', async () => {
   assert.equal(await handleMcp({ jsonrpc: '2.0', method: 'notifications/initialized' }, { callTool: null }), null);
   assert.equal((await handleMcp(rpc('resources/list'), { callTool: null })).error.code, -32601);
@@ -46,7 +54,7 @@ test('MCP tools/call: repassa ao editor; erro e recusa voltam como isError (a IA
 });
 
 test('lista de ferramentas: mesma para MCP e OpenAI, com esquemas válidos e "somente leitura" marcado', () => {
-  assert.equal(mcpTools().length, AGENT_TOOLS.length);
+  assert.equal(mcpTools().length, AGENT_TOOLS.length + 2);
   assert.equal(openAiTools().length, AGENT_TOOLS.length);
   for (const t of openAiTools()) {
     assert.equal(t.type, 'function');
@@ -54,6 +62,9 @@ test('lista de ferramentas: mesma para MCP e OpenAI, com esquemas válidos e "so
   }
   const ro = Object.fromEntries(mcpTools().map((t) => [t.name, t.annotations.readOnlyHint]));
   assert.equal(ro.get_document, true);
+  assert.equal(ro.list_editors, true);
+  assert.equal(ro.select_editor, false);
+  assert.ok(!openAiTools().some((tool) => ['list_editors', 'select_editor'].includes(tool.function.name)));
   assert.equal(ro.update_layer, false);
   assert.equal(mcpTools().find((t) => t.name === 'delete_layers').annotations.destructiveHint, true);
 });
@@ -169,8 +180,8 @@ test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos intern
   assert.ok(!r.result.content[1].text.includes('iVBOR') && !r.result.content[1].text.includes('_summary'));
 });
 
-test('MCP completo: 35 ferramentas (com edit_image e generate_image_edit); as de projeto exigem administrador; destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 35);
+test('MCP completo: 41 ferramentas (com exportação, assets e edição CSS); as de projeto exigem administrador; destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 41);
   const admin = AGENT_TOOLS.filter((t) => t.admin).map((t) => t.name).sort();
   assert.deepEqual(admin, ['list_projects', 'new_project', 'open_project', 'save_project']);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();

@@ -51,12 +51,13 @@ test('API de salvamento: pasta, gravar/ler, conflito, versões, miniatura, renom
   // 2. gravar um projeto novo, listar e ler de volta (com a data de modificação)
   let r = await put('/api/projects/meu-app.json', doc('Meu app'));
   assert.equal(r.status, 200);
-  const { modified } = await r.json();
+  const { modified, contentHash } = await r.json();
   const list = await (await fetch(base + '/api/projects')).json();
   assert.deepEqual(list.map((p) => p.file), ['meu-app.json']);
   r = await fetch(base + '/api/projects/meu-app.json');
   assert.equal((await r.json()).name, 'Meu app');
   assert.equal(Number(r.headers.get('x-modified')), modified);
+  assert.equal(r.headers.get('x-content-hash'), contentHash, 'GET devolve a revisão por conteúdo além do timestamp');
 
   // 3. conflito: gravar sem saber a data atual (ou com data velha) é recusado; com a data certa, aceito
   assert.equal((await put('/api/projects/meu-app.json', doc('Sem base'))).status, 409);
@@ -80,6 +81,16 @@ test('API de salvamento: pasta, gravar/ler, conflito, versões, miniatura, renom
   versions = await (await fetch(base + '/api/projects/meu-app.json/versions')).json();
   assert.equal(versions.length, 2);
   assert.ok(!(await readdir(folder)).some((f) => f.endsWith('.tmp')), 'não sobra arquivo temporário');
+
+  // 4b. duas abas com a mesma revisão: apenas a primeira escrita deve vencer
+  const initial = await (await put('/api/projects/concorrente.json', doc('Base'))).json();
+  const contenders = await Promise.all([
+    put('/api/projects/concorrente.json', doc('A'), { 'X-Base-Modified': String(initial.modified), 'X-Base-Hash': initial.contentHash }),
+    put('/api/projects/concorrente.json', doc('B'), { 'X-Base-Modified': String(initial.modified), 'X-Base-Hash': initial.contentHash }),
+  ]);
+  assert.deepEqual(contenders.map((response) => response.status).sort(), [200, 409], 'uma gravação aceita e a outra recebe conflito');
+  const finalDoc = await (await fetch(base + '/api/projects/concorrente.json')).json();
+  assert.ok(['A', 'B'].includes(finalDoc.name), 'o conteúdo vencedor permanece íntegro');
 
   // 5. validação: conteúdo que não é projeto, nome perigoso, rota inexistente
   assert.equal((await put('/api/projects/x.json', { nada: 1 })).status, 400);

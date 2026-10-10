@@ -22,6 +22,8 @@ export const colorFor = (name) => {
 export const LOCK_MS = 10000;
 /** Agente sem atividade há mais que isso some da lista. */
 export const AGENT_IDLE_MS = 10 * 60 * 1000;
+/** Recurso compartilhado por operações que mudam a estrutura ou o estado inteiro do projeto. */
+export const DOCUMENT_LOCK = '__document__';
 
 /** ids de camadas que uma ferramenta vai alterar (para as travas). */
 export function targetsOf(args = {}) {
@@ -58,6 +60,15 @@ export function createPresence({ now = Date.now } = {}) {
       return fresh;
     },
     agent: (id) => agents.get(id) || null,
+    /** Uma conexão MCP encerrou a sessão; libera também as travas que ela deixou. */
+    removeAgent(id) {
+      const a = agents.get(id);
+      if (!a) return false;
+      agents.delete(id);
+      for (const [layerId, lock] of locks) if (lock.agentId === id) locks.delete(layerId);
+      record(a.name, a.color, 'desconectou do MCP');
+      return true;
+    },
     /** Uma aba do editor conectou (pessoa). */
     addPerson(id, name, color) {
       const n = String(name || 'Pessoa').slice(0, 40);
@@ -76,15 +87,25 @@ export function createPresence({ now = Date.now } = {}) {
      * Tenta travar as camadas para a sessão. Devolve { ok: true } ou { ok: false, id, by } se outra sessão está
      * mexendo numa delas agora.
      */
-    lock(owner, ids, ms = LOCK_MS) {
+    lock(owner, ids, ms = LOCK_MS, { agentId = owner, name } = {}) {
       const t = now();
       for (const id of ids) {
-        const l = locks.get(id);
-        if (l && l.owner !== owner && l.until > t) return { ok: false, id, by: l.name, wait: Math.ceil((l.until - t) / 1000) };
+        const conflicts = id === DOCUMENT_LOCK
+          ? [...locks.entries()]
+          : [[id, locks.get(id)], [DOCUMENT_LOCK, locks.get(DOCUMENT_LOCK)]];
+        for (const [key, l] of conflicts) {
+          const sameAgentAfterCompletion = l?.agentId === agentId && Number.isFinite(l.until);
+          if (l && l.owner !== owner && l.until > t && !sameAgentAfterCompletion) return { ok: false, id: key, by: l.name, wait: Number.isFinite(l.until) ? Math.ceil((l.until - t) / 1000) : 10 };
+        }
       }
-      const name = agents.get(owner)?.name || 'IA externa';
-      for (const id of ids) locks.set(id, { owner, name, until: t + ms });
+      const displayName = name || agents.get(agentId)?.name || 'IA externa';
+      for (const id of ids) locks.set(id, { owner, agentId, name: displayName, until: ms === 0 ? Infinity : t + ms });
       return { ok: true };
+    },
+    /** Ao terminar a edição, converte as travas sem expiração em uma janela curta pós-edição. */
+    finishLocks(owner, ids, ms = LOCK_MS) {
+      const until = now() + ms;
+      for (const id of ids) { const lock = locks.get(id); if (lock?.owner === owner) lock.until = until; }
     },
     /** Uma ferramenta terminou: guarda na atividade. */
     done(owner, tool, summary, ok = true) {
@@ -100,7 +121,7 @@ export function createPresence({ now = Date.now } = {}) {
       for (const [id, a] of agents) if (t - a.lastSeen > AGENT_IDLE_MS) agents.delete(id);
       return {
         people: [...people.values()],
-        agents: [...agents.values()].map((a) => ({ ...a, active: t - a.lastSeen < 15000, locks: [...locks].filter(([, l]) => l.owner === a.id).map(([id]) => id) })),
+        agents: [...agents.values()].map((a) => ({ ...a, active: t - a.lastSeen < 15000, locks: [...locks].filter(([, l]) => l.agentId === a.id).map(([id]) => id) })),
         activity: activity.slice(0, 20),
       };
     },

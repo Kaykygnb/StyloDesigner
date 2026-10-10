@@ -22,16 +22,46 @@ p.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m
 p.on('dialog', (d) => { errors.push('diálogo nativo: ' + d.message()); d.dismiss(); });
 const ev = (f, a) => p.evaluate(f, a);
 const url = (path) => new URL(path, BASE).href;
+/** Espera a remoção de uma aba na presença antes de encaminhar chamadas para o editor restante. */
+async function waitForEditorDisconnect(editorId) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const snapshot = await (await fetch(url('/api/presence'))).json();
+    if (!snapshot.people.some((person) => person.id === editorId)) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`O servidor não confirmou o fechamento do editor ${editorId}.`);
+}
 /** Uma chamada JSON-RPC ao MCP por HTTP (como o Claude Code faz). */
 let rpcId = 0;
+let mcpSession = '';
+let secondEditorContext = null;
+let selectedTabAgent = null;
 const mcp = async (method, params = {}, headers = {}) => {
-  const r = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', ...headers }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }) });
+  // initialize abre outra conexão; encerrar a anterior evita reaproveitar a identidade de um agente diferente.
+  if (method === 'initialize' && mcpSession) {
+    await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': mcpSession } });
+    mcpSession = '';
+  }
+  const r = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', ...(mcpSession ? { 'Mcp-Session-Id': mcpSession } : {}), ...headers }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }) });
+  mcpSession = r.headers.get('mcp-session-id') || mcpSession;
   return { status: r.status, body: r.status === 200 ? await r.json() : null };
 };
 /** Resultado de uma ferramenta chamada pelo MCP (o texto JSON vira objeto). */
 const callTool = async (name, args) => {
   const { body } = await mcp('tools/call', { name, arguments: args });
-  return { isError: body.result.isError, data: JSON.parse(body.result.content[0].text) };
+  const text = body.result.content[0].text;
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  return { isError: body.result.isError, data };
+};
+const callWithSession = async (sid, id, name, args) => {
+  const response = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': sid }, body: JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } }) });
+  const body = await response.json();
+  const text = body.result?.content?.[0]?.text || '';
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  return { isError: body.result?.isError, data, body };
 };
 const original = await (await fetch(url('/api/agent/config'))).json();
 let mock = null;
@@ -88,11 +118,121 @@ try {
   // ---------------------------------------------------------------- 2. MCP por HTTP
   const init = await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Teste MCP', version: '1' } });
   ok('MCP initialize responde com nome e ferramentas', init.body?.result?.serverInfo?.name === 'projeto-designer' && !!init.body.result.capabilities.tools, JSON.stringify(init.body));
+  // Duas conexões independentes leem ao mesmo tempo e encerram suas sessões sem deixar presença fantasma.
+  const openAgent = async (name) => {
+    const response = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Stylo-Agent': name }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name, version: '1' } } }) });
+    return { sid: response.headers.get('mcp-session-id'), init: await response.json(), name };
+  };
+  const agents = await Promise.all(['Auditoria A', 'Auditoria B'].map(openAgent));
+  const sessionlessWrite = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 99, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 77 } } } }) });
+  const sessionlessError = await sessionlessWrite.json();
+  ok('cliente sem Mcp-Session-Id não compartilha identidade nem trava', sessionlessWrite.status === 400 && /Mcp-Session-Id ausente/.test(sessionlessError.error || ''));
+  const reads = await Promise.all(agents.map((agent) => fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': agent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'get_document', arguments: {} } }) }).then((r) => r.json())));
+  const liveAgents = await (await fetch(url('/api/presence'))).json();
+  ok('dois clientes MCP independentes fazem leituras simultâneas', agents.every((a) => a.sid && a.init.result) && reads.every((r) => !r.result?.isError) && agents.every((a) => liveAgents.agents.some((x) => x.id === a.sid && x.name === a.name && x.active)));
+  const closed = await Promise.all(agents.map((a) => fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': a.sid } })));
+  const afterClose = await (await fetch(url('/api/presence'))).json();
+  ok('DELETE encerra sessões MCP, remove presença e libera os clientes', closed.every((r) => r.status === 204) && agents.every((a) => !afterClose.agents.some((x) => x.id === a.sid)));
+  const expired = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': agents[0].sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/list' }) });
+  ok('sessão encerrada não pode ser reutilizada', expired.status === 404);
+  const getStream = await fetch(url('/mcp'), { method: 'GET' });
+  ok('transporte informa POST e DELETE como métodos aceitos', getStream.status === 405 && /POST/.test(getStream.headers.get('allow') || '') && /DELETE/.test(getStream.headers.get('allow') || ''));
+  // Clique no canvas durante uma aprovação pendente não deve parecer uma recusa silenciosa.
+  const outsideClickAgent = await openAgent('Teste de clique fora');
+  const outsideClickWrite = fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': outsideClickAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 31, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 6 } } } }) });
+  await p.waitForSelector('.ask-modal', { timeout: 5000 });
+  await p.locator('.modal-backdrop').click({ position: { x: 8, y: 8 } });
+  await p.waitForTimeout(100);
+  const permissionStillOpen = (await p.locator('.ask-modal').count()) === 1;
+  ok('clique fora da aprovação MCP não fecha nem recusa a alteração', permissionStillOpen);
+  if (permissionStillOpen) await p.getByRole('button', { name: 'Recusar', exact: true }).click();
+  const outsideClickResult = await outsideClickWrite.then((r) => r.json());
+  ok('recusa explícita encerra a operação sem aplicar a mudança', outsideClickResult.result?.isError === true && /recusou/i.test(outsideClickResult.result.content?.[0]?.text || '') && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 0);
+  await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': outsideClickAgent.sid } });
+  // Fechar uma sessão com escrita aguardando permissão não pode liberar a trava cedo.
+  const pendingAgent = await openAgent('Auditoria pendente');
+  const pendingWrite = fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': pendingAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 7 } } } }) });
+  await p.waitForSelector('.ask-modal', { timeout: 5000 }).catch((err) => { console.log('DEBUG pending MCP:', errors.join(' | ')); throw err; });
+  // A segunda escrita em outra camada espera na fila de permissões. Cancelá-la precisa
+  // responder ao MCP sem aguardar a pessoa resolver o diálogo da primeira chamada.
+  const queuedWrite = fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': pendingAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 42, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.titulo, props: { opacity: 0.7 } } } }) });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const queuedCancel = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': pendingAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 42 } }) });
+  const queuedResult = await Promise.race([queuedWrite.then(async (r) => ({ done: true, body: await r.json() })), new Promise((resolve) => setTimeout(() => resolve({ done: false }), 700))]);
+  ok('cancelar escrita na fila MCP responde sem esperar a primeira permissão', queuedCancel.status === 202 && queuedResult.done && queuedResult.body.result?.isError && /cancelada pelo cliente/.test(queuedResult.body.result.content?.[0]?.text || ''), JSON.stringify(queuedResult));
+  const sameSessionConflict = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': pendingAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 41, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 8 } } } }) }).then((r) => r.json());
+  ok('duas escritas paralelas da mesma sessão não disputam a mesma camada', /está sendo alterada/.test(sameSessionConflict.result?.content?.[0]?.text || ''), JSON.stringify(sameSessionConflict));
+  const contender = await openAgent('Auditoria concorrente');
+  const conflict = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': contender.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 9 } } } }) }).then((r) => r.json());
+  ok('a trava impede outro agente de alterar a camada durante a permissão pendente', /está sendo alterada/.test(conflict.result?.content?.[0]?.text || ''), JSON.stringify(conflict));
+  const documentConflict = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': contender.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 51, method: 'tools/call', params: { name: 'create_page', arguments: { name: 'Página concorrente' } } }) }).then((r) => r.json());
+  ok('operação estrutural global também espera enquanto outra camada está em edição', /está sendo alterada/.test(documentConflict.result?.content?.[0]?.text || ''), JSON.stringify(documentConflict));
+  const closePending = await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': pendingAgent.sid } });
+  const cancelledByClose = await pendingWrite.then((r) => r.json());
+  ok('DELETE cancela a edição pendente antes de liberar a sessão', closePending.status === 204 && cancelledByClose.result?.isError && /cancelada pelo cliente/.test(cancelledByClose.result.content?.[0]?.text || '') && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 0);
+  const afterPending = await (await fetch(url('/api/presence'))).json();
+  ok('a presença é removida depois que a edição pendente termina', !afterPending.agents.some((a) => a.id === pendingAgent.sid));
+  await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': contender.sid } });
+  const cancellable = await openAgent('Auditoria cancelamento');
+  const cancellableWrite = fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': cancellable.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 13 } } } }) });
+  await p.waitForSelector('.ask-modal');
+  const cancelled = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': cancellable.sid }, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 6 } }) });
+  const cancelResponse = await cancellableWrite.then((r) => r.json());
+  ok('notifications/cancelled fecha a permissão e impede a edição pendente', cancelled.status === 202 && cancelResponse.result?.isError && /cancelada pelo cliente/.test(cancelResponse.result.content?.[0]?.text || '') && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 0);
+  await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': cancellable.sid } });
   const note = await fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) });
   ok('aviso (notification) recebe 202 sem corpo', note.status === 202);
   const list = await mcp('tools/list');
   const names = list.body.result.tools.map((t) => t.name);
-  ok('tools/list traz as 35 ferramentas (com edit_image e generate_image_edit)', names.length === 35 && ['edit_image', 'generate_image_edit', 'get_image', 'set_responsive', 'set_state', 'create_instance', 'add_interaction', 'list_projects'].every((n) => names.includes(n)) && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
+  ok('tools/list traz 41 ferramentas de design e 2 para escolher a aba', names.length === 43 && ['edit_image', 'generate_image_edit', 'get_image', 'get_comments', 'get_project_css', 'set_project_css', 'set_responsive', 'set_state', 'create_instance', 'add_interaction', 'list_projects', 'list_assets', 'insert_asset', 'list_editors', 'select_editor', 'export_site'].every((n) => names.includes(n)) && ['update_layer', 'get_code', 'build_layout', 'insert_icon', 'search_icons', 'list_fonts', 'create_color_styles', 'create_page'].every((n) => names.includes(n)), names.join());
+  const mainEditorId = await ev(() => sessionStorage.getItem('stylo.tab'));
+  secondEditorContext = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  const secondEditor = await secondEditorContext.newPage();
+  await secondEditor.goto(url('?editor'));
+  await secondEditor.waitForFunction(() => !!window.designer?.store);
+  const { editorId: secondEditorId, markerId: secondMarkerId } = await secondEditor.evaluate(async () => {
+    const { createNode } = await import('/src/model.js');
+    const store = designer.store;
+    store.newDoc();
+    const marker = createNode('text', { name: 'Documento da segunda pessoa', text: 'Só nesta aba' });
+    store.update((page) => page.children.push(marker), { commit: true });
+    return { editorId: sessionStorage.getItem('stylo.tab'), markerId: marker.id };
+  });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const editorInventory = await callTool('list_editors', {});
+  ok('MCP lista duas abas conectadas com ids distintos', editorInventory.data.editors.length >= 2 && editorInventory.data.editors.some((item) => item.editor_id === mainEditorId) && editorInventory.data.editors.some((item) => item.editor_id === secondEditorId));
+  const selectedMain = await callTool('select_editor', { editor_id: mainEditorId });
+  const mainDocument = await callTool('get_document', {});
+  ok('sessão MCP seleciona a aba humana principal', selectedMain.data.selected_editor === mainEditorId && JSON.stringify(mainDocument.data).includes('Título'));
+  const selectedSecond = await callTool('select_editor', { editor_id: secondEditorId });
+  const secondDocument = await callTool('get_document', {});
+  ok('mesma sessão lê o documento da segunda aba por escolha explícita', selectedSecond.data.selected_editor === secondEditorId && JSON.stringify(secondDocument.data).includes('Documento da segunda pessoa'));
+  const mainSessionSelection = await callTool('select_editor', { editor_id: mainEditorId });
+  selectedTabAgent = await openAgent('Agente da segunda aba');
+  const otherSelection = await callWithSession(selectedTabAgent.sid, 2, 'select_editor', { editor_id: secondEditorId });
+  const writeOnMain = callWithSession(mcpSession, 91, 'update_layer', { id: ids.botao, props: { radius: 14 } });
+  const writeOnSecond = callWithSession(selectedTabAgent.sid, 3, 'update_layer', { id: secondMarkerId, props: { opacity: 0.65 } });
+  await Promise.all([p.waitForSelector('.ask-modal', { timeout: 5000 }), secondEditor.waitForSelector('.ask-modal', { timeout: 5000 })]);
+  await Promise.all([
+    p.getByRole('button', { name: 'Permitir', exact: true }).click(),
+    secondEditor.getByRole('button', { name: 'Permitir', exact: true }).click(),
+  ]);
+  const [mainWriteResult, secondWriteResult] = await Promise.all([writeOnMain, writeOnSecond]);
+  const isolatedWrites = mainSessionSelection.data.selected_editor === mainEditorId && otherSelection.data.selected_editor === secondEditorId && !mainWriteResult.isError && !secondWriteResult.isError && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 14 && (await secondEditor.evaluate((id) => designer.store.get(id).opacity, secondMarkerId)) === 0.65;
+  await Promise.all([p.keyboard.press('Control+z'), secondEditor.keyboard.press('Control+z')]);
+  ok('dois agentes escrevem em abas selecionadas diferentes sem cruzar documentos e cada Ctrl+Z é local', isolatedWrites && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 0 && (await secondEditor.evaluate((id) => designer.store.get(id).opacity, secondMarkerId)) === 1);
+  await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': selectedTabAgent.sid } });
+  selectedTabAgent = null;
+  await callTool('select_editor', { editor_id: secondEditorId });
+  const secondPresenceId = await secondEditor.evaluate(() => sessionStorage.getItem('stylo.tab'));
+  await secondEditorContext.close();
+  await waitForEditorDisconnect(secondPresenceId);
+  const disconnectedDocument = await callTool('get_document', {});
+  ok('aba escolhida desconectada dá erro em vez de redirecionar para outra', disconnectedDocument.isError && /aba selecionada.*desconectada/i.test(disconnectedDocument.data.error || ''), JSON.stringify(disconnectedDocument));
+  await callTool('select_editor', { editor_id: mainEditorId });
+  const mainAfterReconnect = await callTool('get_document', {});
+  ok('sessão pode escolher explicitamente a aba principal após desconexão', JSON.stringify(mainAfterReconnect.data).includes('Título'));
+  secondEditorContext = null;
   const docOut = await callTool('get_document', {});
   ok('get_document lê o projeto aberto (camadas da página)', !docOut.isError && docOut.data.page.layers[0].name === 'Tela' && docOut.data.page.layers[0].children[0].name === 'Card', JSON.stringify(docOut.data).slice(0, 300));
   const code = await callTool('get_code', { id: ids.card });
@@ -125,6 +265,40 @@ try {
   await pending;
   const created = await callTool('create_layer', { type: 'text', parent_id: ids.card, index: 1, props: { name: 'Subtítulo', text: 'feito pela IA', fontSize: 14 } });
   ok('"permitir tudo nesta sessão": a próxima não pergunta', (await p.locator('.ask-modal').count()) === 0 && created.data.ok);
+  const currentCss = await callTool('get_project_css', {});
+  const projectCss = `.card { perspective: 600px; }\n.titulo { transform-style: preserve-3d; transform: perspective(800px) rotateY(20deg); animation: entrar 1s ease both; }\n@keyframes entrar { from { opacity: 0 } to { opacity: 1 } }`;
+  const cssWrite = await callTool('set_project_css', { css: projectCss });
+  const cssAfter = await callTool('get_project_css', {});
+  const cssComputed = await ev(({ card, title }) => ({ perspective: getComputedStyle(designer.canvas.els.get(card)).perspective, transformStyle: getComputedStyle(designer.canvas.els.get(title)).transformStyle, animation: getComputedStyle(designer.canvas.els.get(title)).animationName }), { card: ids.card, title: ids.titulo });
+  const cssExport = await callTool('export_html', { id: ids.tela });
+  ok('agente lê e define CSS global via MCP; canvas e export preservam animação e 3D', !currentCss.isError && currentCss.data.css === '' && cssWrite.data.ok && cssAfter.data.css === projectCss && cssComputed.perspective === '600px' && cssComputed.transformStyle === 'preserve-3d' && cssComputed.animation === 'entrar' && cssExport.data.html.includes('transform-style: preserve-3d') && cssExport.data.html.includes('@keyframes entrar'), JSON.stringify({ current: currentCss.data, computed: cssComputed }));
+  await callTool('add_comment', { id: ids.card, text: 'Anotação para revisão MCP' });
+  const comments = await callTool('get_comments', { id: ids.card, unresolved_only: true });
+  ok('get_comments entrega ao agente a anotação da camada com autor e página', !comments.isError && comments.data.count === 1 && comments.data.comments[0].text === 'Anotação para revisão MCP' && comments.data.comments[0].layer.name === 'Card' && comments.data.comments[0].page.name === 'Página 1');
+  // Uma falha de rede durante build_layout não pode restaurar a foto antiga do documento e apagar a edição humana.
+  const iconUrl = 'https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/home/default/24px.svg';
+  let iconStarted;
+  let releaseIcon;
+  const iconRequestStarted = new Promise((resolve) => { iconStarted = resolve; });
+  const holdIcon = new Promise((resolve) => { releaseIcon = resolve; });
+  await p.route(iconUrl, async (route) => { iconStarted(); await holdIcon; await route.fulfill({ status: 503, body: 'indisponível' }); });
+  await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Teste concorrência humana', version: '1' } });
+  const originalPosition = await ev((id) => { const n = designer.store.get(id); return { x: n.x, y: n.y }; }, ids.tela);
+  const failingBuild = callTool('build_layout', { tree: { type: 'frame', props: { name: 'Construção interrompida' }, children: [{ type: 'icon', props: { name: 'home' } }] } });
+  await p.waitForSelector('.ask-modal');
+  await p.locator('.ask-buttons button', { hasText: /^Permitir$/ }).click();
+  await iconRequestStarted;
+  await p.locator(`.layer-row[data-id="${ids.tela}"]`).click();
+  await p.keyboard.press('ArrowRight');
+  const movedPosition = await ev((id) => { const n = designer.store.get(id); return { x: n.x, y: n.y }; }, ids.tela);
+  releaseIcon();
+  const buildFailure = await failingBuild;
+  const positionAfterFailure = await ev((id) => { const n = designer.store.get(id); return { x: n.x, y: n.y }; }, ids.tela);
+  ok('build_layout falha claramente quando a rede do ícone responde erro', buildFailure.isError && /Não consegui baixar o ícone/.test(buildFailure.data.error));
+  ok('edição pela interface enquanto o MCP aguarda não se perde na falha assíncrona', movedPosition.x !== originalPosition.x && (positionAfterFailure.x === movedPosition.x && positionAfterFailure.y === movedPosition.y) && /mantive o estado atual/.test(buildFailure.data.error), JSON.stringify({ originalPosition, movedPosition, positionAfterFailure, error: buildFailure.data.error }));
+  await ev(({ id, pos }) => { const s = designer.store; s.update(() => { const n = s.get(id); n.x = pos.x; n.y = pos.y; }); s.commit(); }, { id: ids.tela, pos: originalPosition });
+  await p.unroute(iconUrl);
+  await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Teste MCP', version: '1' } });
   const order = await ev((id) => designer.store.get(id).children.map((c) => c.name).join(), ids.card);
   ok('create_layer entra no flex na posição pedida', order === 'Título,Subtítulo,Botão', order);
   ok('layout.gap mesclado (padding continua)', (await ev((id) => { const L = designer.store.get(id).layout; return `${L.gap}|${L.padding.join()}`; }, ids.card)) === '24|16,16,16,16');
@@ -157,7 +331,11 @@ try {
   const imgPart = img.body.result.content.find((c) => c.type === 'image');
   ok('get_image: a IA recebe a tela como IMAGEM PNG (conteúdo de imagem do MCP)', imgPart?.mimeType === 'image/png' && Buffer.from(imgPart.data, 'base64').subarray(1, 4).toString() === 'PNG' && !img.body.result.content.at(-1).text.includes('"data"'));
   const html = await callTool('export_html', { id: ids.tela });
-  ok('export_html devolve o arquivo HTML completo', /^<!doctype html>/.test(html.data.html) && html.data.html.includes('class="card"'));
+  ok('export_html devolve o HTML completo quando cabe no trecho padrão', /^<!doctype html>/.test(html.data.html) && html.data.html.includes('class="card"') && html.data.complete === true);
+  const siteMeta = await callTool('export_site', {});
+  ok('export_site lista páginas e tamanhos sem inserir HTML grande no contexto', Array.isArray(siteMeta.data.files) && siteMeta.data.files[0]?.path === 'index.html' && Number.isFinite(siteMeta.data.files[0]?.bytes) && !('content' in siteMeta.data.files[0]) && Array.isArray(siteMeta.data.warnings), JSON.stringify({ paths: siteMeta.data.files?.map((f) => f.path), warnings: siteMeta.data.warnings }));
+  const sitePage = await callTool('export_site', { includeContent: true, path: 'index.html' });
+  ok('export_site entrega uma página quando pedida explicitamente', /^<!doctype html>/i.test(sitePage.data.files?.[0]?.content) && sitePage.data.files.length === 1 && sitePage.data.totalBytes === sitePage.data.files[0].bytes);
   const respBad = await callTool('set_responsive', { id: ids.card, breakpoint: 'mobile', props: { name: 'Outro nome' } });
   ok('set_responsive recusa o que não varia por largura', respBad.isError && /Não varia por largura: name/.test(respBad.data.error));
   const resp = await callTool('set_responsive', { id: ids.card, breakpoint: 'mobile', props: { layout: { gap: 4 } } });
@@ -229,10 +407,29 @@ try {
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'find_layers', arguments: { query: 'subtítulo' } } })}\n`);
   for (let t = 0; t < 50 && lines.length < 2; t++) await new Promise((r) => setTimeout(r, 100));
-  child.kill();
   const sInit = lines.find((l) => l.id === 1), sFind = lines.find((l) => l.id === 2);
   ok('stdio: initialize responde (versão de protocolo do cliente)', sInit?.result?.protocolVersion === '2024-11-05', JSON.stringify(lines));
   ok('stdio: aviso não gera resposta e a ferramenta funciona', lines.length === 2 && JSON.parse(sFind.result.content[0].text).layers[0].name === 'Subtítulo');
+  child.stdin.end();
+  await new Promise((resolve) => child.once('close', resolve));
+  const afterStdioClose = await (await fetch(url('/api/presence'))).json();
+  ok('stdio envia DELETE ao fechar e remove sua sessão da presença', !afterStdioClose.agents.some((a) => a.name === 'Codex'));
+  const parallel = spawn(process.execPath, [script], { env: { ...process.env, DESIGNER_URL: new URL(BASE).origin, STYLO_AGENT: 'stdio paralelo' } });
+  const parallelLines = new Map();
+  let parallelBuf = '';
+  parallel.stdout.on('data', (d) => { parallelBuf += d; let i; while ((i = parallelBuf.indexOf('\n')) >= 0) { const item = JSON.parse(parallelBuf.slice(0, i)); parallelBuf = parallelBuf.slice(i + 1); if (item.id != null) parallelLines.set(item.id, item); } });
+  const waitLine = async (id, ms = 5000) => { for (let t = 0; t < ms / 50 && !parallelLines.has(id); t++) await new Promise((r) => setTimeout(r, 50)); return parallelLines.get(id); };
+  parallel.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 11, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'Codex paralelo' } } })}\n`);
+  await waitLine(11);
+  parallel.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 11 } } } })}\n`);
+  await p.waitForSelector('.ask-modal');
+  parallel.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 13, method: 'tools/call', params: { name: 'get_document', arguments: {} } })}\n`);
+  const fastRead = await waitLine(13, 2000);
+  ok('stdio responde uma leitura rápida enquanto outra escrita aguarda permissão', fastRead?.id === 13 && !parallelLines.has(12), JSON.stringify([...parallelLines.keys()]));
+  await p.locator('.ask-buttons button', { hasText: 'Recusar' }).click();
+  await waitLine(12);
+  parallel.stdin.end();
+  await new Promise((resolve) => parallel.once('close', resolve));
 
   // ---------------------------------------------------------------- 4. segurança da chave
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: 'sk-teste-segredo-123' }) });
@@ -320,7 +517,7 @@ try {
   ok('o raciocínio <think> do modelo não aparece', !logText.includes('raciocínio interno'));
   ok('o botão mudou', (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   const first = seen[0];
-  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 36 && first.data.tools.some((t) => t.function.name === 'edit_image') && !first.data.tools.some((t) => t.function.name === 'generate_image_edit') && first.data.tools.some((t) => t.function.name === 'remember') && first.data.tools.some((t) => t.function.name === 'delegate_task') && !first.data.tools.some((t) => t.function.name.startsWith('jev_')) && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
+  ok('a API recebe modelo, ferramentas e o contexto da seleção', first.path === '/v1/chat/completions' && first.data.model === 'modelo-teste' && first.data.tools.length === 42 && first.data.tools.some((t) => t.function.name === 'list_assets') && first.data.tools.some((t) => t.function.name === 'insert_asset') && first.data.tools.some((t) => t.function.name === 'get_comments') && first.data.tools.some((t) => t.function.name === 'get_project_css') && first.data.tools.some((t) => t.function.name === 'set_project_css') && first.data.tools.some((t) => t.function.name === 'edit_image') && !first.data.tools.some((t) => t.function.name === 'generate_image_edit') && first.data.tools.some((t) => t.function.name === 'remember') && first.data.tools.some((t) => t.function.name === 'delegate_task') && !first.data.tools.some((t) => t.function.name.startsWith('jev_')) && first.data.messages[0].role === 'system' && /seleção: “Botão”/.test(first.data.messages[1].content));
   ok('a mensagem de sistema é o docs/AGENTE.md (quem a IA é e como trabalha)', /Assistente do Stylo/.test(first.data.messages[0].content) && /get_document/.test(first.data.messages[0].content));
   ok('a 2ª rodada devolve os resultados das ferramentas à IA', seen[1]?.data.messages.filter((m) => m.role === 'tool').length === 2);
   ok('sem chave configurada, nada de Authorization (servidor local tipo Ollama)', first.auth === '');
@@ -335,9 +532,64 @@ try {
   ok('"Fazer sem perguntar": altera sem abrir a janela de permissão', (await p.locator('.ask-modal').count()) === 0 && (await ev((id) => designer.store.get(id).radius[0], ids.botao)) === 8);
   ok('a opção fica lembrada nas preferências', (await ev(() => JSON.parse(localStorage.getItem('projeto-designer:prefs') || '{}').agentAuto)) === true);
   await p.locator('.ai-auto input').uncheck();
+
+  // A confirmação do editor pode se perder numa falha transitória de rede. A ponte precisa reenviar a mesma
+  // resposta até o servidor confirmar, para liberar a chamada MCP e a trava sem fechar a aba.
+  const replyPage = await p.context().newPage();
+  await replyPage.goto(url('?editor'));
+  await replyPage.waitForFunction(() => !!window.designer?.store);
+  const replyTarget = await replyPage.evaluate(async () => {
+    const { createNode } = await import('/src/model.js');
+    const store = designer.store;
+    store.newDoc();
+    const target = createNode('rect', { name: 'Alvo com resposta recuperável', x: 20, y: 20, w: 90, h: 60 });
+    store.update((pg) => pg.children.push(target), { commit: true });
+    return target.id;
+  });
+  let replyAttempts = 0;
+  let replyId = '';
+  await replyPage.route('**/api/agent/reply', (route) => {
+    replyAttempts++;
+    replyId = String(route.request().postDataJSON()?.id || replyId);
+    return replyAttempts === 1 ? route.abort() : route.continue();
+  });
+  const replyAgent = await openAgent('Resposta perdida');
+  const lostReplyWrite = fetch(url('/mcp'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Mcp-Session-Id': replyAgent.sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 71, method: 'tools/call', params: { name: 'update_layer', arguments: { id: replyTarget, props: { radius: 17 } } } }) }).then(async (r) => ({ status: r.status, body: await r.json() }));
+  await replyPage.waitForSelector('.ask-modal', { timeout: 5000 });
+  await replyPage.getByRole('button', { name: 'Permitir', exact: true }).click();
+  let recoveredReply = await Promise.race([lostReplyWrite.then((value) => ({ done: true, value })), new Promise((resolve) => setTimeout(() => resolve({ done: false }), 2500))]);
+  ok('resposta MCP perdida é reenviada até o servidor confirmar', recoveredReply.done && replyAttempts >= 2 && recoveredReply.value.body.result?.isError !== true && (await replyPage.evaluate((id) => designer.store.get(id).radius[0], replyTarget)) === 17, JSON.stringify({ replyAttempts, done: recoveredReply.done }));
+  if (!recoveredReply.done) {
+    // Em caso de regressão, fechar a aba encerra a chamada pendente e evita contaminar os checks seguintes.
+    await replyPage.close();
+    recoveredReply = { done: true, value: await lostReplyWrite };
+  } else {
+    await replyPage.unroute('**/api/agent/reply');
+    const duplicateReplyStatus = await replyPage.evaluate(async (id) => (await fetch('/api/agent/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, result: {} }) })).status, replyId);
+    ok('resposta duplicada recebe status terminal sem alterar outra chamada', duplicateReplyStatus === 410, String(duplicateReplyStatus));
+    await replyPage.close();
+    await lostReplyWrite;
+  }
+  await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': replyAgent.sid } });
+
+  await mcp('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Cliente aguardando', version: '1' } });
+  const waitingForEditor = mcp('tools/call', { name: 'update_layer', arguments: { id: ids.botao, props: { radius: 10 } } });
+  await p.waitForSelector('.ask-modal');
+  await p.close();
+  const closedEditor = await waitingForEditor;
+  const closeText = closedEditor.body?.result?.content?.[0]?.text || '';
+  ok('MCP encerra a chamada pendente quando o editor fecha', closedEditor.status === 200 && closedEditor.body?.result?.isError && /editor foi fechado durante a chamada/.test(closeText), closeText);
+  const finalSession = mcpSession;
+  const terminated = await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': finalSession } });
+  const finalPresence = await (await fetch(url('/api/presence'))).json();
+  ok('encerrar o cliente de teste limpa sua presença no editor', terminated.status === 204 && !finalPresence.agents.some((a) => a.id === finalSession));
+  mcpSession = '';
 } catch (err) {
   ok('cenário terminou sem exceção', false, err.stack);
 } finally {
+  if (selectedTabAgent) await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': selectedTabAgent.sid } }).catch(() => {});
+  if (secondEditorContext) await secondEditorContext.close().catch(() => {});
+  if (mcpSession) await fetch(url('/mcp'), { method: 'DELETE', headers: { 'Mcp-Session-Id': mcpSession } }).catch(() => {});
   await fetch(url('/api/agent/config'), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseUrl: original.baseUrl === 'https://api.openai.com/v1' ? '' : original.baseUrl, model: original.model === 'gpt-4.1-mini' ? '' : original.model }) }).catch(() => {});
   mock?.close();
   await b.close();

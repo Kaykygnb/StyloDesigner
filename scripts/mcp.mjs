@@ -32,7 +32,36 @@ let session = '';
 const send = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 
 const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
-rl.on('line', async (line) => {
+/** Libera a presença e as travas do agente quando o cliente fecha o processo normalmente. */
+async function disconnect() {
+  if (!session) return;
+  const headers = { Accept: 'application/json', 'Mcp-Session-Id': session, ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
+  try { await fetch(`${BASE}/mcp`, { method: 'DELETE', headers }); } catch { /* o servidor pode já ter encerrado */ }
+  session = '';
+}
+let initializeTask = null;
+const tasks = new Set();
+rl.on('close', () => {
+  // Aguarda os pedidos já recebidos antes de encerrar a sessão MCP.
+  void Promise.allSettled([...tasks]).then(disconnect).finally(() => process.exit(0));
+});
+rl.on('SIGINT', () => rl.close());
+rl.on('line', (line) => {
+  let method = '';
+  try { method = JSON.parse(line).method || ''; } catch { /* handleLine devolve o erro JSON-RPC */ }
+  let task;
+  if (method === 'initialize') {
+    task = handleLine(line);
+    initializeTask = task;
+  } else {
+    // A inicialização fornece o id de sessão; depois disso, chamadas independentes ficam concorrentes.
+    task = Promise.resolve(initializeTask).then(() => handleLine(line));
+  }
+  tasks.add(task);
+  void task.finally(() => tasks.delete(task));
+});
+
+async function handleLine(line) {
   if (!line.trim()) return;
   let msg;
   try { msg = JSON.parse(line); } catch { return send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'JSON inválido.' } }); }
@@ -41,14 +70,22 @@ rl.on('line', async (line) => {
     const r = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: line });
     session = r.headers.get('mcp-session-id') || session;
     if (r.status === 202) return; // aviso (notification): sem resposta
+    if (!r.ok) {
+      const detail = (await r.text()).trim().slice(0, 240);
+      throw new Error(`HTTP ${r.status}${detail ? `: ${detail}` : ''}`);
+    }
     const out = await r.json();
     if (Array.isArray(out)) out.forEach(send); else send(out);
-  } catch {
-    // servidor desligado: só pedidos (com id) recebem resposta de erro; avisos são ignorados
+  } catch (err) {
+    // Só pedidos (com id) recebem resposta de erro; avisos falhos são registrados no stderr.
     if (msg && msg.id !== undefined && msg.id !== null) {
-      send({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `O Stylo não está rodando em ${BASE}. Rode "npm start" na pasta do projeto e abra o editor no navegador.` } });
-    }
+      const connectionRefused = err?.cause?.code === 'ECONNREFUSED';
+      const message = connectionRefused
+        ? `O Stylo não está rodando em ${BASE}. Rode "npm start" na pasta do projeto e abra o editor no navegador.`
+        : `Falha ao falar com o Stylo em ${BASE}: ${err.message}`;
+      send({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message } });
+    } else process.stderr.write(`Falha no aviso MCP: ${err.message}\n`);
   }
-});
+}
 // mensagens para pessoas vão para a saída de ERRO (stderr), que o protocolo ignora
 process.stderr.write(`Stylo MCP (stdio) → ${BASE}/mcp\n`);
