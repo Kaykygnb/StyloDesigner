@@ -164,8 +164,7 @@ export function createHome({ store, saving, canvas, thumbnail, toast, openSettin
         h('span.wide-only', 'Ir para o editor'), h('span.narrow-only', 'Editor'), h('kbd', 'Esc')));
 
     const hero = h('div.home-hero',
-      h('div',
-        h('span.home-eyebrow', 'Seu espaço de trabalho'),
+      h('div',
         h('h1', 'Seus projetos'),
         h('p.muted', server ? ['Salvos em ', h('span.mono', server.folder), ' · ', h('button.link', { type: 'button', onclick: () => openSettings('folder') }, 'trocar pasta')]
           : 'Sem servidor: os projetos ficam só no navegador. Rode npm start para salvar numa pasta do computador.')),

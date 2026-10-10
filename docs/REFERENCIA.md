@@ -2423,8 +2423,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`refreshList()`** <sub>interna</sub> · [L118](../src/ui/home.js#L118) — Busca a lista da pasta e redesenha a grade.
 - **`replaceWith(question, action)`** <sub>interna</sub> · [L129](../src/ui/home.js#L129) — Troca o projeto aberto por `action` (abrir da pasta, exemplo, novo), perguntando antes se for perder algo.
 - **`openFile(file)`** <sub>interna</sub> · [L141](../src/ui/home.js#L141) — Abre um projeto da pasta. Se já é o aberto, só volta ao editor.
-- **`renderGrid()`** <sub>interna</sub> · [L216](../src/ui/home.js#L216) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
-- **`card(p)`** <sub>interna</sub> · [L233](../src/ui/home.js#L233) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
+- **`renderGrid()`** <sub>interna</sub> · [L215](../src/ui/home.js#L215) — Só a grade de projetos da pasta (redesenhada ao buscar/ordenar sem perder o foco do campo de busca).
+- **`card(p)`** <sub>interna</sub> · [L232](../src/ui/home.js#L232) — Card de um projeto da pasta: clique abre; ⋯ abre o menu; no modo "renomear", o nome vira um campo.
 
 ---
 

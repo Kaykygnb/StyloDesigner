@@ -104,10 +104,12 @@ await page.locator('.present-frame').focus();
 await page.keyboard.press('Tab');
 ok('Tab numa tela sem controles foca e abre a próxima aba de tela',
   (await page.locator('.present-title').innerText()) === 'Detalhe' && await page.locator('.present-tabs [role="tab"][aria-selected="true"]').innerText() === 'Detalhe');
+await page.waitForTimeout(400); // a troca de tela anima por ~250 ms: sem esperar, o foco cai na tela antiga (corrida do teste)
 await page.locator('.present-frame').focus();
 await page.keyboard.press('Shift+Tab');
 ok('Shift+Tab numa tela sem controles foca e abre a aba de tela anterior',
   (await page.locator('.present-title').innerText()) === 'Home' && await page.locator('.present-tabs [role="tab"][aria-selected="true"]').innerText() === 'Home');
+await page.waitForTimeout(400);
 await page.keyboard.press('Escape');
 ok('Esc fecha o modo apresentar e devolve o foco', (await page.locator('.present').count()) === 0 && await presentButton.evaluate((el) => document.activeElement === el) && !(await ev(() => document.querySelector('#app')?.inert)));
 console.log(errors.join('\n') || 'no console errors');
