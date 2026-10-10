@@ -38,3 +38,11 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 - [ ] **Publicar**: tudo está só em commits locais na branch `feat/versao-estavel`. Quando quiser, `git push -u origin feat/versao-estavel` e abrir o PR (eu escrevo a descrição com a skill `descrever-pr`). Não faço push sozinho.
 - [ ] `#11` (foto como `<img>`) fica para a v1.1; a acessibilidade (`role="img"` + `aria-label`) já funciona.
 
+## Perguntas deixadas como COMENTÁRIOS no projeto `docs/identidade/stylo-identidade.json` (Arquivo → Importar arquivo .json…)
+Responda no próprio editor (aba Comentários) ou aqui no chat:
+- [ ] Símbolo: A, B (recomendado), C ou D? (página "Logo — exploração")
+- [ ] Home: lista (V1) ou galeria (V2) como padrão, com alternador? E mostrar a atividade do agente na Home?
+- [ ] Primeiro uso: abrir o projeto base ou um projeto em branco?
+- [ ] Trocar os ícones do app pelos 8 desenhados com a caneta? (`src/ui/icons.js`)
+- [ ] Construir a aba **Conversa** com o agente? Primeiro passo: `get_messages` e `send_message` sobre os comentários existentes.
+

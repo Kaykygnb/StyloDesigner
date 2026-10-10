@@ -1,0 +1,2023 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ícones — desenhados com a caneta</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-texto-claro: #ece9e4;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-grafite-900: #1a1917;
+}
+
+/* Página de exploração. Notas nas células explicam cada desenho. Os ícones atuais do app são desenhados à mão no código (src/ui/icons.js); estes podem substituí-los. */
+.icones-desenhados-com-a-caneta {
+  box-sizing: border-box;
+  position: relative;
+  width: 1280px;
+  height: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.conteudo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 680px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.grade-de-icones {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 16px;
+  justify-items: start;
+  align-items: start;
+}
+
+/* Três camadas empilhadas: o losango de cima é fechado, as de baixo são só o "V". Mesmo desenho do painel Camadas do Stylo. */
+.celula-camadas {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-camadas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.topo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.meio {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.base {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.topo-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.meio-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.base-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-camadas-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.topo-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.meio-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.base-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-camadas-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.topo-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.meio-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.base-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* O símbolo da marca em miniatura: colchete + três linhas de larguras diferentes. Significa "regra CSS" e "auto layout". */
+.celula-regra-css {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-regra-css {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.colchete {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.linha-1 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.linha-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.linha-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-regra-css-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.colchete-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-1-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-2-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-3-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-regra-css-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.colchete-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.linha-1-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.linha-2-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.linha-3-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-regra-css-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.colchete-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-1-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-2-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-3-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Monitor e celular lado a lado: a ideia de breakpoints (Desktop, Tablet, Celular) do projeto. */
+.celula-breakpoints {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-breakpoints {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.monitor {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.haste {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.base-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.celular {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-breakpoints-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.monitor-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.haste-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.base-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.celular-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-breakpoints-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.monitor-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.haste-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.base-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.celular-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-breakpoints-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.monitor-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.haste-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.base-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.celular-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Losango dentro de losango: o componente principal e suas instâncias (mesmo vocabulário do Figma, sem copiar o desenho). */
+.celula-componente {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-componente {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.externo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.interno {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-componente-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.externo-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.interno-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-componente-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.externo-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.interno-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-componente-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.externo-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.interno-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Bandeja aberta e seta para cima: exportar o site (HTML, ZIP, PNG). */
+.celula-exportar {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-exportar {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.bandeja {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.haste-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.ponta {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-exportar-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.bandeja-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.haste-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.ponta-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-exportar-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.bandeja-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.haste-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.ponta-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-exportar-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.bandeja-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.haste-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.ponta-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Balão de fala com uma faísca: o agente. O balão usa curvas de Bézier (cantos arredondados por alças) e o rabo é um canto reto: bom teste da caneta. */
+.celula-agente {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-agente {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.balao {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.faisca {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-agente-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.balao-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.faisca-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-agente-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.balao-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.faisca-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-agente-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.balao-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.faisca-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Post-it com canto dobrado e duas linhas: a "nota" da camada (documenta para que serve e vira comentário no código). */
+.celula-nota {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-nota {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.folha {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.dobra {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.linha-1-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.linha-2-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-nota-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.folha-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.dobra-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-1-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-2-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-nota-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.folha-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.dobra-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.linha-1-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.linha-2-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-nota-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.folha-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.dobra-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-1-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.linha-2-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Alfinete com furo: o comentário preso a uma camada (pino no canvas). A gota é uma curva fechada de quatro alças. */
+.celula-comentario {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.icone-comentario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.gota {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.furo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 96px;
+  height: 96px;
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.tamanhos-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-comentario-24px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.gota-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.furo-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.icone-comentario-16px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.gota-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.furo-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
+}
+
+.icone-comentario-24px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.gota-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+
+.furo-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 24px;
+  height: 24px;
+}
+</style>
+</head>
+<body>
+<!-- Página de exploração. Notas nas células explicam cada desenho. Os ícones atuais do app são desenhados à mão no código (src/ui/icons.js); estes podem substituí-los. -->
+<div class="icones-desenhados-com-a-caneta">
+  <div class="conteudo">
+    <h2 class="texto">Ícones desenhados com a caneta</h2>
+    <p class="texto-2">Oito ícones próprios na grade de 24, traço de 1,75 px com ponta e junção redondas, um único peso. São caminhos vetoriais (tipo path): editáveis com a caneta do Stylo. Cada célula tem uma nota explicando o desenho e três tamanhos de teste (24, 16 e 24 em âmbar para o estado ativo).</p>
+    <div class="grade-de-icones">
+      <!-- Três camadas empilhadas: o losango de cima é fechado, as de baixo são só o "V". Mesmo desenho do painel Camadas do Stylo. -->
+      <div class="celula-camadas">
+        <div class="icone-camadas">
+          <div class="topo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="meio">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="base">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-3">camadas</p>
+        <div class="tamanhos">
+          <div class="icone-camadas-24px">
+            <div class="topo-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-camadas-16px">
+            <div class="topo-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-camadas-24px-2">
+            <div class="topo-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- O símbolo da marca em miniatura: colchete + três linhas de larguras diferentes. Significa "regra CSS" e "auto layout". -->
+      <div class="celula-regra-css">
+        <div class="icone-regra-css">
+          <div class="colchete">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 20 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 20 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 12 L 17 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 12 L 17 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 16 L 19 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 16 L 19 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-4">regra CSS</p>
+        <div class="tamanhos-2">
+          <div class="icone-regra-css-24px">
+            <div class="colchete-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 20 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 20 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 12 L 17 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 12 L 17 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-3-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 16 L 19 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 16 L 19 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-regra-css-16px">
+            <div class="colchete-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 20 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 20 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 12 L 17 12" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 12 L 17 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-3-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 16 L 19 16" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 16 L 19 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-regra-css-24px-2">
+            <div class="colchete-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9 4 L 5 4 L 5 20 L 9 20" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 20 8" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 20 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 12 L 17 12" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 12 L 17 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-3-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 16 L 19 16" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 16 L 19 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Monitor e celular lado a lado: a ideia de breakpoints (Desktop, Tablet, Celular) do projeto. -->
+      <div class="celula-breakpoints">
+        <div class="icone-breakpoints">
+          <div class="monitor">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="haste">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="base-5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="celular">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-5">breakpoints</p>
+        <div class="tamanhos-3">
+          <div class="icone-breakpoints-24px">
+            <div class="monitor-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="celular-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-breakpoints-16px">
+            <div class="monitor-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="celular-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-breakpoints-24px-2">
+            <div class="monitor-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 2.5 5 L 16.5 5 L 16.5 15 L 2.5 15 L 2.5 5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9.5 15 L 9.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6.5 18.5 L 12.5 18.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="celular-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 18.5 9 L 22 9 L 22 17 L 18.5 17 L 18.5 9 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Losango dentro de losango: o componente principal e suas instâncias (mesmo vocabulário do Figma, sem copiar o desenho). -->
+      <div class="celula-componente">
+        <div class="icone-componente">
+          <div class="externo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="interno">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-6">componente</p>
+        <div class="tamanhos-4">
+          <div class="icone-componente-24px">
+            <div class="externo-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="interno-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-componente-16px">
+            <div class="externo-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="interno-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-componente-24px-2">
+            <div class="externo-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="interno-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Bandeja aberta e seta para cima: exportar o site (HTML, ZIP, PNG). -->
+      <div class="celula-exportar">
+        <div class="icone-exportar">
+          <div class="bandeja">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="haste-5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 15 L 12 4" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 15 L 12 4" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="ponta">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-7">exportar</p>
+        <div class="tamanhos-5">
+          <div class="icone-exportar-24px">
+            <div class="bandeja-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 15 L 12 4" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 15 L 12 4" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="ponta-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-exportar-16px">
+            <div class="bandeja-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 15 L 12 4" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 15 L 12 4" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="ponta-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-exportar-24px-2">
+            <div class="bandeja-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 4 14 L 4 20 L 20 20 L 20 14" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="haste-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 15 L 12 4" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 15 L 12 4" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="ponta-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 12 4 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Balão de fala com uma faísca: o agente. O balão usa curvas de Bézier (cantos arredondados por alças) e o rabo é um canto reto: bom teste da caneta. -->
+      <div class="celula-agente">
+        <div class="icone-agente">
+          <div class="balao">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="faisca">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-8">agente</p>
+        <div class="tamanhos-6">
+          <div class="icone-agente-24px">
+            <div class="balao-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="faisca-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-agente-16px">
+            <div class="balao-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="faisca-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-agente-24px-2">
+            <div class="balao-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="faisca-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Post-it com canto dobrado e duas linhas: a "nota" da camada (documenta para que serve e vira comentário no código). -->
+      <div class="celula-nota">
+        <div class="icone-nota">
+          <div class="folha">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="dobra">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-1-5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-2-5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 11.5 L 12 11.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 11.5 L 12 11.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-9">nota</p>
+        <div class="tamanhos-7">
+          <div class="icone-nota-24px">
+            <div class="folha-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="dobra-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 11.5 L 12 11.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 11.5 L 12 11.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-nota-16px">
+            <div class="folha-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="dobra-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 16 8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 11.5 L 12 11.5" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 11.5 L 12 11.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-nota-24px-2">
+            <div class="folha-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="dobra-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-1-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 16 8" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="linha-2-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 11.5 L 12 11.5" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 11.5 L 12 11.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Alfinete com furo: o comentário preso a uma camada (pino no canvas). A gota é uma curva fechada de quatro alças. -->
+      <div class="celula-comentario">
+        <div class="icone-comentario">
+          <div class="gota">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="furo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-10">comentário</p>
+        <div class="tamanhos-8">
+          <div class="icone-comentario-24px">
+            <div class="gota-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="furo-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-comentario-16px">
+            <div class="gota-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="furo-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="1.1666666666666665" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <div class="icone-comentario-24px-2">
+            <div class="gota-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 21 C 7 15.5 5 13.2 5 10 C 5 6.1 8.1 3 12 3 C 15.9 3 19 6.1 19 10 C 19 13.2 17 15.5 12 21 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="furo-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 7.8 C 13.2 7.8 14.2 8.8 14.2 10 C 14.2 11.2 13.2 12.2 12 12.2 C 10.8 12.2 9.8 11.2 9.8 10 C 9.8 8.8 10.8 7.8 12 7.8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

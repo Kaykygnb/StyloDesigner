@@ -29,6 +29,11 @@ Fonte: 3 pesquisadores só-leitura (sonnet), verificados por amostragem. Nada di
 Detalhes em `docs/identidade/LEIA-ME.md`. Viram backlog da v1.1:
 1. **Vários editores conectados**: sem `select_editor`, o servidor usa a aba mais recente e uma escrita caiu em outra aba, de outro projeto. Proposta: com mais de um editor conectado e nenhum escolhido, **recusar escritas** (leitura continua) e dizer para chamar `list_editors`/`select_editor`.
 2. **`get_image` e o export PNG usam fonte de reserva** para Google Fonts (o `foreignObject` dentro de uma imagem SVG não carrega recursos de rede). A prévia que o agente vê não bate com o canvas. Proposta: embutir as fontes usadas (base64) no SVG do PNG ou avisar na resposta da ferramenta.
-3. **`build_layout` devolve só a raiz** criada; os ids dos filhos exigem `find_layers`. Proposta: devolver a árvore de ids (nome → id).
+3. `build_layout` devolve a árvore criada só até 3 níveis; abaixo disso é preciso `find_layers`. E `find_layers` procura em **todas as páginas** por nome: nomes repetidos ("Conteúdo") me fizeram alterar a camada errada. Proposta: aceitar `page_id` ou `parent_id` em `find_layers` e devolver a página de cada resultado.
 4. `create_instance` aceita `props` de aparência (fill, stroke, opacity), o que permite mostrar estados forçados num guia; vale documentar no `AGENTE.md`.
+5. **Lacuna corrigida**: o agente não conseguia criar vetores (`path`); só frame, rect, ellipse, text, line e icon. Agora `build_layout` e `create_layer` aceitam `path` com pontos, alças de Bézier (`hin`/`hout`), `closed`, `vw`/`vh` e contorno com `cap`/`join` (8 testes, `docs/AGENTE.md`). Pedido da pessoa: "usar a caneta".
+6. `set_responsive` não tem como **remover** um override; refazer a camada foi o único jeito. Proposta: aceitar `props: null` ou uma ferramenta `clear_responsive`.
+7. **`save_project` fica pendurado** quando o editor mostra o aviso "O arquivo mudou fora do editor" (a pessoa precisa decidir). Proposta: a ferramenta responder logo com "conflito de arquivo: peça à pessoa para escolher" em vez de esperar.
+8. **Abas antigas continuam salvando**: uma segunda aba do mesmo projeto regravou a pasta com uma cópia velha e provocou esse conflito. O aviso do Stylo protegeu o trabalho; a causa é o item 1 (vários editores conectados).
+9. Ideia de produto desenhada e comentada: aba **Conversa** com o agente (`docs/identidade`, página "Conversa com o agente"): primeiro passo pequeno e seguro é `get_messages`/`send_message` sobre o armazenamento de comentários que já existe.
 

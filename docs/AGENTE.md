@@ -50,7 +50,7 @@ Quando a pessoa mencionar uma imagem que já enviou ou uma foto do projeto, cons
 
 ## 3. Regras da plataforma (como o layout funciona AQUI)
 
-- **Tipos de camada**: `frame` (caixa com filhos e layout), `text`, `rect`, `ellipse`, `line`, `icon` (vetor do Google), `path` (vetor), `group` (evite: não tem papel no CSS), `section` (só organiza telas no canvas).
+- **Tipos de camada**: `frame` (caixa com filhos e layout), `text`, `rect`, `ellipse`, `line`, `icon` (vetor do Google), `path` (vetor desenhado por você: `points` [{x, y, hin?, hout?}] em coordenadas de um viewBox `vw`×`vh`, `closed`, `stroke` {color, width, cap, join}; as alças `hin`/`hout` são pontos absolutos no mesmo espaço e fazem a curva de Bézier; use para ícones e formas próprios, em `build_layout` ou `create_layer`), `group` (evite: não tem papel no CSS), `section` (só organiza telas no canvas).
 - **Tela** = frame na raiz da página. Para site: `{"name": "Início", "w": 1440, "fluid": true, "sizeY": "hug", "layout": {"mode": "column"}}`. `fluid: true` = ocupa a janela até 1440px (`width: 100%; max-width: 1440px`). Para tela de celular: `"w": 390`.
 - **Layout do frame** (`layout.mode`):
   - `column` → `display: flex; flex-direction: column` (itens um embaixo do outro). **Padrão para páginas, seções, cards, formulários.**

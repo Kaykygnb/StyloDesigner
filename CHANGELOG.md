@@ -38,6 +38,7 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - Repositório com o nome oficial `StyloDesigner` (menu de suporte, comando de plugin, CONTRIBUTING, issue template).
 
 #### Adicionado
+- **Agente e MCP desenham vetores**: `build_layout` e `create_layer` aceitam o tipo `path` (pontos, alças de Bézier `hin`/`hout`, `closed`, `vw`/`vh`, contorno com `cap` e `join`). Antes o agente só criava frame, rect, ellipse, text, line e icon.
 - Runner E2E isolado (`npm run test:e2e`): sobe um servidor próprio em porta livre com pasta de projetos temporária, limita cada suíte a 4 min e aceita filtro (`npm run test:e2e -- exportacao`). O teste de desempenho usa a mediana de 5 rodadas.
 - CI no GitHub Actions (unitários em Node 20 e 22; navegador em Chromium, ainda sem bloquear), `SECURITY.md`, `NOTICE`, template de pull request, campos `repository`, `bugs` e `homepage` no `package.json`.
 - Plugin e cliente do Codex (`scripts/codex-worker.mjs`) e registro de estado em `docs/estado/` (retomada, decisões, pendências humanas) para trabalho contínuo por agentes.

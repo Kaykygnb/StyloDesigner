@@ -7,7 +7,7 @@ Esta pasta é o resultado de pedir ao Stylo, **pelo servidor MCP dele**, que des
 ## Arquivos
 | Arquivo | O que é |
 |---|---|
-| `stylo-identidade.json` | O projeto do Stylo. Para abrir: Arquivo → **Importar arquivo .json…**. Tem a página "Guia de estilo" (8 seções, ~420 camadas), 22 estilos de cor e o componente **Botão primário** com `:hover`, `:active` e `:focus-visible`. |
+| `stylo-identidade.json` | O projeto do Stylo (1 MB). Para abrir: Arquivo → **Importar arquivo .json…**. 7 páginas: o Guia de estilo (8 seções) mais as 6 explorações abaixo; 22 estilos de cor, o componente **Botão primário** com `:hover`, `:active` e `:focus-visible`, 25 notas e 10 comentários. |
 | `guia-de-estilo.html` | A exportação HTML do próprio Stylo (uma página independente, com as fontes do Google Fonts). |
 | `guia-de-estilo.png` | Captura da página inteira do HTML acima (1280 px). |
 | `secao-1.png` … `secao-8.png` | Uma captura por seção: capa, propósito e princípios, logotipo, cores, tipografia, formas e profundidade, ícones, componentes e estados. |
@@ -15,6 +15,22 @@ Esta pasta é o resultado de pedir ao Stylo, **pelo servidor MCP dele**, que des
 
 ## O que o guia define
 Propósito e quatro princípios (CSS de verdade, sóbrio e denso, um único acento, local e honesto); logotipo e área de respiro; paleta nomeada com a razão de contraste medida de cada par (todas passam AA); IBM Plex Sans para a interface e JetBrains Mono só para código, com a escala 11/12/13/15 px; raios 2/4/6 px, espaço em múltiplos de 4 e profundidade; ícones Material Symbols em contorno; componentes e estados.
+
+## Explorações (7 páginas no projeto, imagens em `exploracoes/`)
+Tudo abaixo está no `stylo-identidade.json` com **notas** nas camadas (o porquê de cada peça) e **comentários** onde há dúvida para você responder (aba Comentários do editor; eu leio com `get_comments`).
+| Página | O que tem | Imagem |
+|---|---|---|
+| Ícones (caneta) | 8 ícones próprios desenhados com **vetores de Bézier** (tipo `path`, criado nesta etapa para o agente): camadas, regra CSS, breakpoints, componente, exportar, agente, nota, comentário. Três tamanhos de teste cada. | `exploracoes/icones.png` |
+| Logo — exploração | 4 conceitos de símbolo, todos com a caneta: A camadas, B colchete e linhas (recomendado), C S de blocos, D fio contínuo. Testes em 128, 48, 24 e 16 px. | `exploracoes/logos.png` |
+| Home — versão 1 (lista) | Tela inicial densa: lateral com navegação, pasta e estado do agente; faixa "Continuar"; tabela com `:hover` real; mais o estado de **primeiro uso**. | `home-v1-lista.png`, `home-v1-primeiro-uso.png` |
+| Home — versão 2 (galeria) | Miniaturas, destaque do último projeto, atividade do agente e "Aprender fazendo". **Responsiva**: 4 colunas, 2 no tablet, 1 no celular, sem rolagem horizontal. | `home-v2-galeria-1440.png`, `-768.png`, `-390.png` |
+| Conversa com o agente | O "chatzinho": aba Conversa com presença, respostas rápidas, pedido de permissão como cartão e `@camada`. É uma **proposta de design**; ainda não existe no produto. | `conversa-com-o-agente.png` |
+| Brief e crítica da Home | O brief no formato da skill de design, com as decisões em aberto como SUPOSIÇÃO e a crítica das duas versões (recomenda V1 com alternador). | `brief-e-critica.png` |
+
+Os arquivos `.html` ao lado de cada imagem são a exportação do próprio Stylo.
+
+## Perguntas que ficaram nos comentários
+Hoje: lista ou galeria como padrão da Home; mostrar a atividade do agente na Home; primeiro uso abre o exemplo ou um projeto em branco; trocar os ícones do app pelos novos; qual símbolo (A, B, C ou D); se devo começar a aba Conversa (primeiro passo: `get_messages` e `send_message` sobre os comentários que já existem).
 
 ## Como foi feito (e o que isso ensinou sobre o produto)
 O uso real do MCP achou coisas que merecem virar melhoria (registradas em `docs/estado/PRODUTO.md`):

@@ -1,0 +1,2669 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home — V1 Lista</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-grafite-900: #1a1917;
+  --cor-texto-claro: #ece9e4;
+  --cor-grafite-700: #2d2a27;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-sucesso: #5cc98f;
+  --cor-grafite-800: #23211f;
+  --cor-ambar: #e9a23b;
+  --cor-sobre-ambar: #1a1206;
+}
+
+/* V1 · Lista densa. Prioriza velocidade: o último projeto em uma faixa com um botão, e uma tabela que escala para 100+ projetos. A lateral guarda navegação, a pasta de projetos e o estado do agente (MCP). */
+.home-v1-lista {
+  box-sizing: border-box;
+  position: relative;
+  width: 1440px;
+  height: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.lateral {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 232px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 16px 16px 16px;
+  background-color: var(--cor-grafite-900);
+  border-right: 1px solid #2c2a27;
+}
+
+.marca {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.simbolo-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+}
+
+.colchete {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-longa {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-curta {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-media {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.navegacao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.navegacao-projetos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 4px;
+}
+
+.icone-camadas-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.navegacao-modelos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  border-radius: 4px;
+}
+
+.icone-componente-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.externo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.interno {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.navegacao-aprender {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  border-radius: 4px;
+}
+
+.icone-nota-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.folha {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.dobra {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.linha-1 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.linha-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.navegacao-agentes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  border-radius: 4px;
+}
+
+.icone-agente-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.balao {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.faisca {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.navegacao-configuracoes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  border-radius: 4px;
+}
+
+.settings {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.espaco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+}
+
+.rodape-da-lateral {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.agente-conectado {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.ponto-verde {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.pasta-de-projetos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.conteudo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 40px 56px 40px 56px;
+}
+
+.cabecalho {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.busca {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 280px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+}
+
+.search {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.atalho {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.botao-secundario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.botao-primario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rotulo-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+/* O caminho mais curto do app: abrir o último projeto em um clique. É a ação principal da tela; o "Novo projeto" é a segunda. */
+.continuar-editando {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 16px 16px 16px 16px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.miniatura-do-ultimo-projeto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 168px;
+  height: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.botao-primario-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rotulo-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+/* Tabela com 8 linhas de exemplo. Passar o mouse destaca a linha (estado :hover real). "Local" distingue o que está na pasta do que vive só no navegador (e pode se perder). */
+.tabela-de-projetos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.cabecalho-da-tabela {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 8px 12px 8px 12px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.linha-de-projeto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto:hover {
+  background-color: #23211f;
+}
+
+.nome {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-17 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-18 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-19 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-20 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-2:hover {
+  background-color: #23211f;
+}
+
+.nome-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-21 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-22 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-23 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-3:hover {
+  background-color: #23211f;
+}
+
+.nome-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-25 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-27 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-4:hover {
+  background-color: #23211f;
+}
+
+.nome-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-29 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-30 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-31 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-5:hover {
+  background-color: #23211f;
+}
+
+.nome-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-33 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-34 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-35 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-36 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-6:hover {
+  background-color: #23211f;
+}
+
+.nome-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-37 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-38 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-39 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-navegador {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 50%;
+}
+
+.texto-40 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-7:hover {
+  background-color: #23211f;
+}
+
+.nome-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-8 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-41 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-42 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-43 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-pasta-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-44 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-de-projeto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  border-radius: 4px;
+}
+
+.linha-de-projeto-8:hover {
+  background-color: #23211f;
+}
+
+.nome-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-camadas-20px-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.topo-9 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.meio-9 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.base-9 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-45 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-46 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-47 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.local-navegador-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 50%;
+}
+
+.texto-48 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.rodape {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+</style>
+</head>
+<body>
+<!-- V1 · Lista densa. Prioriza velocidade: o último projeto em uma faixa com um botão, e uma tabela que escala para 100+ projetos. A lateral guarda navegação, a pasta de projetos e o estado do agente (MCP). -->
+<div class="home-v1-lista">
+  <div class="lateral">
+    <div class="marca">
+      <div class="simbolo-26">
+        <div class="colchete">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 10.8 5 L 6.5 5 L 6.5 27 L 10.8 27" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="2.1125000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 10.8 5 L 6.5 5 L 6.5 27 L 10.8 27" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-longa">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 10.8 L 25.2 10.8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 10.8 L 25.2 10.8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-curta">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 16 L 21.2 16" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 16 L 21.2 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-media">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 21.2 L 23.6 21.2" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 21.2 L 23.6 21.2" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+      </div>
+      <p class="texto">Stylo</p>
+    </div>
+    <div class="navegacao">
+      <div class="navegacao-projetos">
+        <div class="icone-camadas-20px">
+          <div class="topo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="meio">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="base">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-2">Projetos</p>
+      </div>
+      <div class="navegacao-modelos">
+        <div class="icone-componente-20px">
+          <div class="externo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 12 L 12 21 L 3 12 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="interno">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 8 L 16 12 L 12 16 L 8 12 L 12 8 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-3">Modelos</p>
+      </div>
+      <div class="navegacao-aprender">
+        <div class="icone-nota-20px">
+          <div class="folha">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 4 L 19 4 L 19 14 L 14 19 L 5 19 L 5 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="dobra">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 19 14 L 14 14 L 14 19" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 8 L 16 8" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 8 L 16 8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="linha-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 11.5 L 12 11.5" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 11.5 L 12 11.5" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-4">Aprender</p>
+      </div>
+      <div class="navegacao-agentes">
+        <div class="icone-agente-20px">
+          <div class="balao">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+          <div class="faisca">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-5">Agentes</p>
+      </div>
+      <div class="navegacao-configuracoes">
+        <div class="settings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.75 16.67" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6.08 16.67 L 5.75 14 C 5.57 13.93 5.4 13.85 5.24 13.75 C 5.08 13.65 4.92 13.55 4.77 13.44 L 2.29 14.48 L 0 10.52 L 2.15 8.9 C 2.13 8.8 2.13 8.7 2.13 8.61 L 2.13 8.05 C 2.13 7.96 2.13 7.87 2.15 7.77 L 0 6.15 L 2.29 2.19 L 4.77 3.23 C 4.92 3.12 5.08 3.01 5.25 2.92 C 5.42 2.82 5.58 2.74 5.75 2.67 L 6.08 0 L 10.67 0 L 11 2.67 C 11.18 2.74 11.35 2.82 11.51 2.92 C 11.67 3.01 11.83 3.12 11.98 3.23 L 14.46 2.19 L 16.75 6.15 L 14.6 7.77 C 14.62 7.87 14.63 7.96 14.63 8.05 L 14.63 8.61 C 14.63 8.7 14.61 8.8 14.58 8.9 L 16.73 10.52 L 14.44 14.48 L 11.98 13.44 C 11.83 13.55 11.67 13.65 11.5 13.75 C 11.33 13.85 11.17 13.93 11 14 L 10.67 16.67 L 6.08 16.67 Z M 7.54 15 L 9.19 15 L 9.48 12.79 C 9.91 12.68 10.31 12.52 10.68 12.3 C 11.05 12.09 11.38 11.83 11.69 11.52 L 13.75 12.38 L 14.56 10.96 L 12.77 9.6 C 12.84 9.41 12.89 9.2 12.92 8.99 C 12.94 8.77 12.96 8.56 12.96 8.33 C 12.96 8.11 12.94 7.89 12.92 7.68 C 12.89 7.46 12.84 7.26 12.77 7.06 L 14.56 5.71 L 13.75 4.29 L 11.69 5.17 C 11.38 4.85 11.05 4.58 10.68 4.36 C 10.31 4.15 9.91 3.99 9.48 3.88 L 9.21 1.67 L 7.56 1.67 L 7.27 3.88 C 6.84 3.99 6.44 4.15 6.07 4.36 C 5.7 4.58 5.37 4.84 5.06 5.15 L 3 4.29 L 2.19 5.71 L 3.98 7.04 C 3.91 7.25 3.86 7.46 3.83 7.67 C 3.81 7.88 3.79 8.1 3.79 8.33 C 3.79 8.56 3.81 8.77 3.83 8.98 C 3.86 9.19 3.91 9.4 3.98 9.6 L 2.19 10.96 L 3 12.38 L 5.06 11.5 C 5.37 11.82 5.7 12.09 6.07 12.3 C 6.44 12.52 6.84 12.68 7.27 12.79 L 7.54 15 Z M 8.42 11.25 C 9.22 11.25 9.91 10.97 10.48 10.4 C 11.05 9.83 11.33 9.14 11.33 8.33 C 11.33 7.53 11.05 6.84 10.48 6.27 C 9.91 5.7 9.22 5.42 8.42 5.42 C 7.6 5.42 6.91 5.7 6.34 6.27 C 5.78 6.84 5.5 7.53 5.5 8.33 C 5.5 9.14 5.78 9.83 6.34 10.4 C 6.91 10.97 7.6 11.25 8.42 11.25 Z M 8.38 8.33" fill="#a39e96" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6.08 16.67 L 5.75 14 C 5.57 13.93 5.4 13.85 5.24 13.75 C 5.08 13.65 4.92 13.55 4.77 13.44 L 2.29 14.48 L 0 10.52 L 2.15 8.9 C 2.13 8.8 2.13 8.7 2.13 8.61 L 2.13 8.05 C 2.13 7.96 2.13 7.87 2.15 7.77 L 0 6.15 L 2.29 2.19 L 4.77 3.23 C 4.92 3.12 5.08 3.01 5.25 2.92 C 5.42 2.82 5.58 2.74 5.75 2.67 L 6.08 0 L 10.67 0 L 11 2.67 C 11.18 2.74 11.35 2.82 11.51 2.92 C 11.67 3.01 11.83 3.12 11.98 3.23 L 14.46 2.19 L 16.75 6.15 L 14.6 7.77 C 14.62 7.87 14.63 7.96 14.63 8.05 L 14.63 8.61 C 14.63 8.7 14.61 8.8 14.58 8.9 L 16.73 10.52 L 14.44 14.48 L 11.98 13.44 C 11.83 13.55 11.67 13.65 11.5 13.75 C 11.33 13.85 11.17 13.93 11 14 L 10.67 16.67 L 6.08 16.67 Z M 7.54 15 L 9.19 15 L 9.48 12.79 C 9.91 12.68 10.31 12.52 10.68 12.3 C 11.05 12.09 11.38 11.83 11.69 11.52 L 13.75 12.38 L 14.56 10.96 L 12.77 9.6 C 12.84 9.41 12.89 9.2 12.92 8.99 C 12.94 8.77 12.96 8.56 12.96 8.33 C 12.96 8.11 12.94 7.89 12.92 7.68 C 12.89 7.46 12.84 7.26 12.77 7.06 L 14.56 5.71 L 13.75 4.29 L 11.69 5.17 C 11.38 4.85 11.05 4.58 10.68 4.36 C 10.31 4.15 9.91 3.99 9.48 3.88 L 9.21 1.67 L 7.56 1.67 L 7.27 3.88 C 6.84 3.99 6.44 4.15 6.07 4.36 C 5.7 4.58 5.37 4.84 5.06 5.15 L 3 4.29 L 2.19 5.71 L 3.98 7.04 C 3.91 7.25 3.86 7.46 3.83 7.67 C 3.81 7.88 3.79 8.1 3.79 8.33 C 3.79 8.56 3.81 8.77 3.83 8.98 C 3.86 9.19 3.91 9.4 3.98 9.6 L 2.19 10.96 L 3 12.38 L 5.06 11.5 C 5.37 11.82 5.7 12.09 6.07 12.3 C 6.44 12.52 6.84 12.68 7.27 12.79 L 7.54 15 Z M 8.42 11.25 C 9.22 11.25 9.91 10.97 10.48 10.4 C 11.05 9.83 11.33 9.14 11.33 8.33 C 11.33 7.53 11.05 6.84 10.48 6.27 C 9.91 5.7 9.22 5.42 8.42 5.42 C 7.6 5.42 6.91 5.7 6.34 6.27 C 5.78 6.84 5.5 7.53 5.5 8.33 C 5.5 9.14 5.78 9.83 6.34 10.4 C 6.91 10.97 7.6 11.25 8.42 11.25 Z M 8.38 8.33" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <p class="texto-6">Configurações</p>
+      </div>
+    </div>
+    <div class="espaco"></div>
+    <div class="rodape-da-lateral">
+      <div class="agente-conectado">
+        <div class="ponto-verde"></div>
+        <p class="texto-7">Claude conectado (MCP)</p>
+      </div>
+      <p class="pasta-de-projetos">projetos/ · trocar pasta</p>
+    </div>
+  </div>
+  <div class="conteudo">
+    <div class="cabecalho">
+      <h1 class="texto-8">Seus projetos</h1>
+      <div class="busca">
+        <div class="search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 11.07 12 L 6.87 7.8 C 6.53 8.07 6.15 8.28 5.72 8.43 C 5.28 8.59 4.82 8.67 4.33 8.67 C 3.12 8.67 2.1 8.25 1.26 7.41 C 0.42 6.57 0 5.54 0 4.33 C 0 3.12 0.42 2.1 1.26 1.26 C 2.1 0.42 3.12 0 4.33 0 C 5.54 0 6.57 0.42 7.41 1.26 C 8.25 2.1 8.67 3.12 8.67 4.33 C 8.67 4.82 8.59 5.28 8.43 5.72 C 8.28 6.15 8.07 6.53 7.8 6.87 L 12 11.07 L 11.07 12 Z M 4.33 7.33 C 5.17 7.33 5.88 7.04 6.46 6.46 C 7.04 5.88 7.33 5.17 7.33 4.33 C 7.33 3.5 7.04 2.79 6.46 2.21 C 5.88 1.63 5.17 1.33 4.33 1.33 C 3.5 1.33 2.79 1.63 2.21 2.21 C 1.63 2.79 1.33 3.5 1.33 4.33 C 1.33 5.17 1.63 5.88 2.21 6.46 C 2.79 7.04 3.5 7.33 4.33 7.33 Z" fill="#a39e96" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 11.07 12 L 6.87 7.8 C 6.53 8.07 6.15 8.28 5.72 8.43 C 5.28 8.59 4.82 8.67 4.33 8.67 C 3.12 8.67 2.1 8.25 1.26 7.41 C 0.42 6.57 0 5.54 0 4.33 C 0 3.12 0.42 2.1 1.26 1.26 C 2.1 0.42 3.12 0 4.33 0 C 5.54 0 6.57 0.42 7.41 1.26 C 8.25 2.1 8.67 3.12 8.67 4.33 C 8.67 4.82 8.59 5.28 8.43 5.72 C 8.28 6.15 8.07 6.53 7.8 6.87 L 12 11.07 L 11.07 12 Z M 4.33 7.33 C 5.17 7.33 5.88 7.04 6.46 6.46 C 7.04 5.88 7.33 5.17 7.33 4.33 C 7.33 3.5 7.04 2.79 6.46 2.21 C 5.88 1.63 5.17 1.33 4.33 1.33 C 3.5 1.33 2.79 1.63 2.21 2.21 C 1.63 2.79 1.33 3.5 1.33 4.33 C 1.33 5.17 1.63 5.88 2.21 6.46 C 2.79 7.04 3.5 7.33 4.33 7.33 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <p class="texto-9">Buscar projeto</p>
+        <p class="atalho">/</p>
+      </div>
+      <button class="botao-secundario" type="button">
+        <p class="rotulo">Importar .json</p>
+      </button>
+      <button class="botao-primario" type="button">
+        <p class="rotulo-2">Novo projeto</p>
+      </button>
+    </div>
+    <!-- O caminho mais curto do app: abrir o último projeto em um clique. É a ação principal da tela; o "Novo projeto" é a segunda. -->
+    <div class="continuar-editando">
+      <div class="miniatura-do-ultimo-projeto">
+        <p class="legenda-do-placeholder">miniatura</p>
+      </div>
+      <div class="dados">
+        <p class="texto-10">Continuar de onde parou</p>
+        <p class="texto-11">Lumen — Landing responsiva</p>
+        <p class="texto-12">3 páginas · 186 camadas · salvo na pasta · aberto há 12 min</p>
+      </div>
+      <button class="botao-primario-2" type="button">
+        <p class="rotulo-3">Continuar editando</p>
+      </button>
+    </div>
+    <!-- Tabela com 8 linhas de exemplo. Passar o mouse destaca a linha (estado :hover real). "Local" distingue o que está na pasta do que vive só no navegador (e pode se perder). -->
+    <div class="tabela-de-projetos">
+      <div class="cabecalho-da-tabela">
+        <p class="texto-13">Nome</p>
+        <p class="texto-14">Páginas</p>
+        <p class="texto-15">Modificado</p>
+        <p class="texto-16">Local</p>
+      </div>
+      <div class="linha-de-projeto">
+        <div class="nome">
+          <div class="icone-camadas-20px-2">
+            <div class="topo-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-17">Lumen — Landing responsiva</p>
+        </div>
+        <p class="texto-18">3 páginas</p>
+        <p class="texto-19">há 12 min</p>
+        <div class="local">
+          <div class="local-pasta">
+            <div class="ponto"></div>
+            <p class="texto-20">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-2">
+        <div class="nome-2">
+          <div class="icone-camadas-20px-3">
+            <div class="topo-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-21">Portfólio — Ana Souza</p>
+        </div>
+        <p class="texto-22">5 páginas</p>
+        <p class="texto-23">ontem</p>
+        <div class="local-2">
+          <div class="local-pasta-2">
+            <div class="ponto-2"></div>
+            <p class="texto-24">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-3">
+        <div class="nome-3">
+          <div class="icone-camadas-20px-4">
+            <div class="topo-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-25">Loja Cerâmica Aurora</p>
+        </div>
+        <p class="texto-26">4 páginas</p>
+        <p class="texto-27">há 2 dias</p>
+        <div class="local-3">
+          <div class="local-pasta-3">
+            <div class="ponto-3"></div>
+            <p class="texto-28">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-4">
+        <div class="nome-4">
+          <div class="icone-camadas-20px-5">
+            <div class="topo-5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-29">App Finanças — onboarding</p>
+        </div>
+        <p class="texto-30">6 telas</p>
+        <p class="texto-31">há 5 dias</p>
+        <div class="local-4">
+          <div class="local-pasta-4">
+            <div class="ponto-4"></div>
+            <p class="texto-32">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-5">
+        <div class="nome-5">
+          <div class="icone-camadas-20px-6">
+            <div class="topo-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-6">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-33">Docs do Stylo</p>
+        </div>
+        <p class="texto-34">12 páginas</p>
+        <p class="texto-35">há 1 semana</p>
+        <div class="local-5">
+          <div class="local-pasta-5">
+            <div class="ponto-5"></div>
+            <p class="texto-36">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-6">
+        <div class="nome-6">
+          <div class="icone-camadas-20px-7">
+            <div class="topo-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-37">Teste MCP — auditoria</p>
+        </div>
+        <p class="texto-38">4 páginas</p>
+        <p class="texto-39">há 1 semana</p>
+        <div class="local-6">
+          <div class="local-navegador">
+            <div class="ponto-6"></div>
+            <p class="texto-40">só no navegador</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-7">
+        <div class="nome-7">
+          <div class="icone-camadas-20px-8">
+            <div class="topo-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-8">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-41">Cardápio digital — Trattoria</p>
+        </div>
+        <p class="texto-42">2 páginas</p>
+        <p class="texto-43">há 2 semanas</p>
+        <div class="local-7">
+          <div class="local-pasta-6">
+            <div class="ponto-7"></div>
+            <p class="texto-44">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="linha-de-projeto-8">
+        <div class="nome-8">
+          <div class="icone-camadas-20px-9">
+            <div class="topo-9">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 3 L 21 8 L 12 13 L 3 8 L 12 3 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="meio-9">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 12 L 12 17 L 21 12" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+            <div class="base-9">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="#a39e96" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 3 16 L 12 21 L 21 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-45">Rascunho sem título</p>
+        </div>
+        <p class="texto-46">1 página</p>
+        <p class="texto-47">há 3 semanas</p>
+        <div class="local-8">
+          <div class="local-navegador-2">
+            <div class="ponto-8"></div>
+            <p class="texto-48">só no navegador</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="rodape">8 projetos · salvos em Documentos/Stylo/projetos</p>
+  </div>
+</div>
+</body>
+</html>

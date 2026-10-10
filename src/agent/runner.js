@@ -418,14 +418,51 @@ export function createRunner({ store, commands, approve, saving = null, folder =
     node.y = Math.round(Math.min(...items.map((n) => n.y)));
   }
 
+  /**
+   * Vetor (caneta) vindo do agente: confere pontos e alças e devolve { points, closed, vw, vh } no formato do modelo.
+   * As alças (`hin` entrada, `hout` saída) ficam em coordenadas do viewBox vw × vh, como na caneta do editor.
+   */
+  function pathSpec(props = {}) {
+    const LIM = 100000;
+    const num = (v) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= LIM;
+    const { points, closed, vw, vh } = props;
+    if (!Array.isArray(points)) throw new Error('points: mande uma lista de pontos [{x, y, hin?, hout?}, ...] (pelo menos 2 pontos).');
+    if (points.length < 2) throw new Error('points: um vetor precisa de pelo menos 2 pontos.');
+    if (points.length > 500) throw new Error('points: máximo de 500 pontos por vetor.');
+    const handle = (h, i, nome) => {
+      if (h == null) return null;
+      if (typeof h !== 'object' || Array.isArray(h) || !num(h.x) || !num(h.y)) throw new Error(`points[${i}].${nome}: a alça precisa ser {x, y} em números (ou omita para ponto de canto).`);
+      return { x: h.x, y: h.y };
+    };
+    const clean = points.map((p, i) => {
+      if (!p || typeof p !== 'object' || !num(p.x) || !num(p.y)) throw new Error(`points[${i}]: x e y precisam ser números (até ${LIM}).`);
+      return { x: p.x, y: p.y, hin: handle(p.hin, i, 'hin'), hout: handle(p.hout, i, 'hout') };
+    });
+    const dim = (v, nome, auto) => {
+      if (v == null) return Math.max(1, Math.ceil(auto));
+      if (!num(v) || v <= 0) throw new Error(`${nome}: use um número maior que 0.`);
+      return v;
+    };
+    return { points: clean, closed: !!closed, vw: dim(vw, 'vw', Math.max(...clean.map((p) => p.x))), vh: dim(vh, 'vh', Math.max(...clean.map((p) => p.y))) };
+  }
+  /** Camada de vetor pronta (sem aplicar o restante das props). */
+  function pathNode(props) {
+    const { points, closed, vw, vh, ...rest } = props || {};
+    const spec = pathSpec({ points, closed, vw, vh });
+    const node = createNode('path', { w: spec.vw, h: spec.vh });
+    node.points = spec.points; node.closed = spec.closed; node.vw = spec.vw; node.vh = spec.vh;
+    return { node, rest };
+  }
+
   /** Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados. */
   function checkSpec(spec, depth = 0, acc = { count: 0, icons: [] }) {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('Cada nó da árvore precisa ser um objeto {type, props, children}.');
     if (depth > 10) throw new Error('Árvore funda demais (máximo 10 níveis).');
     if (++acc.count > 400) throw new Error('Árvore grande demais (máximo 400 camadas por vez). Monte em partes.');
-    const types = ['frame', 'rect', 'ellipse', 'text', 'line', 'icon'];
+    const types = ['frame', 'rect', 'ellipse', 'text', 'line', 'icon', 'path'];
     if (!types.includes(spec.type)) throw new Error(`type "${spec.type}" inválido. Use: ${types.join(', ')}.`);
     if (spec.type === 'icon') acc.icons.push(spec.props || {});
+    if (spec.type === 'path') pathSpec(spec.props || {}); // confere os pontos antes de criar qualquer coisa
     if (spec.children?.length && spec.type !== 'frame') throw new Error(`Só frame tem filhos (o nó "${spec.props?.name || spec.type}" tem children).`);
     (spec.children || []).forEach((c) => checkSpec(c, depth + 1, acc));
     return acc;
@@ -437,6 +474,11 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const { name, color, size, style, filled, ...rest } = props;
       const node = iconNode(svgs.get(`${name}|${style || 'outlined'}|${!!filled}`), { name, color, size });
       if (Object.keys(rest).length) applyProps(node, rest, { colorStyle });
+      return node;
+    }
+    if (spec.type === 'path') {
+      const { node, rest } = pathNode(props);
+      applyProps(node, rest, { colorStyle });
       return node;
     }
     // caixas de estrutura DENTRO da árvore nascem transparentes e sem cortar (sombras e foco aparecem); a raiz fica branca
@@ -497,12 +539,13 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { updated: summarize(n, 0) };
     },
     create_layer({ type, parent_id, index, props = {} }) {
-      if (!['frame', 'rect', 'ellipse', 'text', 'line'].includes(type)) throw new Error('type: frame, rect, ellipse, text ou line.');
+      if (!['frame', 'rect', 'ellipse', 'text', 'line', 'path'].includes(type)) throw new Error('type: frame, rect, ellipse, text, line ou path.');
       const parent = parent_id ? need(parent_id) : null;
       if (parent && !parent.children) throw new Error(`“${parent.name}” não pode ter filhos (só frames, grupos e seções).`);
-      const node = createNode(type, type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' } : {});
+      const made = type === 'path' ? pathNode(props) : { node: createNode(type, type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' } : {}), rest: props };
+      const node = made.node;
       store.update((page) => {
-        applyProps(node, props, { colorStyle });
+        applyProps(node, made.rest, { colorStyle });
         const list = parent ? parent.children : page.children;
         const at = Number.isInteger(index) ? Math.max(0, Math.min(index, list.length)) : list.length;
         list.splice(at, 0, node);

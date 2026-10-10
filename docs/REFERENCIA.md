@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-77 arquivos · 1212 funções e constantes documentadas.
+77 arquivos · 1214 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1907,17 +1907,19 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`targetList(parent_id)`** <sub>interna</sub> · [L406](../src/agent/runner.js#L406) — Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos.
 - **`insertAt(list, node, index)`** <sub>interna</sub> · [L412](../src/agent/runner.js#L412) — Insere na posição pedida (ou no fim).
 - **`placeBeside(node)`** <sub>interna</sub> · [L414](../src/agent/runner.js#L414) — Tela nova na raiz: à direita do que já existe na página (não cai em cima de nada).
-- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L422](../src/agent/runner.js#L422) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
-- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L434](../src/agent/runner.js#L434) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
-- **`guardSwitch()`** <sub>interna</sub> · [L459](../src/agent/runner.js#L459) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
-- **`imageLayer(id)`** <sub>interna</sub> · [L468](../src/agent/runner.js#L468) — Camada com preenchimento de imagem (ou erro claro).
-- **`imageInfo(n)`** <sub>interna</sub> · [L474](../src/agent/runner.js#L474) — Resumo da imagem gravada (tamanho e peso).
-- **`imageTarget(id)`** <sub>interna</sub> · [L479](../src/agent/runner.js#L479) — Impede uma operação de imagem lenta de aplicar o resultado sobre uma imagem que a pessoa já trocou.
-- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L712](../src/agent/runner.js#L712) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
+- **`pathSpec(props = {})`** <sub>interna</sub> · [L425](../src/agent/runner.js#L425) — Vetor (caneta) vindo do agente: confere pontos e alças e devolve { points, closed, vw, vh } no formato do modelo. As alças (`hin` entrada, `hout` saída) ficam em coordenadas do viewBox vw × vh, como na caneta do editor.
+- **`pathNode(props)`** <sub>interna</sub> · [L449](../src/agent/runner.js#L449) — Camada de vetor pronta (sem aplicar o restante das props).
+- **`checkSpec(spec, depth = 0, acc = { count: 0, icons: [] })`** <sub>interna</sub> · [L458](../src/agent/runner.js#L458) — Confere a árvore de build_layout antes de criar qualquer coisa (tipos, tamanho, ícones) e devolve os ícones usados.
+- **`buildSpec(spec, svgs, nested)`** <sub>interna</sub> · [L471](../src/agent/runner.js#L471) — Cria as camadas da árvore (os ícones já baixados em `svgs`).
+- **`guardSwitch()`** <sub>interna</sub> · [L501](../src/agent/runner.js#L501) — Trocar de projeto só quando nada se perde (projeto salvo na pasta, ou exemplo/em branco intocado).
+- **`imageLayer(id)`** <sub>interna</sub> · [L510](../src/agent/runner.js#L510) — Camada com preenchimento de imagem (ou erro claro).
+- **`imageInfo(n)`** <sub>interna</sub> · [L516](../src/agent/runner.js#L516) — Resumo da imagem gravada (tamanho e peso).
+- **`imageTarget(id)`** <sub>interna</sub> · [L521](../src/agent/runner.js#L521) — Impede uma operação de imagem lenta de aplicar o resultado sobre uma imagem que a pessoa já trocou.
+- **`run(tool, args = {}, client = 'Assistente', { external = false, admin =…)`** <sub>interna</sub> · [L755](../src/agent/runner.js#L755) — Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
   - `tool` <sub>string</sub> — 
   - `args` <sub>object</sub> — 
   - `[client]` <sub>string</sub> — quem pediu ('Assistente', 'Claude Code'...), aparece na janela de permissão
-- **`restoreDoc(json)`** <sub>interna</sub> · [L762](../src/agent/runner.js#L762) — Restaura uma alteração parcial que falhou, sem criar passo no histórico (só sem mudanças concorrentes).
+- **`restoreDoc(json)`** <sub>interna</sub> · [L805](../src/agent/runner.js#L805) — Restaura uma alteração parcial que falhou, sem criar passo no histórico (só sem mudanças concorrentes).
 
 ---
 

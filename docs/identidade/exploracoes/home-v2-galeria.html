@@ -1,0 +1,2726 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home — V2 Galeria</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-texto-claro: #ece9e4;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-grafite-800: #23211f;
+  --cor-grafite-700: #2d2a27;
+  --cor-ambar: #e9a23b;
+  --cor-sobre-ambar: #1a1206;
+  --cor-grafite-900: #1a1917;
+  --cor-sucesso: #5cc98f;
+}
+
+/* V2 · Galeria. Mostra o trabalho (miniaturas), destaca o último projeto e a atividade do agente. Responsiva: 4 colunas, 2 no tablet, 1 no celular. */
+.home-v2-galeria {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  min-height: 1262px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.barra-superior {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 80px 12px 80px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.marca {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.simbolo-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+}
+
+.colchete {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-longa {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-curta {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.linha-media {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 26px;
+  height: 26px;
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.navegacao-da-barra {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.acoes-da-barra {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.busca-da-barra {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 240px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 10px 7px 10px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+}
+
+.search {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.atalho {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.avatar {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 50%;
+}
+
+.conteudo-da-galeria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 40px 80px 56px 80px;
+}
+
+.continuar {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.miniatura-grande-do-ultimo-projeto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.detalhes-do-ultimo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 360px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.acoes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rotulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.botao-secundario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+/* IDEIA de produto: a Home mostra o que um agente MCP fez e leva a uma tela de revisão (hoje só existe o Ctrl+Z global). Depende de um registro persistente por agente. */
+.atividade-do-agente {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 14px 14px 14px 14px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.frame {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-agente-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.balao {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.faisca {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.botao-secundario-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cabecalho-da-grade {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.filtros {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.filtro-todos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 5px 10px 5px 10px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 4px;
+}
+
+.texto-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.filtro-recentes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 5px 10px 5px 10px;
+  border-radius: 4px;
+}
+
+.texto-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.filtro-com-agente {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 5px 10px 5px 10px;
+  border-radius: 4px;
+}
+
+.texto-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.filtro-so-no-navegador {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 5px 10px 5px 10px;
+  border-radius: 4px;
+}
+
+.texto-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+/* Grade fluida: 4 colunas no desktop, 2 no tablet (≤1024) e 1 no celular (≤640), definido com set_responsive. */
+.grade-de-projetos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 16px;
+  justify-items: start;
+  align-items: start;
+}
+
+.cartao-de-projeto {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-lumen-landing-responsiva {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-17 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-18 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-2 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-2:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-portfolio-ana-souza {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-19 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-20 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-21 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-3 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-3:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-loja-ceramica-aurora {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-22 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-23 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-4 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-4:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-app-financas-onboarding {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-25 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-27 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-5 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-5:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-docs-do-stylo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-29 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-30 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-6 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-6:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-teste-mcp-auditoria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-31 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-navegador {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 50%;
+}
+
+.texto-33 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-7 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-7:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-cardapio-digital-trattoria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-34 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-35 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-pasta-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.texto-36 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.cartao-de-projeto-8 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 10px 10px 10px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.cartao-de-projeto-8:hover {
+  outline: 1px solid #e9a23b;
+}
+
+.miniatura-rascunho-sem-titulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.legenda-do-placeholder-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.dados-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0px 2px 0px 2px;
+}
+
+.texto-37 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-38 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.local-navegador-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.ponto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 50%;
+}
+
+.texto-39 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.projeto-base {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.frame-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-40 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-41 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.botao-secundario-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+@media (max-width: 1024px) {
+  .home-v2-galeria {
+    background-color: #131211;
+  }
+
+  .texto {
+    color: #ece9e4;
+  }
+
+  .texto-2 {
+    color: #ece9e4;
+  }
+
+  .texto-3 {
+    color: #a39e96;
+  }
+
+  .texto-4 {
+    color: #a39e96;
+  }
+
+  .busca-da-barra {
+    background-color: #23211f;
+  }
+
+  .texto-5 {
+    color: #a39e96;
+  }
+
+  .atalho {
+    color: #a39e96;
+  }
+
+  .avatar {
+    background-color: #2d2a27;
+  }
+
+  .conteudo-da-galeria {
+    padding: 32px 32px 48px 32px;
+  }
+
+  .continuar {
+    flex-direction: column;
+  }
+
+  .miniatura-grande-do-ultimo-projeto {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background-color: #23211f;
+    min-width: unset;
+  }
+
+  .legenda-do-placeholder {
+    color: #a39e96;
+  }
+
+  .detalhes-do-ultimo {
+    align-self: stretch;
+    width: auto;
+  }
+
+  .texto-6 {
+    color: #a39e96;
+  }
+
+  .texto-7 {
+    color: #ece9e4;
+  }
+
+  .texto-8 {
+    color: #a39e96;
+  }
+
+  .botao-primario {
+    background-color: #e9a23b;
+  }
+
+  .rotulo {
+    color: #1a1206;
+  }
+
+  .rotulo-2 {
+    color: #ece9e4;
+  }
+
+  .atividade-do-agente {
+    background-color: #1a1917;
+  }
+
+  .texto-9 {
+    color: #ece9e4;
+  }
+
+  .texto-10 {
+    color: #a39e96;
+  }
+
+  .rotulo-3 {
+    color: #ece9e4;
+  }
+
+  .texto-11 {
+    color: #ece9e4;
+  }
+
+  .filtro-todos {
+    background-color: #2d2a27;
+  }
+
+  .texto-12 {
+    color: #ece9e4;
+  }
+
+  .texto-13 {
+    color: #a39e96;
+  }
+
+  .texto-14 {
+    color: #a39e96;
+  }
+
+  .texto-15 {
+    color: #a39e96;
+  }
+
+  .grade-de-projetos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cartao-de-projeto {
+    background-color: #1a1917;
+  }
+
+  .miniatura-lumen-landing-responsiva {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-2 {
+    color: #a39e96;
+  }
+
+  .texto-16 {
+    color: #ece9e4;
+  }
+
+  .texto-17 {
+    color: #a39e96;
+  }
+
+  .local-pasta {
+    background-color: #2d2a27;
+  }
+
+  .ponto {
+    background-color: #5cc98f;
+  }
+
+  .texto-18 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-2 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-portfolio-ana-souza {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-3 {
+    color: #a39e96;
+  }
+
+  .texto-19 {
+    color: #ece9e4;
+  }
+
+  .texto-20 {
+    color: #a39e96;
+  }
+
+  .local-pasta-2 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-2 {
+    background-color: #5cc98f;
+  }
+
+  .texto-21 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-3 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-loja-ceramica-aurora {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-4 {
+    color: #a39e96;
+  }
+
+  .texto-22 {
+    color: #ece9e4;
+  }
+
+  .texto-23 {
+    color: #a39e96;
+  }
+
+  .local-pasta-3 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-3 {
+    background-color: #5cc98f;
+  }
+
+  .texto-24 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-4 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-app-financas-onboarding {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-5 {
+    color: #a39e96;
+  }
+
+  .texto-25 {
+    color: #ece9e4;
+  }
+
+  .texto-26 {
+    color: #a39e96;
+  }
+
+  .local-pasta-4 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-4 {
+    background-color: #5cc98f;
+  }
+
+  .texto-27 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-5 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-docs-do-stylo {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-6 {
+    color: #a39e96;
+  }
+
+  .texto-28 {
+    color: #ece9e4;
+  }
+
+  .texto-29 {
+    color: #a39e96;
+  }
+
+  .local-pasta-5 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-5 {
+    background-color: #5cc98f;
+  }
+
+  .texto-30 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-6 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-teste-mcp-auditoria {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-7 {
+    color: #a39e96;
+  }
+
+  .texto-31 {
+    color: #ece9e4;
+  }
+
+  .texto-32 {
+    color: #a39e96;
+  }
+
+  .local-navegador {
+    background-color: #2d2a27;
+  }
+
+  .ponto-6 {
+    background-color: #e9a23b;
+  }
+
+  .texto-33 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-7 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-cardapio-digital-trattoria {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-8 {
+    color: #a39e96;
+  }
+
+  .texto-34 {
+    color: #ece9e4;
+  }
+
+  .texto-35 {
+    color: #a39e96;
+  }
+
+  .local-pasta-6 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-7 {
+    background-color: #5cc98f;
+  }
+
+  .texto-36 {
+    color: #ece9e4;
+  }
+
+  .cartao-de-projeto-8 {
+    background-color: #1a1917;
+  }
+
+  .miniatura-rascunho-sem-titulo {
+    background-color: #23211f;
+  }
+
+  .legenda-do-placeholder-9 {
+    color: #a39e96;
+  }
+
+  .texto-37 {
+    color: #ece9e4;
+  }
+
+  .texto-38 {
+    color: #a39e96;
+  }
+
+  .local-navegador-2 {
+    background-color: #2d2a27;
+  }
+
+  .ponto-8 {
+    background-color: #e9a23b;
+  }
+
+  .texto-39 {
+    color: #ece9e4;
+  }
+
+  .projeto-base {
+    background-color: #1a1917;
+  }
+
+  .texto-40 {
+    color: #ece9e4;
+  }
+
+  .texto-41 {
+    color: #a39e96;
+  }
+
+  .rotulo-4 {
+    color: #ece9e4;
+  }
+}
+
+@media (max-width: 640px) {
+  .barra-superior {
+    gap: 12px;
+    padding: 12px 16px 12px 16px;
+  }
+
+  .navegacao-da-barra {
+    display: none;
+  }
+
+  .busca-da-barra {
+    width: 132px;
+  }
+
+  .conteudo-da-galeria {
+    padding: 24px 16px 32px 16px;
+  }
+
+  .miniatura-grande-do-ultimo-projeto {
+    height: 220px;
+  }
+
+  .cabecalho-da-grade {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .texto-11 {
+    flex: 0 0 auto;
+    align-self: stretch;
+    min-width: unset;
+  }
+
+  .grade-de-projetos {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .projeto-base {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .frame-2 {
+    flex: 0 0 auto;
+    align-self: stretch;
+    min-width: unset;
+  }
+}
+</style>
+</head>
+<body>
+<!-- V2 · Galeria. Mostra o trabalho (miniaturas), destaca o último projeto e a atividade do agente. Responsiva: 4 colunas, 2 no tablet, 1 no celular. -->
+<div class="home-v2-galeria">
+  <div class="barra-superior">
+    <div class="marca">
+      <div class="simbolo-26">
+        <div class="colchete">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 10.8 5 L 6.5 5 L 6.5 27 L 10.8 27" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="2.1125000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 10.8 5 L 6.5 5 L 6.5 27 L 10.8 27" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-longa">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 10.8 L 25.2 10.8" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 10.8 L 25.2 10.8" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-curta">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 16 L 21.2 16" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 16 L 21.2 16" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <div class="linha-media">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 14.8 21.2 L 23.6 21.2" fill="none" stroke="#ece9e4" stroke-opacity="1" stroke-width="2.9250000000000003" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 14.8 21.2 L 23.6 21.2" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+      </div>
+      <p class="texto">Stylo</p>
+    </div>
+    <div class="navegacao-da-barra">
+      <p class="texto-2">Projetos</p>
+      <p class="texto-3">Modelos</p>
+      <p class="texto-4">Aprender</p>
+    </div>
+    <div class="acoes-da-barra">
+      <div class="busca-da-barra">
+        <div class="search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 11.07 12 L 6.87 7.8 C 6.53 8.07 6.15 8.28 5.72 8.43 C 5.28 8.59 4.82 8.67 4.33 8.67 C 3.12 8.67 2.1 8.25 1.26 7.41 C 0.42 6.57 0 5.54 0 4.33 C 0 3.12 0.42 2.1 1.26 1.26 C 2.1 0.42 3.12 0 4.33 0 C 5.54 0 6.57 0.42 7.41 1.26 C 8.25 2.1 8.67 3.12 8.67 4.33 C 8.67 4.82 8.59 5.28 8.43 5.72 C 8.28 6.15 8.07 6.53 7.8 6.87 L 12 11.07 L 11.07 12 Z M 4.33 7.33 C 5.17 7.33 5.88 7.04 6.46 6.46 C 7.04 5.88 7.33 5.17 7.33 4.33 C 7.33 3.5 7.04 2.79 6.46 2.21 C 5.88 1.63 5.17 1.33 4.33 1.33 C 3.5 1.33 2.79 1.63 2.21 2.21 C 1.63 2.79 1.33 3.5 1.33 4.33 C 1.33 5.17 1.63 5.88 2.21 6.46 C 2.79 7.04 3.5 7.33 4.33 7.33 Z" fill="#a39e96" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 11.07 12 L 6.87 7.8 C 6.53 8.07 6.15 8.28 5.72 8.43 C 5.28 8.59 4.82 8.67 4.33 8.67 C 3.12 8.67 2.1 8.25 1.26 7.41 C 0.42 6.57 0 5.54 0 4.33 C 0 3.12 0.42 2.1 1.26 1.26 C 2.1 0.42 3.12 0 4.33 0 C 5.54 0 6.57 0.42 7.41 1.26 C 8.25 2.1 8.67 3.12 8.67 4.33 C 8.67 4.82 8.59 5.28 8.43 5.72 C 8.28 6.15 8.07 6.53 7.8 6.87 L 12 11.07 L 11.07 12 Z M 4.33 7.33 C 5.17 7.33 5.88 7.04 6.46 6.46 C 7.04 5.88 7.33 5.17 7.33 4.33 C 7.33 3.5 7.04 2.79 6.46 2.21 C 5.88 1.63 5.17 1.33 4.33 1.33 C 3.5 1.33 2.79 1.63 2.21 2.21 C 1.63 2.79 1.33 3.5 1.33 4.33 C 1.33 5.17 1.63 5.88 2.21 6.46 C 2.79 7.04 3.5 7.33 4.33 7.33 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+        </div>
+        <p class="texto-5">Buscar projeto</p>
+        <p class="atalho">/</p>
+      </div>
+      <div class="avatar"></div>
+    </div>
+  </div>
+  <div class="conteudo-da-galeria">
+    <div class="continuar">
+      <div class="miniatura-grande-do-ultimo-projeto">
+        <p class="legenda-do-placeholder">miniatura</p>
+      </div>
+      <div class="detalhes-do-ultimo">
+        <p class="texto-6">Continuar de onde parou</p>
+        <p class="texto-7">Lumen — Landing responsiva</p>
+        <p class="texto-8">3 páginas · 186 camadas · salvo na pasta</p>
+        <div class="acoes">
+          <button class="botao-primario" type="button">
+            <p class="rotulo">Continuar editando</p>
+          </button>
+          <button class="botao-secundario" type="button">
+            <p class="rotulo-2">Duplicar</p>
+          </button>
+        </div>
+        <!-- IDEIA de produto: a Home mostra o que um agente MCP fez e leva a uma tela de revisão (hoje só existe o Ctrl+Z global). Depende de um registro persistente por agente. -->
+        <div class="atividade-do-agente">
+          <div class="frame">
+            <div class="icone-agente-20px">
+              <div class="balao">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+              </div>
+              <div class="faisca">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+              </div>
+            </div>
+            <p class="texto-9">Claude editou &quot;Hero&quot; há 3 min</p>
+          </div>
+          <p class="texto-10">2 alterações pendentes de revisão</p>
+          <button class="botao-secundario-2" type="button">
+            <p class="rotulo-3">Ver o que mudou</p>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="cabecalho-da-grade">
+      <h2 class="texto-11">Todos os projetos</h2>
+      <div class="filtros">
+        <div class="filtro-todos">
+          <p class="texto-12">Todos</p>
+        </div>
+        <div class="filtro-recentes">
+          <p class="texto-13">Recentes</p>
+        </div>
+        <div class="filtro-com-agente">
+          <p class="texto-14">Com agente</p>
+        </div>
+        <div class="filtro-so-no-navegador">
+          <p class="texto-15">Só no navegador</p>
+        </div>
+      </div>
+    </div>
+    <!-- Grade fluida: 4 colunas no desktop, 2 no tablet (≤1024) e 1 no celular (≤640), definido com set_responsive. -->
+    <div class="grade-de-projetos">
+      <div class="cartao-de-projeto">
+        <div class="miniatura-lumen-landing-responsiva">
+          <p class="legenda-do-placeholder-2">miniatura</p>
+        </div>
+        <div class="dados">
+          <p class="texto-16">Lumen — Landing responsiva</p>
+          <p class="texto-17">3 páginas · há 12 min</p>
+          <div class="local-pasta">
+            <div class="ponto"></div>
+            <p class="texto-18">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-2">
+        <div class="miniatura-portfolio-ana-souza">
+          <p class="legenda-do-placeholder-3">miniatura</p>
+        </div>
+        <div class="dados-2">
+          <p class="texto-19">Portfólio — Ana Souza</p>
+          <p class="texto-20">5 páginas · ontem</p>
+          <div class="local-pasta-2">
+            <div class="ponto-2"></div>
+            <p class="texto-21">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-3">
+        <div class="miniatura-loja-ceramica-aurora">
+          <p class="legenda-do-placeholder-4">miniatura</p>
+        </div>
+        <div class="dados-3">
+          <p class="texto-22">Loja Cerâmica Aurora</p>
+          <p class="texto-23">4 páginas · há 2 dias</p>
+          <div class="local-pasta-3">
+            <div class="ponto-3"></div>
+            <p class="texto-24">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-4">
+        <div class="miniatura-app-financas-onboarding">
+          <p class="legenda-do-placeholder-5">miniatura</p>
+        </div>
+        <div class="dados-4">
+          <p class="texto-25">App Finanças — onboarding</p>
+          <p class="texto-26">6 telas · há 5 dias</p>
+          <div class="local-pasta-4">
+            <div class="ponto-4"></div>
+            <p class="texto-27">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-5">
+        <div class="miniatura-docs-do-stylo">
+          <p class="legenda-do-placeholder-6">miniatura</p>
+        </div>
+        <div class="dados-5">
+          <p class="texto-28">Docs do Stylo</p>
+          <p class="texto-29">12 páginas · há 1 semana</p>
+          <div class="local-pasta-5">
+            <div class="ponto-5"></div>
+            <p class="texto-30">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-6">
+        <div class="miniatura-teste-mcp-auditoria">
+          <p class="legenda-do-placeholder-7">miniatura</p>
+        </div>
+        <div class="dados-6">
+          <p class="texto-31">Teste MCP — auditoria</p>
+          <p class="texto-32">4 páginas · há 1 semana</p>
+          <div class="local-navegador">
+            <div class="ponto-6"></div>
+            <p class="texto-33">só no navegador</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-7">
+        <div class="miniatura-cardapio-digital-trattoria">
+          <p class="legenda-do-placeholder-8">miniatura</p>
+        </div>
+        <div class="dados-7">
+          <p class="texto-34">Cardápio digital — Trattoria</p>
+          <p class="texto-35">2 páginas · há 2 semanas</p>
+          <div class="local-pasta-6">
+            <div class="ponto-7"></div>
+            <p class="texto-36">na pasta</p>
+          </div>
+        </div>
+      </div>
+      <div class="cartao-de-projeto-8">
+        <div class="miniatura-rascunho-sem-titulo">
+          <p class="legenda-do-placeholder-9">miniatura</p>
+        </div>
+        <div class="dados-8">
+          <p class="texto-37">Rascunho sem título</p>
+          <p class="texto-38">1 página · há 3 semanas</p>
+          <div class="local-navegador-2">
+            <div class="ponto-8"></div>
+            <p class="texto-39">só no navegador</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="projeto-base">
+      <div class="frame-2">
+        <p class="texto-40">Aprender fazendo</p>
+        <p class="texto-41">Abra a Vitrine completa e veja cada campo do painel virar CSS de verdade.</p>
+      </div>
+      <button class="botao-secundario-3" type="button">
+        <p class="rotulo-4">Abrir o projeto base</p>
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

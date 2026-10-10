@@ -122,7 +122,7 @@ export const AGENT_TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        type: { type: 'string', enum: ['frame', 'rect', 'ellipse', 'text', 'line'] },
+        type: { type: 'string', enum: ['frame', 'rect', 'ellipse', 'text', 'line', 'path'] },
         parent_id: { type: 'string', description: 'id do frame/grupo pai (opcional)' },
         index: { type: 'integer', description: 'posição entre os irmãos (0 = primeiro / mais ao fundo)' },
         props: { type: 'object', additionalProperties: true },
@@ -166,7 +166,7 @@ export const AGENT_TOOLS = [
     name: 'build_layout',
     write: true,
     description: `Cria uma ESTRUTURA INTEIRA de uma vez (uma tela, uma seção, um card com tudo dentro): uma árvore de camadas aninhadas, com UMA permissão e UM passo do Ctrl+Z. Use para "faça uma página/seção/cabeçalho...". Sem parent_id, a árvore vira uma tela nova na página, posicionada ao lado das que já existem (não precisa selecionar nada).
-Cada nó: {"type": "frame"|"rect"|"ellipse"|"text"|"line"|"icon", "props": {...}, "children": [...]}. Para "icon", props = {"name": "nome do Material Symbol (use search_icons)", "color": "#RRGGBB", "size": 24, "style": "outlined"|"rounded"|"sharp", "filled": false}.
+Cada nó: {"type": "frame"|"rect"|"ellipse"|"text"|"line"|"icon"|"path", "props": {...}, "children": [...]}. Para "path" (VETOR, a caneta: ícones e formas próprios), props = {"points": [{"x": 3, "y": 4}, {"x": 21, "y": 4, "hout": {"x": 23, "y": 4}}, ...], "closed": true|false, "vw": 24, "vh": 24, "w": 48, "h": 48, "fill": "none"|"#RRGGBB", "stroke": {"color": "#RRGGBB", "width": 1.75, "cap": "round", "join": "round"}}. Os pontos ficam em coordenadas do viewBox vw × vh (omitidos, vêm do tamanho dos pontos); w e h esticam esse espaço. "hin" (alça de entrada) e "hout" (alça de saída) são pontos {x, y} absolutos no mesmo espaço: ponto sem alças é canto; com alças, o trecho vira curva de Bézier. Máximo de 500 pontos; path não tem filhos. Para "icon", props = {"name": "nome do Material Symbol (use search_icons)", "color": "#RRGGBB", "size": 24, "style": "outlined"|"rounded"|"sharp", "filled": false}.
 Dica: tela de site = frame com props {"name":"Início","w":1440,"fluid":true,"sizeY":"hug","layout":{"mode":"column"}} e seções dentro com sizeX "fill".
 ${PROP_HELP}`,
     inputSchema: {

@@ -1,0 +1,1977 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversa com o agente (proposta)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-texto-claro: #ece9e4;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-grafite-900: #1a1917;
+  --cor-ambar: #e9a23b;
+  --cor-sucesso: #5cc98f;
+  --cor-grafite-800: #23211f;
+  --cor-grafite-700: #2d2a27;
+  --cor-sobre-ambar: #1a1206;
+}
+
+/* Página de proposta (UI da conversa). O primeiro passo seguro é usar o armazenamento de comentários que já existe. */
+.conversa-com-o-agente-proposta {
+  box-sizing: border-box;
+  position: relative;
+  width: 1280px;
+  height: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.conteudo-da-conversa {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 680px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.proposta {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 56px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+/* Proposta: uma aba "Conversa" no painel direito, ao lado de Comentários. O fio de mensagens fica salvo no projeto (como os comentários) e qualquer agente MCP lê e escreve nele. */
+.painel-conversa {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 420px;
+  height: 820px;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow: hidden;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.abas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.aba-design {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aba-prototipo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aba-codigo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aba-comentarios {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aba-conversa {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 10px 10px 10px;
+  border-bottom: 2px solid #e9a23b;
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.mensagem-nova {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 50%;
+}
+
+.presenca-do-agente {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 14px 10px 14px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.presenca {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  background-color: var(--cor-sucesso);
+  border-radius: 50%;
+}
+
+.frame {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.mensagens {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 14px 14px 14px 14px;
+}
+
+.mensagem-de-claude {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px 12px 12px 12px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 6px;
+}
+
+.autor {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.respostas-rapidas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.resposta-rapida-v1-lista {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.resposta-rapida-v2-galeria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #e9a23b;
+  outline-offset: -1px;
+}
+
+.texto-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.resposta-rapida-as-duas-com-alternador {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.mensagem-de-voce {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px 12px 12px 12px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 6px;
+}
+
+.autor-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-17 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-18 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+/* Hoje a permissão do MCP abre uma janela modal. Aqui ela vira um cartão dentro da conversa: não interrompe e fica registrada no histórico. */
+.pedido-de-permissao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px 12px 12px 12px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.frame-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.icone-agente-20px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.balao {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.faisca {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-19 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-20 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aprovacao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.botao-primario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rotulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.botao-secundario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.botao-secundario-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.rotulo-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.mensagem-de-claude-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px 12px 12px 12px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 6px;
+}
+
+.autor-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.texto-21 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-22 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-23 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.frame-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.resposta-rapida-filtros {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.resposta-rapida-desfazer {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-25 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.compositor {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 14px 14px 14px 14px;
+  border-top: 1px solid #2c2a27;
+}
+
+.frame-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.resposta-rapida-home-v2-galeria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 4px 8px 4px 8px;
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-27 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.campo-de-mensagem {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 12px 10px 12px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.send {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 12px;
+}
+
+.texto-29 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.explicacao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.como-funcionaria {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-30 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.frame-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-31 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-33 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-34 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-35 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-36 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-37 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-38 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-39 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-40 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.o-que-ja-existe-hoje {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-41 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.frame-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-42 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-43 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-44 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-45 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.o-que-falta-construir {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-46 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.frame-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-47 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-48 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-49 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-50 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-51 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-52 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.frame-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-53 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-54 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+</style>
+</head>
+<body>
+<!-- Página de proposta (UI da conversa). O primeiro passo seguro é usar o armazenamento de comentários que já existe. -->
+<div class="conversa-com-o-agente-proposta">
+  <div class="conteudo-da-conversa">
+    <h2 class="texto">Conversa com o agente, dentro do editor</h2>
+    <p class="texto-2">Quando um agente entra pelo MCP, hoje a conversa acontece fora do Stylo (neste terminal) e o editor só mostra o resultado. A proposta é uma aba &quot;Conversa&quot; no painel direito: você fala com o agente sem sair do projeto, ele pergunta com respostas rápidas, pede permissão ali mesmo e cita camadas com @.</p>
+    <div class="proposta">
+      <!-- Proposta: uma aba "Conversa" no painel direito, ao lado de Comentários. O fio de mensagens fica salvo no projeto (como os comentários) e qualquer agente MCP lê e escreve nele. -->
+      <div class="painel-conversa">
+        <div class="abas">
+          <div class="aba-design">
+            <p class="texto-3">Design</p>
+          </div>
+          <div class="aba-prototipo">
+            <p class="texto-4">Protótipo</p>
+          </div>
+          <div class="aba-codigo">
+            <p class="texto-5">Código</p>
+          </div>
+          <div class="aba-comentarios">
+            <p class="texto-6">Comentários</p>
+          </div>
+          <div class="aba-conversa">
+            <p class="texto-7">Conversa</p>
+            <div class="mensagem-nova"></div>
+          </div>
+        </div>
+        <div class="presenca-do-agente">
+          <div class="presenca"></div>
+          <div class="frame">
+            <p class="texto-8">Claude · conectado via MCP</p>
+            <p class="texto-9">editando &quot;Home — V2 Galeria&quot;</p>
+          </div>
+        </div>
+        <div class="mensagens">
+          <div class="mensagem-de-claude">
+            <div class="autor">
+              <p class="texto-10">Claude</p>
+              <p class="texto-11">14:02</p>
+            </div>
+            <p class="texto-12">Terminei as duas versões da Home. Qual você prefere como padrão?</p>
+            <div class="respostas-rapidas">
+              <div class="resposta-rapida-v1-lista">
+                <p class="texto-13">V1 lista</p>
+              </div>
+              <div class="resposta-rapida-v2-galeria">
+                <p class="texto-14">V2 galeria</p>
+              </div>
+              <div class="resposta-rapida-as-duas-com-alternador">
+                <p class="texto-15">As duas, com alternador</p>
+              </div>
+            </div>
+          </div>
+          <div class="mensagem-de-voce">
+            <div class="autor-2">
+              <p class="texto-16">Você</p>
+              <p class="texto-17">14:05</p>
+            </div>
+            <p class="texto-18">V2, mas quero a lista como opção na barra de filtros.</p>
+          </div>
+          <!-- Hoje a permissão do MCP abre uma janela modal. Aqui ela vira um cartão dentro da conversa: não interrompe e fica registrada no histórico. -->
+          <div class="pedido-de-permissao">
+            <div class="frame-2">
+              <div class="icone-agente-20px">
+                <div class="balao">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 4 C 4.4 4 16 4 18 4 C 19.66 4 21 5.34 21 7 L 21 13 C 21 14.66 19.66 16 18 16 L 13 16 L 9 20.5 L 9 16 L 6 16 C 4.34 16 3 14.66 3 13 L 3 7 C 3 5.34 6 4 6 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+                </div>
+                <div class="faisca">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="#e9a23b" stroke-opacity="1" stroke-width="1.4583333333333335" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 12 6.5 L 13.1 9 L 15.5 10 L 13.1 11 L 12 13.5 L 10.9 11 L 8.5 10 L 10.9 9 L 12 6.5 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+                </div>
+              </div>
+              <p class="texto-19">Claude quer alterar 2 camadas</p>
+            </div>
+            <p class="texto-20">&quot;Filtros&quot; e &quot;Grade de projetos&quot; em Home — V2 Galeria</p>
+            <div class="aprovacao">
+              <button class="botao-primario" type="button">
+                <p class="rotulo">Permitir</p>
+              </button>
+              <button class="botao-secundario" type="button">
+                <p class="rotulo-2">Recusar</p>
+              </button>
+              <button class="botao-secundario-2" type="button">
+                <p class="rotulo-3">Ver o que muda</p>
+              </button>
+            </div>
+          </div>
+          <div class="mensagem-de-claude-2">
+            <div class="autor-3">
+              <p class="texto-21">Claude</p>
+              <p class="texto-22">14:06</p>
+            </div>
+            <p class="texto-23">Feito. Criei o alternador Lista/Galeria e a lista usa a mesma tabela da V1.</p>
+            <div class="frame-3">
+              <div class="resposta-rapida-filtros">
+                <p class="texto-24">@Filtros</p>
+              </div>
+              <div class="resposta-rapida-desfazer">
+                <p class="texto-25">Desfazer</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="compositor">
+          <div class="frame-4">
+            <div class="resposta-rapida-home-v2-galeria">
+              <p class="texto-26">@Home — V2 Galeria</p>
+            </div>
+            <p class="texto-27">citando esta camada</p>
+          </div>
+          <div class="campo-de-mensagem">
+            <p class="texto-28">Mensagem para o Claude… (@ cita uma camada)</p>
+            <div class="send">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14.25 12" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 0 12 L 0 0 L 14.25 6 L 0 12 Z M 1.5 9.75 L 10.39 6 L 1.5 2.25 L 1.5 4.88 L 6 6 L 1.5 7.13 L 1.5 9.75 Z M 1.5 9.75 L 1.5 2.25 L 1.5 9.75 Z" fill="#e9a23b" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 0 12 L 0 0 L 14.25 6 L 0 12 Z M 1.5 9.75 L 10.39 6 L 1.5 2.25 L 1.5 4.88 L 6 6 L 1.5 7.13 L 1.5 9.75 Z M 1.5 9.75 L 1.5 2.25 L 1.5 9.75 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+            </div>
+          </div>
+          <p class="texto-29">Conversa salva no projeto, como os comentários.</p>
+        </div>
+      </div>
+      <div class="explicacao">
+        <div class="como-funcionaria">
+          <p class="texto-30">Como funcionaria</p>
+          <div class="frame-5">
+            <p class="texto-31">›</p>
+            <p class="texto-32">Um fio de mensagens por projeto, salvo no arquivo (como os comentários). O agente interno e qualquer cliente MCP usam o mesmo fio.</p>
+          </div>
+          <div class="frame-6">
+            <p class="texto-33">›</p>
+            <p class="texto-34">Duas ferramentas novas no MCP: get_messages e send_message.</p>
+          </div>
+          <div class="frame-7">
+            <p class="texto-35">›</p>
+            <p class="texto-36">Respostas rápidas (chips) para decisões de escolha; texto livre para o resto.</p>
+          </div>
+          <div class="frame-8">
+            <p class="texto-37">›</p>
+            <p class="texto-38">@ cita uma camada: o agente recebe o id e o que está selecionado.</p>
+          </div>
+          <div class="frame-9">
+            <p class="texto-39">›</p>
+            <p class="texto-40">O pedido de permissão vira um cartão na conversa, com &quot;Ver o que muda&quot;.</p>
+          </div>
+        </div>
+        <div class="o-que-ja-existe-hoje">
+          <p class="texto-41">O que já existe hoje</p>
+          <div class="frame-10">
+            <p class="texto-42">›</p>
+            <p class="texto-43">Comentários com respostas e &quot;resolver&quot; (add_comment e get_comments): dá para conversar já, uma camada por vez.</p>
+          </div>
+          <div class="frame-11">
+            <p class="texto-44">›</p>
+            <p class="texto-45">Presença do agente (nome, cor, última ação) e a janela de permissão.</p>
+          </div>
+        </div>
+        <div class="o-que-falta-construir">
+          <p class="texto-46">O que falta construir</p>
+          <div class="frame-12">
+            <p class="texto-47">›</p>
+            <p class="texto-48">Guardar mensagens no documento e abrir a aba Conversa.</p>
+          </div>
+          <div class="frame-13">
+            <p class="texto-49">›</p>
+            <p class="texto-50">get_messages e send_message no MCP e no assistente interno.</p>
+          </div>
+          <div class="frame-14">
+            <p class="texto-51">›</p>
+            <p class="texto-52">Aviso de mensagem nova (o pontinho na aba).</p>
+          </div>
+          <div class="frame-15">
+            <p class="texto-53">›</p>
+            <p class="texto-54">Registro de alterações por agente, para o &quot;Ver o que muda&quot;.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

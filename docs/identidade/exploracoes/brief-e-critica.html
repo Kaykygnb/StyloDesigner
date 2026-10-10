@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brief da página inicial</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-texto-claro: #ece9e4;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-ambar: #e9a23b;
+  --cor-grafite-900: #1a1917;
+}
+
+/* Brief no formato da skill shape. Decisões marcadas como SUPOSIÇÃO esperam confirmação nos comentários. */
+.brief-da-pagina-inicial {
+  box-sizing: border-box;
+  position: relative;
+  width: 1280px;
+  height: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.conteudo-do-brief {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 680px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.itens-do-brief {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.brief-trabalho-e-publico {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-resultado-e-prova {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-direcao-escolhida {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-escopo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-estados-e-faixas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-interacao-e-layout {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.brief-restricoes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 16px 0px 16px 0px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.decisoes-em-aberto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-17 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.decisao-a {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 0px 10px 0px;
+}
+
+.texto-18 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 90px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-19 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.decisao-b {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 0px 10px 0px;
+}
+
+.texto-20 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 90px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-21 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.decisao-c {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 0px 10px 0px;
+}
+
+.texto-22 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 90px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-23 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.critica {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-25 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-27 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.como-responder {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 20px 20px 20px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-29 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+</style>
+</head>
+<body>
+<!-- Brief no formato da skill shape. Decisões marcadas como SUPOSIÇÃO esperam confirmação nos comentários. -->
+<div class="brief-da-pagina-inicial">
+  <div class="conteudo-do-brief">
+    <h2 class="texto">Brief da página inicial</h2>
+    <p class="texto-2">Escrito no formato da skill de design (comando shape). Onde faltou resposta sua, a decisão é uma SUPOSIÇÃO marcada, com um comentário no projeto para você corrigir.</p>
+    <div class="itens-do-brief">
+      <div class="brief-trabalho-e-publico">
+        <p class="texto-3">Trabalho e público</p>
+        <p class="texto-4">Quem abre o Stylo é web designer ou dev (principal) e quem valida o que um agente construiu (secundário), em sessões longas, quase sempre com um projeto em andamento. Modo de design: Operate (a ferramenta some, o trabalho aparece).</p>
+      </div>
+      <div class="brief-resultado-e-prova">
+        <p class="texto-5">Resultado e prova</p>
+        <p class="texto-6">Ação principal: voltar ao último projeto em um clique. Segunda: começar um projeto novo. Terceira: aprender com o projeto base. Sucesso: abrir o último projeto em 1 clique e nunca perder trabalho (aviso claro quando algo só está no navegador).</p>
+      </div>
+      <div class="brief-direcao-escolhida">
+        <p class="texto-7">Direção escolhida</p>
+        <p class="texto-8">Identidade A (Âmbar) com símbolo B (colchete e linhas): sóbria e densa. O âmbar marca ação primária, seleção e estado, nunca decora. Sem hero de marketing, sem rótulo sobre o título, sem três cards iguais em fileira.</p>
+      </div>
+      <div class="brief-escopo">
+        <p class="texto-9">Escopo</p>
+        <p class="texto-10">Duas versões de alta fidelidade da Home: V1 lista (com o estado de primeiro uso) e V2 galeria (responsiva). Estados reais: :hover, vazio, responsivo. Fora do escopo: o editor, as configurações e as páginas internas.</p>
+      </div>
+      <div class="brief-estados-e-faixas">
+        <p class="texto-11">Estados e faixas</p>
+        <p class="texto-12">0 projetos (primeiro uso); 1 a 12 (típico); 100 ou mais (máximo: tabela com busca e ordenação). Nomes de 3 a 60 caracteres (truncam). Pasta indisponível ou servidor desligado (&quot;só no navegador&quot;). Conflito entre abas.</p>
+      </div>
+      <div class="brief-interacao-e-layout">
+        <p class="texto-13">Interação e layout</p>
+        <p class="texto-14">Lista: tabela, busca com a tecla /, setas e Enter para abrir. Galeria: grade de 4, 2 e 1 colunas. Foco visível, alvos de pelo menos 28 px, movimento reduzido respeitado.</p>
+      </div>
+      <div class="brief-restricoes">
+        <p class="texto-15">Restrições</p>
+        <p class="texto-16">Português do Brasil. Funciona sem rede e sem nuvem. As miniaturas reais dependem de gerar a imagem da primeira página do projeto (o código já tem thumbnail.js).</p>
+      </div>
+    </div>
+    <div class="decisoes-em-aberto">
+      <p class="texto-17">Decisões em aberto</p>
+      <div class="decisao-a">
+        <p class="texto-18">SUPOSIÇÃO</p>
+        <p class="texto-19">A lista (V1) é o padrão, com a galeria (V2) como alternador na barra de filtros.</p>
+      </div>
+      <div class="decisao-b">
+        <p class="texto-20">SUPOSIÇÃO</p>
+        <p class="texto-21">A Home mostra a atividade de um agente conectado e leva a uma revisão do que ele alterou.</p>
+      </div>
+      <div class="decisao-c">
+        <p class="texto-22">SUPOSIÇÃO</p>
+        <p class="texto-23">No primeiro uso, o botão principal abre o projeto base (o exemplo), e &quot;em branco&quot; é a segunda opção.</p>
+      </div>
+    </div>
+    <div class="critica">
+      <p class="texto-24">Crítica das duas versões (resumo da skill critique)</p>
+      <p class="texto-25">V1 · Lista. Acerta na hierarquia (um botão âmbar, tabela escaneável), na densidade e na escala para 100+ projetos. Falha em: a faixa &quot;Continuar&quot; repete a primeira linha da tabela; o mesmo ícone em todas as linhas não ajuda a reconhecer o projeto; sem miniatura, o reconhecimento é só pelo nome.</p>
+      <p class="texto-26">V2 · Galeria. Acerta no reconhecimento visual e mostra a atividade do agente. Falha em: escala pior com muitos projetos (mais rolagem), depende de miniaturas reais e a grade ocupa espaço de uma lista que o usuário avançado prefere.</p>
+      <p class="texto-27">Recomendação: V1 como padrão, com alternador para a galeria; tirar da tabela o projeto que já está na faixa &quot;Continuar&quot;; usar miniatura pequena no lugar do ícone repetido (quando existir); levar a atividade do agente da V2 para a lateral da V1.</p>
+    </div>
+    <div class="como-responder">
+      <p class="texto-28">Como conversar comigo por aqui</p>
+      <p class="texto-29">Responda os comentários (aba Comentários, ou o pino na camada). Eu leio com get_comments e respondo na mesma conversa. Notas (a aba Notas de cada camada) explicam o porquê de cada peça e não precisam de resposta.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
