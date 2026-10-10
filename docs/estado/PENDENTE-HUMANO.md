@@ -23,4 +23,4 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 - **IA C (revisão cruzada):** revisar o diff das etapas S3 e S4 sem ver meu relatório, para segunda opinião.
 
 ## Codex como subagente (`codex app-server`)
-- [ ] Você tem Codex logado e quer gastar a cota do plano ChatGPT nisso? Padrão: **só depois da Fase 1**, com prova de conceito pequena (esquema → sessão → tarefa trivial numa worktree → medir tokens contra `codex exec`). `codex-cli 0.162.1` instalado; o `app-server` é experimental.
+- [x] (respondido: tem Codex e autorizou o uso) Você tem Codex logado e quer gastar a cota do plano ChatGPT nisso? Padrão: **só depois da Fase 1**, com prova de conceito pequena (esquema → sessão → tarefa trivial numa worktree → medir tokens contra `codex exec`). `codex-cli 0.162.1` instalado; o `app-server` é experimental.
