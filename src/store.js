@@ -398,15 +398,15 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
    * Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar
    * enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde).
    * Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
-   * @returns {Promise<void>} resolve quando o projeto (como estava) terminou de ser gravado
+   * @returns {Promise<boolean>} resolve DEPOIS de tudo gravado (inclusive o re-save): true se salvou, false se falhou
    */
   function save() {
     clearTimeout(saveTimer);
     if (saving) {
       dirtyAgain = true;
-      return saving;
+      return saving; // encadeada: só resolve depois do re-save
     }
-    if (!dirty) return Promise.resolve();
+    if (!dirty) return Promise.resolve(true);
     dirty = false;
     // Uma gravação consecutiva também precisa aparecer como pendente. O primeiro persist pode
     // terminar depois de uma edição nova e não deve deixar a interface dizer "Salvo" durante
@@ -415,25 +415,29 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       state.ui.saveState = 'saving';
       emit('ui');
     }
-    saving = (async () => {
+    const run = (async () => {
       try {
         const where = await persist({ doc: state.doc, views: state.ui.views, theme: state.ui.theme, link: state.ui.link });
         state.ui.savedWhere = where;
         if (!dirty && !dirtyAgain) state.ui.saveState = 'saved';
+        return true;
       } catch (err) {
         state.ui.saveState = err?.code === 'LOCAL_CONFLICT' ? 'conflict' : 'error';
         dirty = true; // continua pendente: a próxima tentativa grava de novo
-        api.onSaveError?.(err);
+        try { api.onSaveError?.(err); } catch { /* o aviso não pode derrubar o salvamento: uma exceção aqui deixaria `saving` preso para sempre */ }
+        return false;
       }
     })();
-    return saving.then(() => {
+    saving = run.then((ok) => {
       saving = null;
       emit('ui');
       if (dirtyAgain) {
         dirtyAgain = false;
         return save();
       }
+      return ok;
     });
+    return saving;
   }
   /** Salva imediatamente, sem esperar o atraso (ao esconder/fechar a aba, ou antes de trocar de projeto). */
   api.saveNow = save;

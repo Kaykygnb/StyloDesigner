@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-76 arquivos · 1189 funções e constantes documentadas.
+76 arquivos · 1191 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -899,24 +899,24 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L145](../src/main.js#L145) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
 - **`setLeftTab(tab)`** <sub>do módulo</sub> · [L169](../src/main.js#L169) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
 - **`setTab(tab)`** <sub>do módulo</sub> · [L209](../src/main.js#L209) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L354](../src/main.js#L354) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L355](../src/main.js#L355) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L400](../src/main.js#L400) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L417](../src/main.js#L417) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L401](../src/main.js#L401) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L418](../src/main.js#L418) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L430](../src/main.js#L430) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L511](../src/main.js#L511) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L549](../src/main.js#L549) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L597](../src/main.js#L597) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L687](../src/main.js#L687) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L750](../src/main.js#L750) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L431](../src/main.js#L431) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L512](../src/main.js#L512) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L550](../src/main.js#L550) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L598](../src/main.js#L598) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L688](../src/main.js#L688) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L751](../src/main.js#L751) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1405,11 +1405,12 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`quickSave()`** <sub>interna</sub> · [L178](../src/saving.js#L178) — Ctrl+S. Projeto ligado a um arquivo → grava agora. Em conflito → pergunta se substitui o arquivo do disco. Não ligado → devolve false (quem chamou abre a janela "Projetos" para escolher o nome). Sem servidor → baixa o .json (o comportamento antigo).
   - ↩︎ `Promise<boolean>` true se resolveu sozinho
 - **`saveAs(file, { overwrite = false } = {})`** <sub>interna</sub> · [L211](../src/saving.js#L211) — Grava o projeto atual com o nome `file` e liga o projeto a ele. Se já existir outro arquivo com esse nome, pergunta antes de substituir. @returns {Promise<boolean>} true se gravou
-- **`open(file)`** <sub>interna</sub> · [L261](../src/saving.js#L261) — Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo.
-- **`openVersion(file, id)`** <sub>interna</sub> · [L272](../src/saving.js#L272) — Abre uma VERSÃO ANTIGA como projeto solto (não ligado a arquivo), para você conferir sem estragar o atual. Para restaurar, use "Salvar na pasta" com o mesmo nome e confirme a substituição.
-- **`renameFile(file, newName)`** <sub>interna</sub> · [L282](../src/saving.js#L282) — Renomeia um projeto da pasta. Se for o projeto aberto, o vínculo passa para o nome novo.
+- **`saveBeforeSwitch()`** <sub>interna</sub> · [L261](../src/saving.js#L261) — Salva o projeto atual antes de trocá-lo; se não salvou, NÃO deixa descartá-lo em silêncio.
+- **`open(file)`** <sub>interna</sub> · [L268](../src/saving.js#L268) — Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo.
+- **`openVersion(file, id)`** <sub>interna</sub> · [L279](../src/saving.js#L279) — Abre uma VERSÃO ANTIGA como projeto solto (não ligado a arquivo), para você conferir sem estragar o atual. Para restaurar, use "Salvar na pasta" com o mesmo nome e confirme a substituição.
+- **`renameFile(file, newName)`** <sub>interna</sub> · [L289](../src/saving.js#L289) — Renomeia um projeto da pasta. Se for o projeto aberto, o vínculo passa para o nome novo.
   - ↩︎ `Promise<string\|null>` o nome final do arquivo, ou null se não deu
-- **`duplicateFile(file)`** <sub>interna</sub> · [L295](../src/saving.js#L295) — Cria uma cópia de um projeto da pasta ("nome-copia.json", "nome-copia-2.json"...). Não abre a cópia.
+- **`duplicateFile(file)`** <sub>interna</sub> · [L302](../src/saving.js#L302) — Cria uma cópia de um projeto da pasta ("nome-copia.json", "nome-copia-2.json"...). Não abre a cópia.
 
 ---
 
@@ -1445,24 +1446,25 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`PREF_KEY`** <sub>do módulo</sub> · [L30](../src/storage.js#L30) — Preferências de interface (largura dos painéis, auto-salvar na pasta...) — pequenas, ficam no localStorage.
 - **`editorTabId()`** <sub>do módulo</sub> · [L49](../src/storage.js#L49) — Identifica esta aba durante a sessão para separar seus rascunhos e projetos depois de um conflito.
 - **`db()`** <sub>do módulo</sub> · [L89](../src/storage.js#L89) — Abre (uma vez) o banco IndexedDB. Rejeita se o navegador não oferecer (ex.: algumas janelas anônimas).
-- **`tx(mode, fn)`** <sub>do módulo</sub> · [L101](../src/storage.js#L101) — Executa uma operação numa transação e devolve o resultado como Promise.
-- **`useIdb`** <sub>do módulo</sub> · [L114](../src/storage.js#L114) — Usa o IndexedDB? Se falhar uma vez, caímos para o localStorage pelo resto da sessão.
-- **`loadLocal()`** · [L120](../src/storage.js#L120) — Lê o projeto guardado no navegador. Ordem: IndexedDB → (migração) localStorage antigo → null.
+- **`tx(mode, fn)`** <sub>do módulo</sub> · [L105](../src/storage.js#L105) — Executa uma operação numa transação e devolve o resultado como Promise.
+- **`useIdb`** <sub>do módulo</sub> · [L118](../src/storage.js#L118) — Usa o IndexedDB? Se falhar uma vez, caímos para o localStorage pelo resto da sessão.
+- **`newerLocalCopy(idbRec, lsKey)`** <sub>do módulo</sub> · [L125](../src/storage.js#L125) — Cópia do localStorage (gravada quando o IndexedDB falhou no meio da sessão) mais nova que a do IndexedDB? Só vence com `revision` estritamente maior E `savedAt` não anterior. Devolve a cópia do localStorage ou null (a do IndexedDB vale). A revisão esperada (activeRevision) continua a do IndexedDB, para o próximo salvamento não virar conflito.
+- **`loadLocal()`** · [L142](../src/storage.js#L142) — Lê o projeto guardado no navegador. Ordem: IndexedDB → (migração) localStorage antigo → null.
   - ↩︎ `Promise<{doc, views?, theme?, link?, savedAt?` \|null>}
-- **`saveLocal(record)`** · [L181](../src/storage.js#L181) — Grava o projeto no navegador. `record` = { doc, views, theme, link }. No IndexedDB o objeto é copiado na hora da chamada (structured clone), então pode continuar sendo editado. Depois da primeira gravação bem-sucedida no IndexedDB, apaga a cópia antiga do localStorage (migração concluída).
-- **`forkLocalProject(record)`** · [L254](../src/storage.js#L254) — Separa uma cópia conflitante depois que a pessoa a salvou explicitamente como outro projeto.
-- **`listLocalProjects()`** · [L290](../src/storage.js#L290) — Lista projetos e rascunhos locais recuperáveis, inclusive os de abas já fechadas.
-- **`openLocalProject(key)`** · [L328](../src/storage.js#L328) — Abre uma cópia recuperável listada por listLocalProjects.
-- **`deleteLocalProject(key)`** · [L349](../src/storage.js#L349) — Remove uma cópia local antiga; protege o documento que a aba está editando agora.
-- **`isActiveLocalProject(key)`** · [L363](../src/storage.js#L363) — Informa se a chave aponta para o documento que esta aba está editando.
-- **`browserUsage()`** · [L369](../src/storage.js#L369) — Espaço usado/disponível para este site (quando o navegador informa).
-- **`requestPersistence()`** · [L382](../src/storage.js#L382) — Pede ao navegador para NÃO apagar os dados deste site quando faltar espaço (armazenamento "persistente"). O Chrome costuma aceitar sozinho para sites usados com frequência; o Firefox pode perguntar.
-- **`loadPrefs()`** · [L388](../src/storage.js#L388) — Lê as preferências de interface (objeto vazio se não houver ou estiverem corrompidas).
-- **`savePrefs(prefs)`** · [L392](../src/storage.js#L392) — Grava as preferências (falha em silêncio: são só conveniências).
-- **`call(path, { method = 'GET', body, headers = {}, raw = false } = {})`** <sub>do módulo</sub> · [L403](../src/storage.js#L403) — Faz um pedido à API e devolve o JSON (ou lança ServerError com a mensagem do servidor).
-- **`fileNameFor(name)`** · [L419](../src/storage.js#L419) — Converte o nome do projeto num nome de arquivo aceito pelo servidor: "Meu App!" → "meu-app.json".
-- **`serialize(doc)`** <sub>do módulo</sub> · [L428](../src/storage.js#L428) — Projeto pronto para gravar em arquivo: o MESMO formato do "Baixar .json" (um arquivo baixado pode ir para a pasta e vice-versa).
-- **`folder`** · [L434](../src/storage.js#L434) — API da pasta. Todas as funções lançam ServerError quando o servidor recusa e TypeError quando não há servidor (ex.: o app foi aberto por outro servidor estático, como `python -m http.server`).
+- **`saveLocal(record)`** · [L209](../src/storage.js#L209) — Grava o projeto no navegador. `record` = { doc, views, theme, link }. No IndexedDB o objeto é copiado na hora da chamada (structured clone), então pode continuar sendo editado. Depois da primeira gravação bem-sucedida no IndexedDB, apaga a cópia antiga do localStorage (migração concluída).
+- **`forkLocalProject(record)`** · [L284](../src/storage.js#L284) — Separa uma cópia conflitante depois que a pessoa a salvou explicitamente como outro projeto.
+- **`listLocalProjects()`** · [L320](../src/storage.js#L320) — Lista projetos e rascunhos locais recuperáveis, inclusive os de abas já fechadas.
+- **`openLocalProject(key)`** · [L358](../src/storage.js#L358) — Abre uma cópia recuperável listada por listLocalProjects.
+- **`deleteLocalProject(key)`** · [L379](../src/storage.js#L379) — Remove uma cópia local antiga; protege o documento que a aba está editando agora.
+- **`isActiveLocalProject(key)`** · [L393](../src/storage.js#L393) — Informa se a chave aponta para o documento que esta aba está editando.
+- **`browserUsage()`** · [L399](../src/storage.js#L399) — Espaço usado/disponível para este site (quando o navegador informa).
+- **`requestPersistence()`** · [L412](../src/storage.js#L412) — Pede ao navegador para NÃO apagar os dados deste site quando faltar espaço (armazenamento "persistente"). O Chrome costuma aceitar sozinho para sites usados com frequência; o Firefox pode perguntar.
+- **`loadPrefs()`** · [L418](../src/storage.js#L418) — Lê as preferências de interface (objeto vazio se não houver ou estiverem corrompidas).
+- **`savePrefs(prefs)`** · [L422](../src/storage.js#L422) — Grava as preferências (falha em silêncio: são só conveniências).
+- **`call(path, { method = 'GET', body, headers = {}, raw = false } = {})`** <sub>do módulo</sub> · [L433](../src/storage.js#L433) — Faz um pedido à API e devolve o JSON (ou lança ServerError com a mensagem do servidor).
+- **`fileNameFor(name)`** · [L449](../src/storage.js#L449) — Converte o nome do projeto num nome de arquivo aceito pelo servidor: "Meu App!" → "meu-app.json".
+- **`serialize(doc)`** <sub>do módulo</sub> · [L458](../src/storage.js#L458) — Projeto pronto para gravar em arquivo: o MESMO formato do "Baixar .json" (um arquivo baixado pode ir para a pasta e vice-versa).
+- **`folder`** · [L464](../src/storage.js#L464) — API da pasta. Todas as funções lançam ServerError quando o servidor recusa e TypeError quando não há servidor (ex.: o app foi aberto por outro servidor estático, como `python -m http.server`).
 
 ---
 
@@ -1500,8 +1502,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`normalizeDoc(doc)`** <sub>interna</sub> · [L333](../src/store.js#L333) — Preenche campos que projetos antigos não têm e aplica os breakpoints do documento (estado global do model).
 - **`scheduleSave()`** <sub>interna</sub> · [L388](../src/store.js#L388) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
 - **`save()`** <sub>interna</sub> · [L403](../src/store.js#L403) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
-  - ↩︎ `Promise<void>` resolve quando o projeto (como estava) terminou de ser gravado
-- **`init()`** <sub>interna</sub> · [L460](../src/store.js#L460) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+  - ↩︎ `Promise<boolean>` resolve DEPOIS de tudo gravado (inclusive o re-save): true se salvou, false se falhou
+- **`init()`** <sub>interna</sub> · [L464](../src/store.js#L464) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 

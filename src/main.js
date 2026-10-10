@@ -272,7 +272,8 @@ fileInput.addEventListener('change', async () => {
   if (!f) return;
   if (!(await confirmReplace(`Importar "${f.name}"?`))) return;
   try {
-    await store.saveNow();
+    // se o projeto atual não salvou, não o descarta em silêncio (mesma regra de saving.open)
+    if ((await store.saveNow()) === false) throw new Error('O projeto atual não foi salvo, então não importei o arquivo para não perder suas alterações. Resolva o aviso de salvamento (ou use Ctrl+S) e tente de novo.');
     store.loadDoc(await openProjectFile(f));
     home.close();
     canvas.fit(null);

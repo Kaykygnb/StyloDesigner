@@ -257,9 +257,16 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     }
   }
 
+  /** Salva o projeto atual antes de trocá-lo; se não salvou, NÃO deixa descartá-lo em silêncio. */
+  async function saveBeforeSwitch() {
+    if ((await store.saveNow()) === false) {
+      throw new Error('O projeto atual não foi salvo, então não abri o outro para não perder suas alterações. Resolva o aviso de salvamento (ou use Ctrl+S) e tente de novo.');
+    }
+  }
+
   /** Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo. */
   async function open(file) {
-    await store.saveNow();
+    await saveBeforeSwitch();
     const { doc, modified, contentHash } = await folder.load(file);
     if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
     store.loadDoc(doc, { link: { file, modified, contentHash, synced: true } });
@@ -270,7 +277,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
    * Para restaurar, use "Salvar na pasta" com o mesmo nome e confirme a substituição.
    */
   async function openVersion(file, id) {
-    await store.saveNow();
+    await saveBeforeSwitch();
     const doc = await folder.loadVersion(file, id);
     store.loadDoc(doc);
   }

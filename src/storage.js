@@ -87,7 +87,8 @@ const tabDocKey = () => `${TAB_KEY_PREFIX}${tabId}`;
 const tabConflictKey = () => `${CONFLICT_KEY_PREFIX}${tabId}`;
 /** Abre (uma vez) o banco IndexedDB. Rejeita se o navegador não oferecer (ex.: algumas janelas anônimas). */
 function db() {
-  dbPromise ||= new Promise((ok, fail) => {
+  if (dbPromise) return dbPromise;
+  const attempt = new Promise((ok, fail) => {
     if (!globalThis.indexedDB) return fail(new Error('IndexedDB indisponível'));
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
@@ -95,7 +96,10 @@ function db() {
     req.onerror = () => fail(req.error);
     req.onblocked = () => fail(new Error('IndexedDB bloqueado por outra aba'));
   });
-  return dbPromise;
+  dbPromise = attempt;
+  // falha transitória não pode ficar guardada para sempre: a próxima chamada tenta abrir de novo
+  attempt.catch(() => { if (dbPromise === attempt) dbPromise = null; });
+  return attempt;
 }
 /** Executa uma operação numa transação e devolve o resultado como Promise. */
 async function tx(mode, fn) {
@@ -114,6 +118,24 @@ async function tx(mode, fn) {
 let useIdb = true;
 
 /**
+ * Cópia do localStorage (gravada quando o IndexedDB falhou no meio da sessão) mais nova que a do IndexedDB?
+ * Só vence com `revision` estritamente maior E `savedAt` não anterior. Devolve a cópia do localStorage ou null (a do IndexedDB vale).
+ * A revisão esperada (activeRevision) continua a do IndexedDB, para o próximo salvamento não virar conflito.
+ */
+function newerLocalCopy(idbRec, lsKey) {
+  try {
+    const ls = JSON.parse(localStorage.getItem(lsKey) || 'null');
+    if (!ls?.doc?.pages?.length) return null;
+    const lr = Number(ls.revision) || 0;
+    const ir = Number(idbRec.revision) || 0;
+    // REVISÃO estritamente maior E gravada depois: empate não é decidido pelo relógio (cópia divergente de outra aba)
+    // e uma cópia velha com revisão alta não vence um salvamento posterior no IndexedDB
+    if (lr > ir && (Number(ls.savedAt) || 0) >= (Number(idbRec.savedAt) || 0)) return ls;
+  } catch { /* corrompido: fica com o IndexedDB */ }
+  return null;
+}
+
+/**
  * Lê o projeto guardado no navegador. Ordem: IndexedDB → (migração) localStorage antigo → null.
  * @returns {Promise<{doc, views?, theme?, link?, savedAt?}|null>}
  */
@@ -122,10 +144,14 @@ export async function loadLocal() {
     await editorTabId();
     const ownKey = tabDocKey();
     const own = await tx('readonly', (s) => s.get(ownKey));
+    useIdb = true; // o IndexedDB respondeu: uma falha anterior era transitória
     if (own?.doc?.pages?.length) {
       activeDocKey = ownKey;
       activeRevision = Number(own.revision) || 0;
       conflictDraft = false;
+      // se o IndexedDB caiu durante a sessão, as edições seguintes ficaram no localStorage: abre a mais nova
+      const newer = newerLocalCopy(own, ownKey);
+      if (newer) { newer.migrated = true; return newer; }
       return own;
     }
     const rec = await tx('readonly', (s) => s.get(DOC_KEY));
@@ -140,6 +166,8 @@ export async function loadLocal() {
       activeDocKey = DOC_KEY;
       activeRevision = Number(rec.revision) || 0;
       conflictDraft = false;
+      const newer = newerLocalCopy(rec, LEGACY_KEY);
+      if (newer) { newer.migrated = true; return newer; }
       return rec;
     }
     activeDocKey = DOC_KEY;
@@ -230,7 +258,9 @@ async function saveLocalUnlocked(record) {
         conflict.draftSaved = true;
         throw conflict;
       }
+      // duas remoções independentes: se uma falhar, a outra ainda acontece
       try { localStorage.removeItem(LEGACY_KEY); } catch { /* ignore */ }
+      try { if (activeDocKey !== DOC_KEY) localStorage.removeItem(activeDocKey); } catch { /* ignore */ } // cópia de queda já incorporada
       return 'browser';
     } catch (err) {
       // Conflito não é indisponibilidade: cair para localStorage permitiria sobrescrever o outro documento.
