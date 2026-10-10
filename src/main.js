@@ -91,6 +91,7 @@ ui.wheelMode = prefs.wheelMode || 'pan';
 // avisa só UMA vez que o salvamento automático falhou (senão encheria a tela de avisos)
 let warnedSave = false;
 // quando o navegador recusa gravar (espaço cheio), orienta a salvar na pasta
+store.onLoadWarnings = (warnings) => toast(`Abri o projeto com ajustes: ${warnings.length > 1 ? `${warnings[0]} (+${warnings.length - 1})` : warnings[0]}`);
 store.onSaveError = (err) => {
   if (warnedSave) return;
   warnedSave = true;

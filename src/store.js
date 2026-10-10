@@ -12,6 +12,7 @@
  */
 
 import { makeDoc, makePage, fitGroups, walk, uid, createProjectId, setBreakpoints, BREAKPOINTS } from './model.js';
+import { sanitizeDoc } from './validate.js';
 const BREAKPOINTS_IDS = () => BREAKPOINTS.map((b) => b.id);
 import { buildSampleShowcase } from './sample-vitrine.js';
 import { syncInstances, syncStyles } from './components.js';
@@ -335,6 +336,12 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     doc.styles ||= { colors: [], texts: [] };
     doc.comments ||= []; // projetos antigos não têm comentários
     setBreakpoints(doc.breakpoints);
+    // projeto de terceiros é entrada não confiável: conserta o que dá, descarta o resto e avisa quem abriu
+    const warnings = sanitizeDoc(doc);
+    if (warnings.length) {
+      console.warn('Projeto ajustado ao abrir:', warnings);
+      try { api.onLoadWarnings?.(warnings); } catch { /* o aviso não pode impedir a abertura */ }
+    }
   }
 
   /**

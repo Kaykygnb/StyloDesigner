@@ -12,3 +12,4 @@
 | D8 | 10/10/2026 | O Jev não guarda estado; o histórico fica em `docs/estado/` | Verificação das ferramentas `jev_*` |
 | D9 | 10/10/2026 | Codex pode ser subagente via `codex app-server` (autorizado pela pessoa); só em worktree descartável, testes rodados por mim | Pessoa + prova em `docs/estado/CODEX.md` |
 | D10 | 10/10/2026 | Meta: produto polido e estável, ~US$ 100/mês de valor percebido; economizar tokens; Codex (`codex exec` também) e OpenCode liberados; autonomia local sem push | Pessoa |
+| D11 | 10/10/2026 | Papéis: Claude sênior; Codex colega sênior/assistente; subagentes Claude plenos; Jev decide dúvidas pequenas e quando usar o navegador; Codex sem sandbox em tarefas `--write` (sempre em worktree) | Pessoa |

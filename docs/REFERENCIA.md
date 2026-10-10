@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-76 arquivos · 1191 funções e constantes documentadas.
+77 arquivos · 1207 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -45,6 +45,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 | [`src/svgimport.js`](#srcsvgimportjs) | Importa SVG como vetores editáveis |
 | [`src/thumbnail.js`](#srcthumbnailjs) | Miniatura do projeto (SVG) para a página inicial |
 | [`src/tools.js`](#srctoolsjs) | Interação: mouse e teclado no canvas |
+| [`src/validate.js`](#srcvalidatejs) |  |
 | [`src/version.js`](#srcversionjs) |  |
 | [`src/zip.js`](#srczipjs) |  |
 | [`src/agent/bridge.js`](#srcagentbridgejs) | Permissão e ponte com o MCP (lado do navegador) |
@@ -563,29 +564,37 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`dashAttr(st, w = st?.width)`** · [L686](../src/css.js#L686) — `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade; senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
 - **`dashList(text)`** · [L693](../src/css.js#L693) — "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → '').
 - **`maskClip(group)`** · [L703](../src/css.js#L703) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
-- **`toCssText(style)`** · [L720](../src/css.js#L720) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
-- **`cssRule(selector, style, indent = '')`** · [L726](../src/css.js#L726) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
-- **`stateStyle(node, parent, assets, opts, states)`** · [L742](../src/css.js#L742) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+- **`isSafeCssValue(value)`** · [L726](../src/css.js#L726) — O valor cabe numa única declaração CSS? Recusa o que fecha a declaração ou o bloco (`;` `{` `}` fora de aspas e parênteses), comentários fora de aspas, `</` (fecharia o <style> do HTML exportado) e aspas ou parênteses sem fechar. Um projeto .json de terceiros é entrada não confiável: este é o último filtro antes de o valor virar texto de CSS.
+  - `value` <sub>unknown</sub> — 
+  - ↩︎ `boolean`
+- **`isCssProp(k)`** <sub>do módulo</sub> · [L752](../src/css.js#L752) — Nome de propriedade CSS válido (inclui variáveis --x).
+- **`safeEntries(style)`** <sub>do módulo</sub> · [L754](../src/css.js#L754) — Só pares propriedade/valor seguros (um valor perigoso é descartado, não "consertado").
+- **`safeIdent(v, fallback)`** · [L756](../src/css.js#L756) — Identificador simples (`round`, `multiply`, `pointer`): o que não for isso cai no valor padrão.
+- **`cssUrl(src)`** <sub>do módulo</sub> · [L758](../src/css.js#L758) — Endereço de imagem para dentro de `url("...")`: aspas, barra invertida e quebra de linha viram %xx.
+- **`finiteOr(v, d)`** <sub>do módulo</sub> · [L760](../src/css.js#L760) — Número finito (para atributos SVG); o resto vira o padrão.
+- **`toCssText(style)`** · [L763](../src/css.js#L763) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
+- **`cssRule(selector, style, indent = '')`** · [L769](../src/css.js#L769) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
+- **`stateStyle(node, parent, assets, opts, states)`** · [L787](../src/css.js#L787) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
   - `node` <sub>object</sub> — 
   - `parent` <sub>object\|null</sub> — 
   - `assets` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
-- **`pathStateStyle(node, assets, state)`** · [L756](../src/css.js#L756) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
-- **`makeClassNamer()`** <sub>do módulo</sub> · [L779](../src/css.js#L779) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`classNamesOf(roots)`** · [L798](../src/css.js#L798) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
-- **`withPageCss(css, styles)`** · [L809](../src/css.js#L809) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
-- **`noteComment(node)`** · [L815](../src/css.js#L815) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L821](../src/css.js#L821) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L832](../src/css.js#L832) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`pathStateStyle(node, assets, state)`** · [L801](../src/css.js#L801) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+- **`makeClassNamer()`** <sub>do módulo</sub> · [L824](../src/css.js#L824) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+- **`classNamesOf(roots)`** · [L843](../src/css.js#L843) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
+- **`withPageCss(css, styles)`** · [L854](../src/css.js#L854) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
+- **`noteComment(node)`** · [L860](../src/css.js#L860) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L866](../src/css.js#L866) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L877](../src/css.js#L877) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L973](../src/css.js#L973) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`docCssVars(styles)`** · [L990](../src/css.js#L990) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
-- **`joinCss(parts)`** · [L1007](../src/css.js#L1007) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L1018](../src/css.js#L1018) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`docCssVars(styles)`** · [L1035](../src/css.js#L1035) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L1052](../src/css.js#L1052) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L1037](../src/css.js#L1037) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1051](../src/css.js#L1051) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L1082](../src/css.js#L1082) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1096](../src/css.js#L1096) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -894,29 +903,29 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`presenceSlot`** <sub>do módulo</sub> · [L52](../src/main.js#L52) — Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo).
 - **`toast(msg)`** <sub>do módulo</sub> · [L61](../src/main.js#L61) — Mostra um aviso curto (balão preto) na parte de baixo da tela por ~3s. Só um por vez: o novo substitui o antigo.
 - **`savePrefs()`** <sub>do módulo</sub> · [L75](../src/main.js#L75) — Grava as preferências (falhas silenciosas: é só conveniência).
-- **`openSettings(section)`** <sub>do módulo</sub> · [L109](../src/main.js#L109) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
-- **`quickSave()`** <sub>do módulo</sub> · [L114](../src/main.js#L114) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
-- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L145](../src/main.js#L145) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
-- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L169](../src/main.js#L169) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
-- **`setTab(tab)`** <sub>do módulo</sub> · [L209](../src/main.js#L209) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
-- **`confirmReplace(question)`** <sub>do módulo</sub> · [L355](../src/main.js#L355) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
+- **`openSettings(section)`** <sub>do módulo</sub> · [L110](../src/main.js#L110) — Página de Configurações (ver ui/settings.js) e janela de Projetos (ui/projects.js). `section` abre direto numa seção.
+- **`quickSave()`** <sub>do módulo</sub> · [L115](../src/main.js#L115) — Ctrl+S: grava no arquivo ligado; se ainda não há arquivo, abre a janela para dar um nome.
+- **`bindPanelTabs(buttons, panel, id)`** <sub>do módulo</sub> · [L146](../src/main.js#L146) — Uma parada de Tab por painel; as setas percorrem as abas sem acionar atalhos do canvas.
+- **`setLeftTab(tab)`** <sub>do módulo</sub> · [L170](../src/main.js#L170) — Troca a aba do painel esquerdo ('layers' | 'assets' | 'icons').
+- **`setTab(tab)`** <sub>do módulo</sub> · [L210](../src/main.js#L210) — Troca a aba do painel direito ('design' | 'proto' | 'code' | 'comments') e já redesenha o painel escolhido.
+- **`confirmReplace(question)`** <sub>do módulo</sub> · [L356](../src/main.js#L356) — Antes de TROCAR o projeto aberto (abrir outro, novo, exemplo, importar). Regras:
 
    - projeto gravado na pasta, ou exemplo/em branco não editado → troca sem perguntar (nada se perde);
    - projeto que só existe no navegador → pergunta, porque o navegador guarda UM projeto: ele seria substituído.
      Opções: salvar na pasta antes (abre "Salvar na pasta" e cancela a troca), trocar mesmo assim, ou cancelar.
   - ↩︎ `Promise<boolean>` true = pode trocar
-- **`syncTopbar()`** <sub>do módulo</sub> · [L401](../src/main.js#L401) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
-- **`saveStatus()`** <sub>do módulo</sub> · [L418](../src/main.js#L418) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
+- **`syncTopbar()`** <sub>do módulo</sub> · [L402](../src/main.js#L402) — Atualiza a barra superior conforme o estado: desfazer/refazer habilitados, ícone do tema, nome e indicador de salvo.
+- **`saveStatus()`** <sub>do módulo</sub> · [L419](../src/main.js#L419) — O que o indicador do topo mostra: [estado (cor), texto, dica ao passar o mouse].
 
    - "Salvo na pasta"       → gravado no arquivo .json da pasta (e no navegador)
    - "Salvo no navegador"   → projeto ainda sem arquivo: só a cópia do navegador existe
    - "Só no navegador"      → tem arquivo, mas a pasta falhou (servidor desligado, conflito, permissão)
-- **`TOOLS`** <sub>do módulo</sub> · [L431](../src/main.js#L431) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
-- **`syncTools()`** <sub>do módulo</sub> · [L512](../src/main.js#L512) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
-- **`syncZoom()`** <sub>do módulo</sub> · [L550](../src/main.js#L550) — Mostra o zoom atual em % no botão.
-- **`syncCommentBadge()`** <sub>do módulo</sub> · [L598](../src/main.js#L598) — Número de comentários abertos no selo da aba (some quando é zero).
-- **`setWidth(side, w)`** <sub>do módulo</sub> · [L688](../src/main.js#L688) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
-- **`onFail(msg)`** <sub>do módulo</sub> · [L751](../src/main.js#L751) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
+- **`TOOLS`** <sub>do módulo</sub> · [L432](../src/main.js#L432) — Ferramentas da barra flutuante: [id, ícone, dica com atalho]. A ordem é a ordem na tela.
+- **`syncTools()`** <sub>do módulo</sub> · [L513](../src/main.js#L513) — Destaca o botão da ferramenta ativa (aria-pressed diz ao leitor de tela qual está ligada).
+- **`syncZoom()`** <sub>do módulo</sub> · [L551](../src/main.js#L551) — Mostra o zoom atual em % no botão.
+- **`syncCommentBadge()`** <sub>do módulo</sub> · [L599](../src/main.js#L599) — Número de comentários abertos no selo da aba (some quando é zero).
+- **`setWidth(side, w)`** <sub>do módulo</sub> · [L689](../src/main.js#L689) — Define a largura de um painel (entre 200 e 520px), avisa quem depende do tamanho (réguas, canvas) e devolve o valor aplicado.
+- **`onFail(msg)`** <sub>do módulo</sub> · [L752](../src/main.js#L752) — Trata uma falha inesperada: registra no console e avisa o usuário (com limite de frequência).
 
 ---
 
@@ -1481,7 +1490,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
  `store.commit()` — é isso que faz o desfazer, o salvamento e os painéis funcionarem.
 ```
 
-- **`createStore({ initial = null, persist = async () => 'browser' } = {})`** · [L39](../src/store.js#L39) — Cria o STORE: a única fonte de verdade do app. Tudo que o usuário vê (canvas, painéis, menus) é uma função do que está aqui; e toda mudança passa por aqui. Fluxo:
+- **`createStore({ initial = null, persist = async () => 'browser' } = {})`** · [L40](../src/store.js#L40) — Cria o STORE: a única fonte de verdade do app. Tudo que o usuário vê (canvas, painéis, menus) é uma função do que está aqui; e toda mudança passa por aqui. Fluxo:
 
     ação do usuário → store.update(...)/commit() → emit(motivo) → quem assina (canvas, painéis) redesenha
 
@@ -1492,18 +1501,18 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[opts.initial]` <sub>object\|null</sub> — projeto já carregado do navegador ({ doc, views, theme, link }) — ver storage.loadLocal. null/ausente = abre o projeto de exemplo.
   - `[opts.persist]` <sub>(record) => Promise<string></sub> — grava o projeto (navegador e, se ligado, a pasta). Devolve onde gravou ('browser' \| 'folder'). O store só decide QUANDO salvar; o COMO fica em main.js/storage.js.
   - ↩︎ `object` a API do store (get, update, commit, undo, setSelection, subscribe...)
-- **`emit(reason)`** <sub>interna</sub> · [L119](../src/store.js#L119) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
+- **`emit(reason)`** <sub>interna</sub> · [L120](../src/store.js#L120) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
 
    - síncrono (subscribeSync): o canvas e o overlay precisam estar em dia ANTES do próximo evento do mouse,
      senão medem o DOM desatualizado durante um arrasto;
    - 1x por frame (subscribe): painéis pesados (camadas, propriedades) juntam vários motivos em uma só atualização.
-- **`index()`** <sub>interna</sub> · [L144](../src/store.js#L144) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
-- **`restore(snap)`** <sub>interna</sub> · [L232](../src/store.js#L232) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
-- **`normalizeDoc(doc)`** <sub>interna</sub> · [L333](../src/store.js#L333) — Preenche campos que projetos antigos não têm e aplica os breakpoints do documento (estado global do model).
-- **`scheduleSave()`** <sub>interna</sub> · [L388](../src/store.js#L388) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
-- **`save()`** <sub>interna</sub> · [L403](../src/store.js#L403) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+- **`index()`** <sub>interna</sub> · [L145](../src/store.js#L145) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
+- **`restore(snap)`** <sub>interna</sub> · [L233](../src/store.js#L233) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
+- **`normalizeDoc(doc)`** <sub>interna</sub> · [L334](../src/store.js#L334) — Preenche campos que projetos antigos não têm e aplica os breakpoints do documento (estado global do model).
+- **`scheduleSave()`** <sub>interna</sub> · [L395](../src/store.js#L395) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
+- **`save()`** <sub>interna</sub> · [L410](../src/store.js#L410) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
   - ↩︎ `Promise<boolean>` resolve DEPOIS de tudo gravado (inclusive o re-save): true se salvou, false se falhou
-- **`init()`** <sub>interna</sub> · [L464](../src/store.js#L464) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+- **`init()`** <sub>interna</sub> · [L471](../src/store.js#L471) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 
@@ -1718,6 +1727,24 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`copyCss()`** <sub>interna</sub> · [L1391](../src/tools.js#L1391) — Ctrl+Shift+C: copia o CSS das camadas selecionadas para a área de transferência do sistema.
 - **`zoomTo(z)`** <sub>interna</sub> · [L1403](../src/tools.js#L1403) — Define o zoom (1 = 100%) ancorado no centro da vista.
 - **`applyTool()`** <sub>interna</sub> · [L1409](../src/tools.js#L1409) — Reflete a ferramenta ativa no DOM (muda o cursor por CSS: [data-tool=…]).
+
+---
+
+## src/validate.js
+
+- **`DATA_IMAGE`** <sub>do módulo</sub> · [L8](../src/validate.js#L8) — Imagens aceitas no documento: só dados embutidos. Endereços externos (rastreamento) e esquemas como javascript: não.
+- **`NUMERIC`** <sub>do módulo</sub> · [L10](../src/validate.js#L10) — Campos numéricos da camada; o que não for número finito é convertido (texto numérico) ou removido (volta ao padrão).
+- **`KEYWORDS`** <sub>do módulo</sub> · [L12](../src/validate.js#L12) — Campos que guardam uma palavra-chave (blend, cursor...): só identificador simples; o resto volta ao padrão.
+- **`GEOMETRY_DEFAULT`** <sub>do módulo</sub> · [L14](../src/validate.js#L14) — Geometria e opacidade sempre existem numa camada: o valor inválido vira o padrão do createNode, não some.
+- **`MAX_DEPTH`** <sub>do módulo</sub> · [L18](../src/validate.js#L18) — Profundidade máxima de camadas aninhadas (o editor real raramente passa de 15); acima disso é arquivo hostil.
+- **`BAD_KEYS`** <sub>do módulo</sub> · [L20](../src/validate.js#L20) — Chaves que enganam conversões de tipo (Number({toString:null}) lança) ou mexem no protótipo se alguém usar Object.assign.
+- **`SAFE_ID`** <sub>do módulo</sub> · [L22](../src/validate.js#L22) — Id que vira atributo SVG, atributo data-* e parte de seletor: só letras, números, _, - e ~.
+- **`scrub(root)`** <sub>do módulo</sub> · [L31](../src/validate.js#L31) — Remove BAD_KEYS de `root` e de tudo que está dentro dele (menos `children`, que o validador percorre por conta própria). Iterativo e com teto de profundidade: JSON hostil não pode estourar a pilha por aqui.
+  - ↩︎ `number` quantas chaves foram removidas
+- **`sanitizeDoc(doc)`** · [L54](../src/validate.js#L54) — Valida e normaliza `doc` NO LUGAR.
+  - `doc` <sub>any</sub> — documento (objeto vindo de JSON.parse, store ou MCP)
+  - ↩︎ `string[]` avisos em português (lista vazia = nada foi alterado)
+- **`cleanChildren(list, warnings, depth = 1)`** <sub>do módulo</sub> · [L86](../src/validate.js#L86) — Limpa uma lista de camadas (recursivo): descarta o que não é camada e conserta campos básicos.
 
 ---
 

@@ -6,6 +6,13 @@ Editor de design local em JavaScript puro (módulos ES, sem build, sem dependên
 Deixar o Stylo o melhor possível: polido, estável, sem lixo, com identidade própria, pronto para uso padrão e à altura de uma ferramenta que valeria ~US$ 100/mês. Pensar como um time de engenheiros e designers e como um usuário humano (testar fluxos reais, estranhar o que for confuso). Economizar tokens: leituras pontuais, relatórios curtos, trabalho mecânico para o Codex (modelo e esforço por `docs/estado/CODEX.md`), `codex exec` ou OpenCode só quando fizer sentido, Jev para decidir dúvidas pequenas.
 Autonomia: commits locais na branch de trabalho; **sem push, sem merge, sem apagar dados do usuário**; parar nos portões humanos do `PLANO-MESTRE.md` e registrar em `PENDENTE-HUMANO.md`.
 
+## Time e papéis (definidos pela pessoa)
+- **Claude (eu) = engenheiro sênior e dono do resultado**: decide, integra, confere e fala com a pessoa.
+- **Codex = colega sênior e assistente direto** (plugin `codex@openai-codex`, ver `docs/estado/CODEX.md`): segunda opinião, revisão independente, tarefas mecânicas, deliberação de decisões difíceis; pode criar os próprios subagentes se o pedido disser. A palavra final é minha e a divergência relevante vai para `DECISOES.md`.
+- **Subagentes Claude = plenos**: tarefas fechadas com pedido completo; eu confiro o diff, nunca o relato.
+- **Jev decide as dúvidas pequenas, inclusive sobre o navegador**: perguntas pequenas em inglês, em lote. Ao usar o navegador (embutido para mim; Codex só se a pessoa permitir), decidir com o Jev se vale a pena (uma checagem visual, um fluxo real) ou se leitura de código/teste basta, para gastar menos.
+- **Skills**: engenharia (`testes-primeiro`, `diagnosticar-bugs`, `desenhar-modulos`, `revisar-diff`, `pesquisar`...) para código; `design:design-impecavel` e `prototipar` para qualquer interface (anti "cara de IA"). Escolher pelo classificador do Jev (`classify-skills.mjs`).
+
 ## Ordem de leitura
 1. `docs/estado/LEDGER.md` — o que já foi feito, como, como foi testado e o que falta. **Atualize ao fim de cada etapa.**
 2. `docs/estado/PENDENTE-HUMANO.md` — perguntas abertas para a pessoa; não bloqueie nelas, siga com o que não depende delas.

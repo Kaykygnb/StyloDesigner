@@ -96,7 +96,7 @@ export function fillCss(fill, assets = {}) {
       const fit = fill.fit || 'cover';
       const bx = fill.posX ?? 50, by = fill.posY ?? 50; // posição da imagem em %, 50/50 = centro
       return {
-        'background-image': `url("${src}")`,
+        'background-image': `url("${cssUrl(src)}")`,
         'background-size': fit === 'fill' ? '100% 100%' : fit === 'size' ? `${round(fill.size ?? 100)}% auto` : fit,
         'background-position': bx === 50 && by === 50 ? 'center' : `${round(bx)}% ${round(by)}%`,
         // repetir só faz sentido quando a imagem NÃO cobre a caixa toda (contain e tamanho próprio)
@@ -333,10 +333,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       // CONTORNO POR LADO: `border-top/right/bottom/left` de verdade (o que um dev escreveria). Com box-sizing:
       // border-box a borda fica DENTRO da caixa e, como em qualquer site, ocupa espaço do conteúdo.
       ['top', 'right', 'bottom', 'left'].forEach((side, i) => {
-        if (st.sides[i] > 0) s[`border-${side}`] = `${px(st.sides[i])} ${st.style} ${rgba(st.color, st.opacity)}`;
+        if (st.sides[i] > 0) s[`border-${side}`] = `${px(st.sides[i])} ${safeIdent(st.style, 'solid')} ${rgba(st.color, st.opacity)}`;
       });
     } else {
-      s.outline = `${px(st.width)} ${st.style} ${rgba(st.color, st.opacity)}`;
+      s.outline = `${px(st.width)} ${safeIdent(st.style, 'solid')} ${rgba(st.color, st.opacity)}`;
       s['outline-offset'] =
         st.position === 'inside' ? px(-st.width) : st.position === 'center' ? px(-st.width / 2) : '0px';
     }
@@ -367,10 +367,10 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     s['-webkit-backdrop-filter'] = `blur(${px(node.bgBlur)})`;
   }
   if (node.opacity < 1) s.opacity = String(round(node.opacity, 3));
-  if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = node.blend;
+  if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = safeIdent(node.blend, 'normal');
   // transição suave entre o estado normal e hover/pressionado/foco (e entre qualquer mudança de valores visuais)
   if (node.transition?.duration > 0) s.transition = `all ${round(node.transition.duration)}ms ${node.transition.easing || 'ease'}`;
-  if (node.cursor && node.cursor !== 'auto') s.cursor = node.cursor;
+  if (node.cursor && node.cursor !== 'auto') s.cursor = safeIdent(node.cursor, 'auto');
   if (node.pointerEvents === 'none') s['pointer-events'] = 'none';
   // sticky: o item em fluxo gruda a N px do topo de quem rola (cabeçalhos, menus laterais). Camada livre já é absoluta.
   if (node.sticky != null && s.position === 'relative' && !opts.editor) { s.position = 'sticky'; s.top = px(node.sticky); s['z-index'] = s['z-index'] || '1'; }
@@ -550,7 +550,7 @@ function lineStyle(node, s, flow) {
     s.filter = node.shadows.map((sh) => `drop-shadow(${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${rgba(sh.color, sh.opacity)})`).join(' ');
   }
   if (node.opacity < 1) s.opacity = String(round(node.opacity, 3));
-  if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = node.blend;
+  if (node.blend && node.blend !== 'normal') s['mix-blend-mode'] = safeIdent(node.blend, 'normal');
   const tf = transformOf(node);
   if (tf) s.transform = tf;
 }
@@ -619,7 +619,7 @@ function svgPaint(fill, id, assets) {
     return { paint: rgba(first.color, 1), opacity: first.opacity, defs: '' };
   }
   const stops = [...fill.stops].sort((a, b) => a.pos - b.pos)
-    .map((st) => `<stop offset="${round(st.pos)}%" stop-color="${rgba(st.color, 1)}" stop-opacity="${st.opacity}"/>`).join('');
+    .map((st) => `<stop offset="${round(st.pos)}%" stop-color="${rgba(st.color, 1)}" stop-opacity="${finiteOr(st.opacity, 1)}"/>`).join('');
   if (fill.type === 'radial') {
     return { paint: `url(#g-${id})`, defs: `<radialGradient id="g-${id}">${stops}</radialGradient>` };
   }
@@ -649,7 +649,7 @@ export function pathSvg(node, assets = {}) {
   const sw = align === 'center' ? w : w * 2;
   const dash = !w ? '' : dashAttr(st, w);
   const stroke = w
-    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${st.opacity}" stroke-width="${sw}" stroke-linecap="${st.cap || 'round'}" stroke-linejoin="${st.join || 'round'}"${st.join === 'miter' && st.miter ? ` stroke-miterlimit="${num(st.miter)}"` : ''}${dash}`
+    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${finiteOr(st.opacity, 1)}" stroke-width="${sw}" stroke-linecap="${safeIdent(st.cap, 'round')}" stroke-linejoin="${safeIdent(st.join, 'round')}"${st.join === 'miter' && st.miter ? ` stroke-miterlimit="${num(st.miter)}"` : ''}${dash}`
     : '';
   const fo = opacity != null && opacity < 1 ? ` fill-opacity="${opacity}"` : '';
   const fillAttr = node.closed || paint !== 'none' ? paint : 'none';
@@ -716,15 +716,60 @@ export function maskClip(group) {
   return `inset(${px(m.y)} ${px(group.w - m.x - m.w)} ${px(group.h - m.y - m.h)} ${px(m.x)}${round_})`;
 }
 
+/**
+ * O valor cabe numa única declaração CSS? Recusa o que fecha a declaração ou o bloco (`;` `{` `}` fora de aspas e
+ * parênteses), comentários fora de aspas, `</` (fecharia o <style> do HTML exportado) e aspas ou parênteses sem fechar. Um projeto
+ * .json de terceiros é entrada não confiável: este é o último filtro antes de o valor virar texto de CSS.
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isSafeCssValue(value) {
+  const s = String(value);
+  if (/<\/|<!--/.test(s)) return false; // fecharia o <style> do HTML exportado, mesmo dentro de aspas
+  // caracteres de controle: o navegador normaliza CR e FF para quebra de linha (fecha strings) e NUL vira outro caractere
+  if (/[\u0000-\u0008\u000b-\u001f\u007f]/.test(s)) return false;
+  let q = '', depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { if (c === '\\') i++; else if (c === q) q = ''; else if (c === '\n') return false; continue; }
+    // barra invertida FORA de aspas muda a leitura do que vem depois (\" não abre string; \( não abre parêntese;
+    // u\72l é "url"): este filtro não consegue acompanhar o navegador, então recusa
+    if (c === '\\') return false;
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(') depth++;
+    else if (c === ')') { if (--depth < 0) return false; }
+    else if (c === '{' || c === '}') return false;
+    else if ((c === '/' && s[i + 1] === '*') || (c === '*' && s[i + 1] === '/')) return false; // comentário fora de aspas
+    else if (c === ';' && !depth) return false;
+  }
+  if (q || depth) return false;
+  // recursos: só imagem embutida (data:image/...) ou referência interna (#id). Endereço externo é rastreamento ao abrir.
+  for (const m of s.matchAll(/url\(\s*(["']?)([^"')]*)/gi)) if (!/^(data:image\/|#)/i.test(m[2].trim())) return false;
+  if (/(image-set|cross-fade|element|paint|src|image)\(/i.test(s.replace(/url\([^)]*\)/gi, ''))) return false;
+  return true;
+}
+/** Nome de propriedade CSS válido (inclui variáveis --x). */
+const isCssProp = (k) => /^(--[\w-]+|-?[a-z][a-z0-9-]*)$/i.test(k);
+/** Só pares propriedade/valor seguros (um valor perigoso é descartado, não "consertado"). */
+const safeEntries = (style) => Object.entries(style).filter(([k, v]) => isCssProp(k) && isSafeCssValue(v));
+/** Identificador simples (`round`, `multiply`, `pointer`): o que não for isso cai no valor padrão. */
+export const safeIdent = (v, fallback) => (typeof v === 'string' && /^[a-z][a-z-]{0,30}$/i.test(v) ? v : fallback);
+/** Endereço de imagem para dentro de `url("...")`: aspas, barra invertida e quebra de linha viram %xx. */
+const cssUrl = (src) => String(src).replace(/[\\"\n\r]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
+/** Número finito (para atributos SVG); o resto vira o padrão. */
+const finiteOr = (v, d) => { const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN; return Number.isFinite(n) ? n : d; };
+
 /** Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2"). */
 export const toCssText = (style) =>
-  Object.entries(style)
+  safeEntries(style)
     .map(([k, v]) => `${k}:${v}`)
     .join(';');
 
 /** Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado). */
 export function cssRule(selector, style, indent = '') {
-  const body = Object.entries(style)
+  // o seletor também vira texto dentro do <style>: nada que feche a regra, o bloco ou o elemento
+  if (/[<{};\\]|\/\*/.test(String(selector))) return '';
+  const body = safeEntries(style)
     .map(([k, v]) => `${indent}  ${k}: ${v};`)
     .join('\n');
   return `${indent}${selector} {\n${body}\n${indent}}`;
@@ -1008,7 +1053,7 @@ export function joinCss(parts) {
   const tokens = new Map();
   for (const p of parts) for (const [k, v] of p.tokens || []) tokens.set(k, v);
   const rules = parts.map((p) => p.css).filter(Boolean).join('\n\n');
-  const decls = (list, pad) => list.map(([k, v]) => `${pad}${k}: ${v};`).join('\n');
+  const decls = (list, pad) => list.filter(([k, v]) => isCssProp(k) && isSafeCssValue(v)).map(([k, v]) => `${pad}${k}: ${v};`).join('\n');
   const rootBlock = tokens.size ? `:root {\n${decls([...tokens], '  ')}\n}` : '';
   // modos de cor (claro/escuro...): um bloco por modo, ativado por <html data-theme="nome">; com `scheme`, também
   // automático pela preferência do sistema (prefers-color-scheme) quando a página não escolheu um modo
