@@ -1,0 +1,6672 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia de estilo — Stylo</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; text-align: inherit; cursor: pointer; }
+a, span, label, button, li, code, time, strong, em, small, cite, legend, dt, dd { display: block; }
+h1, h2, h3, h4, h5, h6, strong { font-size: inherit; font-weight: inherit; }
+em, address { font-style: inherit; }
+code, pre { font-family: inherit; font-size: inherit; }
+fieldset { border: 0; min-width: 0; }
+body { min-height: 100vh; background: #fff; }
+:root {
+  --cor-grafite-950: #131211;
+  --cor-ambar: #e9a23b;
+  --cor-texto-claro: #ece9e4;
+  --cor-texto-suave-claro: #a39e96;
+  --cor-linha: #2c2a27;
+  --cor-grafite-900: #1a1917;
+  --cor-papel: #f5f3ef;
+  --cor-ambar-escuro: #9a5b00;
+  --cor-tinta: #1d1b18;
+  --cor-tinta-suave: #625d55;
+  --cor-grafite-800: #23211f;
+  --cor-grafite-700: #2d2a27;
+  --cor-sobre-ambar: #1a1206;
+  --cor-perigo: #ff6b6b;
+  --cor-sucesso: #5cc98f;
+  --cor-branco: #ffffff;
+  --cor-papel-2: #f1eee9;
+  --cor-papel-3: #e6e1da;
+  --cor-perigo-escuro: #dc2626;
+  --cor-sucesso-escuro: #15803d;
+  --cor-ambar-hover: #f2b652;
+  --cor-ambar-pressionado: #c98618;
+}
+
+.guia-de-estilo-stylo {
+  box-sizing: border-box;
+  position: relative;
+  width: 1280px;
+  height: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow: hidden;
+  background-color: var(--cor-grafite-950);
+}
+
+.capa {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 96px 80px 96px 80px;
+  background-color: var(--cor-grafite-950);
+}
+
+.titulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.rotulo-da-versao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 72px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -2.2px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 560px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.simbolo-grande {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 224px;
+  height: 224px;
+}
+
+.colchete {
+  box-sizing: border-box;
+  position: absolute;
+  left: 36.4px;
+  top: 25.9px;
+  width: 18.2px;
+  height: 172.2px;
+  background-color: var(--cor-ambar);
+  border-radius: 9.1px;
+}
+
+.colchete-topo {
+  box-sizing: border-box;
+  position: absolute;
+  left: 36.4px;
+  top: 25.9px;
+  width: 39.2px;
+  height: 18.2px;
+  background-color: var(--cor-ambar);
+  border-radius: 9.1px;
+}
+
+.colchete-base {
+  box-sizing: border-box;
+  position: absolute;
+  left: 36.4px;
+  top: 179.9px;
+  width: 39.2px;
+  height: 18.2px;
+  background-color: var(--cor-ambar);
+  border-radius: 9.1px;
+}
+
+.linha-longa {
+  box-sizing: border-box;
+  position: absolute;
+  left: 91px;
+  top: 63px;
+  width: 98px;
+  height: 25.2px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 12.6px;
+}
+
+.linha-curta {
+  box-sizing: border-box;
+  position: absolute;
+  left: 91px;
+  top: 99.4px;
+  width: 63px;
+  height: 25.2px;
+  background-color: var(--cor-ambar);
+  border-radius: 12.6px;
+}
+
+.linha-media {
+  box-sizing: border-box;
+  position: absolute;
+  left: 91px;
+  top: 135.8px;
+  width: 84px;
+  height: 25.2px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 12.6px;
+}
+
+.proposito-e-principios {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.proposito-e-lista {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 80px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.proposito {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 440px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.principios {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.principio-1 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.frame {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-7 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.linha {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 1px;
+  background-color: var(--cor-linha);
+}
+
+.principio-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-9 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.frame-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-10 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.linha-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 1px;
+  background-color: var(--cor-linha);
+}
+
+.principio-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.frame-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-14 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.linha-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 1px;
+  background-color: var(--cor-linha);
+}
+
+.principio-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.frame-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-17 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.logotipo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-18 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-19 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.versoes {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.sobre-grafite {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 32px 32px 32px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.logotipo-sobre-grafite {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.simbolo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+}
+
+.colchete-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 3.9px;
+  height: 36.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.colchete-topo-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.colchete-base-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 38.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.linha-longa-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 13.5px;
+  width: 21px;
+  height: 5.4px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 2.7px;
+}
+
+.linha-curta-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 21.3px;
+  width: 13.5px;
+  height: 5.4px;
+  background-color: var(--cor-ambar);
+  border-radius: 2.7px;
+}
+
+.linha-media-2 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 29.1px;
+  width: 18px;
+  height: 5.4px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 2.7px;
+}
+
+.texto-20 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 43.2px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.86px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-21 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.sobre-papel {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 32px 32px 32px;
+  background-color: var(--cor-papel);
+  border-radius: 6px;
+}
+
+.logotipo-sobre-papel {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.simbolo-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+}
+
+.colchete-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 3.9px;
+  height: 36.9px;
+  background-color: var(--cor-ambar-escuro);
+  border-radius: 1.95px;
+}
+
+.colchete-topo-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar-escuro);
+  border-radius: 1.95px;
+}
+
+.colchete-base-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 38.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar-escuro);
+  border-radius: 1.95px;
+}
+
+.linha-longa-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 13.5px;
+  width: 21px;
+  height: 5.4px;
+  background-color: var(--cor-tinta);
+  border-radius: 2.7px;
+}
+
+.linha-curta-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 21.3px;
+  width: 13.5px;
+  height: 5.4px;
+  background-color: var(--cor-ambar-escuro);
+  border-radius: 2.7px;
+}
+
+.linha-media-3 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 29.1px;
+  width: 18px;
+  height: 5.4px;
+  background-color: var(--cor-tinta);
+  border-radius: 2.7px;
+}
+
+.texto-22 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 43.2px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.86px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-23 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.tamanhos-e-regras {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 64px;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
+.escala-do-simbolo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
+.simbolo-96-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.l-96-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+}
+
+.colchete-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 15.6px;
+  top: 11.1px;
+  width: 7.8px;
+  height: 73.8px;
+  background-color: var(--cor-ambar);
+  border-radius: 3.9px;
+}
+
+.colchete-topo-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 15.6px;
+  top: 11.1px;
+  width: 16.8px;
+  height: 7.8px;
+  background-color: var(--cor-ambar);
+  border-radius: 3.9px;
+}
+
+.colchete-base-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 15.6px;
+  top: 77.1px;
+  width: 16.8px;
+  height: 7.8px;
+  background-color: var(--cor-ambar);
+  border-radius: 3.9px;
+}
+
+.linha-longa-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 39px;
+  top: 27px;
+  width: 42px;
+  height: 10.8px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 5.4px;
+}
+
+.linha-curta-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 39px;
+  top: 42.6px;
+  width: 27px;
+  height: 10.8px;
+  background-color: var(--cor-ambar);
+  border-radius: 5.4px;
+}
+
+.linha-media-4 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 39px;
+  top: 58.2px;
+  width: 36px;
+  height: 10.8px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 5.4px;
+}
+
+.texto-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.simbolo-48-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.l-48-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+}
+
+.colchete-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 3.9px;
+  height: 36.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.colchete-topo-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 5.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.colchete-base-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 7.8px;
+  top: 38.55px;
+  width: 8.4px;
+  height: 3.9px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.95px;
+}
+
+.linha-longa-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 13.5px;
+  width: 21px;
+  height: 5.4px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 2.7px;
+}
+
+.linha-curta-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 21.3px;
+  width: 13.5px;
+  height: 5.4px;
+  background-color: var(--cor-ambar);
+  border-radius: 2.7px;
+}
+
+.linha-media-5 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 19.5px;
+  top: 29.1px;
+  width: 18px;
+  height: 5.4px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 2.7px;
+}
+
+.texto-25 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.simbolo-24-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.l-24-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.colchete-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 3.9px;
+  top: 2.78px;
+  width: 1.95px;
+  height: 18.45px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.98px;
+}
+
+.colchete-topo-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 3.9px;
+  top: 2.78px;
+  width: 4.2px;
+  height: 1.95px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.98px;
+}
+
+.colchete-base-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 3.9px;
+  top: 19.27px;
+  width: 4.2px;
+  height: 1.95px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.98px;
+}
+
+.linha-longa-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 9.75px;
+  top: 6.75px;
+  width: 10.5px;
+  height: 2.7px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 1.35px;
+}
+
+.linha-curta-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 9.75px;
+  top: 10.65px;
+  width: 6.75px;
+  height: 2.7px;
+  background-color: var(--cor-ambar);
+  border-radius: 1.35px;
+}
+
+.linha-media-6 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 9.75px;
+  top: 14.55px;
+  width: 9px;
+  height: 2.7px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 1.35px;
+}
+
+.texto-26 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.simbolo-16-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.l-16-px {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.colchete-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 2.6px;
+  top: 1.85px;
+  width: 1.3px;
+  height: 12.3px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.65px;
+}
+
+.colchete-topo-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 2.6px;
+  top: 1.85px;
+  width: 2.8px;
+  height: 1.3px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.65px;
+}
+
+.colchete-base-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 2.6px;
+  top: 12.85px;
+  width: 2.8px;
+  height: 1.3px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.65px;
+}
+
+.linha-longa-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 6.5px;
+  top: 4.5px;
+  width: 7px;
+  height: 1.8px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 0.9px;
+}
+
+.linha-curta-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 6.5px;
+  top: 7.1px;
+  width: 4.5px;
+  height: 1.8px;
+  background-color: var(--cor-ambar);
+  border-radius: 0.9px;
+}
+
+.linha-media-7 {
+  box-sizing: border-box;
+  position: absolute;
+  left: 6.5px;
+  top: 9.7px;
+  width: 6px;
+  height: 1.8px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 0.9px;
+}
+
+.texto-27 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.regras {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-29 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 340px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-30 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-31 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 340px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.cores {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-33 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.tema-escuro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 24px 16px;
+  justify-items: start;
+  align-items: start;
+}
+
+.grafite-950 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-grafite-950 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-grafite-950);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-34 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-35 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-36 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.grafite-900 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-grafite-900 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-37 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-38 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-39 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.grafite-800 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-grafite-800 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-40 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-41 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-42 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.grafite-700 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-grafite-700 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-43 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-44 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-45 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-claro {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-texto-claro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-texto-claro);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-46 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-47 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-48 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-suave-claro {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-texto-suave-claro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-texto-suave-claro);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-49 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-50 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-51 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.ambar {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-ambar {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-52 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-53 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-54 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.sobre-ambar {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-sobre-ambar {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-sobre-ambar);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-55 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-56 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-57 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.linha-4 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-linha {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-linha);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-58 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-59 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-60 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.perigo {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-perigo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-perigo);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-61 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-62 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-63 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.sucesso {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-sucesso {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-sucesso);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-64 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-65 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-66 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.tema-claro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 28px 28px 28px 28px;
+  background-color: var(--cor-papel);
+  border-radius: 6px;
+}
+
+.texto-67 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.amostras-claras {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 24px 16px;
+  justify-items: start;
+  align-items: start;
+}
+
+.papel {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-papel {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-papel);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-68 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-69 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-70 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.branco {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-branco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-branco);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-71 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-72 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-73 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.papel-2 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-papel-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-papel-2);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-74 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-75 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-76 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.papel-3 {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-papel-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-papel-3);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-77 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-78 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-79 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.tinta {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-tinta {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-tinta);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-80 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-81 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-82 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.tinta-suave {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-tinta-suave {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-tinta-suave);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-83 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-84 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-85 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.ambar-escuro {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-ambar-escuro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-ambar-escuro);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-86 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-87 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-88 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.perigo-escuro {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-perigo-escuro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-perigo-escuro);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-89 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-90 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-91 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.sucesso-escuro {
+  box-sizing: border-box;
+  position: relative;
+  width: auto;
+  height: auto;
+  justify-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-sucesso-escuro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 64px;
+  background-color: var(--cor-sucesso-escuro);
+  border-radius: 4px;
+  outline: 1px solid #e4dfd7;
+  outline-offset: -1px;
+}
+
+.texto-92 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta);
+}
+
+.texto-93 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.texto-94 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-tinta-suave);
+}
+
+.tipografia {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-95 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-96 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.amostras {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 64px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.ibm-plex-sans {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-97 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 96px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -3px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-98 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-99 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-100 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-101 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-102 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-103 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.jetbrains-mono {
+  box-sizing: border-box;
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-104 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 96px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-105 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-106 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.texto-107 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-108 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-109 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.linha-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: 1px;
+  background-color: var(--cor-linha);
+}
+
+.escala {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-110 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.escala-11 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-111 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-112 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-113 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.escala-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-114 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-115 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-116 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.escala-13 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-117 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-118 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-119 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.escala-15 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-120 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-121 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-122 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.escala-28 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-123 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-124 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.42px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.escala-72 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.texto-125 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-126 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 72px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -1.08px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.formas-espaco-e-profundidade {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-127 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-128 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.raios-e-espacos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 56px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.raios {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-129 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.raios-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.amostra-de-raio-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.raio-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 112px;
+  height: 80px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+  outline: 1px solid #e9a23b;
+  outline-offset: -1px;
+}
+
+.texto-130 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-131 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.amostra-de-raio-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.raio-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 112px;
+  height: 80px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 4px;
+  outline: 1px solid #e9a23b;
+  outline-offset: -1px;
+}
+
+.texto-132 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-133 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.amostra-de-raio-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.raio-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 112px;
+  height: 80px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 6px;
+  outline: 1px solid #e9a23b;
+  outline-offset: -1px;
+}
+
+.texto-134 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.texto-135 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.espaco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-136 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.espacos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
+.passo-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 4px;
+  height: 4px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-137 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.passo-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-8 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-138 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.passo-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-12 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-139 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.passo-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-16 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-140 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.passo-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-24 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-141 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.passo-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.espaco-32 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  background-color: var(--cor-ambar);
+  border-radius: 1px;
+}
+
+.texto-142 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.profundidade {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-143 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.menu-flutuante {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 190px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 6px 6px 6px 6px;
+  background-color: var(--cor-grafite-900);
+  border-radius: 6px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+  box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.4);
+}
+
+.item-ativo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px 6px 8px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 4px;
+}
+
+.texto-144 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-145 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.item {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px 6px 8px;
+}
+
+.texto-146 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-147 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.item-perigoso {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px 6px 8px;
+}
+
+.texto-148 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-perigo);
+}
+
+.texto-149 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icones-e-imagens {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-150 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-151 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icones {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.icone-layers {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-layers {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.layers {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 19px;
+}
+
+.texto-152 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.icone-view-quilt {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-view-quilt {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.view-quilt {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 14px;
+}
+
+.texto-153 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-code {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-code {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.code {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 12px;
+}
+
+.texto-154 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-palette {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-palette {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.palette {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.texto-155 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-tune {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-tune {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.tune {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.texto-156 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-grid-view {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-grid-view {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.grid-view {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.texto-157 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-text-fields {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-text-fields {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.text-fields {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 16px;
+}
+
+.texto-158 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.icone-download {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.moldura-download {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.download {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.texto-159 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.componentes-e-estados {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 72px 80px 72px 80px;
+}
+
+.texto-160 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-161 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  max-width: 640px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.botao-primario-e-estados {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.principal {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.botao-primario:hover {
+  background-color: #f2b652;
+}
+
+.botao-primario:active {
+  background-color: #c98618;
+}
+
+.botao-primario:focus-visible {
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+}
+
+.rotulo {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-162 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-ambar);
+}
+
+.estado-padrao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.slot-padrao {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.botao-primario-2:hover {
+  background-color: #f2b652;
+}
+
+.botao-primario-2:active {
+  background-color: #c98618;
+}
+
+.botao-primario-2:focus-visible {
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+}
+
+.rotulo-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-163 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.estado-hover {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.slot-hover {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar-hover);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.botao-primario-3:active {
+  background-color: #c98618;
+}
+
+.botao-primario-3:focus-visible {
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+}
+
+.rotulo-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-164 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.estado-pressionado {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.slot-pressionado {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar-pressionado);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.botao-primario-4:hover {
+  background-color: #f2b652;
+}
+
+.botao-primario-4:focus-visible {
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+}
+
+.rotulo-4 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-165 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.estado-foco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.slot-foco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+  cursor: pointer;
+}
+
+.botao-primario-5:hover {
+  background-color: #f2b652;
+}
+
+.botao-primario-5:active {
+  background-color: #c98618;
+}
+
+.rotulo-5 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-166 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.estado-desabilitado {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.slot-desabilitado {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.botao-primario-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 14px 8px 14px;
+  background-color: var(--cor-ambar);
+  border-radius: 4px;
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.botao-primario-6:hover {
+  background-color: #f2b652;
+}
+
+.botao-primario-6:active {
+  background-color: #c98618;
+}
+
+.botao-primario-6:focus-visible {
+  outline: 2px solid #ece9e4;
+  outline-offset: -2px;
+}
+
+.rotulo-6 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.texto-167 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.abas-e-etiquetas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 80px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.abas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-168 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.abas-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.aba-selecionada {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 14px 10px 14px;
+  border-bottom: 2px solid #e9a23b;
+}
+
+.texto-169 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.aba {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 14px 10px 14px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-170 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.aba-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 0px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 10px 14px 10px 14px;
+  border-bottom: 1px solid #2c2a27;
+}
+
+.texto-171 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.etiquetas {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-172 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.etiquetas-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.chip {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-ambar);
+  border-radius: 2px;
+}
+
+.texto-173 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-sobre-ambar);
+}
+
+.chip-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.texto-174 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.chip-3 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 6px 2px 6px;
+  background-color: var(--cor-grafite-700);
+  border-radius: 2px;
+}
+
+.texto-175 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.campos {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.texto-176 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.campos-2 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.campo-normal {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.normal {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 8px 10px 8px 10px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #2c2a27;
+  outline-offset: -1px;
+}
+
+.texto-177 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-178 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.campo-foco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.foco {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 8px 10px 8px 10px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #e9a23b;
+  outline-offset: -1px;
+  box-shadow: 0px 0px 0px 3px rgba(233, 162, 59, 0.18);
+}
+
+.texto-179 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-180 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+
+.campo-erro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.erro {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 8px 10px 8px 10px;
+  background-color: var(--cor-grafite-800);
+  border-radius: 4px;
+  outline: 1px solid #ff6b6b;
+  outline-offset: -1px;
+}
+
+.texto-181 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-claro);
+}
+
+.texto-182 {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  font-family: "JetBrains Mono", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  overflow-wrap: break-word;
+  color: var(--cor-texto-suave-claro);
+}
+</style>
+</head>
+<body>
+<div class="guia-de-estilo-stylo">
+  <header class="capa">
+    <div class="titulo">
+      <p class="rotulo-da-versao">Identidade visual · versão 1</p>
+      <h1 class="texto">Stylo</h1>
+      <p class="texto-2">O canvas é CSS de verdade. Uma ferramenta de trabalho, sóbria e densa, que some para o design aparecer.</p>
+    </div>
+    <div class="simbolo-grande">
+      <div class="colchete"></div>
+      <div class="colchete-topo"></div>
+      <div class="colchete-base"></div>
+      <div class="linha-longa"></div>
+      <div class="linha-curta"></div>
+      <div class="linha-media"></div>
+    </div>
+  </header>
+  <section class="proposito-e-principios">
+    <h2 class="texto-3">Propósito e princípios</h2>
+    <div class="proposito-e-lista">
+      <div class="proposito">
+        <p class="texto-4">Propósito</p>
+        <p class="texto-5">Desenhar páginas como no Figma, mas cada camada é um elemento HTML estilizado pelo próprio navegador. A identidade existe para servir a esse trabalho, não para aparecer: quem usa o Stylo olha para o design, não para a ferramenta.</p>
+      </div>
+      <div class="principios">
+        <div class="principio-1">
+          <p class="texto-6">1</p>
+          <div class="frame">
+            <p class="texto-7">CSS de verdade</p>
+            <p class="texto-8">O que se vê é o que sai. Nomes do painel são nomes do CSS.</p>
+          </div>
+        </div>
+        <div class="linha"></div>
+        <div class="principio-2">
+          <p class="texto-9">2</p>
+          <div class="frame-2">
+            <p class="texto-10">Sóbrio e denso</p>
+            <p class="texto-11">Neutros quentes, bordas de 1 px, cantos de 2, 4 e 6 px. Sem brilho, sem vidro, sem gradiente decorativo.</p>
+          </div>
+        </div>
+        <div class="linha-2"></div>
+        <div class="principio-3">
+          <p class="texto-12">3</p>
+          <div class="frame-3">
+            <p class="texto-13">Um único acento</p>
+            <p class="texto-14">O âmbar marca ação, seleção e estado. Nunca decora.</p>
+          </div>
+        </div>
+        <div class="linha-3"></div>
+        <div class="principio-4">
+          <p class="texto-15">4</p>
+          <div class="frame-4">
+            <p class="texto-16">Local e honesto</p>
+            <p class="texto-17">Sem conta, sem nuvem. O arquivo é seu e o código exportado também.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="logotipo">
+    <h2 class="texto-18">Logotipo</h2>
+    <p class="texto-19">O símbolo é um colchete e três linhas de larguras diferentes: uma regra CSS e um auto layout. Sem quadrado de aplicativo, sem raio, pincel ou varinha. Funciona de 16 px (aba do navegador) a 160 px.</p>
+    <div class="versoes">
+      <div class="sobre-grafite">
+        <div class="logotipo-sobre-grafite">
+          <div class="simbolo">
+            <div class="colchete-2"></div>
+            <div class="colchete-topo-2"></div>
+            <div class="colchete-base-2"></div>
+            <div class="linha-longa-2"></div>
+            <div class="linha-curta-2"></div>
+            <div class="linha-media-2"></div>
+          </div>
+          <p class="texto-20">Stylo</p>
+        </div>
+        <p class="texto-21">âmbar #E9A23B · linhas #ECE9E4</p>
+      </div>
+      <div class="sobre-papel">
+        <div class="logotipo-sobre-papel">
+          <div class="simbolo-2">
+            <div class="colchete-3"></div>
+            <div class="colchete-topo-3"></div>
+            <div class="colchete-base-3"></div>
+            <div class="linha-longa-3"></div>
+            <div class="linha-curta-3"></div>
+            <div class="linha-media-3"></div>
+          </div>
+          <p class="texto-22">Stylo</p>
+        </div>
+        <p class="texto-23">âmbar escuro #9A5B00 · linhas #1D1B18</p>
+      </div>
+    </div>
+    <div class="tamanhos-e-regras">
+      <div class="escala-do-simbolo">
+        <div class="simbolo-96-px">
+          <div class="l-96-px">
+            <div class="colchete-4"></div>
+            <div class="colchete-topo-4"></div>
+            <div class="colchete-base-4"></div>
+            <div class="linha-longa-4"></div>
+            <div class="linha-curta-4"></div>
+            <div class="linha-media-4"></div>
+          </div>
+          <p class="texto-24">96 px</p>
+        </div>
+        <div class="simbolo-48-px">
+          <div class="l-48-px">
+            <div class="colchete-5"></div>
+            <div class="colchete-topo-5"></div>
+            <div class="colchete-base-5"></div>
+            <div class="linha-longa-5"></div>
+            <div class="linha-curta-5"></div>
+            <div class="linha-media-5"></div>
+          </div>
+          <p class="texto-25">48 px</p>
+        </div>
+        <div class="simbolo-24-px">
+          <div class="l-24-px">
+            <div class="colchete-6"></div>
+            <div class="colchete-topo-6"></div>
+            <div class="colchete-base-6"></div>
+            <div class="linha-longa-6"></div>
+            <div class="linha-curta-6"></div>
+            <div class="linha-media-6"></div>
+          </div>
+          <p class="texto-26">24 px</p>
+        </div>
+        <div class="simbolo-16-px">
+          <div class="l-16-px">
+            <div class="colchete-7"></div>
+            <div class="colchete-topo-7"></div>
+            <div class="colchete-base-7"></div>
+            <div class="linha-longa-7"></div>
+            <div class="linha-curta-7"></div>
+            <div class="linha-media-7"></div>
+          </div>
+          <p class="texto-27">16 px</p>
+        </div>
+      </div>
+      <div class="regras">
+        <p class="texto-28">Área de respiro</p>
+        <p class="texto-29">Margem mínima igual à altura de uma linha do símbolo (3,6 de 32 unidades) em todos os lados.</p>
+        <p class="texto-30">Não fazer</p>
+        <p class="texto-31">Não esticar, girar, aplicar sombra ou brilho, trocar as proporções das linhas, usar o âmbar fora do acento ou colocar sobre fundo de baixo contraste.</p>
+      </div>
+    </div>
+  </section>
+  <section class="cores">
+    <h2 class="texto-32">Cores</h2>
+    <p class="texto-33">Um acento só. Neutros quentes para a interface, para o design do usuário se destacar. As razões de contraste foram medidas (WCAG 2.x): todas passam AA.</p>
+    <div class="tema-escuro">
+      <div class="grafite-950">
+        <div class="amostra-grafite-950"></div>
+        <p class="texto-34">Grafite 950</p>
+        <p class="texto-35">#131211</p>
+        <p class="texto-36">fundo</p>
+      </div>
+      <div class="grafite-900">
+        <div class="amostra-grafite-900"></div>
+        <p class="texto-37">Grafite 900</p>
+        <p class="texto-38">#1A1917</p>
+        <p class="texto-39">painel</p>
+      </div>
+      <div class="grafite-800">
+        <div class="amostra-grafite-800"></div>
+        <p class="texto-40">Grafite 800</p>
+        <p class="texto-41">#23211F</p>
+        <p class="texto-42">campo</p>
+      </div>
+      <div class="grafite-700">
+        <div class="amostra-grafite-700"></div>
+        <p class="texto-43">Grafite 700</p>
+        <p class="texto-44">#2D2A27</p>
+        <p class="texto-45">item ativo</p>
+      </div>
+      <div class="texto-claro">
+        <div class="amostra-texto-claro"></div>
+        <p class="texto-46">Texto claro</p>
+        <p class="texto-47">#ECE9E4</p>
+        <p class="texto-48">texto 14.5:1</p>
+      </div>
+      <div class="texto-suave-claro">
+        <div class="amostra-texto-suave-claro"></div>
+        <p class="texto-49">Texto suave claro</p>
+        <p class="texto-50">#A39E96</p>
+        <p class="texto-51">secundário 6.6:1</p>
+      </div>
+      <div class="ambar">
+        <div class="amostra-ambar"></div>
+        <p class="texto-52">Âmbar</p>
+        <p class="texto-53">#E9A23B</p>
+        <p class="texto-54">acento 8.1:1</p>
+      </div>
+      <div class="sobre-ambar">
+        <div class="amostra-sobre-ambar"></div>
+        <p class="texto-55">Sobre âmbar</p>
+        <p class="texto-56">#1A1206</p>
+        <p class="texto-57">no botão 8.6:1</p>
+      </div>
+      <div class="linha-4">
+        <div class="amostra-linha"></div>
+        <p class="texto-58">Linha</p>
+        <p class="texto-59">#2C2A27</p>
+        <p class="texto-60">bordas</p>
+      </div>
+      <div class="perigo">
+        <div class="amostra-perigo"></div>
+        <p class="texto-61">Perigo</p>
+        <p class="texto-62">#FF6B6B</p>
+        <p class="texto-63">erro 6.3:1</p>
+      </div>
+      <div class="sucesso">
+        <div class="amostra-sucesso"></div>
+        <p class="texto-64">Sucesso</p>
+        <p class="texto-65">#5CC98F</p>
+        <p class="texto-66">confirmação 8.5:1</p>
+      </div>
+    </div>
+    <div class="tema-claro">
+      <p class="texto-67">Tema claro</p>
+      <div class="amostras-claras">
+        <div class="papel">
+          <div class="amostra-papel"></div>
+          <p class="texto-68">Papel</p>
+          <p class="texto-69">#F5F3EF</p>
+          <p class="texto-70">fundo</p>
+        </div>
+        <div class="branco">
+          <div class="amostra-branco"></div>
+          <p class="texto-71">Branco</p>
+          <p class="texto-72">#FFFFFF</p>
+          <p class="texto-73">painel</p>
+        </div>
+        <div class="papel-2">
+          <div class="amostra-papel-2"></div>
+          <p class="texto-74">Papel 2</p>
+          <p class="texto-75">#F1EEE9</p>
+          <p class="texto-76">campo</p>
+        </div>
+        <div class="papel-3">
+          <div class="amostra-papel-3"></div>
+          <p class="texto-77">Papel 3</p>
+          <p class="texto-78">#E6E1DA</p>
+          <p class="texto-79">item ativo</p>
+        </div>
+        <div class="tinta">
+          <div class="amostra-tinta"></div>
+          <p class="texto-80">Tinta</p>
+          <p class="texto-81">#1D1B18</p>
+          <p class="texto-82">texto 17.2:1</p>
+        </div>
+        <div class="tinta-suave">
+          <div class="amostra-tinta-suave"></div>
+          <p class="texto-83">Tinta suave</p>
+          <p class="texto-84">#625D55</p>
+          <p class="texto-85">secundário 6.5:1</p>
+        </div>
+        <div class="ambar-escuro">
+          <div class="amostra-ambar-escuro"></div>
+          <p class="texto-86">Âmbar escuro</p>
+          <p class="texto-87">#9A5B00</p>
+          <p class="texto-88">acento 5.4:1</p>
+        </div>
+        <div class="perigo-escuro">
+          <div class="amostra-perigo-escuro"></div>
+          <p class="texto-89">Perigo escuro</p>
+          <p class="texto-90">#DC2626</p>
+          <p class="texto-91">erro 4.8:1</p>
+        </div>
+        <div class="sucesso-escuro">
+          <div class="amostra-sucesso-escuro"></div>
+          <p class="texto-92">Sucesso escuro</p>
+          <p class="texto-93">#15803D</p>
+          <p class="texto-94">confirmação 5.0:1</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="tipografia">
+    <h2 class="texto-95">Tipografia</h2>
+    <p class="texto-96">Uma família para a interface (IBM Plex Sans) e uma para código e medidas (JetBrains Mono, só onde há código, dado ou medida). Escala fixa, sem tamanhos fluidos. Texto de interface nunca abaixo de 11 px.</p>
+    <div class="amostras">
+      <div class="ibm-plex-sans">
+        <p class="texto-97">Aa</p>
+        <p class="texto-98">IBM Plex Sans</p>
+        <p class="texto-99">Pesos 400 · 500 · 600 · 700</p>
+        <p class="texto-100">O canvas é CSS de verdade.</p>
+        <p class="texto-101">O canvas é CSS de verdade.</p>
+        <p class="texto-102">O canvas é CSS de verdade.</p>
+        <p class="texto-103">O canvas é CSS de verdade.</p>
+      </div>
+      <div class="jetbrains-mono">
+        <p class="texto-104">{ }</p>
+        <p class="texto-105">JetBrains Mono</p>
+        <p class="texto-106">Código, valores e medidas</p>
+        <p class="texto-107">display: flex; gap: 16px;</p>
+        <p class="texto-108">padding: 8px 16px 8px 16px;</p>
+        <p class="texto-109">width · height  1200 × 514</p>
+      </div>
+    </div>
+    <div class="linha-5"></div>
+    <div class="escala">
+      <p class="texto-110">Escala</p>
+      <div class="escala-11">
+        <p class="texto-111">11 px</p>
+        <p class="texto-112">xs · legendas e rótulos densos</p>
+        <p class="texto-113">--fs-xs</p>
+      </div>
+      <div class="escala-12">
+        <p class="texto-114">12 px</p>
+        <p class="texto-115">sm · texto de interface</p>
+        <p class="texto-116">--fs-sm</p>
+      </div>
+      <div class="escala-13">
+        <p class="texto-117">13 px</p>
+        <p class="texto-118">md · campos e leitura corrente</p>
+        <p class="texto-119">--fs-md</p>
+      </div>
+      <div class="escala-15">
+        <p class="texto-120">15 px</p>
+        <p class="texto-121">lg · títulos de seção do painel</p>
+        <p class="texto-122">--fs-lg</p>
+      </div>
+      <div class="escala-28">
+        <p class="texto-123">28 px</p>
+        <p class="texto-124">título de documento</p>
+      </div>
+      <div class="escala-72">
+        <p class="texto-125">72 px</p>
+        <p class="texto-126">exibição</p>
+      </div>
+    </div>
+  </section>
+  <section class="formas-espaco-e-profundidade">
+    <h2 class="texto-127">Formas, espaço e profundidade</h2>
+    <p class="texto-128">Poucos valores, sempre os mesmos. Bordas de 1 px fazem a separação; sombra só em quem flutua (menus, janelas), curta e neutra.</p>
+    <div class="raios-e-espacos">
+      <div class="raios">
+        <p class="texto-129">Raios</p>
+        <div class="raios-2">
+          <div class="amostra-de-raio-2">
+            <div class="raio-2"></div>
+            <p class="texto-130">2 px</p>
+            <p class="texto-131">chips e marcas</p>
+          </div>
+          <div class="amostra-de-raio-4">
+            <div class="raio-4"></div>
+            <p class="texto-132">4 px</p>
+            <p class="texto-133">controles</p>
+          </div>
+          <div class="amostra-de-raio-6">
+            <div class="raio-6"></div>
+            <p class="texto-134">6 px</p>
+            <p class="texto-135">superfícies</p>
+          </div>
+        </div>
+      </div>
+      <div class="espaco">
+        <p class="texto-136">Espaço (múltiplos de 4)</p>
+        <div class="espacos">
+          <div class="passo-4">
+            <div class="espaco-4"></div>
+            <p class="texto-137">4</p>
+          </div>
+          <div class="passo-8">
+            <div class="espaco-8"></div>
+            <p class="texto-138">8</p>
+          </div>
+          <div class="passo-12">
+            <div class="espaco-12"></div>
+            <p class="texto-139">12</p>
+          </div>
+          <div class="passo-16">
+            <div class="espaco-16"></div>
+            <p class="texto-140">16</p>
+          </div>
+          <div class="passo-24">
+            <div class="espaco-24"></div>
+            <p class="texto-141">24</p>
+          </div>
+          <div class="passo-32">
+            <div class="espaco-32"></div>
+            <p class="texto-142">32</p>
+          </div>
+        </div>
+      </div>
+      <div class="profundidade">
+        <p class="texto-143">Profundidade</p>
+        <div class="menu-flutuante">
+          <div class="item-ativo">
+            <p class="texto-144">Duplicar</p>
+            <p class="texto-145">Ctrl D</p>
+          </div>
+          <div class="item">
+            <p class="texto-146">Renomear</p>
+            <p class="texto-147">F2</p>
+          </div>
+          <div class="item-perigoso">
+            <p class="texto-148">Excluir</p>
+            <p class="texto-149">Del</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="icones-e-imagens">
+    <h2 class="texto-150">Ícones e imagens</h2>
+    <p class="texto-151">Um conjunto só: Material Symbols, contorno (outlined), 24 px em moldura de 28 px, cor herdada do texto; o acento só no ícone ativo. Imagens entram como placeholders nomeados que dizem o que vai ali.</p>
+    <div class="icones">
+      <div class="icone-layers">
+        <div class="moldura-layers">
+          <div class="layers">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 19.05" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 9 19.05 L 0 12.05 L 1.65 10.8 L 9 16.5 L 16.35 10.8 L 18 12.05 L 9 19.05 Z M 9 14 L 0 7 L 9 0 L 18 7 L 9 14 Z M 9 7 M 9 11.45 L 14.75 7 L 9 2.55 L 3.25 7 L 9 11.45 Z" fill="#e9a23b" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 9 19.05 L 0 12.05 L 1.65 10.8 L 9 16.5 L 16.35 10.8 L 18 12.05 L 9 19.05 Z M 9 14 L 0 7 L 9 0 L 18 7 L 9 14 Z M 9 7 M 9 11.45 L 14.75 7 L 9 2.55 L 3.25 7 L 9 11.45 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-152">layers</p>
+      </div>
+      <div class="icone-view-quilt">
+        <div class="moldura-view-quilt">
+          <div class="view-quilt">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 14" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 0 12 L 0 2 C 0 1.45 0.2 0.98 0.59 0.59 C 0.98 0.2 1.45 0 2 0 L 16 0 C 16.55 0 17.02 0.2 17.41 0.59 C 17.8 0.98 18 1.45 18 2 L 18 12 C 18 12.55 17.8 13.02 17.41 13.41 C 17.02 13.8 16.55 14 16 14 L 2 14 C 1.45 14 0.98 13.8 0.59 13.41 C 0.2 13.02 0 12.55 0 12 Z M 7.33 6 L 16 6 L 16 2 L 7.33 2 L 7.33 6 Z M 12.68 12 L 16 12 L 16 8 L 12.68 8 L 12.68 12 Z M 7.33 12 L 10.68 12 L 10.68 8 L 7.33 8 L 7.33 12 Z M 2 12 L 5.33 12 L 5.33 2 L 2 2 L 2 12 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 0 12 L 0 2 C 0 1.45 0.2 0.98 0.59 0.59 C 0.98 0.2 1.45 0 2 0 L 16 0 C 16.55 0 17.02 0.2 17.41 0.59 C 17.8 0.98 18 1.45 18 2 L 18 12 C 18 12.55 17.8 13.02 17.41 13.41 C 17.02 13.8 16.55 14 16 14 L 2 14 C 1.45 14 0.98 13.8 0.59 13.41 C 0.2 13.02 0 12.55 0 12 Z M 7.33 6 L 16 6 L 16 2 L 7.33 2 L 7.33 6 Z M 12.68 12 L 16 12 L 16 8 L 12.68 8 L 12.68 12 Z M 7.33 12 L 10.68 12 L 10.68 8 L 7.33 8 L 7.33 12 Z M 2 12 L 5.33 12 L 5.33 2 L 2 2 L 2 12 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-153">view_quilt</p>
+      </div>
+      <div class="icone-code">
+        <div class="moldura-code">
+          <div class="code">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 12" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 6 12 L 0 6 L 6 0 L 7.43 1.43 L 2.83 6.02 L 7.4 10.6 L 6 12 Z M 14 12 L 12.58 10.58 L 17.18 5.98 L 12.6 1.4 L 14 0 L 20 6 L 14 12 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 6 12 L 0 6 L 6 0 L 7.43 1.43 L 2.83 6.02 L 7.4 10.6 L 6 12 Z M 14 12 L 12.58 10.58 L 17.18 5.98 L 12.6 1.4 L 14 0 L 20 6 L 14 12 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-154">code</p>
+      </div>
+      <div class="icone-palette">
+        <div class="moldura-palette">
+          <div class="palette">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 10 20 C 8.63 20 7.34 19.74 6.13 19.21 C 4.91 18.69 3.85 17.97 2.94 17.06 C 2.03 16.15 1.31 15.09 0.79 13.88 C 0.26 12.66 0 11.37 0 10 C 0 8.62 0.27 7.32 0.81 6.1 C 1.35 4.88 2.09 3.82 3.01 2.93 C 3.94 2.02 5.02 1.31 6.25 0.79 C 7.48 0.26 8.8 0 10.2 0 C 11.53 0 12.79 0.23 13.98 0.69 C 15.16 1.15 16.2 1.78 17.09 2.59 C 17.98 3.4 18.69 4.35 19.21 5.46 C 19.74 6.57 20 7.77 20 9.05 C 20 10.97 19.42 12.44 18.25 13.46 C 17.08 14.49 15.67 15 14 15 L 12.15 15 C 12 15 11.9 15.04 11.84 15.13 C 11.78 15.21 11.75 15.3 11.75 15.4 C 11.75 15.6 11.88 15.89 12.13 16.26 C 12.38 16.64 12.5 17.07 12.5 17.55 C 12.5 18.38 12.27 19 11.81 19.4 C 11.35 19.8 10.75 20 10 20 Z M 10 10 M 5.58 10.58 C 5.86 10.29 6 9.93 6 9.5 C 6 9.07 5.86 8.71 5.58 8.42 C 5.29 8.14 4.93 8 4.5 8 C 4.07 8 3.71 8.14 3.43 8.42 C 3.14 8.71 3 9.07 3 9.5 C 3 9.93 3.14 10.29 3.43 10.58 C 3.71 10.86 4.07 11 4.5 11 C 4.93 11 5.29 10.86 5.58 10.58 Z M 8.58 6.57 C 8.86 6.29 9 5.93 9 5.5 C 9 5.07 8.86 4.71 8.58 4.43 C 8.29 4.14 7.93 4 7.5 4 C 7.07 4 6.71 4.14 6.43 4.43 C 6.14 4.71 6 5.07 6 5.5 C 6 5.93 6.14 6.29 6.43 6.57 C 6.71 6.86 7.07 7 7.5 7 C 7.93 7 8.29 6.86 8.58 6.57 Z M 13.58 6.57 C 13.86 6.29 14 5.93 14 5.5 C 14 5.07 13.86 4.71 13.58 4.43 C 13.29 4.14 12.93 4 12.5 4 C 12.07 4 11.71 4.14 11.43 4.43 C 11.14 4.71 11 5.07 11 5.5 C 11 5.93 11.14 6.29 11.43 6.57 C 11.71 6.86 12.07 7 12.5 7 C 12.93 7 13.29 6.86 13.58 6.57 Z M 16.58 10.58 C 16.86 10.29 17 9.93 17 9.5 C 17 9.07 16.86 8.71 16.58 8.42 C 16.29 8.14 15.93 8 15.5 8 C 15.07 8 14.71 8.14 14.43 8.42 C 14.14 8.71 14 9.07 14 9.5 C 14 9.93 14.14 10.29 14.43 10.58 C 14.71 10.86 15.07 11 15.5 11 C 15.93 11 16.29 10.86 16.58 10.58 Z M 10 18 C 10.15 18 10.27 17.96 10.36 17.88 C 10.45 17.79 10.5 17.68 10.5 17.55 C 10.5 17.32 10.38 17.04 10.13 16.73 C 9.88 16.41 9.75 15.93 9.75 15.3 C 9.75 14.6 9.99 14.04 10.48 13.63 C 10.96 13.21 11.55 13 12.25 13 L 14 13 C 15.1 13 16.04 12.68 16.83 12.04 C 17.61 11.4 18 10.4 18 9.05 C 18 7.03 17.23 5.35 15.69 4.01 C 14.15 2.67 12.32 2 10.2 2 C 7.93 2 6 2.77 4.4 4.32 C 2.8 5.88 2 7.77 2 10 C 2 12.22 2.78 14.1 4.34 15.66 C 5.9 17.22 7.78 18 10 18 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 10 20 C 8.63 20 7.34 19.74 6.13 19.21 C 4.91 18.69 3.85 17.97 2.94 17.06 C 2.03 16.15 1.31 15.09 0.79 13.88 C 0.26 12.66 0 11.37 0 10 C 0 8.62 0.27 7.32 0.81 6.1 C 1.35 4.88 2.09 3.82 3.01 2.93 C 3.94 2.02 5.02 1.31 6.25 0.79 C 7.48 0.26 8.8 0 10.2 0 C 11.53 0 12.79 0.23 13.98 0.69 C 15.16 1.15 16.2 1.78 17.09 2.59 C 17.98 3.4 18.69 4.35 19.21 5.46 C 19.74 6.57 20 7.77 20 9.05 C 20 10.97 19.42 12.44 18.25 13.46 C 17.08 14.49 15.67 15 14 15 L 12.15 15 C 12 15 11.9 15.04 11.84 15.13 C 11.78 15.21 11.75 15.3 11.75 15.4 C 11.75 15.6 11.88 15.89 12.13 16.26 C 12.38 16.64 12.5 17.07 12.5 17.55 C 12.5 18.38 12.27 19 11.81 19.4 C 11.35 19.8 10.75 20 10 20 Z M 10 10 M 5.58 10.58 C 5.86 10.29 6 9.93 6 9.5 C 6 9.07 5.86 8.71 5.58 8.42 C 5.29 8.14 4.93 8 4.5 8 C 4.07 8 3.71 8.14 3.43 8.42 C 3.14 8.71 3 9.07 3 9.5 C 3 9.93 3.14 10.29 3.43 10.58 C 3.71 10.86 4.07 11 4.5 11 C 4.93 11 5.29 10.86 5.58 10.58 Z M 8.58 6.57 C 8.86 6.29 9 5.93 9 5.5 C 9 5.07 8.86 4.71 8.58 4.43 C 8.29 4.14 7.93 4 7.5 4 C 7.07 4 6.71 4.14 6.43 4.43 C 6.14 4.71 6 5.07 6 5.5 C 6 5.93 6.14 6.29 6.43 6.57 C 6.71 6.86 7.07 7 7.5 7 C 7.93 7 8.29 6.86 8.58 6.57 Z M 13.58 6.57 C 13.86 6.29 14 5.93 14 5.5 C 14 5.07 13.86 4.71 13.58 4.43 C 13.29 4.14 12.93 4 12.5 4 C 12.07 4 11.71 4.14 11.43 4.43 C 11.14 4.71 11 5.07 11 5.5 C 11 5.93 11.14 6.29 11.43 6.57 C 11.71 6.86 12.07 7 12.5 7 C 12.93 7 13.29 6.86 13.58 6.57 Z M 16.58 10.58 C 16.86 10.29 17 9.93 17 9.5 C 17 9.07 16.86 8.71 16.58 8.42 C 16.29 8.14 15.93 8 15.5 8 C 15.07 8 14.71 8.14 14.43 8.42 C 14.14 8.71 14 9.07 14 9.5 C 14 9.93 14.14 10.29 14.43 10.58 C 14.71 10.86 15.07 11 15.5 11 C 15.93 11 16.29 10.86 16.58 10.58 Z M 10 18 C 10.15 18 10.27 17.96 10.36 17.88 C 10.45 17.79 10.5 17.68 10.5 17.55 C 10.5 17.32 10.38 17.04 10.13 16.73 C 9.88 16.41 9.75 15.93 9.75 15.3 C 9.75 14.6 9.99 14.04 10.48 13.63 C 10.96 13.21 11.55 13 12.25 13 L 14 13 C 15.1 13 16.04 12.68 16.83 12.04 C 17.61 11.4 18 10.4 18 9.05 C 18 7.03 17.23 5.35 15.69 4.01 C 14.15 2.67 12.32 2 10.2 2 C 7.93 2 6 2.77 4.4 4.32 C 2.8 5.88 2 7.77 2 10 C 2 12.22 2.78 14.1 4.34 15.66 C 5.9 17.22 7.78 18 10 18 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-155">palette</p>
+      </div>
+      <div class="icone-tune">
+        <div class="moldura-tune">
+          <div class="tune">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 18 L 8 12 L 10 12 L 10 14 L 18 14 L 18 16 L 10 16 L 10 18 L 8 18 Z M 0 16 L 0 14 L 6 14 L 6 16 L 0 16 Z M 4 12 L 4 10 L 0 10 L 0 8 L 4 8 L 4 6 L 6 6 L 6 12 L 4 12 Z M 8 10 L 8 8 L 18 8 L 18 10 L 8 10 Z M 12 6 L 12 0 L 14 0 L 14 2 L 18 2 L 18 4 L 14 4 L 14 6 L 12 6 Z M 0 4 L 0 2 L 10 2 L 10 4 L 0 4 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 18 L 8 12 L 10 12 L 10 14 L 18 14 L 18 16 L 10 16 L 10 18 L 8 18 Z M 0 16 L 0 14 L 6 14 L 6 16 L 0 16 Z M 4 12 L 4 10 L 0 10 L 0 8 L 4 8 L 4 6 L 6 6 L 6 12 L 4 12 Z M 8 10 L 8 8 L 18 8 L 18 10 L 8 10 Z M 12 6 L 12 0 L 14 0 L 14 2 L 18 2 L 18 4 L 14 4 L 14 6 L 12 6 Z M 0 4 L 0 2 L 10 2 L 10 4 L 0 4 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-156">tune</p>
+      </div>
+      <div class="icone-grid-view">
+        <div class="moldura-grid-view">
+          <div class="grid-view">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 0 8 L 0 0 L 8 0 L 8 8 L 0 8 Z M 0 18 L 0 10 L 8 10 L 8 18 L 0 18 Z M 10 8 L 10 0 L 18 0 L 18 8 L 10 8 Z M 10 18 L 10 10 L 18 10 L 18 18 L 10 18 Z M 2 6 L 6 6 L 6 2 L 2 2 L 2 6 Z M 12 6 L 16 6 L 16 2 L 12 2 L 12 6 Z M 12 16 L 16 16 L 16 12 L 12 12 L 12 16 Z M 2 16 L 6 16 L 6 12 L 2 12 L 2 16 Z M 12 6 M 12 12 M 6 12 M 6 6" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 0 8 L 0 0 L 8 0 L 8 8 L 0 8 Z M 0 18 L 0 10 L 8 10 L 8 18 L 0 18 Z M 10 8 L 10 0 L 18 0 L 18 8 L 10 8 Z M 10 18 L 10 10 L 18 10 L 18 18 L 10 18 Z M 2 6 L 6 6 L 6 2 L 2 2 L 2 6 Z M 12 6 L 16 6 L 16 2 L 12 2 L 12 6 Z M 12 16 L 16 16 L 16 12 L 12 12 L 12 16 Z M 2 16 L 6 16 L 6 12 L 2 12 L 2 16 Z M 12 6 M 12 12 M 6 12 M 6 6" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-157">grid_view</p>
+      </div>
+      <div class="icone-text-fields">
+        <div class="moldura-text-fields">
+          <div class="text-fields">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 16" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 5 16 L 5 3 L 0 3 L 0 0 L 13 0 L 13 3 L 8 3 L 8 16 L 5 16 Z M 14 16 L 14 8 L 11 8 L 11 5 L 20 5 L 20 8 L 17 8 L 17 16 L 14 16 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 5 16 L 5 3 L 0 3 L 0 0 L 13 0 L 13 3 L 8 3 L 8 16 L 5 16 Z M 14 16 L 14 8 L 11 8 L 11 5 L 20 5 L 20 8 L 17 8 L 17 16 L 14 16 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-158">text_fields</p>
+      </div>
+      <div class="icone-download">
+        <div class="moldura-download">
+          <div class="download">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible"><path d="M 8 12 L 3 7 L 4.4 5.55 L 7 8.15 L 7 0 L 9 0 L 9 8.15 L 11.6 5.55 L 13 7 L 8 12 Z M 2 16 C 1.45 16 0.98 15.8 0.59 15.41 C 0.2 15.02 0 14.55 0 14 L 0 11 L 2 11 L 2 14 L 14 14 L 14 11 L 16 11 L 16 14 C 16 14.55 15.8 15.02 15.41 15.41 C 15.02 15.8 14.55 16 14 16 L 2 16 Z" fill="#ece9e4" vector-effect="non-scaling-stroke" data-vis="1"/><path d="M 8 12 L 3 7 L 4.4 5.55 L 7 8.15 L 7 0 L 9 0 L 9 8.15 L 11.6 5.55 L 13 7 L 8 12 Z M 2 16 C 1.45 16 0.98 15.8 0.59 15.41 C 0.2 15.02 0 14.55 0 14 L 0 11 L 2 11 L 2 14 L 14 14 L 14 11 L 16 11 L 16 14 C 16 14.55 15.8 15.02 15.41 15.41 C 15.02 15.8 14.55 16 14 16 L 2 16 Z" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/></svg>
+          </div>
+        </div>
+        <p class="texto-159">download</p>
+      </div>
+    </div>
+  </section>
+  <section class="componentes-e-estados">
+    <h2 class="texto-160">Componentes e estados</h2>
+    <p class="texto-161">Cada componente nasce com os estados que o CSS tem de verdade (:hover, :active, :focus-visible). O botão abaixo é um componente do projeto; as cópias mostram cada estado forçado para aparecer no guia.</p>
+    <div class="botao-primario-e-estados">
+      <div class="principal">
+        <button class="botao-primario" type="button" tabindex="0">
+          <p class="rotulo">Exportar site</p>
+        </button>
+        <p class="texto-162">componente principal</p>
+      </div>
+      <div class="estado-padrao">
+        <div class="slot-padrao">
+          <button class="botao-primario-2" type="button" tabindex="0">
+            <p class="rotulo-2">Exportar site</p>
+          </button>
+        </div>
+        <p class="texto-163">padrão</p>
+      </div>
+      <div class="estado-hover">
+        <div class="slot-hover">
+          <button class="botao-primario-3" type="button" tabindex="0">
+            <p class="rotulo-3">Exportar site</p>
+          </button>
+        </div>
+        <p class="texto-164">:hover</p>
+      </div>
+      <div class="estado-pressionado">
+        <div class="slot-pressionado">
+          <button class="botao-primario-4" type="button" tabindex="0">
+            <p class="rotulo-4">Exportar site</p>
+          </button>
+        </div>
+        <p class="texto-165">:active</p>
+      </div>
+      <div class="estado-foco">
+        <div class="slot-foco">
+          <button class="botao-primario-5" type="button" tabindex="0">
+            <p class="rotulo-5">Exportar site</p>
+          </button>
+        </div>
+        <p class="texto-166">:focus-visible</p>
+      </div>
+      <div class="estado-desabilitado">
+        <div class="slot-desabilitado">
+          <button class="botao-primario-6" type="button" tabindex="0">
+            <p class="rotulo-6">Exportar site</p>
+          </button>
+        </div>
+        <p class="texto-167">desabilitado</p>
+      </div>
+    </div>
+    <div class="abas-e-etiquetas">
+      <div class="abas">
+        <p class="texto-168">Abas</p>
+        <div class="abas-2">
+          <div class="aba-selecionada">
+            <p class="texto-169">Design</p>
+          </div>
+          <div class="aba">
+            <p class="texto-170">Protótipo</p>
+          </div>
+          <div class="aba-2">
+            <p class="texto-171">Código</p>
+          </div>
+        </div>
+      </div>
+      <div class="etiquetas">
+        <p class="texto-172">Etiquetas</p>
+        <div class="etiquetas-2">
+          <div class="chip">
+            <p class="texto-173">flex</p>
+          </div>
+          <div class="chip-2">
+            <p class="texto-174">&lt;section&gt;</p>
+          </div>
+          <div class="chip-3">
+            <p class="texto-175">hug</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="campos">
+      <p class="texto-176">Campos</p>
+      <div class="campos-2">
+        <div class="campo-normal">
+          <div class="normal">
+            <p class="texto-177">padding: 8px</p>
+          </div>
+          <p class="texto-178">normal</p>
+        </div>
+        <div class="campo-foco">
+          <div class="foco">
+            <p class="texto-179">padding: 8px</p>
+          </div>
+          <p class="texto-180">foco: borda âmbar + anel de 3 px</p>
+        </div>
+        <div class="campo-erro">
+          <div class="erro">
+            <p class="texto-181">padding: 8px</p>
+          </div>
+          <p class="texto-182">erro: borda vermelha + mensagem</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "colors": [
+    { "name": "Âmbar", "color": "#E9A23B" },
+    { "name": "Âmbar escuro", "color": "#9A5B00" },
+    { "name": "Sobre âmbar", "color": "#1A1206" },
+    { "name": "Grafite 950", "color": "#131211" },
+    { "name": "Grafite 900", "color": "#1A1917" },
+    { "name": "Grafite 800", "color": "#23211F" },
+    { "name": "Grafite 700", "color": "#2D2A27" },
+    { "name": "Linha", "color": "#2C2A27" },
+    { "name": "Texto claro", "color": "#ECE9E4" },
+    { "name": "Texto suave claro", "color": "#A39E96" },
+    { "name": "Papel", "color": "#F5F3EF" },
+    { "name": "Branco", "color": "#FFFFFF" },
+    { "name": "Papel 2", "color": "#F1EEE9" },
+    { "name": "Papel 3", "color": "#E6E1DA" },
+    { "name": "Tinta", "color": "#1D1B18" },
+    { "name": "Tinta suave", "color": "#625D55" },
+    { "name": "Perigo", "color": "#FF6B6B" },
+    { "name": "Perigo escuro", "color": "#DC2626" },
+    { "name": "Sucesso", "color": "#5CC98F" },
+    { "name": "Sucesso escuro", "color": "#15803D" }
+  ]
+}

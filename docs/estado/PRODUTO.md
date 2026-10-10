@@ -24,3 +24,11 @@ Fonte: 3 pesquisadores só-leitura (sonnet), verificados por amostragem. Nada di
 - **Plugins:** não existem. Forma segura: `extensions/<id>/manifest.json` só com dados (paletas, CSS escopado, componentes, ferramentas MCP declarativas), sem JS.
 - **Licença:** MIT é aceitável; Apache-2.0 acrescenta patente e NOTICE. Verificar a marca "Stylo", atribuição de Google Fonts, Material Icons e Pexels, termos do Jev/Typesafe. Não é parecer jurídico.
 - **Pronto para lançar?** Ainda não: faltam CI (não há `.github/workflows`, embora o CONTRIBUTING cite), SECURITY.md, PR template, NOTICE, campos `repository/bugs` no `package.json`, releases, instalação sem Node.
+
+## Achados do uso real do MCP (identidade desenhada no próprio Stylo, 10/10/2026)
+Detalhes em `docs/identidade/LEIA-ME.md`. Viram backlog da v1.1:
+1. **Vários editores conectados**: sem `select_editor`, o servidor usa a aba mais recente e uma escrita caiu em outra aba, de outro projeto. Proposta: com mais de um editor conectado e nenhum escolhido, **recusar escritas** (leitura continua) e dizer para chamar `list_editors`/`select_editor`.
+2. **`get_image` e o export PNG usam fonte de reserva** para Google Fonts (o `foreignObject` dentro de uma imagem SVG não carrega recursos de rede). A prévia que o agente vê não bate com o canvas. Proposta: embutir as fontes usadas (base64) no SVG do PNG ou avisar na resposta da ferramenta.
+3. **`build_layout` devolve só a raiz** criada; os ids dos filhos exigem `find_layers`. Proposta: devolver a árvore de ids (nome → id).
+4. `create_instance` aceita `props` de aparência (fill, stroke, opacity), o que permite mostrar estados forçados num guia; vale documentar no `AGENTE.md`.
+
