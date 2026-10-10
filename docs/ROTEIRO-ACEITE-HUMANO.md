@@ -10,6 +10,22 @@ Este roteiro ainda não foi executado por uma pessoa. Os E2Es automatizados pass
 | `[x]` | Executado e aprovado pela pessoa que testou |
 | `[!]` | Executado, com problema registrado |
 
+## 0. O que mudou na versão estável: teste isto primeiro
+
+Em ordem de importância. Marque o que passou e anote o que estranhou (o que não bate com o que está escrito aqui é bug ou texto confuso).
+
+- [ ] **Não perder trabalho**: edite o projeto, **feche a aba sem salvar** e reabra; as edições devem estar lá. Depois desligue o servidor (`Ctrl+C` no terminal do `npm start`), edite, tente **abrir outro projeto da pasta**: deve avisar que o atual não foi salvo e **manter** o atual aberto.
+- [ ] **Projeto de terceiros**: abra `tests/fixtures/projeto-hostil.json` (Arquivo → Importar arquivo .json…). Deve abrir com um aviso ("Abri o projeto com ajustes..."), sem erro, sem nada estranho no console (F12) e **sem requisição para `rastreador.invalid`** na aba Rede, exceto a do CSS da página, que é avisada. Exporte o HTML dela e confira que não há `<script>`.
+- [ ] **Servidor só atende a própria página**: com o Stylo aberto, rode em outro terminal `curl -X PUT http://localhost:5173/api/agent/mcp -H "Origin: http://localhost:3000" -H "Content-Type: application/json" -d "{\"admin\":true}"`; deve responder **403**.
+- [ ] **MCP continua funcionando** com o seu Claude Code e o seu Codex (conectar, listar ferramentas, criar uma camada, aprovar a janela de permissão). A origem exata só recusa páginas de outra porta; clientes sem `Origin` seguem aceitos.
+- [ ] **Exportar site**: use "Exportar site completo (.zip)" com uma tela de largura fixa (900 px) e sem "Largura fluida": deve aparecer o aviso dizendo que ela vai rolar na horizontal no celular. Ligue a opção e confira.
+- [ ] **PNG de camada de código**: crie uma camada "Código HTML" com `<br>`, uma imagem e `&copy;`, exporte PNG; deve gerar a imagem (antes dava "Não foi possível renderizar").
+- [ ] **CSS da página responsivo no canvas**: escreva `@media (max-width: 500px) { .titulo { color: red } }` na aba Código → chip Página e crie uma tela de 400 px com uma camada "Título"; a regra deve valer **no canvas** mesmo com a janela grande (e não valer numa tela de 800 px).
+- [ ] **Editor de código em tela cheia**: `Ctrl+Shift+M` (o F11 agora é do navegador).
+- [ ] **Interface**: compare `docs/screenshots/identidade/antes-*` e `depois-*` e use o app por 15 minutos nos dois temas. O que ficou melhor? O que ficou pior ou apertado (texto de 11 px, foco do teclado)?
+- [ ] **Marca**: escolha a paleta e o símbolo em `docs/estado/MARCA.md` (olhe as capturas `marca-*.png`).
+- [ ] **Codex como colega**: `/codex:review` num diff pequeno e `/codex:rescue` numa tarefa trivial; confira se responde.
+
 ## 1. Primeiro uso e trabalho humano
 
 - [ ] Abrir o Stylo sem instruções e verificar se a pessoa encontra como começar, abrir um exemplo e criar um projeto.

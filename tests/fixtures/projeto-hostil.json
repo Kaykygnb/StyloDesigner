@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "projectId": "59c819a8-8bfe-4369-ae88-110ce60400e4",
+  "name": "Projeto hostil (teste de segurança)",
+  "pages": [
+    {
+      "id": "bd03e50d",
+      "name": "Página 1",
+      "children": [
+        {
+          "id": "68a98f6d",
+          "type": "frame",
+          "name": "2024 Hero",
+          "x": 40,
+          "y": 40,
+          "w": 600,
+          "h": 300,
+          "rotation": 0,
+          "visible": true,
+          "locked": false,
+          "opacity": 1,
+          "blend": "normal;}</style><script>console.log(\"xss\")</script>",
+          "fill": {
+            "type": "image",
+            "color": "#ffffff",
+            "opacity": 1,
+            "stops": [
+              {
+                "color": "#7C5CFF",
+                "opacity": 1,
+                "pos": 0
+              },
+              {
+                "color": "#2DD4FF",
+                "opacity": 1,
+                "pos": 100
+              }
+            ],
+            "angle": 135,
+            "assetId": "fechaUrl",
+            "fit": "cover"
+          },
+          "stroke": {
+            "color": "#000000",
+            "opacity": 1,
+            "width": 2,
+            "style": "solid;}</style><script>console.log(\"xss\")</script>",
+            "position": "inside",
+            "sides": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "radius": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "shadows": [],
+          "blur": 0,
+          "bgBlur": 0,
+          "sizeX": "fixed",
+          "sizeY": "fixed",
+          "absolute": false,
+          "alignSelf": "auto",
+          "justifySelf": "auto",
+          "flipX": false,
+          "flipY": false,
+          "lockRatio": false,
+          "constraints": {
+            "h": "left",
+            "v": "top"
+          },
+          "colSpan": 1,
+          "rowSpan": 1,
+          "interactions": [],
+          "clip": true,
+          "layout": {
+            "mode": "none",
+            "gap": 8,
+            "cols": 2,
+            "rows": 0,
+            "colGap": 8,
+            "rowGap": 8,
+            "padding": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "justify": "flex-start",
+            "align": "flex-start",
+            "wrap": false
+          },
+          "grids": [],
+          "children": [
+            {
+              "id": "x\" onload=\"console.log(1)",
+              "type": "text",
+              "name": "Título",
+              "x": 24,
+              "y": 24,
+              "w": 300,
+              "h": 40,
+              "rotation": 0,
+              "visible": true,
+              "locked": false,
+              "opacity": 1,
+              "blend": "normal",
+              "fill": {
+                "type": "solid",
+                "color": "#111111",
+                "opacity": 1,
+                "stops": [
+                  {
+                    "color": "#7C5CFF",
+                    "opacity": 1,
+                    "pos": 0
+                  },
+                  {
+                    "color": "#2DD4FF",
+                    "opacity": 1,
+                    "pos": 100
+                  }
+                ],
+                "angle": 135,
+                "assetId": null,
+                "fit": "cover"
+              },
+              "stroke": null,
+              "radius": [
+                0,
+                0,
+                0,
+                0
+              ],
+              "shadows": [],
+              "blur": 0,
+              "bgBlur": 0,
+              "sizeX": "hug",
+              "sizeY": "hug",
+              "absolute": false,
+              "alignSelf": "auto",
+              "justifySelf": "auto",
+              "flipX": false,
+              "flipY": false,
+              "lockRatio": false,
+              "constraints": {
+                "h": "left",
+                "v": "top"
+              },
+              "colSpan": 1,
+              "rowSpan": 1,
+              "interactions": [],
+              "text": "Olá <script>console.log(\"xss\")</script> & mundo",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": 400,
+              "fontStyle": "normal",
+              "lineHeight": 1.4,
+              "letterSpacing": 0,
+              "textAlign": "left",
+              "textDecoration": "none",
+              "textTransform": "none",
+              "textVAlign": "top",
+              "customCss": "color: red;}body{background:url(https://rastreador.invalid/y)}/*"
+            }
+          ],
+          "fluid": true,
+          "cursor": "pointer;}body{background:url(https://rastreador.invalid/x)}/*"
+        }
+      ],
+      "guides": []
+    }
+  ],
+  "assets": {
+    "boa": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pZsAAAAASUVORK5CYII=",
+    "externa": "https://rastreador.invalid/pixel.png",
+    "js": "javascript:alert(1)",
+    "fechaUrl": "\");}</style><script>console.log(\"xss\")</script>"
+  },
+  "styles": {
+    "colors": [],
+    "texts": [],
+    "pageCss": ".cartao { background: url(https://rastreador.invalid/fundo.png) }\n@import url(\"https://css.invalid/tema.css\");"
+  },
+  "comments": []
+}
