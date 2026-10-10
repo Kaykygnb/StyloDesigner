@@ -25,6 +25,22 @@ test('sanitizeHtml aceita iframe https (com sandbox), svg e escapa < solto', () 
   assert.match(html, /<svg viewBox="0 0 2 2"><path d="M0 0" \/><\/svg>/);
 });
 
+test('sandbox imposto ao iframe substitui atributos com qualquer caixa e duplicatas', () => {
+  const required = 'sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"';
+  for (const supplied of ['Sandbox=""', 'sandbox="" sandbox="allow-scripts"', 'SANDBOX="allow-scripts allow-same-origin"']) {
+    const { html } = sanitizeHtml(`<iframe src="https://example.com/embed" ${supplied}></iframe>`);
+    assert.equal((html.match(/\bsandbox=/gi) || []).length, 1, supplied);
+    assert.ok(html.includes(required), html);
+  }
+});
+
+test('target equivalente a _blank recebe rel seguro mesmo com opener ou rel duplicado', () => {
+  const { html } = sanitizeHtml('<a href="https://example.com" TARGET="_BLANK" rel="opener" REL="external">link</a>');
+  assert.match(html, /target="_BLANK" rel="external noopener noreferrer"/);
+  assert.equal((html.match(/\brel=/gi) || []).length, 1);
+  assert.doesNotMatch(html, /\bopener\b/);
+});
+
 test('safeUrl só deixa esquemas seguros', () => {
   assert.equal(safeUrl('javascript:alert(1)'), '');
   assert.equal(safeUrl(' jav&#x09;ascript:x'.replace('&#x09;', '\t')), '');
@@ -55,6 +71,21 @@ test('CSS da página vai para o HTML exportado (depois das regras), limpo e com 
   assert.doesNotMatch(out, /javascript:/);
   assert.equal(out.match(/<\/style>/g).length, 1, 'o CSS da página não fecha o <style>');
   assert.doesNotMatch(safePageCss('.x{color:red}'), /<\//);
+});
+
+test('fontes importadas de projeto não conseguem injetar regras no CSS exportado', () => {
+  const texto = createNode('text', { name: 'Fonte', text: 'Seguro', fontFamily: 'Inter"; }\n.pwned { color: red }\n/*' });
+  const html = exportHtml(texto, {}, 'Fonte');
+  assert.doesNotMatch(html, /^\s*\.pwned\s*\{/m);
+  assert.equal((html.match(/font-family:/g) || []).length, 2, 'só as declarações do reset e da camada são emitidas');
+});
+
+test('@import da página permite Google Fonts e rejeita CSS remoto arbitrário no editor e no export', () => {
+  const css = '@import url("https://fonts.googleapis.com/css2?family=Inter");\n@import "https://attacker.example/theme.css";\n.card { color: red }';
+  for (const safe of [safePageCss(css), scopePageCss(css)]) {
+    assert.match(safe, /fonts\.googleapis\.com/);
+    assert.doesNotMatch(safe, /attacker\.example/);
+  }
 });
 
 test('scopeSelector prende os seletores ao canvas', () => {

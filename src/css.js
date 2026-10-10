@@ -108,8 +108,37 @@ export function fillCss(fill, assets = {}) {
   }
 }
 
-/** Monta a lista de fontes com alternativas: 'Inter', system-ui, sans-serif. Se o usuário já digitou uma lista (com vírgula), respeita. */
-const fontStack = (family) => (family.includes(',') ? family : `'${family}', system-ui, sans-serif`);
+const GENERIC_FONT_FAMILIES = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'fangsong']);
+
+/** Separa a lista CSS respeitando vírgulas dentro de nomes entre aspas. */
+function splitFontFamilies(value) {
+  const parts = [];
+  let part = '', quote = '', escaped = false;
+  for (const char of String(value)) {
+    if (escaped) { part += char; escaped = false; continue; }
+    if (char === '\\') { part += char; escaped = true; continue; }
+    if (quote) { part += char; if (char === quote) quote = ''; continue; }
+    if (char === '"' || char === "'") { quote = char; part += char; continue; }
+    if (char === ',') { if (part.trim()) parts.push(part.trim()); part = ''; continue; }
+    part += char;
+  }
+  if (part.trim()) parts.push(part.trim());
+  return parts;
+}
+
+/** Monta uma pilha de fontes com fallback sem deixar dados importados escaparem da string CSS. */
+function fontStack(family) {
+  const parts = splitFontFamilies(family).map((part) => {
+    const name = part.length >= 2 && ((part[0] === '"' && part.at(-1) === '"') || (part[0] === "'" && part.at(-1) === "'"))
+      ? part.slice(1, -1) : part;
+    if (GENERIC_FONT_FAMILIES.has(name.toLowerCase())) return name;
+    const safe = name.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\u0000-\u001f\u007f]/g, (char) => `\\${char.charCodeAt(0).toString(16)} `);
+    return `"${safe}"`;
+  });
+  if (!parts.length) return 'system-ui, sans-serif';
+  if (parts.length === 1) parts.push('system-ui', 'sans-serif');
+  return parts.join(', ');
+}
 
 /**
  * ★ O CORAÇÃO DO PROJETO ★ — converte UMA camada em CSS.

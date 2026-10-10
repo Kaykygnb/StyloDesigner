@@ -111,7 +111,8 @@ export function sanitizeHtml(input) {
         continue;
       }
       if (k === 'srcset') { if (!/javascript:|data:(?!image)/i.test(v)) kept.push([k, v]); continue; }
-      kept.push([rawK, v]);
+      // Preserve SVG's case-sensitive attribute spelling; normalize policy-sensitive attributes.
+      kept.push([['target', 'rel', 'sandbox'].includes(k) ? k : rawK, v]);
     }
     if (!iframeOk) {
       removed.add('<iframe> sem https');
@@ -122,11 +123,18 @@ export function sanitizeHtml(input) {
       continue;
     }
     if (name === 'iframe') {
-      const i = kept.findIndex(([k]) => k === 'sandbox');
-      if (i >= 0) kept.splice(i, 1);
+      // Atributos HTML não diferenciam maiúsculas e o parser usa só o primeiro duplicado.
+      // Remova todas as variantes fornecidas antes de inserir a política controlada pelo app.
+      for (let i = kept.length - 1; i >= 0; i--) if (String(kept[i][0]).toLowerCase() === 'sandbox') kept.splice(i, 1);
       kept.push(['sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation'], ['loading', 'lazy']);
     }
-    if (name === 'a' && kept.some(([k, v]) => k === 'target' && v === '_blank') && !kept.some(([k]) => k === 'rel')) kept.push(['rel', 'noopener noreferrer']);
+    if (name === 'a' && kept.some(([k, v]) => k === 'target' && String(v).toLowerCase() === '_blank')) {
+      const relTokens = kept.filter(([k]) => k === 'rel').flatMap(([, v]) => String(v || '').toLowerCase().split(/\s+/)).filter((token) => token && token !== 'opener');
+      if (!relTokens.includes('noopener')) relTokens.push('noopener');
+      if (!relTokens.includes('noreferrer')) relTokens.push('noreferrer');
+      for (let i = kept.length - 1; i >= 0; i--) if (kept[i][0] === 'rel') kept.splice(i, 1);
+      kept.push(['rel', [...new Set(relTokens)].join(' ')]);
+    }
     const attrText = kept.map(([k, v]) => (v === null ? ` ${k}` : ` ${k}="${escapeAttr(v)}"`)).join('');
     out += `<${tag}${attrText}${/\/\s*>$/.test(tok) && !VOID.has(name) && name !== 'iframe' ? ' /' : ''}>`;
     // <iframe> fechado: não aceita conteúdo (o navegador mostraria como texto)
@@ -290,6 +298,18 @@ export function parseDeclarations(body) {
 /** O valor de CSS é seguro (sem javascript:, expression(), quebra de <style>)? */
 const unsafeCss = (s) => /javascript:|vbscript:|expression\s*\(|-moz-binding|behavior\s*:|<\/?\s*style/i.test(String(s).replace(/\\/g, ''));
 
+/** Só permite folhas CSS do endpoint oficial do Google Fonts; @import é global e poderia estilizar o editor inteiro. */
+function trustedFontImport(prelude) {
+  const match = /^@import\s+(?:url\(\s*(?:"([^"]+)"|'([^']+)'|([^)\s]+))\s*\)|"([^"]+)"|'([^']+)')/i.exec(String(prelude));
+  const raw = match?.slice(1).find(Boolean);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.hostname !== 'fonts.googleapis.com' || url.port || url.username || url.password || !/^\/css2?$/.test(url.pathname)) return null;
+    return url.href;
+  } catch { return null; }
+}
+
 /**
  * Reescreve um seletor para valer SÓ dentro do canvas do editor, onde cada camada é um <div> com
  * data-tag (etiqueta), data-cls (classes) e data-hid (id). `.card` → `:is([data-cls~="card"], .card)` (a 2ª forma pega o
@@ -390,8 +410,9 @@ function printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '
       if (!/^(keyframes|-webkit-keyframes|font-face|property|counter-style|font-feature-values|page)$/.test(b.name)) continue;
       out.push(`${indent}${b.prelude} {${b.body.replace(/\s+$/, '')}\n${indent}}`);
     } else if (b.name === 'import') {
-      // @import só de fontes (Google Fonts e afins, https)
-      if (/^@import\s+(url\()?\s*['"]?https:\/\//i.test(b.prelude) && !unsafeCss(b.prelude)) out.push(`${indent}${b.prelude};`);
+      // Uma folha importada aplica seletores globais; reconstrua só a URL permitida, sem sufixos controlados pelo arquivo.
+      const fontUrl = trustedFontImport(b.prelude);
+      if (fontUrl && !unsafeCss(b.prelude)) out.push(`${indent}@import url("${fontUrl}");`);
     }
   }
   return out.join('\n\n');
@@ -399,7 +420,7 @@ function printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '
 
 /**
  * CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem
- * nada perigoso (javascript:, expression(), "</style>"). @import só de https vai para o topo (exigência do CSS).
+ * nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
  */
 export function safePageCss(text) {
   if (!text || !String(text).trim()) return '';
@@ -412,7 +433,7 @@ export function safePageCss(text) {
 /**
  * CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as
  * declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra).
- * @imports ficam no topo (fontes).
+ * Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
  */
 export function scopePageCss(text, scope = '.world') {
   if (!text || !String(text).trim()) return '';
