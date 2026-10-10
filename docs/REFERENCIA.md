@@ -2556,31 +2556,32 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`contextMenuItems({ store, commands, tools })`** · [L90](../src/ui/menus.js#L90) — Itens do menu de botão direito, calculados para a seleção ATUAL (itens que não se aplicam ficam desabilitados). Os mesmos comandos existem como atalhos; o hint mostra a tecla (⌘ no Mac, Ctrl nos demais).
 - **`SHORTCUTS`** · [L147](../src/ui/menus.js#L147) — Texto da janela "Atalhos de teclado": [seção, [[tecla, descrição], ...]]. Mantenha em sincronia com tools.js e o README.
 - **`modalSeq`** <sub>do módulo</sub> · [L161](../src/ui/menus.js#L161) — Contador para dar um id único ao título de cada janela (aria-labelledby).
-- **`openModal({ title, body, cls = '', onClose })`** · [L175](../src/ui/menus.js#L175) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
+- **`openModal({ title, body, cls = '', onClose, dismissOnBackdrop = true })`** · [L176](../src/ui/menus.js#L176) — JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
 
    - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
    - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
-   - fecha com Esc, no X ou clicando fora; ao fechar, o foco volta para quem abriu.
+   - fecha com Esc, no X ou (por padrão) clicando fora; ao fechar, o foco volta para quem abriu.
   - `o` <sub>object</sub> — 
   - `o.title` <sub>string</sub> — título (h2)
   - `o.body` <sub>Node\|Node[]</sub> — conteúdo
   - `[o.cls]` <sub>string</sub> — classe extra para o .modal (ex.: 'narrow')
   - `[o.onClose]` <sub>() => void</sub> — 
+  - `[o.dismissOnBackdrop=true]` <sub>boolean</sub> — permite fechar clicando no fundo
   - ↩︎ `{ el: HTMLElement, close: () => void ` }
-- **`ask({ title, message, buttons })`** · [L222](../src/ui/menus.js#L222) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+- **`ask({ title, message, buttons, signal, dismissOnBackdrop = true })`** · [L223](../src/ui/menus.js#L223) — PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões). Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X ou clique fora habilitado).
 
     const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
       { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
 
   O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
-  - `[]` <sub>{title: string, message: string\|Node\|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean</sub> — }} o
+  - `[]` <sub>{title: string, message: string\|Node\|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean</sub> — , dismissOnBackdrop?: boolean}} o
   - ↩︎ `Promise<any>`
-- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L243](../src/ui/menus.js#L243) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
+- **`askText({ title, label, value = '', confirm = 'OK' })`** · [L246](../src/ui/menus.js#L246) — Pede UM TEXTO numa janela do app (substitui o `prompt()` do navegador). Enter confirma, Esc cancela.
   - ↩︎ `Promise<string\|null>` o texto digitado, ou null se cancelou
-- **`GUIDE`** <sub>do módulo</sub> · [L263](../src/ui/menus.js#L263) — Primeiros passos da Central de ajuda: [título, texto].
-- **`FAQ`** <sub>do módulo</sub> · [L271](../src/ui/menus.js#L271) — Problemas comuns: [pergunta, resposta].
-- **`diagnostics(version)`** <sub>do módulo</sub> · [L281](../src/ui/menus.js#L281) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
-- **`showHelp(tab = 'keys', version = '')`** · [L291](../src/ui/menus.js#L291) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
+- **`GUIDE`** <sub>do módulo</sub> · [L266](../src/ui/menus.js#L266) — Primeiros passos da Central de ajuda: [título, texto].
+- **`FAQ`** <sub>do módulo</sub> · [L274](../src/ui/menus.js#L274) — Problemas comuns: [pergunta, resposta].
+- **`diagnostics(version)`** <sub>do módulo</sub> · [L284](../src/ui/menus.js#L284) — Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente).
+- **`showHelp(tab = 'keys', version = '')`** · [L294](../src/ui/menus.js#L294) — Central de ajuda (botão ? e tecla ?): primeiros passos, atalhos, problemas comuns e suporte.
   - `[tab]` <sub>string</sub> — aba inicial: 'start' \| 'keys' \| 'faq' \| 'support'
   - `[version]` <sub>string</sub> — versão do app, para o diagnóstico
 

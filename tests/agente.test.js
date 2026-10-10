@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleMcp, PROTOCOL_VERSIONS } from '../server/mcp.js';
 import { AGENT_TOOLS, openAiTools, mcpTools } from '../src/agent/schema.js';
-import { applyProps, summarize, describeCall, PROPS } from '../src/agent/runner.js';
+import { applyProps, summarize, describeCall, PROPS, createRunner } from '../src/agent/runner.js';
 import { createNode } from '../src/model.js';
 
 const rpc = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
@@ -182,10 +182,46 @@ test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos intern
 
 test('MCP completo: 41 ferramentas (com exportação, assets e edição CSS); as de projeto exigem administrador; destrutivas marcadas', () => {
   assert.equal(AGENT_TOOLS.length, 41);
+  assert.equal(mcpTools().find((tool) => tool.name === 'export_site').annotations.readOnlyHint, true);
   const admin = AGENT_TOOLS.filter((t) => t.admin).map((t) => t.name).sort();
   assert.deepEqual(admin, ['list_projects', 'new_project', 'open_project', 'save_project']);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
   assert.deepEqual(destructive, ['delete_layers', 'delete_page', 'new_project', 'open_project']);
+  assert.ok(['list_editors', 'select_editor'].every((name) => mcpTools().some((tool) => tool.name === name)));
+});
+
+test('export_site lista metadados e entrega conteúdo grande em trechos UTF-8', async () => {
+  const page = { id: 'page', name: 'Projeto', children: [createNode('frame', { name: 'Home', children: [createNode('text', { text: 'x'.repeat(300 * 1024) })] })] };
+  const store = { state: { doc: { name: 'Projeto', pages: [page], assets: {}, styles: {} } } };
+  const frame = page.children[0];
+  store.get = (id) => id === frame.id ? frame : null;
+  const runner = createRunner({ store, commands: {}, approve: async () => true });
+  const meta = await runner.run('export_site', {});
+  assert.equal(meta.files[0].path, 'index.html');
+  assert.ok(meta.files[0].bytes > 256 * 1024);
+  assert.ok(!('content' in meta.files[0]));
+  const tooLarge = await runner.run('export_site', { includeContent: true });
+  assert.match(tooLarge.error, /O conteúdo total tem/);
+  let content = '';
+  let offset = 0;
+  let complete = false;
+  while (!complete) {
+    const chunk = await runner.run('export_site', { includeContent: true, path: 'index.html', offset, maxBytes: 256 * 1024 });
+    assert.ok(chunk.files[0].chunkBytes <= 256 * 1024);
+    content += chunk.files[0].content;
+    offset = chunk.files[0].nextOffset;
+    complete = chunk.files[0].complete;
+  }
+  assert.match(content, /x{64}/);
+  assert.equal(new TextEncoder().encode(content).byteLength, meta.files[0].bytes);
+  const htmlFirst = await runner.run('export_html', { id: frame.id, maxBytes: 1024 });
+  assert.equal(htmlFirst.file, 'home.html');
+  assert.equal(typeof htmlFirst.html, 'string');
+  assert.equal(htmlFirst.chunkBytes, 1024);
+  assert.equal(htmlFirst.complete, false);
+  const htmlSecond = await runner.run('export_html', { id: frame.id, maxBytes: 1024, offset: htmlFirst.nextOffset });
+  assert.equal(htmlSecond.offset, htmlFirst.nextOffset);
+  assert.match((await runner.run('export_site', { path: '../index.html' })).error, /não existe/);
 });
 
 test('plugin do Claude Code: arquivos válidos, nomes batendo e MCP apontando para o editor', async () => {

@@ -52,7 +52,8 @@ await page.locator('[data-act="close"]').focus();
 await page.keyboard.press('Shift+Tab');
 ok('foco modal volta ao conteúdo apresentado', await ev(() => document.activeElement.tagName === 'IFRAME'));
 await page.keyboard.press('Tab');
-ok('Tab não escapa do modo Apresentar', await ev(() => document.activeElement.dataset.act === 'close'));
+ok('Tab em tela sem controles navega sem sair do modo Apresentar',
+  (await page.locator('.present-title').innerText()) === 'Detalhe' && await page.locator('.present').evaluate((root) => root.contains(document.activeElement)));
 await page.locator('.present-tabs [role="tab"]').first().focus();
 await page.keyboard.press('ArrowRight');
 ok('setas do teclado navegam pelas telas', (await page.locator('.present-title').innerText()) === 'Detalhe');

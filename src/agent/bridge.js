@@ -59,10 +59,10 @@ export function createApprover() {
     });
     queue = turn.catch(() => false);
     if (!signal) return turn;
-    // A queued approval must still react to cancellation before its turn reaches the front.
-    // `ask()` can observe the signal only after this turn starts; race here so the MCP request
-    // and its server-side lock are released promptly. The queued turn remains chained, then
-    // sees `signal.aborted` above and never opens a stale permission dialog.
+    // A aprovação em fila também precisa responder ao cancelamento antes de chegar sua vez.
+    // `ask()` só observa o sinal quando esta operação começa; a corrida libera logo a chamada MCP
+    // e a trava do servidor. A operação continua na fila e verifica `signal.aborted` antes de abrir
+    // um diálogo de permissão que já perdeu a validade.
     let abort;
     const cancelled = new Promise((resolve) => {
       abort = () => resolve(false);

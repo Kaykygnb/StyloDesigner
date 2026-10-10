@@ -54,7 +54,7 @@ export function createPresence({ store, prefs, editProfile }) {
       h('h4', 'No projeto agora'),
       row(me, 'você · este navegador', 'Perfil'),
       ...others.map((p) => row(p, `editor aberto · desde ${ago(p.since)}`, 'Pessoa')),
-      ...data.agents.map((a) => row(a, `${a.active ? 'trabalhando' : `parado há ${ago(a.lastSeen)}`}${a.lastTool ? ` · ${a.lastTool}` : ''}${a.locks.length ? ` · 🔒 ${a.locks.map((id) => store.get(id)?.name || id).join(', ')}` : ''}`, 'Agente', true)),
+      ...data.agents.map((a) => row(a, `${a.active ? 'trabalhando' : `parado há ${ago(a.lastSeen)}`}${a.lastTool ? ` · ${a.lastTool}` : ''}${a.locks.length ? ` · 🔒 ${a.locks.map((id) => id === '__document__' ? 'documento' : store.get(id)?.name || id).join(', ')}` : ''}`, 'Agente', true)),
       data.agents.length ? null : h('p.pr-empty', 'Nenhum agente conectado. Cada janela do Claude Code, Codex ou outro programa MCP aparece aqui com o próprio nome, e eles podem trabalhar juntos: quem altera uma camada a reserva por alguns segundos.'),
       data.activity.length ? h('h4', 'Atividade') : null,
       ...data.activity.slice(0, 8).map((a) => h('div.pr-act', h('span.pr-dot', { style: `--c: ${a.color}` }), h('span', h('b', a.who), ` ${a.text}`), h('time', ago(a.at)))),

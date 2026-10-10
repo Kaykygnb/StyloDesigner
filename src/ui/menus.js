@@ -164,15 +164,16 @@ let modalSeq = 0;
  * JANELA MODAL acessível, usada pela ajuda, Configurações e Projetos:
  *  - role="dialog" + aria-modal + título ligado por aria-labelledby (leitores de tela anunciam o nome);
  *  - o foco vai para o primeiro campo/botão e fica PRESO dentro (Tab/Shift+Tab dão a volta);
- *  - fecha com Esc, no X ou clicando fora; ao fechar, o foco volta para quem abriu.
+ *  - fecha com Esc, no X ou (por padrão) clicando fora; ao fechar, o foco volta para quem abriu.
  * @param {object} o
  * @param {string} o.title        título (h2)
  * @param {Node|Node[]} o.body     conteúdo
  * @param {string} [o.cls]         classe extra para o .modal (ex.: 'narrow')
  * @param {() => void} [o.onClose]
+ * @param {boolean} [o.dismissOnBackdrop=true]  permite fechar clicando no fundo
  * @returns {{ el: HTMLElement, close: () => void }}
  */
-export function openModal({ title, body, cls = '', onClose }) {
+export function openModal({ title, body, cls = '', onClose, dismissOnBackdrop = true }) {
   closeMenus();
   const returnFocus = document.activeElement;
   const titleId = `modal-title-${++modalSeq}`;
@@ -185,7 +186,7 @@ export function openModal({ title, body, cls = '', onClose }) {
   const modal = h('div.modal' + (cls ? '.' + cls : ''), { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId },
     h('header.modal-head', h('h2', { id: titleId }, title), h('button.icon-btn', { type: 'button', title: 'Fechar (Esc)', 'aria-label': 'Fechar', onclick: () => close() }, ico('x'))),
     body);
-  const dlg = h('div.modal-backdrop', { onpointerdown: (e) => e.target === dlg && close() }, modal);
+  const dlg = h('div.modal-backdrop', { onpointerdown: (e) => dismissOnBackdrop && e.target === dlg && close() }, modal);
   const focusables = () => [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea, [tabindex]:not([tabindex="-1"])')]
     .filter((el) => el.offsetParent !== null);
   // captura (true): o Esc da janela não chega aos atalhos do canvas; Tab dá a volta dentro da janela
@@ -210,26 +211,28 @@ export function openModal({ title, body, cls = '', onClose }) {
 
 /**
  * PERGUNTA no visual do app (substitui o `confirm()` do navegador, que é cinza, feio e não dá para ter 3 botões).
- * Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X, clique fora).
+ * Devolve uma Promise com o `value` do botão escolhido, ou null se a pessoa fechou (Esc, X ou clique fora habilitado).
  *
  *   const r = await ask({ title: 'Substituir?', message: 'Texto...', buttons: [
  *     { label: 'Cancelar', value: null }, { label: 'Substituir', value: 'ok', primary: true } ] });
  *
  * O botão `primary` recebe o foco (Enter confirma); `danger` pinta de vermelho (ações que apagam algo).
- * @param {{title: string, message: string|Node|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean}[]}} o
+ * @param {{title: string, message: string|Node|Node[], buttons: {label: string, value: any, primary?: boolean, danger?: boolean}[], dismissOnBackdrop?: boolean}} o
  * @returns {Promise<any>}
  */
-export function ask({ title, message, buttons }) {
+export function ask({ title, message, buttons, signal, dismissOnBackdrop = true }) {
   return new Promise((resolve) => {
     let answered = false;
-    const done = (v) => { if (answered) return; answered = true; resolve(v); };
+    const done = (v) => { if (answered) return; answered = true; signal?.removeEventListener('abort', abort); resolve(v); };
     const btns = buttons.map((b) => h('button.btn' + (b.primary ? '.primary' : '') + (b.danger ? '.danger' : ''), {
       type: 'button', onclick: () => { done(b.value); modal.close(); },
     }, b.label));
     const body = h('div.modal-body.ask',
       (Array.isArray(message) ? message : [message]).map((m) => (typeof m === 'string' ? h('p', m) : m)),
       h('div.ask-buttons', btns));
-    const modal = openModal({ title, body, cls: 'ask-modal', onClose: () => done(null) });
+    const modal = openModal({ title, body, cls: 'ask-modal', dismissOnBackdrop, onClose: () => done(null) });
+    const abort = () => { modal.close(); done(null); };
+    if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
     // foco no botão principal (o openModal foca o 1º botão; aqui preferimos o que confirma)
     btns[buttons.findIndex((b) => b.primary)]?.focus();
   });

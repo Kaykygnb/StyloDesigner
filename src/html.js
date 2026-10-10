@@ -111,7 +111,7 @@ export function sanitizeHtml(input) {
         continue;
       }
       if (k === 'srcset') { if (!/javascript:|data:(?!image)/i.test(v)) kept.push([k, v]); continue; }
-      // Preserve SVG's case-sensitive attribute spelling; normalize policy-sensitive attributes.
+      // Preserve a grafia sensível a maiúsculas do SVG; normalize os atributos sujeitos à política.
       kept.push([['target', 'rel', 'sandbox'].includes(k) ? k : rawK, v]);
     }
     if (!iframeOk) {

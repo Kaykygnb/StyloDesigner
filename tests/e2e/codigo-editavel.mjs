@@ -72,7 +72,7 @@ try {
 
   // ---- CSS da página (aba do editor grande)
   await page.locator('[data-dock-tab="page"]').click();
-  const pageCss = `.card:hover { transform: translateY(-2px); }\n.titulo { color: rgb(200, 30, 90); letter-spacing: 2px; }\n#destaque { outline: 3px solid rgb(0, 128, 0); }\n@media (max-width: 600px) {\n  .titulo { font-size: 18px; }\n}\n@keyframes surgir { from { opacity: 0 } to { opacity: 1 } }`;
+  const pageCss = `.card:hover { transform: translateY(-2px); }\n.card { perspective: 600px; }\n.titulo { color: rgb(200, 30, 90); letter-spacing: 2px; transform-style: preserve-3d; transform: perspective(800px) rotateY(20deg); animation: surgir 1s ease both; }\n#destaque { outline: 3px solid rgb(0, 128, 0); }\n@media (max-width: 600px) {\n  .titulo { font-size: 18px; }\n}\n@keyframes surgir { from { opacity: 0 } to { opacity: 1 } }`;
   await page.locator('.ce-input').fill(pageCss);
   await page.waitForTimeout(250);
   await page.locator('.ce-input').press('Control+Home');
@@ -81,10 +81,18 @@ try {
   await page.waitForTimeout(200);
   const tit = await ev(() => { const t = designer.store.page().children[0].children[0].children[0]; return getComputedStyle(designer.canvas.els.get(t.id)).color; });
   ok('CSS da página vale no canvas (classe gerada)', tit === 'rgb(200, 30, 90)', tit);
+  const threeD = await ev(() => { const [frame] = designer.store.page().children; const card = frame.children[0]; const title = card.children[0]; return { perspective: getComputedStyle(designer.canvas.els.get(card.id)).perspective, transformStyle: getComputedStyle(designer.canvas.els.get(title.id)).transformStyle, transform: getComputedStyle(designer.canvas.els.get(title.id)).transform, animation: getComputedStyle(designer.canvas.els.get(title.id)).animationName }; });
+  ok('CSS livre aplica perspectiva, transform-style 3D e animação no canvas', threeD.perspective === '600px' && threeD.transformStyle === 'preserve-3d' && threeD.transform !== 'none' && threeD.animation === 'surgir', JSON.stringify(threeD));
   const appBar = await ev(() => getComputedStyle(document.querySelector('.code-title') || document.body).color);
   ok('CSS da página não vaza para a interface do app', appBar !== 'rgb(200, 30, 90)');
   const html = await ev(async () => (await import('/src/css.js')).exportHtml(designer.store.page().children[0], {}, 'T', designer.store.state.doc.styles));
   ok('exportação leva o CSS da página com @media e @keyframes', html.includes('/* CSS da página */') && html.includes('@media (max-width: 600px)') && html.includes('@keyframes surgir'));
+  const preview = await ctx.newPage();
+  await preview.setContent(html);
+  const exportedThreeD = await preview.evaluate(() => { const card = document.querySelector('.card'); const title = document.querySelector('.titulo'); return { perspective: getComputedStyle(card).perspective, transformStyle: getComputedStyle(title).transformStyle, transform: getComputedStyle(title).transform, animation: getComputedStyle(title).animationName }; });
+  ok('HTML exportado mantém perspectiva, profundidade 3D e animação', exportedThreeD.perspective === '600px' && exportedThreeD.transformStyle === 'preserve-3d' && exportedThreeD.transform !== 'none' && exportedThreeD.animation === 'surgir', JSON.stringify(exportedThreeD));
+  await preview.close();
+  await page.bringToFront();
   await ev(() => designer.store.undo());
   ok('Ctrl+Z desfaz o CSS da página', !(await ev(() => designer.store.state.doc.styles.pageCss)));
   await ev(() => designer.store.redo());
@@ -105,10 +113,20 @@ try {
   ok('HTML mostra id e classes extras', cardHtml.includes('id="destaque"') && cardHtml.includes('class="card cartao destaque-2"'), cardHtml.slice(0, 200));
 
   // ---- camada Código HTML
+  await page.locator('.cd-close').click();
+  await page.waitForTimeout(100);
   await ev(() => designer.store.setSelection([designer.store.page().children[0].id]));
   await page.keyboard.press('Shift+E');
   await page.waitForTimeout(250);
   ok('Shift+E cria a camada Código HTML e abre o editor de HTML', await ev(() => designer.store.selected()[0]?.type === 'html') && (await page.locator('.ce[data-lang="html"]').count()) === 1);
+  const iframePolicy = await ev(async () => {
+    const { sanitizeHtml } = await import('/src/html.js');
+    const dirty = '<iframe src="https://example.com/embed" Sandbox="" sandbox=""></iframe>';
+    const doc = new DOMParser().parseFromString(sanitizeHtml(dirty).html, 'text/html');
+    const frame = doc.querySelector('iframe');
+    return frame ? { sandbox: frame.getAttribute('sandbox'), sandboxCount: [...frame.attributes].filter((a) => a.name.toLowerCase() === 'sandbox').length } : null;
+  });
+  ok('parser real do Chromium recebe só o sandbox controlado pelo editor', iframePolicy?.sandboxCount === 1 && iframePolicy.sandbox.includes('allow-scripts') && iframePolicy.sandbox.includes('allow-presentation'), JSON.stringify(iframePolicy));
   const evil = '<div class="banner">\n  <h2>Promoção</h2>\n  <p>Até <strong>50%</strong> off</p>\n  <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="" onerror="window.__xss=1">\n  <a href="javascript:window.__xss=2">link</a>\n  <script>window.__xss=3</script>\n  <button type="button">Comprar</button>\n</div>';
   await page.locator('.ce-input').fill(evil);
   await page.waitForTimeout(700);
@@ -143,6 +161,18 @@ try {
   ok('Alt mostra distâncias no Inspecionar', (await page.locator('.measure-line, .measure, [class*="measure"]').count()) > 0);
   await shot('04-inspecionar');
   await page.keyboard.up('Alt');
+
+  const attackHtml = await ev(async () => {
+    const { createNode } = await import('/src/model.js');
+    const { exportHtml } = await import('/src/css.js');
+    const node = createNode('text', { name: 'Fonte hostil', text: 'Texto', fontFamily: 'Inter"; }\n.pwned { color: red }\n/*' });
+    return exportHtml(node, {}, 'Fonte hostil');
+  });
+  const attackPreview = await ctx.newPage();
+  await attackPreview.setContent(attackHtml);
+  const injected = await attackPreview.evaluate(() => [...document.styleSheets[0].cssRules].some((rule) => rule.selectorText === '.pwned'));
+  ok('Chromium trata fonte importada como valor, não como seletor CSS executável', !injected);
+  await attackPreview.close();
 } catch (err) {
   ok('cenário terminou sem exceção', false, err.stack);
 }

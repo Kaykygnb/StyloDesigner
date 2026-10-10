@@ -134,11 +134,19 @@ try {
   await b.waitForFunction(() => !!window.designer?.store);
   await b.keyboard.press('Control+o');
   await b.waitForSelector('.proj-local');
-  const localCopyRow = b.locator('.proj-local .proj-row').filter({ hasText: recoveryName });
-  if (await localCopyRow.count() !== 1) throw new Error('A lista de projetos não mostrou a cópia da aba fechada.');
+  const localCopyRow = b.locator('.proj-local .proj-row').filter({ hasText: 'Edição local da aba B' });
+  if (await localCopyRow.count() !== 1) {
+    const diagnostic = await b.evaluate(async () => ({
+      localProjects: await designer.storage?.listLocalProjects?.(),
+      keys: await new Promise((resolve) => { const request = indexedDB.open('projeto-designer'); request.onsuccess = () => { const tx = request.result.transaction('kv', 'readonly'); const keys = tx.objectStore('kv').getAllKeys(); const values = tx.objectStore('kv').getAll(); tx.oncomplete = () => resolve(keys.result.map((key, i) => ({ key, name: values.result[i]?.doc?.name }))); }; }),
+      section: document.querySelector('.proj-local')?.innerText,
+    }));
+    throw new Error(`A lista de projetos não mostrou a cópia da aba fechada. ${JSON.stringify(diagnostic)}`);
+  }
   console.log('PASS a cópia salva na aba encerrada aparece na lista de projetos locais');
   await localCopyRow.getByRole('button', { name: 'Abrir' }).click();
-  await b.waitForFunction((name) => designer.store.state.doc.name === name, recoveryName);
+  await b.getByRole('button', { name: 'Descartar e continuar' }).click();
+  await b.waitForFunction(() => designer.store.state.doc.name === 'Edição local da aba B');
   if (await b.evaluate(() => designer.store.state.doc.projectId) !== isolatedCopy.doc.projectId) {
     throw new Error('Abrir a cópia local não preservou a identidade do projeto.');
   }
