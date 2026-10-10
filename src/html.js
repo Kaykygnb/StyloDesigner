@@ -370,7 +370,6 @@ export function scopeSelector(selector, scope) {
     return out;
   }).filter(Boolean).join(', ');
 }
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function matchClose(s, k, open, close) {
   let d = 0;
   for (let j = k; j < s.length; j++) { if (s[j] === open) d++; else if (s[j] === close && !--d) return j; }

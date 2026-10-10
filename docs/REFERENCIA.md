@@ -774,20 +774,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`unsafeCss(s)`** <sub>do módulo</sub> · [L299](../src/html.js#L299) — O valor de CSS é seguro (sem javascript:, expression(), quebra de <style>)?
 - **`trustedFontImport(prelude)`** <sub>do módulo</sub> · [L302](../src/html.js#L302) — Só permite folhas CSS do endpoint oficial do Google Fonts; @import é global e poderia estilizar o editor inteiro.
 - **`scopeSelector(selector, scope)`** · [L318](../src/html.js#L318) — Reescreve um seletor para valer SÓ dentro do canvas do editor, onde cada camada é um <div> com data-tag (etiqueta), data-cls (classes) e data-hid (id). `.card` → `:is([data-cls~="card"], .card)` (a 2ª forma pega o HTML real das camadas "Código HTML"), `#topo` e `h1` do mesmo jeito; html/body/:root viram o próprio escopo. Pseudo-classes (:hover...) ficam como estão.
-- **`printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '' } = {})`** <sub>do módulo</sub> · [L395](../src/html.js#L395) — Monta o texto de uma lista de blocos de volta (com transformação do seletor e das declarações).
-- **`safePageCss(text)`** · [L425](../src/html.js#L425) — CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
-- **`scopePageCss(text, scope = '.world')`** · [L438](../src/html.js#L438) — CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra). Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
-- **`lintCss(text, supports)`** · [L457](../src/html.js#L457) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
+- **`printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '' } = {})`** <sub>do módulo</sub> · [L394](../src/html.js#L394) — Monta o texto de uma lista de blocos de volta (com transformação do seletor e das declarações).
+- **`safePageCss(text)`** · [L424](../src/html.js#L424) — CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
+- **`scopePageCss(text, scope = '.world')`** · [L437](../src/html.js#L437) — CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra). Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
+- **`lintCss(text, supports)`** · [L456](../src/html.js#L456) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
   - `text` <sub>string</sub> — 
   - `[supports]` <sub>(prop:string, value:string) => boolean</sub> — 
   - ↩︎ `{line:number, msg:string, level:'error'\|'warn'` []}
-- **`checkDecl(d, line, supports)`** · [L476](../src/html.js#L476) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
-- **`LINK_TARGETS`** · [L490](../src/html.js#L490) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
-- **`BUTTON_TYPES`** · [L491](../src/html.js#L491) — _(sem comentário)_
-- **`ATTR_KEYS`** · [L493](../src/html.js#L493) — Campos da camada que viram atributos (todos opcionais).
-- **`cleanId(v)`** · [L496](../src/html.js#L496) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
-- **`cleanClasses(v)`** · [L498](../src/html.js#L498) — Lista de classes extras válidas (sem duplicadas).
-- **`htmlAttrs(node, tag)`** · [L506](../src/html.js#L506) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
+- **`checkDecl(d, line, supports)`** · [L475](../src/html.js#L475) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
+- **`LINK_TARGETS`** · [L489](../src/html.js#L489) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
+- **`BUTTON_TYPES`** · [L490](../src/html.js#L490) — _(sem comentário)_
+- **`ATTR_KEYS`** · [L492](../src/html.js#L492) — Campos da camada que viram atributos (todos opcionais).
+- **`cleanId(v)`** · [L495](../src/html.js#L495) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
+- **`cleanClasses(v)`** · [L497](../src/html.js#L497) — Lista de classes extras válidas (sem duplicadas).
+- **`htmlAttrs(node, tag)`** · [L505](../src/html.js#L505) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
   - `node` <sub>object</sub> — 
   - `tag` <sub>string</sub> — etiqueta efetiva no HTML exportado
 
