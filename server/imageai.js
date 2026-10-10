@@ -69,6 +69,37 @@ export function apiErrorText(status, detail, { baseUrl = '', model = '' } = {}) 
   return `A API de imagem recusou o pedido (${status})${d ? `: ${d}` : ''}.`;
 }
 
+/** Endereço de download aceito: https, sem credenciais e sem IP literal de rede privada, loopback ou link-local. */
+function downloadUrl(value) {
+  let url;
+  try { url = new URL(String(value)); } catch { throw fail(502, 'A API devolveu um endereço de imagem inválido.'); }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const privateV4 = /^(0|10|127)\./.test(host) || /^169\.254\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^(100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])|198\.1[89]|2(2[4-9]|[3-5]\d))\./.test(host);
+  const privateV6 = host.includes(':') && (host === '::1' || host === '::' || /^(fc|fd|fe[89ab])/.test(host) || host.startsWith('::ffff:'));
+  if (url.protocol !== 'https:' || url.username || url.password || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || privateV4 || privateV6) {
+    throw fail(502, 'A API devolveu um endereço de imagem não permitido (use https e um host público).');
+  }
+  return url;
+}
+
+/** Lê o corpo em pedaços e para ao passar de `max`, mesmo sem Content-Length. */
+async function boundedBytes(response, max) {
+  if (!response.body) return Buffer.alloc(0);
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) { await reader.cancel(); throw fail(502, 'A imagem gerada é grande demais.'); }
+      chunks.push(Buffer.from(value));
+    }
+  } finally { reader.releaseLock(); }
+  return Buffer.concat(chunks);
+}
+
 /**
  * Lê a resposta da API ({ data: [{ b64_json } | { url }] }) e devolve um data URL. Se vier só a URL, baixa a imagem
  * (com tempo e tamanho limitados).
@@ -76,17 +107,18 @@ export function apiErrorText(status, detail, { baseUrl = '', model = '' } = {}) 
 export async function readImageResult(json, { timeoutMs = 60000, fetchImpl = fetch } = {}) {
   const item = Array.isArray(json?.data) ? json.data[0] : null;
   if (item?.b64_json) return `data:image/png;base64,${String(item.b64_json).replace(/\s+/g, '')}`;
-  if (item?.url && /^https?:\/\//i.test(item.url)) {
+  if (item?.url) {
+    const url = downloadUrl(item.url);
     let r;
-    try { r = await fetchImpl(item.url, { signal: AbortSignal.timeout(timeoutMs) }); } catch (err) {
+    // redirect: 'error' — um redirecionamento poderia levar o servidor a um endereço que não passou pela validação
+    try { r = await fetchImpl(url.href, { signal: AbortSignal.timeout(timeoutMs), redirect: 'error' }); } catch (err) {
       throw fail(502, `A API gerou a imagem, mas não consegui baixá-la (${err.cause?.code || err.message}).`);
     }
     const type = (r.headers.get('content-type') || '').split(';')[0].trim();
     if (!r.ok || !/^image\/(png|jpeg|webp)$/.test(type)) throw fail(502, `A API gerou a imagem, mas o download falhou (${r.status} ${type || 'sem tipo'}).`);
     // tamanho anunciado grande demais: nem baixa (o download não leva a chave: é só a imagem pronta)
     if (Number(r.headers.get('content-length')) > MAX_IMAGE) throw fail(502, 'A imagem gerada é grande demais.');
-    const buf = Buffer.from(await r.arrayBuffer());
-    if (buf.length > MAX_IMAGE) throw fail(502, 'A imagem gerada é grande demais.');
+    const buf = await boundedBytes(r, MAX_IMAGE);
     return `data:${type};base64,${buf.toString('base64')}`;
   }
   throw fail(502, 'A API de imagem respondeu sem imagem. Confira se o modelo escolhido gera imagens.');

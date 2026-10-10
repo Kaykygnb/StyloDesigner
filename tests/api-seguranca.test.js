@@ -89,3 +89,47 @@ test('DNS rebinding: Host que não é desta máquina é recusado, com ou sem Ori
   assert.equal((await call('PUT', '/api/config', { keepVersions: 3 }, { Host: `atacante.example:${port}` })).status, 403);
   assert.equal((await call('GET', '/api/status')).status, 200);
 });
+
+test('nomes de projeto reservados do Windows e pastas de sistema são recusados', async (t) => {
+  const { call } = await startServer(t);
+  const doc = { name: 'x', pages: [{ id: 'p1', name: 'P', children: [] }], assets: {}, styles: { colors: [], texts: [] } };
+  for (const name of ['con.json', 'NUL.json', 'aux.json', 'com1.json', 'lpt9.json', 'prn.json']) {
+    assert.equal((await call('PUT', `/api/projects/${name}`, doc)).status, 400, `${name} é nome reservado`);
+  }
+  assert.equal((await call('PUT', '/api/projects/consulta.json', doc)).status, 200, 'consulta.json não é reservado');
+  const bad = process.platform === 'win32' ? ['C:\\Windows\\System32', 'C:\\', 'C:\\Program Files'] : ['/etc', '/', '/usr/bin'];
+  for (const folder of bad) assert.equal((await call('PUT', '/api/config', { folder })).status, 400, `${folder} não pode ser pasta de projetos`);
+});
+
+test('erros internos não vazam detalhes e JSON que não é objeto vira 400', async (t) => {
+  const { call } = await startServer(t);
+  for (const body of ['null', '[1,2]', '"texto"', '{quebrado']) {
+    const r = await call('PUT', '/api/config', body);
+    assert.equal(r.status, 400, `corpo ${body} deve ser 400 (veio ${r.status}: ${r.text})`);
+    assert.doesNotMatch(r.text, /Cannot read|TypeError|SyntaxError|Unexpected/);
+  }
+});
+
+test('limites de sessões MCP e de editores conectados (sem crescimento ilimitado)', async (t) => {
+  const { port, call } = await startServer(t);
+  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} };
+  const statuses = [];
+  for (let i = 0; i < 70; i++) statuses.push((await call('POST', '/mcp', init)).status);
+  assert.equal(statuses.filter((s) => s === 200).length, 64, 'até 64 sessões simultâneas');
+  assert.ok(statuses.slice(64).every((s) => s === 429), 'a partir daí, 429');
+
+  const { get } = await import('node:http');
+  const open = [];
+  const codes = [];
+  for (let i = 0; i < 34; i++) {
+    codes.push(await new Promise((resolve) => {
+      const req = get({ host: '127.0.0.1', port, path: `/api/agent/events?id=ed${i}&user=${'x'.repeat(200)}`, agent: false }, (res) => { open.push(res); resolve(res.statusCode); });
+      req.on('error', () => resolve(0));
+    }));
+  }
+  open.forEach((r) => r.destroy());
+  assert.equal(codes.filter((c) => c === 200).length, 32, 'até 32 editores conectados');
+  assert.ok(codes.slice(32).every((c) => c === 429));
+  const editors = JSON.parse((await call('GET', '/api/agent/status')).text || '{}');
+  assert.ok(JSON.stringify(editors).length < 20000);
+});

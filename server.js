@@ -30,7 +30,7 @@ import { createPhotosHandler } from './server/photos.js';
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { writeJsonAtomic } from './server/atomic.js';
 import { homedir } from 'node:os';
-import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
+import { extname, isAbsolute, join, normalize, parse, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
@@ -64,6 +64,8 @@ const MAX_JSON = 1024 * 1024; // padrão das rotas JSON: configuração, conta, 
 const MAX_MEDIUM = 32 * 1024 * 1024; // mensagens do agente e respostas de ferramentas (podem levar imagens), miniaturas, MCP
 /** Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json. */
 const FILE_RE = /^[a-z0-9][a-z0-9._-]{0,90}\.json$/i;
+/** Nomes que o Windows trata como dispositivo (con.json, nul.json, com1.json...): gravar neles trava ou falha. */
+const RESERVED_RE = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i;
 
 /** Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES. */
 const types = {
@@ -101,6 +103,18 @@ async function loadAccount() {
   try { return normalizeAccount(JSON.parse(await readFile(accountFile, 'utf8'))); } catch { return normalizeAccount(null); }
 }
 
+/** A raiz do disco ou uma pasta do sistema operacional? Não serve como pasta de projetos (a API lista e grava *.json nela). */
+function isSystemFolder(folder) {
+  const win = process.platform === 'win32';
+  const norm = (p) => (win ? resolve(p).toLowerCase() : resolve(p)).replace(/[\\/]+$/, '');
+  const f = norm(folder);
+  if (f === norm(parse(folder).root)) return true;
+  const blocked = win
+    ? [process.env.SystemRoot, process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.ProgramData].filter(Boolean)
+    : ['/etc', '/usr', '/bin', '/sbin', '/lib', '/lib64', '/var', '/boot', '/sys', '/proc', '/dev', '/System', '/Library', '/private', '/opt'];
+  return blocked.some((b) => f === norm(b) || f.startsWith(norm(b) + sep));
+}
+
 /** Expande `~/` para a pasta pessoal do usuário, mantendo o restante do caminho. */
 const expandHome = (p) => (p === '~' || p.startsWith('~/') || p.startsWith('~\\') ? join(homedir(), p.slice(1)) : p);
 
@@ -112,6 +126,7 @@ async function useFolder(input) {
   const raw = expandHome(String(input || '').trim());
   if (!raw || !isAbsolute(raw)) throw httpError(400, 'Use um caminho completo para a pasta onde deseja salvar.');
   const folder = resolve(raw);
+  if (isSystemFolder(folder)) throw httpError(400, 'Esta pasta é do sistema. Escolha uma pasta sua, por exemplo dentro de Documentos.');
   await mkdir(folder, { recursive: true });
   const probe = join(folder, `.teste-escrita-${process.pid}`);
   await writeFile(probe, 'ok');
@@ -164,6 +179,13 @@ async function readBody(req, max = MAX_JSON) {
   }
   return Buffer.concat(chunks).toString('utf8');
 }
+/** Lê o corpo como JSON e exige um OBJETO (null, lista ou texto solto viram 400 em vez de TypeError lá na frente). */
+async function jsonObject(req, max) {
+  const text = await readBody(req, max);
+  const value = JSON.parse(text || '{}'); // SyntaxError vira 400 "JSON inválido." no tratador central
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw httpError(400, 'Envie um objeto JSON.');
+  return value;
+}
 /** O Host do pedido é esta máquina? (protege contra DNS rebinding) */
 const localHost = (host = '') => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(host);
 /** A página que fez o pedido (Origin) é ESTE servidor (mesma porta)? Outra porta de localhost é outro programa e é recusada. Pedidos sem Origin (curl, MCP stdio, testes) são aceitos; as escritas de navegador sempre enviam Origin, e GET/HEAD não alteram nada. */
@@ -180,7 +202,7 @@ const thumbPath = (name) => join(config.folder, '.miniaturas', name.replace(/\.j
 const MAX_THUMB = 3 * 1024 * 1024;
 /** Valida o nome vindo da URL. */
 function checkName(name) {
-  if (!FILE_RE.test(name) || name.includes('..')) throw httpError(400, 'Nome de arquivo inválido.');
+  if (!FILE_RE.test(name) || name.includes('..') || RESERVED_RE.test(name)) throw httpError(400, 'Nome de arquivo inválido.');
   return name;
 }
 
@@ -248,7 +270,7 @@ async function api(req, res, path) {
   if (parts[0] === 'status' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, { ok: true, ...publicConfig() });
 
   if (parts[0] === 'config' && parts.length === 1 && req.method === 'PUT') {
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const body = await jsonObject(req);
     const next = { ...config };
     if (body.folder !== undefined) next.folder = await useFolder(body.folder);
     if (body.keepVersions !== undefined) next.keepVersions = Math.max(0, Math.min(200, Math.round(Number(body.keepVersions) || 0)));
@@ -260,7 +282,7 @@ async function api(req, res, path) {
   // CONTA LOCAL: GET devolve o perfil; PUT mescla os campos enviados (validados em server/account.js)
   if (parts[0] === 'account' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await loadAccount());
   if (parts[0] === 'account' && parts.length === 1 && req.method === 'PUT') {
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const body = await jsonObject(req);
     let next;
     try { next = mergeAccount(await loadAccount(), body); } catch (err) { throw httpError(400, err.message); }
     await writeJsonAtomic(accountFile, next);
@@ -346,7 +368,7 @@ async function api(req, res, path) {
       return res.end(data);
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'PUT') {
-      const { svg } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
+      const { svg } = await jsonObject(req, MAX_MEDIUM);
       if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) throw httpError(400, 'Miniatura inválida.');
       if (svg.length > MAX_THUMB) throw httpError(413, 'Miniatura grande demais.');
       await stat(projectPath(name)); // só aceita miniatura de projeto que existe (senão: 404)
@@ -355,7 +377,7 @@ async function api(req, res, path) {
       return sendJson(res, 200, { ok: true });
     }
     if (parts[2] === 'rename' && parts.length === 3 && req.method === 'POST') {
-      const { to } = JSON.parse((await readBody(req)) || '{}');
+      const { to } = await jsonObject(req);
       const target = checkName(String(to || ''));
       if (target === name) return sendJson(res, 200, { ok: true, file: name });
       await stat(projectPath(name)); // origem precisa existir (senão: 404)
@@ -396,6 +418,9 @@ const callEditor = (tool, args, client, signal, editorId = '') => editorBridge.c
  * camada a reserva por alguns segundos para aquela sessão; outro agente que tentar mexer nela recebe um aviso.
  */
 const presence = createPresence();
+/** Tetos de conexões simultâneas (um editor local usa 1–3; sem teto, um laço de pedidos cresceria sem fim). */
+const MAX_MCP_SESSIONS = 64;
+const MAX_EDITORS = 32;
 /** Sessões MCP: identidade e chamadas em voo, para o DELETE não soltar travas antes do fim de uma edição. */
 const mcpSessions = new Map();
 /** Chamadas JSON-RPC ativas, indexadas por sessão e id para notifications/cancelled. */
@@ -499,6 +524,9 @@ async function mcpRoute(req, res) {
   if (!sid && isInit) sid = randomUUID();
   if (!sid) sid = 'mcp-sem-sessao'; // programas antigos que não guardam a sessão dividem esta
   if (!isInit && requestSid && !mcpSessions.has(requestSid)) { res.writeHead(404).end(); return; }
+  if (!mcpSessions.has(sid) && mcpSessions.size >= MAX_MCP_SESSIONS) {
+    return sendJson(res, 429, { error: `Há ${MAX_MCP_SESSIONS} sessões MCP abertas. Feche alguma (DELETE /mcp com Mcp-Session-Id) ou aguarde 10 min sem uso.` });
+  }
   const session = mcpSessions.get(sid) || { activeCalls: 0, closing: false, lastSeen: Date.now() };
   session.lastSeen = Date.now();
   mcpSessions.set(sid, session);
@@ -722,13 +750,14 @@ const PING_TOOL = { type: 'function', function: { name: 'ping', description: 'Re
 async function agentApi(req, res, parts) {
   const [what] = parts;
   if (what === 'events' && req.method === 'GET') {
+    if (editors.size >= MAX_EDITORS) return sendJson(res, 429, { error: 'Editores conectados demais.' });
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
     res.write(': conectado\n\n');
     editors.add(res);
     // a aba diz quem é (nome e cor do perfil): aparece na presença para os outros
     const q = new URL(req.url, 'http://x').searchParams;
     const personId = String(q.get('id') || randomUUID()).slice(0, 60);
-    const personName = q.get('user') || 'Pessoa';
+    const personName = String(q.get('user') || 'Pessoa').slice(0, 40);
     editorSessions.set(res, { id: personId, name: personName });
     presence.addPerson(personId, personName, q.get('color'));
     broadcastPresence();
@@ -745,7 +774,7 @@ async function agentApi(req, res, parts) {
     return;
   }
   if (what === 'reply' && req.method === 'POST') {
-    const { id, result } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
+    const { id, result } = await jsonObject(req, MAX_MEDIUM);
     if (!editorBridge.reply(String(id), result)) return sendJson(res, 410, { ok: false, error: 'A chamada MCP já foi encerrada.' });
     return sendJson(res, 200, { ok: true });
   }
@@ -764,7 +793,7 @@ async function agentApi(req, res, parts) {
     });
   }
   if (what === 'config' && req.method === 'PUT') {
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const body = await jsonObject(req);
     const next = { ...(config.agent || {}), keys: { ...(config.agent?.keys || {}) } };
     if (body.baseUrl !== undefined) {
       const u = String(body.baseUrl).trim().replace(/\/+$/, '');
@@ -807,7 +836,7 @@ async function agentApi(req, res, parts) {
   if (what === 'mcp' && req.method === 'PUT') {
     // { admin: boolean } — "Acesso de administrador" do MCP: programas de IA DESTE computador agem sem a janela de
     // permissão e podem abrir/salvar/criar projetos. O /mcp continua aceitando só pedidos desta máquina.
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const body = await jsonObject(req);
     const next = { ...(config.mcp || {}) };
     if (body.admin !== undefined) next.admin = !!body.admin;
     config = { ...config, mcp: next };
@@ -829,7 +858,7 @@ async function agentApi(req, res, parts) {
     return sendJson(res, 200, { models: ids });
   }
   if (what === 'chat' && req.method === 'POST') {
-    const { messages, tools, model: wanted, memory, subagent } = JSON.parse((await readBody(req, MAX_MEDIUM)) || '{}');
+    const { messages, tools, model: wanted, memory, subagent } = await jsonObject(req, MAX_MEDIUM);
     if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
     const a = agentConfig();
     if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Chaves de API.`);
@@ -882,7 +911,7 @@ async function agentApi(req, res, parts) {
   if (what === 'test' && req.method === 'POST') {
     // TESTAR MODELO: pede para chamar uma ferramenta "ping" e mede o tempo até o 1º pedaço. O resultado fica guardado
     // (config.agent.tested) para marcar na lista de modelos quais funcionaram.
-    const body = JSON.parse((await readBody(req)) || '{}');
+    const body = await jsonObject(req);
     const a = agentConfig();
     if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Salve a chave de ${a.provider?.name || 'API'} antes.`);
     const model = typeof body.model === 'string' && /^[\w.:/@+-]{1,120}$/.test(body.model.trim()) ? body.model.trim() : a.model;
@@ -912,7 +941,7 @@ async function agentApi(req, res, parts) {
   }
   if (what === 'jev' && req.method === 'POST') {
     // JEV: o servidor chama a API da TypeSafe com a chave guardada aqui; o navegador só vê a resposta
-    const { tool, args } = JSON.parse((await readBody(req)) || '{}');
+    const { tool, args } = await jsonObject(req);
     const j = jevConfig();
     if (!j.apiKey) throw httpError(400, 'O Jev não está configurado: coloque a chave em Configurações → Chaves de API (ou a variável JEV_API_KEY).');
     if (!isJevTool(tool)) throw httpError(400, `Ferramenta do Jev desconhecida: ${tool}.`);
@@ -980,7 +1009,7 @@ createServer(async (req, res) => {
     if (!notFound) console.error(err);
     if (isApi) {
       const denied = err.code === 'EACCES' || err.code === 'EPERM' || err.code === 'EROFS';
-      const msg = notFound ? 'Não encontrado.' : denied ? 'Sem permissão para usar esta pasta.' : `Erro interno (${err.code || err.message}).`;
+      const msg = notFound ? 'Não encontrado.' : denied ? 'Sem permissão para usar esta pasta.' : 'Erro interno. Veja o terminal do servidor para o detalhe.';
       return sendJson(res, notFound ? 404 : denied ? 403 : 500, { error: msg });
     }
     res.writeHead(notFound ? 404 : 500).end(notFound ? 'Not found' : 'Internal error');
