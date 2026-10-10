@@ -4,7 +4,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  A aba Código do painel direito é estreita demais para escrever. "Editar" (ou Ctrl+Shift+E) abre este painel:
  *   - fica EMBAIXO do canvas; arrastar a borda de cima muda a altura (lembrada nas preferências);
- *   - maximizar (botão ou F11 dentro do editor) ocupa a janela toda; Esc volta;
+ *   - maximizar (botão ou Ctrl+Shift+M dentro do editor) ocupa a janela toda; Esc volta; F11 NÃO é usado (o navegador o reserva);
  *   - abas: "CSS da camada" (declarações da camada selecionada, ver cssedit.js), "CSS da página"
  *     (doc.styles.pageCss) e "HTML" (camada "Código HTML", limpo por html.js → sanitizeHtml);
  *   - AO VIVO: enquanto digita, o canvas mostra o resultado (com atraso curto), sem entrar no histórico.
@@ -302,7 +302,7 @@ export function createCodeDock({ store, commands, toast, prefs, savePrefs }) {
     max = on;
     el.classList.toggle('max', max);
     maxBtn.replaceChildren(ico(max ? 'minimize' : 'maximize', 14));
-    maxBtn.title = max ? 'Restaurar (F11 ou Esc)' : 'Tela cheia (F11)';
+    maxBtn.title = max ? 'Restaurar (Ctrl+Shift+M ou Esc)' : 'Tela cheia (Ctrl+Shift+M)';
     maxBtn.setAttribute('aria-label', max ? 'Restaurar o tamanho' : 'Tela cheia');
     maxBtn.setAttribute('aria-pressed', String(max));
     sessions[tab].editor?.refresh();
@@ -339,9 +339,9 @@ export function createCodeDock({ store, commands, toast, prefs, savePrefs }) {
     return true;
   }
 
-  // teclas do editor grande: F11 tela cheia, Esc sai da tela cheia (as do código ficam no codeeditor.js)
+  // teclas do editor grande: Ctrl+Shift+M tela cheia (F11 é reservado pelo navegador), Esc sai da tela cheia (as do código ficam no codeeditor.js)
   el.addEventListener('keydown', (e) => {
-    if (e.key === 'F11') { e.preventDefault(); e.stopPropagation(); setMax(!max); return; }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === 'KeyM') { e.preventDefault(); e.stopPropagation(); setMax(!max); return; }
     if (e.key === 'Escape' && max && !e.defaultPrevented) { e.preventDefault(); e.stopPropagation(); setMax(false); }
   });
 

@@ -2134,7 +2134,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 ```text
  A aba Código do painel direito é estreita demais para escrever. "Editar" (ou Ctrl+Shift+E) abre este painel:
   - fica EMBAIXO do canvas; arrastar a borda de cima muda a altura (lembrada nas preferências);
-  - maximizar (botão ou F11 dentro do editor) ocupa a janela toda; Esc volta;
+  - maximizar (botão ou Ctrl+Shift+M dentro do editor) ocupa a janela toda; Esc volta; F11 NÃO é usado (o navegador o reserva);
   - abas: "CSS da camada" (declarações da camada selecionada, ver cssedit.js), "CSS da página"
     (doc.styles.pageCss) e "HTML" (camada "Código HTML", limpo por html.js → sanitizeHtml);
   - AO VIVO: enquanto digita, o canvas mostra o resultado (com atraso curto), sem entrar no histórico.

@@ -95,7 +95,7 @@ As prioridades foram decididas com ajuda do [Jev](https://typesafe.ai) (decisõe
 ### Interface
 - [ ] Revisar as telas novas no tema claro — [#15](https://github.com/Kaykygnb/StyloDesigner/issues/15)
 - [ ] Menus sem caixa alta e limpeza do CSS antigo — [#4](https://github.com/Kaykygnb/StyloDesigner/issues/4)
-- [ ] F11 do editor de código sem conflitar com o navegador — [#14](https://github.com/Kaykygnb/StyloDesigner/issues/14)
+- [x] Tela cheia do editor de código agora é Ctrl+Shift+M (F11 é do navegador) — [#14](https://github.com/Kaykygnb/StyloDesigner/issues/14)
 - [ ] Interface em inglês (i18n) — [#12](https://github.com/Kaykygnb/StyloDesigner/issues/12)
 
 ### Colaboração

@@ -1,5 +1,5 @@
 // Editor de código GRANDE (embaixo do canvas / tela cheia) e AUTOCOMPLETAR, simulando a pessoa digitando:
-// abrir pelo "Editar" e por Ctrl+Shift+E, arrastar a borda (altura lembrada), tela cheia (F11/Esc), pré-visualização
+// abrir pelo "Editar" e por Ctrl+Shift+E, arrastar a borda (altura lembrada), tela cheia (Ctrl+Shift+M/Esc), pré-visualização
 // ao vivo no canvas, sugestões de CSS (propriedades, valores, unidades, var(), seletores, @media dos breakpoints),
 // HTML (etiquetas, atributos, fechamento automático) e Emmet com Tab. Com CAPTURAS=<pasta>, salva capturas 1440×900.
 import { chromium } from 'playwright';
@@ -143,12 +143,15 @@ try {
   ok('arrastar a borda aumenta a altura', Math.abs(h2 - (geo.dockH + 120)) < 6, `${geo.dockH} → ${h2}`);
   ok('altura lembrada nas preferências', await ev(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => /pref/i.test(k))) || '{}').codeDockH) === Math.round(h2));
 
-  // ---- tela cheia (botão / F11) e Esc
+  // ---- tela cheia (botão / Ctrl+Shift+M) e Esc; F11 não maximiza mais o editor (o navegador o reserva, issue #14)
   await page.locator('.code-dock .ce-input:visible').click();
   await kb.press('F11');
   await page.waitForTimeout(150);
+  ok('F11 não maximiza o editor', await ev(() => { const r = document.querySelector('.code-dock').getBoundingClientRect(); return !(r.width === innerWidth && r.height === innerHeight); }));
+  await kb.press('Control+Shift+M');
+  await page.waitForTimeout(150);
   const full = await ev(() => { const r = document.querySelector('.code-dock').getBoundingClientRect(); return r.width === innerWidth && r.height === innerHeight; });
-  ok('F11 deixa em tela cheia', full);
+  ok('Ctrl+Shift+M deixa em tela cheia', full);
   await shot('02-editor-tela-cheia');
   await kb.press('Escape');
   await page.waitForTimeout(100);
