@@ -27,7 +27,6 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      # o teste da referência confere docs/REFERENCIA.md: se falhar, rode `npm run docs` e faça commit
       - run: npm test
 
   navegador:

@@ -607,10 +607,10 @@ const jevConfig = () => {
   return { apiKey, url: local || process.env.JEV_API_URL || JEV_URL, source: config.jev?.apiKey ? 'config' : process.env.JEV_API_KEY ? 'env' : '' };
 };
 /**
- * Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo docs/AGENTE.md, lido a cada
+ * Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo server/instrucoes-agente.txt, lido a cada
  * conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
  */
-const agentInstructions = () => readFile(join(root, 'docs', 'AGENTE.md'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
+const agentInstructions = () => readFile(join(root, 'server', 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
 /** Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave). */
 const authHeader = (a) => (a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {});
 
@@ -738,7 +738,7 @@ const PING_TOOL = { type: 'function', function: { name: 'ping', description: 'Re
  *   GET  /api/agent/config   → { baseUrl, model, hasKey, editors } (a chave NUNCA é devolvida)
  *   PUT  /api/agent/config   { apiKey?, model?, baseUrl? } → grava (apiKey "" apaga a chave)
  *   POST /api/agent/chat     { messages, tools, model?, memory?, subagent? } → repassa à API de chat (OpenAI, NVIDIA NIM,
- *                            Ollama...) com a SUA chave e as instruções de docs/AGENTE.md, em STREAMING: responde NDJSON
+ *                            Ollama...) com a SUA chave e as instruções de server/instrucoes-agente.txt, em STREAMING: responde NDJSON
  *                            (um JSON por linha): {type:"start"} · {type:"reasoning", text} · {type:"text", text} ·
  *                            {type:"done", message, model, firstTokenMs, totalMs} · {type:"error", error, code}.
  *                            Fechar a conexão (botão Parar) aborta o pedido à API na hora.
@@ -783,7 +783,7 @@ async function agentApi(req, res, parts) {
     // caminho do script stdio e endereço HTTP do MCP: a janela de Configurações mostra os comandos prontos para copiar
     return sendJson(res, 200, {
       baseUrl: a.baseUrl, model: a.model, provider: a.provider?.id || 'custom', hasKey: !!a.apiKey, needsKey: !a.apiKey && !isLocalUrl(a.baseUrl),
-      editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'docs', 'AGENTE.md'),
+      editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'server', 'instrucoes-agente.txt'),
       mcpAdmin: !!config.mcp?.admin, pluginDir: join(root, 'integrations', 'claude-code'),
       firstTokenSec: a.firstTokenSec, maxThinkSec: a.maxThinkSec, maxTokens: a.maxTokens, limitReasoning: a.limitReasoning,
       tested: config.agent?.tested || {},
@@ -862,7 +862,7 @@ async function agentApi(req, res, parts) {
     if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
     const a = agentConfig();
     if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Chaves de API.`);
-    // as instruções (docs/AGENTE.md) entram aqui, no servidor: sempre as mais novas, e o navegador não consegue trocá-las
+    // as instruções (server/instrucoes-agente.txt) entram aqui, no servidor: sempre as mais novas, e o navegador não consegue trocá-las
     // memória do projeto (notas que o agente guardou com "remember" ou que você escreveu): vai junto das instruções
     const notes = Array.isArray(memory) ? memory.map((m) => String(m).slice(0, 500)).slice(0, 60) : [];
     const memoryText = notes.length

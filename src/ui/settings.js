@@ -452,7 +452,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
     return [
       sectionEl('ai',
         card('Provedor e modelo', 'O Agente (botão ✦ no topo) conversa com a IA usando a sua chave.',
-          `O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ${ai.instructions || 'docs/AGENTE.md'}. Edite à vontade: vale na próxima mensagem.`,
+          `O que a IA sabe sobre a ferramenta e como ela deve trabalhar está no arquivo ${ai.instructions || 'server/instrucoes-agente.txt'}. Edite à vontade: vale na próxima mensagem.`,
           row('Provedor', null, h('div.field.select-wrap', provSel, ico('chevron', 12))),
           row('Modelo', 'Precisa aceitar ferramentas (tool calling)', h('div.field.grow', model), listBtn, testBtn),
           picker,
@@ -522,7 +522,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
           cmd('', '/plugin install projeto-designer@projeto-designer'),
           cmd('Claude Code (sem plugin)', `claude mcp add --transport http designer ${ai.mcpUrl}`),
           cmd('Codex / Claude Desktop', `node "${ai.mcpScript}"`),
-          h('p.sp-muted.small', 'Guia completo (Claude, Codex/GPT e ChatGPT): ', h('code', 'docs/MCP.md'), '. No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
+          h('p.sp-muted.small', 'Guia completo (Claude, Codex/GPT e ChatGPT): ', h('code', 'contexto.md'), '. No Codex: em ', h('code', '~/.codex/config.toml'), ' crie ', h('code', '[mcp_servers.designer]'), ' com ', h('code', 'command = "node"'), ' e ',
             h('code', `args = ["${ai.mcpScript.replace(/\\/g, '\\\\')}"]`), '. No Claude Desktop: Configurações → Desenvolvedor → Editar configuração, em ', h('code', 'mcpServers'), '.'))));
   }
 

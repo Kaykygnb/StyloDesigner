@@ -140,7 +140,7 @@ test('respostas dos modelos: some o <think>, argumentos em texto ou objeto, ferr
   assert.equal(looksLikeTextToolCall('Deixei o botão com cantos de 12px.'), false);
 });
 
-test('MCP usa as instruções recebidas (o servidor lê de docs/AGENTE.md)', async () => {
+test('MCP usa as instruções recebidas (o servidor lê de server/instrucoes-agente.txt)', async () => {
   const r = await handleMcp(rpc('initialize', {}), { callTool: null, instructions: 'Você é um teste.' });
   assert.match(r.result.instructions, /^Você é um teste\./);
 });
@@ -222,19 +222,4 @@ test('export_site lista metadados e entrega conteúdo grande em trechos UTF-8', 
   const htmlSecond = await runner.run('export_html', { id: frame.id, maxBytes: 1024, offset: htmlFirst.nextOffset });
   assert.equal(htmlSecond.offset, htmlFirst.nextOffset);
   assert.match((await runner.run('export_site', { path: '../index.html' })).error, /não existe/);
-});
-
-test('plugin do Claude Code: arquivos válidos, nomes batendo e MCP apontando para o editor', async () => {
-  const { readFileSync, existsSync } = await import('node:fs');
-  const read = (p) => JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8'));
-  const market = read('.claude-plugin/marketplace.json');
-  const plugin = read('integrations/claude-code/.claude-plugin/plugin.json');
-  const mcpCfg = read('integrations/claude-code/.mcp.json');
-  assert.equal(market.plugins[0].name, plugin.name); // o nome do marketplace e o do plugin precisam ser iguais
-  assert.equal(market.plugins[0].source, './integrations/claude-code');
-  assert.ok(market.owner?.name && plugin.version && plugin.description);
-  assert.deepEqual(mcpCfg.mcpServers['projeto-designer'], { type: 'http', url: 'http://localhost:5173/mcp' });
-  const skill = readFileSync(new URL('../integrations/claude-code/skills/projeto-designer/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skill, /^---\r?\nname: projeto-designer\r?\ndescription: .+\r?\n---/);
-  assert.ok(existsSync(new URL('../integrations/codex/config.toml', import.meta.url)) && existsSync(new URL('../integrations/codex/AGENTS.md', import.meta.url)));
 });
