@@ -14,7 +14,7 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 - [ ] S3 (feita, commit `500659d`): conferir que seu Claude Code e Codex continuam conectando ao MCP (a mudança só recusa `Origin` de outra porta; clientes sem Origin seguem aceitos). Revisar o diff: `git show 500659d -- server.js`.
 - [ ] S4 (feita, commits `636739d` e `ec4a4ec`): revisar o diff de persistência (`git show ec4a4ec --stat`) e testar à mão: editar, fechar a aba, reabrir; trocar de projeto com o servidor desligado (deve avisar e NÃO descartar).
 - [ ] S12: abrir o site exportado num celular real.
-- [ ] S10: escolher o acento e o logo entre 3 opções.
+- [ ] **S10: escolher a paleta (A Âmbar, B Mar, C Lima) e o símbolo (A camadas, B colchete e linhas, C S de blocos).** Capturas do editor real nos dois temas em `docs/screenshots/identidade/marca-*.png`, prancha dos símbolos em `marca-simbolos.png`, contraste medido (tudo passa AA) e a minha recomendação (**A + B**) em `docs/estado/MARCA.md`. Responda, por exemplo, "A + B"; sem resposta eu não aplico a marca.
 - [ ] Firefox/Safari: smoke test se a decisão 1 incluir.
 - [ ] Chaves reais de imagem/Pexels, se quiser testar #5.
 

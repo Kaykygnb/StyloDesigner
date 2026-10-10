@@ -7,11 +7,10 @@ Branch `feat/versao-estavel` (base `feat/auditoria-organizada`). Só commits loc
 
 **Feito e commitado:** S6 runner E2E isolado; S1 classes CSS; S2 breakpoints no `init`; S3 origem exata + limites de corpo; S4 persistência (servidor e navegador); S5 validação de projeto de terceiros; S5b núcleo; S13 (download de imagem #2, nomes reservados, pastas de sistema, limites de sessões, #14 F11, #10 `@media` no canvas); S12 aviso de largura fixa na exportação. Detalhes, commits e provas no `LEDGER.md`.
 
-**Feito e commitado nesta fase:** S7 (tokens) e S8 parte 1 (raios e fontes por script determinístico), com capturas antes/depois em `docs/screenshots/identidade/`.
+**Feito e commitado nesta fase (identidade):** S7 tokens, S8 raios e fontes, S8b limpeza visual, S9 acessibilidade, S10 três direções de marca (aguarda a escolha da pessoa). Capturas em `docs/screenshots/identidade/`.
 
-**Próximos passos (em ordem):** (1) S8 parte 2: remover `.empty-art` brilhante e sombras tingidas de acento, trocar hex soltos por variáveis, tirar `uppercase` do campo hex e dos títulos de menu (#4); (2) S9 acessibilidade (foco em `input/select/textarea`, `aria-label` nos botões de ícone, `prefers-reduced-motion` global, contraste do `--muted` no tema claro); (3) S10 três opções de marca/acento com contraste medido para a pessoa escolher; (4) S10b aplicar a marca e revisar o tema claro (#15); (5) S11 novo projeto-exemplo; (6) Fase 5 de lançamento (CI, SECURITY.md, NOTICE, versionar o formato do projeto, README/CHANGELOG, limpeza de docs).
-- Instável conhecida: `tests/e2e/prototipo.mjs` (foco do modo Apresentar) falha de vez em quando na bateria longa e passa isolada.
-- Processo meu ainda rodando: servidor de teste na porta 5190 (matar ao terminar as capturas).
+**Próximos passos que NÃO dependem da pessoa (fazer nesta ordem):** (1) Fase 5: S19 CI (`.github/workflows/ci.yml`), S20 SECURITY.md, NOTICE, template de PR, `package.json` (`repository`, `bugs`, `homepage`), S21 versionar o formato do projeto (`doc.version`) com migração e teste, S22 limpeza de docs (fundir `GUIA-DO-CODIGO` em `ARQUITETURA`, mover o log de auditoria do ROADMAP para o CHANGELOG, regenerar a referência), S23 README/CHANGELOG/versão; (2) S16 export PNG com `foreignObject`; (3) S15 fotos como `<img>` (#11). **Dependem da pessoa:** S10b (aplicar a marca), S11 (novo projeto-exemplo, depende da marca), testes humanos.
+- Processo meu ainda rodando: servidor de teste na porta 5190 (matar ao terminar).
 
 ## Pendências que dependem da pessoa
 Tudo em `PENDENTE-HUMANO.md`. As que mais pesam: escolher acento/logo (S10); revisar os diffs de S3/S4/S5 (segurança e persistência); testar o MCP com Claude Code/Codex; abrir o site exportado num celular; decidir sobre `url()` externo no CSS livre e no CSS da página (hoje o CSS livre por camada só aceita `data:image` e `#id`; o CSS da página usa o filtro antigo `unsafeCss`).
