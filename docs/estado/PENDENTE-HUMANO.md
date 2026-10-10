@@ -12,7 +12,7 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 
 ## Testes que só você consegue
 - [ ] S3 (feita, commit `500659d`): conferir que seu Claude Code e Codex continuam conectando ao MCP (a mudança só recusa `Origin` de outra porta; clientes sem Origin seguem aceitos). Revisar o diff: `git show 500659d -- server.js`.
-- [ ] S4: revisar o diff quando eu concluir.
+- [ ] S4 (feita, commits `636739d` e `ec4a4ec`): revisar o diff de persistência (`git show ec4a4ec --stat`) e testar à mão: editar, fechar a aba, reabrir; trocar de projeto com o servidor desligado (deve avisar e NÃO descartar).
 - [ ] S12: abrir o site exportado num celular real.
 - [ ] S10: escolher o acento e o logo entre 3 opções.
 - [ ] Firefox/Safari: smoke test se a decisão 1 incluir.
@@ -25,3 +25,6 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 
 ## Codex como subagente (`codex app-server`)
 - [x] (respondido: tem Codex e autorizou o uso) Você tem Codex logado e quer gastar a cota do plano ChatGPT nisso? Padrão: **só depois da Fase 1**, com prova de conceito pequena (esquema → sessão → tarefa trivial numa worktree → medir tokens contra `codex exec`). `codex-cli 0.162.1` instalado; o `app-server` é experimental.
+
+## Plugin oficial do Codex para o Claude Code (`openai/codex-plugin-cc`)
+- [ ] Instalar? Eu não consigo rodar `/plugin` por aqui. São 3 comandos que você digita no Claude Code: `/plugin marketplace add openai/codex-plugin-cc`, `/plugin install codex@openai-codex`, `/reload-plugins`, depois `/codex:setup`. Dá `/codex:review`, `/codex:adversarial-review`, `/codex:rescue` (tarefas em segundo plano com `/codex:status`, `/codex:result`, `/codex:cancel`) e o subagente `codex:codex-rescue`. Apache-2.0, ~34 mil estrelas, usa a mesma cota do Codex. Padrão: **instalar**; meu `scripts/codex-worker.mjs` continua para escolher modelo/sandbox e medir tokens.
