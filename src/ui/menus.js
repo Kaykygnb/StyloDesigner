@@ -278,7 +278,7 @@ const FAQ = [
   ['A rolagem não funciona no editor', 'É de propósito: no canvas o conteúdo aparece cortado. A rolagem e o position: sticky funcionam na apresentação e no HTML exportado.'],
   ['Desfiz algo sem querer', 'Ctrl+Shift+Z refaz. O histórico guarda até 200 passos, e Arquivo → Versões recupera versões salvas.'],
 ];
-const SUPPORT_URL = 'https://github.com/Kaykygnb/projetodesigner2/issues/new';
+const SUPPORT_URL = 'https://github.com/Kaykygnb/StyloDesigner/issues/new';
 
 /** Texto de diagnóstico para colar num pedido de suporte (sem dados do projeto, só o ambiente). */
 function diagnostics(version) {

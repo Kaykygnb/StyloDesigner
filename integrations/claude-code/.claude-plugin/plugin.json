@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "Use o Claude para desenhar no Stylo: MCP com 33 ferramentas (ver o design como imagem, montar páginas inteiras, responsivo, componentes, protótipo, projetos) e um guia de como trabalhar com a ferramenta.",
   "author": { "name": "Kayky Gabriel" },
-  "repository": "https://github.com/Kaykygnb/projetodesigner2",
+  "repository": "https://github.com/Kaykygnb/StyloDesigner",
   "keywords": ["design", "css", "html", "mcp", "figma"]
 }

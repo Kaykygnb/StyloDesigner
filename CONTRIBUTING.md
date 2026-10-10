@@ -18,8 +18,8 @@ Obrigado por querer ajudar! Este guia mostra como rodar o projeto, como escrever
 Você precisa do **Node.js 18+**. Não há dependências para instalar.
 
 ```bash
-git clone https://github.com/Kaykygnb/projetodesigner2.git
-cd projetodesigner2
+git clone https://github.com/Kaykygnb/StyloDesigner.git
+cd StyloDesigner
 npm start        # http://localhost:5173
 npm test         # testes unitários (sem navegador)
 ```

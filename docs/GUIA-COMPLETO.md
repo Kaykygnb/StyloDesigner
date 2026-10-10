@@ -439,7 +439,7 @@ StyloDesigner/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 290 testes
+npm test      # 356 testes
 ```
 
 ### Testes de navegador
@@ -448,7 +448,7 @@ Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimen
 ```bash
 npm install && npx playwright install chromium
 npm start                 # em outro terminal
-npm run test:e2e          # as 41 suítes (mais de 500 verificações); sai com erro se alguma falhar
+npm run test:e2e          # as 43 suítes (mais de 500 verificações); sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](../tests/e2e/README.md).

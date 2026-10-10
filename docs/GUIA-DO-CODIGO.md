@@ -107,13 +107,16 @@ Não achou? Procure o texto que aparece na tela (ex.: "Itens preenchem as célul
 5. **Fiel ao CSS:** se o editor mostra algo, o CSS exportado tem que fazer o mesmo. Nomes no painel = nomes do CSS sempre que possível.
 6. **Comente em português** e explique o *porquê*, não só o *o quê*. Toda função nova ganha um `/** ... */` em cima. É desse comentário que sai a [Referência](REFERENCIA.md).
 7. Projetos salvos por versões antigas precisam continuar abrindo: ao ler um campo novo, use um padrão (`node.campo ?? 'padrão'`).
+8. **Projeto `.json` de terceiros é entrada não confiável.** Ao abrir, ele passa por `sanitizeDoc` (`src/validate.js`), e todo valor de camada que vira CSS ou SVG passa por `isSafeCssValue`, `safeIdent` e `cssUrl` (`src/css.js`). Campo novo que entra em CSS, SVG ou HTML: use esses filtros e escreva um teste com valor hostil (veja `tests/validacao*.test.js`).
+9. **Mudança incompatível no formato do projeto:** suba `FORMAT_VERSION` em `src/model.js` e escreva a migração em `src/validate.js`; projeto de versão mais nova abre com aviso, nunca é rebaixado em silêncio.
+10. **Agentes e pessoas que continuam o trabalho:** leia `CLAUDE.md` e `docs/estado/RETOMADA.md` (estado exato, decisões e próximos passos) antes de editar.
 
 ## 7. Testes
 
 | Comando | O que roda | Tempo |
 |---|---|---|
 | `npm test` | Testes rápidos no Node (`tests/*.test.js`): CSS gerado, modelo, servidor, importação de SVG… e confere se a Referência está em dia | segundos |
-| `npm run test:e2e` | Abre o app num navegador de verdade e usa como uma pessoa (`tests/e2e/*.mjs`). Precisa do `npm start` rodando em outro terminal | alguns minutos |
+| `npm run test:e2e` | Abre o app num navegador de verdade e usa como uma pessoa (`tests/e2e/*.mjs`). Sobe sozinho um servidor isolado (porta livre, pasta de projetos temporária: não toca nos seus projetos) e limita cada suíte a 4 min. `npm run test:e2e -- texto` roda só as suítes cujo nome contém o texto | alguns minutos |
 | `npm run test:all` | Os dois | |
 
 Cada suíte do navegador está descrita em [`tests/e2e/README.md`](../tests/e2e/README.md). Corrigiu um bug? Acrescente uma verificação que falharia antes da correção.

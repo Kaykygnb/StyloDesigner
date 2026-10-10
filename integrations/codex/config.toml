@@ -5,6 +5,6 @@
 
 [mcp_servers.projeto-designer]
 command = "node"
-args = ["E:/trabalho/projetodesigner2/scripts/mcp.mjs"]
+args = ["<CAMINHO-DA-PASTA-DO-STYLO>/scripts/mcp.mjs"]  # troque pelo caminho completo da pasta onde você clonou o projeto, com barras normais (/)
 # o editor pode demorar enquanto você decide na janela de permissão: dê tempo de sobra
 tool_timeout_sec = 200
