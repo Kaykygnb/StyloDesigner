@@ -140,8 +140,8 @@ Em **Configurações** (engrenagem no topo ou `Ctrl+,`) você escolhe a **pasta*
 ### Rodando
 
 ```bash
-git clone https://github.com/Kaykygnb/projetodesigner2.git
-cd projetodesigner2
+git clone https://github.com/Kaykygnb/StyloDesigner.git
+cd StyloDesigner
 npm start
 ```
 
@@ -158,7 +158,7 @@ python3 -m http.server 8000     # depois abra http://localhost:8000
 Só que, **sem o `server.js`, não existe pasta**: o projeto fica apenas no navegador, e `Ctrl+S` baixa um arquivo `.json`. O app avisa isso em Configurações.
 
 ### Publicar como site (GitHub Pages)
-Como o app é estático, dá para hospedar de graça: no GitHub, **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**. O app abre em `https://SEU-USUARIO.github.io/projetodesigner2/`. Lá ele funciona como em "Sem Node": salva só no navegador e baixa `.json` (o GitHub Pages não roda o `server.js`).
+Como o app é estático, dá para hospedar de graça: no GitHub, **Settings → Pages → Deploy from a branch → `main` / `/ (root)`**. O app abre em `https://SEU-USUARIO.github.io/StyloDesigner/`. Lá ele funciona como em "Sem Node": salva só no navegador e baixa `.json` (o GitHub Pages não roda o `server.js`).
 
 ### Onde meu trabalho fica salvo?
 
@@ -275,7 +275,7 @@ Um roteiro de 5 minutos para sentir o app. (Dica: a **Vitrine completa**, o proj
 | Ícones | Aba **Ícones**: Material Symbols do Google (licença Apache 2.0, uso livre, inclusive comercial), inseridos como vetor. |
 
 ### Protótipo
-Gatilhos **ao clicar** e **ao passar o mouse**; ações **navegar para**, **voltar** e **abrir link**; transições **instantâneo, dissolver e deslizar** (4 direções); ponto de partida do fluxo; setas no canvas; **Apresentar** em tela cheia (`Ctrl+Alt+Enter`; `Esc` sai, `R` reinicia).
+Gatilhos **ao clicar** e **ao passar o mouse**; ações **navegar para**, **voltar** e **abrir link**; transições **instantâneo, dissolver e deslizar** (4 direções); ponto de partida do fluxo; setas no canvas; **Apresentar** em tela cheia (`Ctrl+Alt+Enter`; `Esc` sai, `R` reinicia). Na apresentação, use as abas para trocar de tela e arraste-as para mudar a ordem só durante a sessão; setas do teclado navegam pelas abas e `Ctrl`/`⌘` + setas reordenam. O editor por trás fica inerte, o foco volta ao botão de apresentação ao sair e animações respeitam movimento reduzido do sistema.
 
 ### Código e exportação
 | Saída | Como | Observação |
@@ -375,7 +375,7 @@ Quer ler ou mexer no código? Comece pelo **[Guia do código](GUIA-DO-CODIGO.md)
 ## 8. Estrutura do repositório
 
 ```
-projetodesigner2/
+StyloDesigner/
 ├── index.html              Página única: só o "esqueleto" (o app é montado por src/main.js)
 ├── server.js               Servidor local (sem dependências): entrega o app e grava os projetos na pasta (API /api)
 ├── package.json            Scripts: `npm start`, `npm test`, `npm run test:e2e`, `npm run test:all`, `npm run docs`
@@ -439,7 +439,7 @@ projetodesigner2/
 Cobrem a lógica pura (geração de CSS, modelo, constraints, componentes e instâncias, estilos, SVG, vetores, medidas, exemplos) e o servidor (entrega de arquivos e a API de salvamento, numa pasta temporária).
 
 ```bash
-npm test      # 168 testes
+npm test      # 290 testes
 ```
 
 ### Testes de navegador
@@ -448,7 +448,7 @@ Abrem o app de verdade e simulam o uso: desenhar, arrastar entre frames, redimen
 ```bash
 npm install && npx playwright install chromium
 npm start                 # em outro terminal
-npm run test:e2e          # as 22 suítes (≈ 460 verificações); sai com erro se alguma falhar
+npm run test:e2e          # as 41 suítes (mais de 500 verificações); sai com erro se alguma falhar
 ```
 
 Detalhes e variáveis de ambiente em [`tests/e2e/README.md`](../tests/e2e/README.md).

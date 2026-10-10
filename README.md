@@ -6,9 +6,9 @@
 
 ![Stylo: o editor com o projeto base aberto](docs/screenshots/01-visao-geral.png)
 
-> **Em uma frase:** desenhe um site, troque para Tablet e Celular, crie o modo escuro, e exporte o HTML e o CSS prontos para publicar.
+> **Em uma frase:** desenhe as páginas de um site, teste Tablet e Celular, crie o modo escuro e exporte o pacote HTML pronto para publicar.
 
-`v1.0.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 169 testes unitários + 28 suítes de navegador
+`v1.0.0` · JavaScript puro (módulos ES) · sem dependências para rodar · 290 testes unitários + 41 suítes de navegador
 
 ---
 
@@ -19,6 +19,7 @@ Ferramentas de design desenham *imagens* de interface; depois alguém reescreve 
 - **O canvas é o navegador.** Cada camada é um `<div>` real. Margem, sombra, flexbox, grade e `@media` funcionam do jeito que funcionam na web, porque são a web.
 - **Cada campo tem o nome do CSS.** `gap`, `padding`, `justify-content`, `mix-blend-mode`, `border-radius`... usar o painel ensina CSS sem você perceber, e o código exportado bate com o que está escrito ali.
 - **Do desenho ao site.** Etiquetas HTML semânticas (`header`, `nav`, `h1`, `a`, `button`), responsividade com `@media`, modo escuro com variáveis de CSS, estados `:hover` e `:focus-visible`: tudo sai no HTML e no CSS exportados.
+- **Site com várias páginas.** `Arquivo → Exportar site completo (.zip)` gera um HTML por prancheta visível; a primeira vira `index.html`. CSS e imagens ficam embutidos; fontes do Google dependem de rede. Links `.html` locais são conferidos e problemas aparecem como avisos. É HTML estático, sem execução de JavaScript arbitrário.
 - **Seu, no seu computador.** Os projetos são arquivos `.json` numa pasta sua (dá para pôr no Google Drive ou Dropbox), com versões antigas guardadas. Sem login, sem nuvem.
 
 ---
@@ -81,8 +82,8 @@ O app abre com a **Vitrine completa**: uma landing page responsiva (a fictícia 
 Você precisa do **Node.js 18+** e de um navegador atual. Para usar o app não há nada para instalar.
 
 ```bash
-git clone https://github.com/Kaykygnb/projetodesigner2.git
-cd projetodesigner2
+git clone https://github.com/Kaykygnb/StyloDesigner.git
+cd StyloDesigner
 npm start
 ```
 
@@ -111,7 +112,7 @@ Abra **http://localhost:5173**. O app abre com a Vitrine completa: clique em uma
 
 ## O que há de novo no Stylo 1.0
 
-- **Apresentar = navegador de verdade.** O design roda como site (HTML/CSS exportado num iframe): rolagem, :hover, sticky e @media funcionam. Barra com voltar/avançar, endereço com a lista de telas e larguras 1440 a 390.
+- **Apresentar = navegador de verdade.** O design roda como site (HTML/CSS exportado num iframe): rolagem, :hover, sticky e @media funcionam. A barra inclui abas de telas que você pode reordenar por arrasto durante a apresentação, além de voltar/avançar e larguras 1440 a 390. A ordem original do projeto fica intacta; foco e movimento reduzido seguem as preferências do sistema.
 - **Breakpoints do projeto.** Desktop é a base; adicione Laptop 1280, Tablet 1024, Tablet retrato 768, Celular 640, Celular pequeno 380 ou um personalizado pelo menu ao lado da barra de larguras.
 - **Aba do Agente.** Conversas por projeto que continuam de onde pararam, troca de modelo por conversa e memória do projeto ("lembre que títulos usam 52px").
 - **Vários agentes ao mesmo tempo.** Cada conexão MCP tem nome próprio; quem altera uma camada a reserva por 10 s. Os avatares no topo mostram pessoas e agentes no projeto e o que cada um fez.
@@ -137,12 +138,12 @@ As chaves também podem vir das variáveis de ambiente `OPENAI_API_KEY` e `NVIDI
 
 | Programa | Como ligar |
 |---|---|
-| **Claude Code (plugin)** | `/plugin marketplace add Kaykygnb/projetodesigner2` e `/plugin install projeto-designer@projeto-designer`: MCP já configurado + o guia de trabalho (skill) |
+| **Claude Code (plugin)** | `/plugin marketplace add Kaykygnb/StyloDesigner` e `/plugin install projeto-designer@projeto-designer`: MCP já configurado + o guia de trabalho (skill) |
 | Claude Code (sem plugin) | `claude mcp add --transport http designer http://localhost:5173/mcp` |
 | **Codex (GPT)** | copie [`integrations/codex/config.toml`](integrations/codex/config.toml) para `~/.codex/config.toml` e [`integrations/codex/AGENTS.md`](integrations/codex/AGENTS.md) para `~/.codex/AGENTS.md` |
 | Claude Desktop | Configurações → Desenvolvedor → Editar configuração → em `mcpServers`: `"designer": { "command": "node", "args": ["/caminho/do/projeto/scripts/mcp.mjs"] }` |
 
-A IA tem 35 ferramentas (guia completo em [`docs/MCP.md`](docs/MCP.md)): ler o projeto, uma camada, o código (HTML/CSS), a seleção; procurar camadas, ícones do Google e fontes; **montar uma página inteira de uma vez** (`build_layout`); criar a paleta (estilos de cor); inserir ícones; alterar/criar/apagar/mover camadas; criar e abrir páginas; **ver a tela como imagem** (`get_image`); responsivo (`@media`), hover/foco, componentes, protótipo e comentários; desfazer/refazer; e, com o **Acesso de administrador**, abrir, salvar e criar projetos sem perguntar. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta: veja [`integrations/chatgpt/README.md`](integrations/chatgpt/README.md).
+A IA usa 41 ferramentas de design; no MCP há mais `list_editors` e `select_editor` para escolher explicitamente qual aba controla (guia completo em [`docs/MCP.md`](docs/MCP.md)). As ferramentas de design leem projeto, camada, código (HTML/CSS) e seleção; procuram camadas, ícones do Google e fontes; **montam uma página inteira de uma vez** (`build_layout`); criam paletas e inserem ícones; alteram/criam/apagam/movem camadas; criam e abrem páginas; **veem a tela como imagem** (`get_image`); definem responsividade (`@media`), hover/foco, componentes, protótipo e comentários; desfazem/refazem; e, com o **Acesso de administrador**, abrem, salvam e criam projetos sem perguntar. Peça direto, sem selecionar nada: *"faça uma página de pizzaria com cardápio e contato"*. **Cada alteração abre uma janela no editor** ("Claude Code quer alterar “Card”: padding") com *Permitir*, *Permitir tudo nesta sessão* ou *Recusar*. No painel do Assistente, a opção **Fazer sem perguntar** pula essa janela (cada alteração continua saindo com `Ctrl+Z`). O ChatGPT do site (chatgpt.com) só aceita MCP pela internet, então ainda não conecta: veja [`integrations/chatgpt/README.md`](integrations/chatgpt/README.md).
 
 ---
 
@@ -156,8 +157,8 @@ Leia mais em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), no [guia do código](
 
 ## Qualidade
 
-- **168 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor): `npm test`.
-- **28 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
+- **290 testes unitários** (CSS, modelo, responsivo, modos de cor, variáveis, cores, paletas, SVG, salvamento, segurança do servidor e ponte MCP): `npm test`.
+- **41 suítes de navegador** com Playwright (mais de 500 verificações: **o HTML exportado é comparado camada por camada com o editor**, assistente de IA e MCP, desenhar, arrastar, caneta, componentes, protótipo, salvar na pasta, responsivo, modo escuro, seletor de cor...): `npm run test:e2e`.
 - Desempenho: mover uma camada num projeto de 400 camadas fica em torno de 16 ms. Detalhes no [guia](docs/GUIA-COMPLETO.md#10-desempenho).
 
 ---
@@ -182,7 +183,7 @@ A lista completa, com os detalhes, está na [seção de limitações do guia](do
 |---|---|
 | [`docs/GUIA-COMPLETO.md`](docs/GUIA-COMPLETO.md) | Tudo que o editor faz, onde o trabalho é salvo, atalhos, estrutura, testes e limitações |
 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Como as peças se encaixam |
-| [`docs/MCP.md`](docs/MCP.md) | Ligar Claude Code (plugin), Codex/GPT, Claude Desktop; acesso de administrador; as 35 ferramentas; vários agentes juntos |
+| [`docs/MCP.md`](docs/MCP.md) | Ligar Claude Code (plugin), Codex/GPT, Claude Desktop; permissões; ferramentas; seleção de aba por sessão; vários agentes juntos |
 | [`docs/AGENTE.md`](docs/AGENTE.md) | As instruções da IA (Assistente e MCP): edite para mudar como ela trabalha |
 | [`docs/GUIA-DO-CODIGO.md`](docs/GUIA-DO-CODIGO.md) · [`docs/REFERENCIA.md`](docs/REFERENCIA.md) | Para quem vai mexer no código |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Planejamento: o que já foi feito e o que vem (com as issues abertas) |
@@ -196,4 +197,4 @@ Contribuições são bem-vindas: leia o [`CONTRIBUTING.md`](CONTRIBUTING.md). Re
 
 **Inspiração:** a organização do produto (páginas, frames, camadas, auto layout, painel de código, componentes, protótipo) é inspirada no [Penpot](https://penpot.app) e no Figma. O código foi escrito do zero e não copia nenhum deles.
 
-**Licença:** [MIT](LICENSE). Pode usar, copiar, modificar e distribuir, inclusive em projetos comerciais, mantendo o aviso de autoria. Contribuições são bem-vindas: veja o [guia de contribuição](CONTRIBUTING.md) e as [issues abertas](https://github.com/Kaykygnb/projetodesigner2/issues).
+**Licença:** [MIT](LICENSE). Pode usar, copiar, modificar e distribuir, inclusive em projetos comerciais, mantendo o aviso de autoria. Contribuições são bem-vindas: veja o [guia de contribuição](CONTRIBUTING.md) e as [issues abertas](https://github.com/Kaykygnb/StyloDesigner/issues).

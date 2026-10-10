@@ -8,6 +8,10 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+### Mudanças que quebram compatibilidade
+- Chamadas HTTP `tools/call` sem o cabeçalho `Mcp-Session-Id` agora recebem HTTP 400. Clientes devem enviar o identificador devolvido por `initialize` em cada chamada; o cliente stdio do repositório já faz isso.
+- O HTML exportado agora usa fundo branco e centraliza a tela, removendo a moldura cinza e o padding de 24 px do `body`.
+
 ### Adicionado (fotos e IA de foto, fase 3)
 - **Fotos grátis** (Recursos → Fotos; feito pelo Codex, revisado pelo Claude): busca no Openverse (sem chave, só licenças de uso comercial e com derivação permitida) e no Pexels (com chave guardada só no servidor). Clique ou arraste para inserir, "usar como preenchimento", crédito do autor guardado na camada e exportado no HTML quando a licença pede. O servidor baixa as fotos só de provedores permitidos, só bitmaps (sem SVG) e até 8 MB.
 - **Editor de imagem** ("Editar imagem" numa camada com foto): recortar com proporções, girar e espelhar, ajustes, filtros com prévia, remover fundo (automático pelas bordas, varinha e pincel), tamanho/formato/qualidade com o peso final, "Restaurar original". Tudo no navegador, sem chave; "Aplicar" vira um passo do Ctrl+Z.

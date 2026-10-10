@@ -8,7 +8,7 @@ O servidor do Stylo, de propósito, **só aceita pedidos deste computador**: ele
 
 ## Como usar modelos GPT agora
 
-1. **Codex** (CLI da OpenAI, modelos GPT): conecta pelo MCP local, com todas as 33 ferramentas. Veja [`../codex/config.toml`](../codex/config.toml) e [`../codex/AGENTS.md`](../codex/AGENTS.md).
+1. **Codex** (CLI da OpenAI, modelos GPT): conecta pelo MCP local com as 40 ferramentas de design e os dois controles de aba da sessão. Veja [`../codex/config.toml`](../codex/config.toml) e [`../codex/AGENTS.md`](../codex/AGENTS.md).
 2. **Assistente interno** (botão ✦ no topo do editor): escolha o provedor **OpenAI** em Configurações → Assistente de IA e MCP, cole a sua chave e escolha um modelo GPT. Ele usa as mesmas ferramentas (menos a imagem, que o chat não recebe).
 
 ## Se um dia quiser o ChatGPT do site

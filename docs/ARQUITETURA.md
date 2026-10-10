@@ -51,12 +51,14 @@ Este documento explica **como o app funciona por dentro** e **como estendê-lo**
 | `pen.js` | Ferramenta caneta e edição de pontos | — |
 | `rulers.js` | Réguas e criação de guias | — |
 | `present.js` | Modo Apresentar | — |
-| `export.js` | Baixar PNG/SVG/HTML/projeto | — |
+| `export.js` | Adaptadores de download para PNG/SVG/HTML/projeto/site; delega a criação de HTML multipágina ao módulo puro | — |
+| `site-export.js` | Percorre pranchetas visíveis, gera caminhos HTML seguros, detecta colisões e valida links relativos; reutiliza `exportHtml` | ✅ |
+| `zip.js` | Escritor ZIP Store UTF-8 sem dependência de runtime; valida paths e entradas duplicadas | ✅ |
 | `sample.js` | Dois projetos de exemplo | ✅ |
 | `ui/*.js` | Painéis: camadas, propriedades, código, recursos, protótipo; **página inicial** (`home.js`); menus e janelas modais (`openModal`, `ask`, `askText`), Configurações, Projetos na pasta; ícones e componentes de formulário | — |
 | `server.js` (raiz) | Entrega o app e expõe a API `/api` que grava os projetos na pasta | Node.js |
-| `agent/schema.js` | As 33 ferramentas que uma IA pode usar (nome, descrição, parâmetros em JSON Schema) e as instruções da IA; uma lista só para o MCP e para a OpenAI | ✅ |
-| `agent/runner.js` | Executa as ferramentas no editor aberto: leitura direta; alteração só com permissão (`approve`), um `commit` por alteração (Ctrl+Z), lista fechada de propriedades (`applyProps`) | ✅ (recebe store/commands) |
+| `agent/schema.js` | As 41 ferramentas de design do Assistente/OpenAI; MCP acrescenta `list_editors` e `select_editor` para escopo por aba | ✅ |
+| `agent/runner.js` | Executa as ferramentas no editor aberto: leitura direta; alteração só com permissão (`approve`), um `commit` por alteração (Ctrl+Z), lista fechada de propriedades (`applyProps`); limita e divide conteúdo do `export_html`/`export_site` em trechos UTF-8 | ✅ (recebe store/commands) |
 | `agent/providers.js` | Provedores do Assistente (OpenAI, NVIDIA NIM, Ollama): endereço, modelo sugerido, variável de ambiente da chave | ✅ |
 | `agent/bridge.js` | Janela de permissão (fila, "permitir tudo nesta sessão" por programa) e a ponte do MCP (o editor ouve `/api/agent/events`) | — |
 | `ui/assistant.js` | Painel do Assistente: o laço "IA pede ferramenta → editor executa → resultado volta" via `/api/agent/chat` | — |
@@ -77,6 +79,9 @@ flowchart TD
   overlay --> canvas & store
   canvas --> css & store
   ui --> commands & store & css & export
+  export --> site-export & zip
+  site-export --> css & model
+  agent-runner --> site-export
   store --> model & components & sample
   css --> model
   components --> model
@@ -90,6 +95,7 @@ flowchart TD
 ```js
 {
   version: 1,
+  projectId: 'UUID estável do projeto',
   name: 'Sem título',
   pages:  [ Página ],
   assets: { [assetId]: 'data:image/png;base64,...' },   // imagens ficam FORA das páginas
@@ -283,12 +289,14 @@ Se o principal sumiu (ou há ciclo), a instância vira uma camada comum.
 | Formato | Técnica |
 |---|---|
 | **HTML** | `generateCode` produz as etiquetas escolhidas (`<div>`, `<p>`, `<ul>`, `<a>`...) com classes legíveis + regras CSS; `exportHtml` embrulha numa página. |
+| **Site HTML** | `exportSite` (`site-export.js`) percorre as pranchetas visíveis e retorna um arquivo por tela; a primeira é `index.html`. A UI usa `zip.js` para criar um ZIP Store. O MCP lista caminhos/tamanhos por padrão e só devolve conteúdo pedido, em trechos UTF-8 limitados por chamada. |
 
 **Fidelidade do HTML exportado.** O editor desenha tudo com `<div>` montados pelo JavaScript, mas o arquivo exportado é *lido* pelo navegador, e duas coisas mudam nessa leitura:
 1. **Regras de leitura do HTML:** um `<li>` dentro de outro `<li>` fecha o primeiro sozinho, um link dentro de outro link também. `htmlTagIn` (`model.js`) confere cada etiqueta contra as dos pais e, quando ela não cabe ali, usa a padrão (o painel avisa na seção HTML).
 2. **Estilos padrão do navegador:** `<ul>` tem recuo e marcadores, `<button>` tem borda, `<a>` é sublinhado. `EXPORT_RESET` (`css.js`) zera isso antes das regras das camadas (HTML e PNG).
 
 `tests/e2e/exportacao-fiel.mjs` garante o resultado: exporta cada tela do projeto base (e um projeto com etiquetas erradas de propósito), abre como site e compara a caixa de **cada camada** com o editor, no Desktop, Tablet e Celular (±1,5 px).
+`tests/e2e/exportar-site.mjs` baixa o pacote pela UI, extrai as páginas e navega do `index.html` para outra página usando o link relativo.
 | **PNG** | Monta o HTML+CSS, embrulha num SVG com `<foreignObject>`, carrega como imagem e desenha num `<canvas>` na escala pedida. Limitação: fontes da web não carregam dentro de imagem SVG. |
 | **SVG** | `svg.js` **reescreve** a árvore como SVG (formas, `<text>`, gradientes, filtros, `clipPath`). A posição dos filhos vem de um callback (`boxOf`) que mede o DOM para respeitar flex/grid. |
 | **Projeto** | `JSON.stringify(doc)` em `.designer.json`. |
