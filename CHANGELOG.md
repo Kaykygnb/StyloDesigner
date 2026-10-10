@@ -8,6 +8,45 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 
 ## [Unreleased]
 
+### Versão estável (branch `feat/versao-estavel`)
+
+#### Segurança
+- **Servidor local**: as escritas, o `/mcp` e as rotas de agente só aceitam `Origin` da própria porta. Antes, qualquer página em outra porta de `localhost` podia ligar o "Acesso de administrador" do MCP e alterar a configuração.
+- Corpo JSON com limite por rota (1 MB padrão; 32 MB para chat, respostas de ferramentas, miniaturas e MCP; 200 MB só para gravar um projeto) e recusa antecipada por `Content-Length`.
+- Nomes de projeto reservados do Windows (`con`, `nul`, `com1`...) recusados; a pasta de projetos não pode ser a raiz do disco nem uma pasta do sistema; corpo JSON que não é objeto vira 400; erro interno não expõe a mensagem original.
+- No máximo 64 sessões MCP e 32 editores conectados (429 acima disso).
+- **Imagem gerada por IA (#2)**: o download só aceita `https` de host público, sem credenciais, sem IP privado/loopback/link-local, sem seguir redirecionamento e com o limite de tamanho aplicado durante a leitura.
+- **Projeto `.json` de terceiros é entrada não confiável**: `sanitizeDoc` (`src/validate.js`) valida estrutura, números, palavras-chave, ids, imagens (só `data:image`), remove chaves como `toString` e `__proto__` e limita o aninhamento; todo valor que vira CSS ou SVG passa por `isSafeCssValue`, `safeIdent` e `cssUrl`. Uma revisão independente do Codex achou escapes reais (`\"`, `\(`, CR/FF dentro de strings) que foram corrigidos.
+- Ao abrir um projeto, o Stylo avisa quais hosts externos o CSS da página vai acessar.
+- Configuração e conta gravadas de forma atômica, em fila e só para o dono; um arquivo de configuração corrompido vira `config.json.corrompido-<hora>` em vez de perder as chaves em silêncio.
+
+#### Corrigido
+- **Perda de dados**: se o IndexedDB falhasse no meio da sessão, as edições seguintes ficavam no localStorage e sumiam no próximo carregamento; agora abre a cópia mais nova. `saveNow` informa se salvou, e abrir, importar ou trocar de projeto não descarta mais o projeto atual quando o salvamento falha.
+- Reabrir um projeto salvo perdia os breakpoints personalizados (`@media` exportado errado).
+- Nome de camada que começa com número gerava classe CSS inválida (`.2024-hero`); nomes iguais podiam gerar a mesma classe.
+- CSS da página com blocos aninhados quebrava as regras seguintes; `;` dentro de `url(data:...)` e `/*` sem fechar no CSS livre; colar uma camada ia para a página errada; `visible` indefinido era tratado de dois modos; `!important` se perdia no CSS livre.
+- **Exportar PNG** de camada de código HTML com `<br>`, `<img>`, `<input>` ou entidades falhava sempre.
+- `@media` de largura do CSS da página agora responde à largura da **tela desenhada** no canvas, como container query (#10). A exportação segue com `@media`.
+- Tela cheia do editor de código agora é `Ctrl+Shift+M`: o F11 é reservado pelo navegador (#14).
+- Exportar site avisa quando uma tela de largura fixa vai rolar na horizontal em celular, e diz onde ligar a largura fluida.
+
+#### Alterado
+- **Interface mais sóbria**: tokens de raio (2/4/6 px) e de tipografia (11/12/13/15 px), sem o ícone de estado vazio brilhante, sem halos de acento, sem `backdrop-filter` decorativo, sem caixa alta em campos de hex e títulos de seção (#4), aba selecionada com texto forte e sublinhado. Texto de 7,5 a 10,5 px subiu para 11 px.
+- Acessibilidade: `accent-color`, seleção de texto, cursor e barras de rolagem da interface tematizados; anel de foco nas buscas e em `summary`; `prefers-reduced-motion` para a interface.
+- **Mudança de comportamento**: no CSS livre por camada só valem `url()` de `data:image` ou `#id`; imagens externas em `assets` são removidas ao abrir.
+- O formato do projeto passa a ter versão (`FORMAT_VERSION`): projeto de versão mais nova abre com aviso e não é rebaixado em silêncio.
+- Repositório com o nome oficial `StyloDesigner` (menu de suporte, comando de plugin, CONTRIBUTING, issue template).
+
+#### Adicionado
+- Runner E2E isolado (`npm run test:e2e`): sobe um servidor próprio em porta livre com pasta de projetos temporária, limita cada suíte a 4 min e aceita filtro (`npm run test:e2e -- exportacao`). O teste de desempenho usa a mediana de 5 rodadas.
+- CI no GitHub Actions (unitários em Node 20 e 22; navegador em Chromium, ainda sem bloquear), `SECURITY.md`, `NOTICE`, template de pull request, campos `repository`, `bugs` e `homepage` no `package.json`.
+- Plugin e cliente do Codex (`scripts/codex-worker.mjs`) e registro de estado em `docs/estado/` (retomada, decisões, pendências humanas) para trabalho contínuo por agentes.
+- Três direções de marca com capturas do editor real e contraste medido (`docs/estado/MARCA.md`), à espera de escolha.
+- Testes: de 290 para 356 unitários e de 41 para 43 suítes de navegador.
+
+#### Documentação
+- `ROADMAP.md` enxuto (o log de auditoria veio para este arquivo), guia do código atualizado, `README` com a contagem real de testes.
+
 ### Auditoria local — 9 de outubro de 2026 (movida do ROADMAP)
 
 - **MCP verificado no navegador**: duas sessões leem em paralelo; chamadas de escrita têm travas próprias (inclusive duas chamadas do mesmo cliente), e operações sem alvo específico travam o documento; `DELETE` e `notifications/cancelled` cancelam operações pendentes, inclusive uma escrita cancelada enquanto espera atrás de outra permissão; stdio atende uma leitura durante outra chamada lenta. A validação final desta branch passou: 290 testes unitários e 41 suítes E2E; `agente-mcp.mjs` e `persistencia-multitab.mjs` passaram cinco execuções consecutivas cada. A expiração de sessão abandonada está implementada, mas ainda não foi validada com espera real de 10 minutos.
