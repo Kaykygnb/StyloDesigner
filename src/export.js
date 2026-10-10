@@ -84,6 +84,26 @@ export async function exportPng(node, assets, scale = 2, styles = null) {
 }
 
 /**
+ * Monta o XHTML que vai dentro do <foreignObject> do PNG. O SVG é XML: `<br>`, `<img ...>` sem barra, entidades como
+ * `&copy;` e `<`/`&` dentro do CSS quebram a imagem ("Não foi possível renderizar"). O DOMParser lê o HTML como o
+ * navegador (sem executar nada nem carregar recursos) e o XMLSerializer devolve XML bem formado.
+ * @param {string} html  HTML da camada, já gerado e sanitizado por css.js
+ * @param {string} css  CSS da camada
+ * @param {number} w  largura em px
+ * @param {number} h  altura em px
+ * @returns {string}
+ */
+function toXhtml(html, css, w, h) {
+  const parsed = new DOMParser().parseFromString(`<!doctype html><body>${html}</body>`, 'text/html');
+  const wrap = parsed.createElement('div');
+  wrap.setAttribute('style', `width:${w}px;height:${h}px;display:grid;place-items:center`);
+  const style = parsed.createElement('style');
+  style.textContent = css;
+  wrap.append(style, ...Array.from(parsed.body.childNodes));
+  return new XMLSerializer().serializeToString(wrap); // o serializador escreve o xmlns do XHTML sozinho
+}
+
+/**
  * Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta
  * get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
  * @returns {Promise<Blob>}
@@ -97,9 +117,7 @@ export async function renderPng(node, assets, scale = 2, styles = null) {
   const css = withPageCss(joinCss([gen]), styles);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">` +
-    `<foreignObject width="100%" height="100%">` +
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${H}px;display:grid;place-items:center">` +
-    `<style>${EXPORT_RESET}${css}</style>${html}</div></foreignObject></svg>`;
+    `<foreignObject width="100%" height="100%">${toXhtml(html, EXPORT_RESET + css, W, H)}</foreignObject></svg>`;
   const img = new Image();
   await new Promise((resolve, reject) => {
     img.onload = resolve;

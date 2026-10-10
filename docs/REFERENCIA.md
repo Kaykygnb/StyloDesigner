@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-77 arquivos · 1211 funções e constantes documentadas.
+77 arquivos · 1212 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -658,9 +658,15 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `node` <sub>object</sub> — camada
   - `assets` <sub>object</sub> — imagens do documento
   - `[scale=2]` <sub>number</sub> — 1 a 4
-- **`renderPng(node, assets, scale = 2, styles = null)`** · [L91](../src/export.js#L91) — Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
+- **`toXhtml(html, css, w, h)`** <sub>do módulo</sub> · [L96](../src/export.js#L96) — Monta o XHTML que vai dentro do <foreignObject> do PNG. O SVG é XML: `<br>`, `<img ...>` sem barra, entidades como `&copy;` e `<`/`&` dentro do CSS quebram a imagem ("Não foi possível renderizar"). O DOMParser lê o HTML como o navegador (sem executar nada nem carregar recursos) e o XMLSerializer devolve XML bem formado.
+  - `html` <sub>string</sub> — HTML da camada, já gerado e sanitizado por css.js
+  - `css` <sub>string</sub> — CSS da camada
+  - `w` <sub>number</sub> — largura em px
+  - `h` <sub>number</sub> — altura em px
+  - ↩︎ `string`
+- **`renderPng(node, assets, scale = 2, styles = null)`** · [L111](../src/export.js#L111) — Desenha a camada como PNG e devolve o arquivo (Blob), sem baixar. Usado pelo exportPng e pela IA (ferramenta get_image do MCP: o Claude/GPT "vê" o design). Mesmas limitações do exportPng (fontes instaladas, sem vidro).
   - ↩︎ `Promise<Blob>`
-- **`exportSvgFile(node, assets, boxOf)`** · [L119](../src/export.js#L119) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
+- **`exportSvgFile(node, assets, boxOf)`** · [L137](../src/export.js#L137) — Baixa a camada como SVG vetorial (ver svg.js). `boxOf` mede cada filho no DOM para respeitar flexbox/grid.
 
 ---
 
