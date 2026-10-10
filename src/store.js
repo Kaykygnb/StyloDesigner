@@ -329,6 +329,14 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   };
 
   // ---------------------------------------------------------------- documento
+  /** Preenche campos que projetos antigos não têm e aplica os breakpoints do documento (estado global do model). */
+  function normalizeDoc(doc) {
+    doc.projectId ||= createProjectId();
+    doc.styles ||= { colors: [], texts: [] };
+    doc.comments ||= []; // projetos antigos não têm comentários
+    setBreakpoints(doc.breakpoints);
+  }
+
   /**
    * Substitui o documento inteiro (novo projeto, abrir arquivo, exemplo). Zera o histórico: o estado carregado
    * vira o primeiro item. `keepAssets` junta as imagens novas às que já existiam.
@@ -338,11 +346,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
    */
   api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false, views, theme } = {}) => {
     // Migra projetos antigos uma única vez; o ID acompanha o documento, não o nome ou caminho.
-    doc.projectId ||= createProjectId();
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
-    doc.styles ||= { colors: [], texts: [] };
-    doc.comments ||= []; // projetos antigos não têm comentários
-    setBreakpoints(doc.breakpoints);
+    normalizeDoc(doc);
     state.ui.bp = null;
     state.doc = doc;
     state.ui.link = link;
@@ -456,7 +461,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     if (initial?.doc?.pages?.length) {
       state.doc = initial.doc;
       state.doc.assets ||= {};
-      state.doc.styles ||= { colors: [], texts: [] };
+      normalizeDoc(state.doc);
       state.ui.views = initial.views || {};
       state.ui.theme = initial.theme || 'dark';
       state.ui.link = initial.link || null;

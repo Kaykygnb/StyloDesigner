@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-75 arquivos · 1181 funções e constantes documentadas.
+75 arquivos · 1182 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -571,20 +571,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
 - **`pathStateStyle(node, assets, state)`** · [L742](../src/css.js#L742) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
 - **`makeClassNamer()`** <sub>do módulo</sub> · [L765](../src/css.js#L765) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`classNamesOf(roots)`** · [L779](../src/css.js#L779) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
-- **`withPageCss(css, styles)`** · [L790](../src/css.js#L790) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
-- **`noteComment(node)`** · [L796](../src/css.js#L796) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L802](../src/css.js#L802) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L813](../src/css.js#L813) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`classNamesOf(roots)`** · [L784](../src/css.js#L784) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
+- **`withPageCss(css, styles)`** · [L795](../src/css.js#L795) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
+- **`noteComment(node)`** · [L801](../src/css.js#L801) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L807](../src/css.js#L807) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L818](../src/css.js#L818) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L954](../src/css.js#L954) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`docCssVars(styles)`** · [L971](../src/css.js#L971) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
-- **`joinCss(parts)`** · [L988](../src/css.js#L988) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L959](../src/css.js#L959) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`docCssVars(styles)`** · [L976](../src/css.js#L976) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L993](../src/css.js#L993) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L1018](../src/css.js#L1018) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1032](../src/css.js#L1032) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L1023](../src/css.js#L1023) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1037](../src/css.js#L1037) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -1496,10 +1496,11 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - 1x por frame (subscribe): painéis pesados (camadas, propriedades) juntam vários motivos em uma só atualização.
 - **`index()`** <sub>interna</sub> · [L144](../src/store.js#L144) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
 - **`restore(snap)`** <sub>interna</sub> · [L232](../src/store.js#L232) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
-- **`scheduleSave()`** <sub>interna</sub> · [L383](../src/store.js#L383) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
-- **`save()`** <sub>interna</sub> · [L398](../src/store.js#L398) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+- **`normalizeDoc(doc)`** <sub>interna</sub> · [L333](../src/store.js#L333) — Preenche campos que projetos antigos não têm e aplica os breakpoints do documento (estado global do model).
+- **`scheduleSave()`** <sub>interna</sub> · [L388](../src/store.js#L388) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
+- **`save()`** <sub>interna</sub> · [L403](../src/store.js#L403) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
   - ↩︎ `Promise<void>` resolve quando o projeto (como estava) terminou de ser gravado
-- **`init()`** <sub>interna</sub> · [L455](../src/store.js#L455) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+- **`init()`** <sub>interna</sub> · [L460](../src/store.js#L460) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 

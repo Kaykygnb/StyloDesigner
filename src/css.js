@@ -763,12 +763,17 @@ export function pathStateStyle(node, assets, state) {
  * com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
  */
 function makeClassNamer() {
-  const used = new Map();
+  const used = new Set();
+  const next = new Map(); // base → próximo sufixo a tentar
   return (node) => {
-    const base = slugify(node.name);
-    const n = (used.get(base) || 0) + 1;
-    used.set(base, n);
-    return n === 1 ? base : `${base}-${n}`;
+    let base = slugify(node.name);
+    if (/^\d/.test(base)) base = `l-${base}`; // seletor CSS não pode começar com dígito
+    let n = next.get(base) || 1;
+    let name = n === 1 ? base : `${base}-${n}`;
+    while (used.has(name)) name = `${base}-${++n}`;
+    next.set(base, n + 1);
+    used.add(name);
+    return name;
   };
 }
 
