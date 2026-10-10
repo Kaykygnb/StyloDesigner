@@ -31,3 +31,10 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 
 ## CSS da página com endereço externo (decisão de segurança vs. recurso)
 - [ ] Hoje o CSS da página aceita `url(https://...)`, `@font-face` e `image-set` de fora (útil para fontes e imagens de CDN) e, ao abrir um projeto, o Stylo **avisa** os hosts. Um projeto hostil ainda faria o navegador buscar o endereço (rastreamento) antes de você ver o aviso. Opções: **manter assim com o aviso (padrão)** / bloquear fora do Google Fonts no canvas (a exportação continuaria igual) / bloquear tudo. O CSS por camada já só aceita `data:image` e `#id`.
+
+## Autorizações e decisões pequenas
+- [ ] **Baixar Firefox e WebKit do Playwright** (`npx playwright install firefox webkit`, do CDN oficial da Playwright, ~200 MB) para o smoke test entre navegadores? Padrão: sim, só em ferramenta de desenvolvimento. Sem isso só testamos em Chromium.
+- [ ] **Versão do pacote**: `package.json` está em `1.0.0`. Sugestão para esta entrega: `1.1.0` (há mudança de comportamento: CSS livre só com `data:image`/`#id`, tela cheia do editor de código em `Ctrl+Shift+M`). Padrão: não alterar até você decidir.
+- [ ] **Publicar**: tudo está só em commits locais na branch `feat/versao-estavel`. Quando quiser, `git push -u origin feat/versao-estavel` e abrir o PR (eu escrevo a descrição com a skill `descrever-pr`). Não faço push sozinho.
+- [ ] `#11` (foto como `<img>`) fica para a v1.1; a acessibilidade (`role="img"` + `aria-label`) já funciona.
+
