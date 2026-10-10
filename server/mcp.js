@@ -35,7 +35,7 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
  * @param {string} [deps.instructions]  quem a IA é e como trabalhar (o servidor lê de docs/AGENTE.md)
  * @returns {Promise<object|null>}  a resposta, ou null quando a mensagem é um aviso (sem id)
  */
-export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}, instructions = AGENT_INSTRUCTIONS, signal, admin = false }) {
+export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}, instructions = AGENT_INSTRUCTIONS, signal }) {
   if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
     return rpcError(msg?.id ?? null, -32600, 'Pedido inválido (esperado JSON-RPC 2.0).');
   }
@@ -52,7 +52,7 @@ export async function handleMcp(msg, { callTool, version = '0.0.0', session = {}
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'projeto-designer', title: 'Stylo', version },
-        instructions: `${instructions}\n\nO editor precisa estar aberto no navegador (npm start → http://localhost:5173). Se houver mais de uma aba conectada, use list_editors e select_editor antes de ler ou alterar o projeto; a seleção vale só para esta sessão MCP e não muda de aba automaticamente se desconectar. ${admin ? 'O Acesso de administrador está ativo: alterações de escrita podem ser executadas sem confirmação; a interface ainda mostra avisos.' : 'Cada alteração de escrita pede aprovação da pessoa no editor.'}`,
+        instructions: `${instructions}\n\nO servidor mantém os projetos e grava sozinho: não é preciso ter o editor aberto no navegador. Comece com list_projects/open_project ou new_project; get_image, edit_image e generate_image_edit precisam de um navegador e não estão disponíveis.`,
       },
     };
   }

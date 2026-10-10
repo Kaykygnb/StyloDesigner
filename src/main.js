@@ -43,8 +43,7 @@ import { createHome } from './ui/home.js';
 import { closeInformation } from './ui/info.js';
 import { pageThumbnail } from './thumbnail.js';
 import { folder } from './storage.js';
-import { createRunner } from './agent/runner.js';
-import { createApprover, connectMcpBridge } from './agent/bridge.js';
+import { connectLive, editorId } from './live.js';
 import { createPresence } from './ui/presence.js';
 import { createAccount, avatarEl } from './account.js';
 /** Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo). */
@@ -610,21 +609,28 @@ requestAnimationFrame(() => {
   syncTopbar(); syncTools(); syncZoom(); syncCommentBadge();
 });
 
-// ---------------------------------------------------------------- IA: MCP
-// Programas externos via MCP (Claude Code, Codex...) usam o executor (agent/runner.js) e a janela de permissão.
-const approve = createApprover();
-const runner = createRunner({ store, commands, approve, saving, folder });
-// o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
-let bridge = null;
-const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => bridge?.reconnect(), editProfile: () => openSettings('account') });
+// ---------------------------------------------------------------- servidor ao vivo (MCP, presença)
+// O servidor roda as ferramentas MCP (server/workspace). O editor só ouve presença e "o projeto mudou" (live.js).
+let live = null;
+let reloadTimer = 0;
+/** Outro autor (agente, outra aba) gravou o projeto aberto: recarrega se esta aba não tem nada por gravar. */
+function onProjectChanged(e) {
+  if (e.by === editorId() || e.file !== store.ui.link?.file || store.ui.link.contentHash === e.contentHash) return;
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => {
+    if (store.ui.saveState !== 'saved') return; // há alterações aqui: o salvamento normal mostra o conflito
+    saving.open(e.file).then(() => toast(e.by === 'workspace' ? 'Um agente alterou o projeto.' : 'O projeto foi alterado em outra aba.')).catch(() => {});
+  }, 600);
+}
+const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => live?.reconnect(), editProfile: () => openSettings('account') });
 // nome ou cor da conta mudou: a presença (e os agentes) passam a ver o nome novo
-account.onChange((a, changed) => { presence.render(); if (changed) bridge?.reconnect(); });
+account.onChange((a, changed) => { presence.render(); if (changed) live?.reconnect(); });
 account.load();
 presenceSlot.replaceWith(presence.el);
-if (ui.server) bridge = connectMcpBridge({ runner, toast, profile: () => presence.profile(), onPresence: (d) => presence.update(d) });
+if (ui.server) live = connectLive({ profile: () => presence.profile(), onPresence: (d) => presence.update(d), onProject: onProjectChanged });
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
-window.designer = { store, canvas, commands, tools, agent: { runner, approve } };
+window.designer = { store, canvas, commands, tools };
 
 // ---------------------------------------------------------------- fontes do Google
 // Baixa as fontes do Google que os textos do projeto usam: ao abrir e depois de cada mudança gravada no histórico

@@ -36,8 +36,8 @@ import { randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
 import { httpError } from './server/http-error.js';
 import { createProjects, checkName } from './server/projects.js';
+import { createWorkspace } from './server/workspace/index.js';
 import { createPresence, targetsOf, DOCUMENT_LOCK } from './server/presence.js';
-import { createEditorBridge } from './server/editor-bridge.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
 import { VERSION } from './src/version.js';
 import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
@@ -89,7 +89,9 @@ async function loadConfig() {
 /** Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config. */
 let config = await loadConfig();
 /** Arquivos de projeto na pasta (server/projects.js); depois de cada gravação os editores abertos são avisados. */
-const projects = createProjects({ getConfig: () => config, onWrite: (event) => broadcastProjectChange(event) });
+const projects = createProjects({ getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
+/** Projetos abertos no servidor: é aqui que o MCP trabalha, sem precisar de navegador (server/workspace). */
+const workspace = createWorkspace({ projects });
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
 
 /** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
@@ -283,9 +285,6 @@ async function api(req, res, path) {
 const editors = new Set();
 /** Identidade visual (aba e pessoa) de cada conexão SSE do editor. */
 const editorSessions = new Map();
-/** Pede cancelamento ao editor ao atingir 3 min; encerra após 5 s sem confirmação para não prender o MCP. */
-const editorBridge = createEditorBridge({ getEditors: () => editors, getEditorId: (editor) => editorSessions.get(editor)?.id || '' });
-const callEditor = (tool, args, client, signal, editorId = '') => editorBridge.callEditor(tool, args, client, signal, !!config.mcp?.admin, editorId);
 
 /**
  * VÁRIOS AGENTES AO MESMO TEMPO. Cada conexão MCP ganha uma sessão (cabeçalho Mcp-Session-Id, criado no
@@ -309,7 +308,7 @@ const mcpSessionSweep = setInterval(() => {
       expired.push(id);
     }
   }
-  if (expired.length) { expired.forEach((id) => presence.removeAgent(id)); broadcastPresence(); }
+  if (expired.length) { expired.forEach((id) => { presence.removeAgent(id); workspace.endSession(id); }); broadcastPresence(); }
 }, 60 * 1000);
 mcpSessionSweep.unref();
 /** Manda o retrato da presença para todas as abas do editor (evento SSE "presence"). */
@@ -334,7 +333,7 @@ data: ${data}
   }
 }
 /** Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade. */
-async function callAgentTool(sid, state, tool, args, name, signal, editorId = '') {
+async function callAgentTool(sid, state, tool, args, name, signal) {
   state.activeCalls = (state.activeCalls || 0) + 1;
   state.lastSeen = Date.now();
   presence.touchAgent(sid, name);
@@ -350,7 +349,7 @@ async function callAgentTool(sid, state, tool, args, name, signal, editorId = ''
     if (!lock.ok) {
       presence.done(sid, tool, `esperou a camada ${lock.id} (em uso por ${lock.by})`, false);
       state.activeCalls--;
-      if (state.closing && state.activeCalls === 0) presence.removeAgent(sid);
+      if (state.closing && state.activeCalls === 0) { presence.removeAgent(sid); workspace.endSession(sid); };
       broadcastPresence();
       const message = lock.id === DOCUMENT_LOCK ? 'O documento inteiro está sendo alterado' : `A camada ${lock.id} está sendo alterada`;
       return { error: `${message} por ${lock.by} agora. Espere uns ${lock.wait}s e tente de novo, ou trabalhe em outra parte do design.` };
@@ -359,7 +358,7 @@ async function callAgentTool(sid, state, tool, args, name, signal, editorId = ''
   }
   broadcastPresence();
   try {
-    const out = await callEditor(tool, args, name, signal, editorId);
+    const out = await workspace.call(tool, args, { sid, client: name, signal });
     presence.done(sid, tool, def?.write ? (out?._summary || `usou ${tool}`) : null, !(out?.error || out?.refused));
     return out;
   } catch (err) {
@@ -369,7 +368,7 @@ async function callAgentTool(sid, state, tool, args, name, signal, editorId = ''
     if (locked) presence.finishLocks(lockId, lockTargets);
     state.activeCalls--;
     if (state.closing && state.activeCalls === 0) {
-      presence.removeAgent(sid);
+      { presence.removeAgent(sid); workspace.endSession(sid); };
     }
     broadcastPresence();
   }
@@ -388,7 +387,7 @@ async function mcpRoute(req, res) {
     mcpSessions.delete(requestSid);
     closingSession.closing = true;
     for (const [key, controller] of activeMcpCalls) if (key.startsWith(`${requestSid}:`)) controller.abort();
-    if (!closingSession.activeCalls) presence.removeAgent(requestSid);
+    if (!closingSession.activeCalls) { presence.removeAgent(requestSid); workspace.endSession(requestSid); };
     broadcastPresence();
     res.writeHead(204).end();
     return;
@@ -422,28 +421,16 @@ async function mcpRoute(req, res) {
       activeMcpCalls.get(`${sid}:${String(m.params?.requestId ?? '')}`)?.abort();
       return null;
     }
-    if (m?.method !== 'tools/call' || m.id == null) return handleMcp(m, { version: VERSION, session, instructions, admin: !!config.mcp?.admin });
+    if (m?.method !== 'tools/call' || m.id == null) return handleMcp(m, { version: VERSION, session, instructions });
     const key = `${sid}:${String(m.id)}`;
     const controller = new AbortController();
     requestControllers.push(controller);
     activeMcpCalls.set(key, controller);
     try {
       const callTool = (name, args, client, signal) => {
-        if (name === 'list_editors') {
-          const byId = new Map();
-          for (const info of editorSessions.values()) byId.set(info.id, { editor_id: info.id, name: info.name });
-          return { editors: [...byId.values()], selected_editor: session.editorId || null };
-        }
-        if (name === 'select_editor') {
-          const editorId = String(args.editor_id || '');
-          const info = [...editorSessions.values()].find((editor) => editor.id === editorId);
-          if (!info) return { error: `A aba "${editorId || '(vazia)'}" não está conectada. Use list_editors para ver as abas disponíveis.` };
-          session.editorId = editorId;
-          return { selected_editor: editorId, name: info.name };
-        }
-        return callAgentTool(sid, session, name, args, forced || client, signal, session.editorId || '');
+        return callAgentTool(sid, session, name, args, forced || client, signal);
       };
-      return await handleMcp(m, { callTool, version: VERSION, session, instructions, signal: controller.signal, admin: !!config.mcp?.admin });
+      return await handleMcp(m, { callTool, version: VERSION, session, instructions, signal: controller.signal });
     } finally { if (activeMcpCalls.get(key) === controller) activeMcpCalls.delete(key); }
   };
   res.once('close', () => { if (!res.writableEnded) requestControllers.forEach((controller) => controller.abort()); });
@@ -468,7 +455,6 @@ const agentInstructions = () => readFile(join(root, 'server', 'instrucoes-agente
  *   POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
  *   GET  /api/agent/config   → { editors, mcpUrl, mcpScript, mcpAdmin, pexels } (chaves NUNCA são devolvidas)
  *   PUT  /api/agent/config   { pexelsKey? } → grava (vazio apaga)
- *   PUT  /api/agent/mcp      { admin } → liga/desliga o "Acesso de administrador" do MCP (só programas deste computador)
  */
 async function agentApi(req, res, parts) {
   const [what] = parts;
@@ -491,20 +477,13 @@ async function agentApi(req, res, parts) {
       editors.delete(res);
       editorSessions.delete(res);
       presence.removePerson(personId);
-      editorBridge.closeEditor(res);
       broadcastPresence();
     });
     return;
   }
-  if (what === 'reply' && req.method === 'POST') {
-    const { id, result } = await jsonObject(req, MAX_MEDIUM);
-    if (!editorBridge.reply(String(id), result)) return sendJson(res, 410, { ok: false, error: 'A chamada MCP já foi encerrada.' });
-    return sendJson(res, 200, { ok: true });
-  }
   if (what === 'config' && req.method === 'GET') {
     return sendJson(res, 200, {
       editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'server', 'instrucoes-agente.txt'),
-      mcpAdmin: !!config.mcp?.admin,
       pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY), pexelsSource: config.pexels?.apiKey ? 'config' : process.env.PEXELS_API_KEY ? 'env' : '',
     });
   }
@@ -516,16 +495,6 @@ async function agentApi(req, res, parts) {
     if (!Object.keys(pexels).length) delete config.pexels;
     await writeJsonAtomic(configFile, config);
     return sendJson(res, 200, { ok: true, pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY) });
-  }
-  if (what === 'mcp' && req.method === 'PUT') {
-    // { admin: boolean } — "Acesso de administrador" do MCP: programas de IA DESTE computador agem sem a janela de
-    // permissão e podem abrir/salvar/criar projetos. O /mcp continua aceitando só pedidos desta máquina.
-    const body = await jsonObject(req);
-    const next = { ...(config.mcp || {}) };
-    if (body.admin !== undefined) next.admin = !!body.admin;
-    config = { ...config, mcp: next };
-    await writeJsonAtomic(configFile, config);
-    return sendJson(res, 200, { ok: true, mcpAdmin: !!next.admin });
   }
   throw httpError(404, 'Rota não encontrada.');
 }

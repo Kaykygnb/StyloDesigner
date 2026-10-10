@@ -10,7 +10,7 @@
  *   3. Agente de IA       — provedor, modelo (lista "Ver modelos", "Testar modelo" com os resultados guardados), endereço
  *                           da API, tempos (1º pedaço, tempo máximo pensando) e "Pedir menos raciocínio" (NVIDIA NIM).
  *   4. Chaves de API      — a chave do provedor escolhido e a do Jev (TypeSafe); ficam só neste computador.
- *   5. MCP e agentes      — acesso de administrador e como ligar Claude Code / Codex / Claude Desktop.
+ *   5. MCP e agentes      — endereço do MCP e como ligar Claude Code / Codex / Claude Desktop.
  *   6. Aparência          — tema, tela ao abrir o app e o que a roda do mouse faz.
  *   7. Atalhos            — a lista de atalhos de teclado.
  *   8. Sobre e suporte    — versão e a Central de ajuda.
@@ -321,20 +321,8 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
     const copy = (text) => h('button.btn.small', { type: 'button', onclick: () => navigator.clipboard?.writeText(text).then(() => toast('Copiado.')) }, 'Copiar');
     const cmd = (label, text) => h('div.set-cmd', label ? h('span.set-label', label) : null, h('code', text), copy(text));
     return sectionEl('mcp',
-      card('Conexão', 'Com o app aberto no navegador, esses programas conseguem ler e alterar o design.', null,
-        row('Editores conectados', null, ai.editors
-          ? h('span.set-badge.on', `● ${ai.editors} editor${ai.editors > 1 ? 'es' : ''} conectado${ai.editors > 1 ? 's' : ''}`)
-          : h('span.set-badge.off', '● nenhum editor conectado')),
-        // ACESSO DE ADMINISTRADOR: programas deste computador agem sem perguntar e mexem nos arquivos de projeto
-        row('Acesso de administrador', 'O MCP altera sem perguntar e pode abrir, salvar e criar projetos',
-          checkbox('Ativar', !!ai.mcpAdmin, async (v) => {
-            try {
-              const r = await fetch('/api/agent/mcp', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin: v }) });
-              if (!r.ok) throw new Error((await r.json()).error);
-              toast(v ? 'MCP com acesso de administrador.' : 'MCP volta a pedir permissão a cada alteração.');
-            } catch (err) { toast(err.message || 'Não consegui salvar.'); }
-          }),
-          informationButton('Acesso de administrador', 'Só vale para programas deste computador (o endereço do MCP não aceita pedidos de fora). Tudo continua saindo com Ctrl+Z, e um aviso mostra cada alteração.'))),
+      card('Conexão', 'O servidor roda as ferramentas: os programas abaixo trabalham nos projetos sem precisar do navegador aberto.', null,
+        row('Endereço do MCP', null, h('div.field.grow', h('code', ai.mcpUrl)), copy(ai.mcpUrl))),
       card('Instalar no Claude Code, Codex ou Claude Desktop', 'Copie o comando do programa que você usa.', null,
         details('Mostrar comandos',
           cmd('Claude Code (sem plugin)', `claude mcp add --transport http designer ${ai.mcpUrl}`),

@@ -26,9 +26,7 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - HTML: tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
 
 /**
- * As ferramentas. `write: true` = altera o projeto (pede permissão e vira um passo do Ctrl+Z).
- * `admin: true` = mexe nos ARQUIVOS de projeto (abrir, salvar, criar): para programas externos (MCP), só funciona com o
- * "Acesso de administrador" ligado em Configurações. O Assistente interno pode usar (com permissão).
+ * As ferramentas. `write: true` = altera o projeto (vira um passo do Ctrl+Z).
  * `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
  */
 export const AGENT_TOOLS = [
@@ -383,29 +381,25 @@ ${PROP_HELP}`,
   {
     name: 'list_projects',
     write: false,
-    admin: true,
-    description: 'Lista os projetos salvos na pasta do computador (arquivo, data, tamanho) e diz qual está aberto. [administrador]',
+    description: 'Lista os projetos salvos na pasta do servidor (arquivo, data, tamanho) e diz qual está aberto nesta sessão.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'open_project',
     write: true,
-    admin: true,
-    description: 'Abre um projeto da pasta no editor (use list_projects). Recusa se o projeto aberto agora só existe no navegador (salve antes com save_project). [administrador]',
+    description: 'Abre um projeto da pasta como o projeto desta sessão (use list_projects). Quem mais abrir o mesmo arquivo trabalha no mesmo projeto.',
     inputSchema: { type: 'object', properties: { file: { type: 'string', description: 'ex.: meu-site.json' } }, required: ['file'] },
   },
   {
     name: 'save_project',
     write: true,
-    admin: true,
-    description: 'Salva o projeto aberto na pasta. Com name, salva com esse nome (vira o arquivo do projeto); sem name, grava no arquivo atual. [administrador]',
+    description: 'Grava o projeto aberto na pasta (o servidor também grava sozinho depois de cada alteração). Com name, salva uma cópia com esse nome e passa a trabalhar nela.',
     inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'nome do arquivo (sem .json)' } } },
   },
   {
     name: 'new_project',
     write: true,
-    admin: true,
-    description: 'Começa um projeto novo em branco (com o nome dado). Recusa se o projeto aberto só existe no navegador (salve antes). [administrador]',
+    description: 'Cria um projeto novo em branco (com o nome dado) na pasta e o abre nesta sessão. Recusa se já existir um arquivo com esse nome.',
     inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
   },
   {
@@ -419,22 +413,7 @@ ${PROP_HELP}`,
 /** Procura uma ferramenta pelo nome. */
 export const toolByName = (name) => AGENT_TOOLS.find((t) => t.name === name) || null;
 
-/** Ferramentas de controle da sessão HTTP MCP; não são oferecidas ao Assistente interno. */
-const MCP_SESSION_TOOLS = [
-  {
-    name: 'list_editors',
-    write: false,
-    description: 'Lista as abas do Stylo conectadas e mostra qual aba esta sessão MCP está usando. Chame antes de trabalhar quando houver mais de uma aba.',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'select_editor',
-    write: false,
-    description: 'Vincula esta sessão MCP a uma aba específica. Use o editor_id devolvido por list_editors. A seleção persiste nesta sessão; se a aba desconectar, as ferramentas falham em vez de mudar para outra aba.',
-    inputSchema: { type: 'object', properties: { editor_id: { type: 'string', description: 'id da aba devolvido por list_editors' } }, required: ['editor_id'] },
-  },
-];
-export const mcpToolByName = (name) => toolByName(name) || MCP_SESSION_TOOLS.find((tool) => tool.name === name) || null;
+export const mcpToolByName = (name) => toolByName(name);
 
 /** As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`). */
 export const openAiTools = () => AGENT_TOOLS.map((t) => ({
@@ -447,13 +426,8 @@ export const mcpTools = () => AGENT_TOOLS.map((t) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.inputSchema,
-  annotations: { readOnlyHint: !t.write, destructiveHint: ['delete_layers', 'delete_page', 'open_project', 'new_project'].includes(t.name) },
-})).concat(MCP_SESSION_TOOLS.map((t) => ({
-  name: t.name,
-  description: t.description,
-  inputSchema: t.inputSchema,
-  annotations: { readOnlyHint: t.name === 'list_editors', destructiveHint: false },
-})));
+  annotations: { readOnlyHint: !t.write, destructiveHint: ['delete_layers', 'delete_page'].includes(t.name) },
+}));
 
 /**
  * Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o
@@ -463,8 +437,8 @@ export const AGENT_INSTRUCTIONS = `Você ajuda numa ferramenta de design em que 
 Regras:
 - Responda em português do Brasil, de forma simples e direta.
 - Antes de alterar, LEIA: get_document, get_selection ou get_layer. Use os ids que essas ferramentas devolvem; nunca invente ids.
-- Com mais de uma aba conectada, use list_editors e select_editor antes de ler ou alterar: a aba escolhida vale só para esta sessão MCP.
+- Antes de tudo: list_projects e open_project para continuar um projeto, ou new_project para criar. O servidor grava sozinho; outras pessoas e agentes podem estar no mesmo projeto.
 - Prefira layout (flex/grid com gap e padding) a posicionar com x/y. Use os nomes do CSS ao explicar.
 - Pedido claro = FAÇA, sem pedir confirmação nem descrever o plano antes. Só pergunte se for impossível decidir. Para criar estruturas (página, seção, card), use build_layout numa chamada só; sem seleção, ela vira uma tela nova.
-- Toda alteração passa pela permissão da pessoa; se ela recusar, não insista: pergunte o que ela prefere.
+- Alterações são gravadas direto no projeto e podem ser desfeitas com undo; trabalhe em camadas pequenas e nomeadas para não atrapalhar quem está no mesmo projeto.
 - Ao terminar, diga em no máximo 3 frases o que ficou pronto.`;

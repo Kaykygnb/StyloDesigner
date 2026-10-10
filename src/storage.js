@@ -17,6 +17,8 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
+import { editorId } from './live.js';
+
 /** Nome do banco IndexedDB e da "tabela" chave→valor dentro dele. */
 const DB_NAME = 'projeto-designer';
 const DB_STORE = 'kv';
@@ -433,7 +435,7 @@ class ServerError extends Error {
 async function call(path, { method = 'GET', body, headers = {}, raw = false } = {}) {
   const res = await fetch('/api' + path, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json', ...headers } : headers,
+    headers: { 'X-Editor-Id': editorId(), ...(body !== undefined ? { 'Content-Type': 'application/json', ...headers } : headers) },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
     cache: 'no-store',
   });

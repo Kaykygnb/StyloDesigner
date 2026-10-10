@@ -231,7 +231,23 @@ export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
  * @param {object} [deps.saving]  salvamento (abrir/salvar projetos da pasta) · @param {object} [deps.folder]  API da pasta (listar)
  * @returns {{ run: (tool: string, args: object, client?: string, opts?: {external?: boolean, admin?: boolean}) => Promise<object> }}
  */
-export function createRunner({ store, commands, approve, saving = null, folder = null }) {
+/** Renderização padrão (navegador): PNG do design em base64. No servidor não há navegador: injete outra ou nenhuma. */
+async function renderInBrowser(node, doc, scale) {
+  const blob = await renderPng(node, doc.assets, scale, doc.styles);
+  return new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = fail; fr.readAsDataURL(blob); });
+}
+
+/**
+ * @param {object} deps
+ * @param {object} deps.store
+ * @param {object} deps.commands
+ * @param {Function} [deps.approve]  janela de permissão (editor); sem ela só vale 'admin' em run()
+ * @param {object} [deps.saving]  salvamento do editor (navegador)
+ * @param {object} [deps.folder]  pasta de projetos do editor (navegador)
+ * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização
+ * @param {boolean} [deps.imageEditing]  edição de imagem por pixel precisa do navegador
+ */
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = renderInBrowser, imageEditing = true }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -330,13 +346,13 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { google: out, system, hint: 'Use o nome exato em fontFamily e um peso da lista em fontWeight.' };
     },
     async get_image({ id, scale = 1 } = {}) {
+      if (!renderImage) throw new Error('get_image precisa de um navegador para desenhar o design: não está disponível neste servidor. Use get_code / export_html para ler o resultado.');
       const sel = store.ui.selection.map((s) => store.get(s)).filter(Boolean);
       const node = id ? need(id) : sel[0] || store.page().children.find((n) => n.type === 'frame');
       if (!node) throw new Error('Nada para mostrar: a página está vazia.');
       const s = Math.max(0.5, Math.min(2, Number(scale) || 1));
       const doc = store.state.doc;
-      const blob = await renderPng(node, doc.assets, s, doc.styles);
-      const data = await new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = fail; fr.readAsDataURL(blob); });
+      const data = await renderImage(node, doc, s);
       // _image: o servidor MCP transforma em conteúdo de imagem; o Assistente interno descarta (o modelo de chat não recebe imagem)
       return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes da web aparecem com a fonte do sistema e o efeito vidro pode não aparecer na imagem (o editor e o HTML estão certos).' };
     },
@@ -714,6 +730,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { project: store.state.doc.name };
     },
     async edit_image(args) {
+      if (!imageEditing) throw new Error('edit_image mexe nos pixels e precisa de um navegador: não está disponível neste servidor.');
       const target = imageTarget(args.id);
       const n = target.node;
       // o editor de imagem só é carregado quando usado (ele mexe com canvas; o resto do executor roda até no Node)
@@ -732,6 +749,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { image: imageInfo(current), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
     },
     async generate_image_edit({ id, mode, prompt, area, expand }) {
+      if (!imageEditing) throw new Error('generate_image_edit precisa de um navegador: não está disponível neste servidor.');
       const target = imageTarget(id);
       const ia = await import('../ui/imageai.js');
       const res = await ia.generativeEdit({ src: target.source, mode, prompt: String(prompt || '').trim(), area, expand });
@@ -766,6 +784,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (tool === 'set_project_css' && typeof args?.css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
+      if ((tool === 'edit_image' || tool === 'generate_image_edit') && !imageEditing) throw new Error(`${tool} precisa de um navegador: não está disponível neste servidor.`);
       if (tool === 'edit_image' || tool === 'generate_image_edit') imageLayer(args?.id);
       if (tool === 'generate_image_edit') {
         if (!String(args?.prompt || '').trim()) throw new Error('prompt: diga o que a IA de imagem deve fazer.');
