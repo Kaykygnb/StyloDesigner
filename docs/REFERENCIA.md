@@ -2858,7 +2858,7 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`loadConfig()`** <sub>do módulo</sub> · [L78](../server.js#L78) — Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida).
 - **`config`** <sub>do módulo</sub> · [L87](../server.js#L87) — Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config.
 - **`loadAccount()`** <sub>do módulo</sub> · [L91](../server.js#L91) — Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia).
-- **`expandHome(p)`** <sub>do módulo</sub> · [L96](../server.js#L96) — "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário).
+- **`expandHome(p)`** <sub>do módulo</sub> · [L96](../server.js#L96) — Expande `~/` para a pasta pessoal do usuário, mantendo o restante do caminho.
 - **`useFolder(input)`** <sub>do módulo</sub> · [L102](../server.js#L102) — Valida e aplica uma pasta nova: precisa ser caminho ABSOLUTO; é criada se não existir; e testamos se dá para escrever nela (gravando e apagando um arquivo de teste) ANTES de aceitar — melhor errar agora do que no auto-salvar.
 - **`publicConfig()`** <sub>do módulo</sub> · [L114](../server.js#L114) — O que a configuração mostra para fora: tudo MENOS a chave da IA (ela nunca sai deste computador nem volta ao navegador).
 - **`httpError(status, message)`** <sub>do módulo</sub> · [L118](../server.js#L118) — Erro com status HTTP e mensagem que pode ir para a tela do usuário.

@@ -41,4 +41,4 @@ O conjunto unitário passou de 289 para 290 testes. A comparação de nomes conf
 
 Na primeira execução E2E completa da branch reconstruída, `desempenho.mjs` marcou 16,6 ms contra o limite de 16 ms; as outras 40 suítes passaram. A suíte isolada mediu 11,5 ms, e a execução E2E completa repetida passou 41/41 (11,5 ms no cenário de desempenho). O resultado indica variação da medição sob carga, registrada para não ocultar o evento.
 
-Após a tradução de um comentário em um teste E2E, `npm test` foi executado novamente no estado final: 290/290 passaram.
+Depois da tradução do comentário de teste e da remoção dos exemplos de caminhos absolutos, `npm test` passou novamente: 290/290. A E2E completa do estado final passou 41/41, com 10,4 ms no cenário de desempenho. As suítes `agente-mcp.mjs` e `persistencia-multitab.mjs` passaram mais cinco vezes consecutivas cada no estado final.

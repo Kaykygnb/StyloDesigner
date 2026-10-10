@@ -176,7 +176,7 @@ Em **dois lugares**, e o indicador ao lado do nome do projeto (topo) diz qual es
 | **Só no navegador** (amarelo) | O projeto tem arquivo, mas a pasta não pôde ser gravada (servidor desligado, sem permissão). Quando o servidor voltar, o app põe a pasta em dia sozinho. |
 | **Conflito no arquivo** (amarelo) | O arquivo foi mudado **fora** do editor (outra aba, outro computador pelo Drive) enquanto você editava aqui. O app **parou de gravar nele** para não apagar o trabalho alheio. `Ctrl+S` pergunta se você quer substituir; senão, salve com outro nome. |
 
-- **A pasta padrão** é `projetos/` dentro da pasta do app. Troque em **Configurações** (`Ctrl+,`); aceita caminhos como `C:\Users\voce\Documents\Designer`, `/home/voce/Designer` ou `~/Designer`, e cria a pasta se não existir.
+- **A pasta padrão** é `projetos/` dentro da pasta do app. Troque em **Configurações** (`Ctrl+,`); informe um caminho completo ou comece com `~/` para usar sua pasta pessoal. A pasta é criada se não existir.
 - **Google Drive:** instale o [Google Drive para computador](https://www.google.com/drive/download/) e escolha uma pasta dentro dele (no Windows costuma ser `G:\Meu Drive\...`). O Drive sincroniza os `.json`. Funciona igual com OneDrive e Dropbox. O app **não** se conecta à sua conta Google diretamente (isso exigiria cadastrar o app no Google e fazer login).
 - **Versões antigas** ficam em `.versoes/` dentro da pasta (até 20 por projeto, configurável). Abra em **Arquivo → Abrir da pasta → Versões**. Uma versão abre "solta"; para restaurá-la, salve com o mesmo nome e confirme.
 - **Projetos antigos** (versões ≤ 0.5 salvavam no `localStorage`) são migrados sozinhos para o IndexedDB na primeira vez que você abre o app.

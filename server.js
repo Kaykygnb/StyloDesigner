@@ -92,7 +92,7 @@ async function loadAccount() {
   try { return normalizeAccount(JSON.parse(await readFile(accountFile, 'utf8'))); } catch { return normalizeAccount(null); }
 }
 
-/** "~/Designer" → "/home/voce/Designer" (atalho comum para a pasta do usuário). */
+/** Expande `~/` para a pasta pessoal do usuário, mantendo o restante do caminho. */
 const expandHome = (p) => (p === '~' || p.startsWith('~/') || p.startsWith('~\\') ? join(homedir(), p.slice(1)) : p);
 
 /**
@@ -101,7 +101,7 @@ const expandHome = (p) => (p === '~' || p.startsWith('~/') || p.startsWith('~\\'
  */
 async function useFolder(input) {
   const raw = expandHome(String(input || '').trim());
-  if (!raw || !isAbsolute(raw)) throw httpError(400, 'Use um caminho completo, ex.: C:\\Users\\voce\\Designer ou /home/voce/Designer.');
+  if (!raw || !isAbsolute(raw)) throw httpError(400, 'Use um caminho completo para a pasta onde deseja salvar.');
   const folder = resolve(raw);
   await mkdir(folder, { recursive: true });
   const probe = join(folder, `.teste-escrita-${process.pid}`);

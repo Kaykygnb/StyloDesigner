@@ -277,7 +277,7 @@ export function openSettings({ store, saving, prefs, savePrefs, toast, account, 
 
     return sectionEl('folder',
       card('Pasta de projetos', 'Os projetos são gravados como arquivos .json nesta pasta do computador.',
-        'Use o caminho completo (ex.: C:\\Users\\voce\\Documents\\Stylo, /home/voce/Stylo ou ~/Stylo); a pasta é criada se não existir. '
+        'Use um caminho completo ou comece com ~/ para usar sua pasta pessoal; a pasta é criada se não existir. '
           + 'Quer cópia na nuvem? Instale o Google Drive para computador (ou OneDrive, Dropbox) e escolha uma pasta DENTRO dele, como G:\\Meu Drive\\Stylo: o próprio programa sobe os arquivos. '
           + 'Se o mesmo projeto for aberto em dois computadores, o editor percebe que o arquivo mudou e para de gravar nele em vez de apagar o trabalho do outro.',
         h('p.set-status.on', '● Servidor conectado'),
