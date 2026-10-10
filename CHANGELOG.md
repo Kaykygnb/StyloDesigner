@@ -42,7 +42,7 @@ Categorias: **Adicionado** · **Alterado** · **Corrigido** · **Desempenho** ·
 - CI no GitHub Actions (unitários em Node 20 e 22; navegador em Chromium, ainda sem bloquear), `SECURITY.md`, `NOTICE`, template de pull request, campos `repository`, `bugs` e `homepage` no `package.json`.
 - Plugin e cliente do Codex (`scripts/codex-worker.mjs`) e registro de estado em `docs/estado/` (retomada, decisões, pendências humanas) para trabalho contínuo por agentes.
 - Três direções de marca com capturas do editor real e contraste medido (`docs/estado/MARCA.md`), à espera de escolha.
-- Testes: de 290 para 356 unitários e de 41 para 43 suítes de navegador.
+- Testes: de 290 para 358 unitários e de 41 para 44 suítes de navegador.
 
 #### Documentação
 - `ROADMAP.md` enxuto (o log de auditoria veio para este arquivo), guia do código atualizado, `README` com a contagem real de testes.

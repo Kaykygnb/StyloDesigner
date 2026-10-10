@@ -13,7 +13,7 @@ Branch `feat/versao-estavel` (base `feat/auditoria-organizada`). Só commits loc
 
 **Estado em 10/10/2026, de madrugada:** 358 testes unitários e 43 suítes de navegador verdes; commits até `fc91706`. Fase 5 quase fechada: CI, SECURITY, NOTICE, versão do formato, limpeza de docs, CHANGELOG da versão estável, roteiro de aceite e projeto hostil de exemplo.
 
-**Em andamento:** S24, três execuções completas seguidas da bateria de navegador (resultado no `LEDGER.md`).
+**S24 concluída:** 3 execuções completas seguidas da bateria de navegador, 44/44 suítes em cada uma; 358 unitários.
 
 **Próximos passos que NÃO dependem da pessoa:** (1) Firefox/WebKit smoke exige baixar os navegadores do Playwright (~200 MB): está em `PENDENTE-HUMANO.md` para você autorizar; (2) #11 `<img>` real para fotos (v1.1: a parte de acessibilidade, `role="img"` + `aria-label`, já existe); (3) itens do backlog v1.1 do `PLANO-MESTRE.md`; (4) revisar com o Codex (Astra, só leitura) o diff de persistência e de validação depois que você revisar; (5) conferir `git log` e o `LEDGER.md` para ver se algo ficou sem registro. **Dependem da pessoa:** S10b (escolher a marca em `docs/estado/MARCA.md`), S11 (novo projeto-exemplo, depende da marca), testes humanos do roteiro (seção 0), decisão sobre `url()` externo no CSS da página, versão (`package.json` está em 1.0.0; sugestão 1.1.0).
 
