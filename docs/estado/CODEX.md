@@ -36,5 +36,5 @@ O Codex pode criar seus próprios subagentes se o pedido disser para isso (não 
 ## Regras
 1. Sempre worktree descartável; nunca a árvore principal. Revisar o diff e rodar `npm test` eu mesmo.
 2. Sem `ws://`; só `stdio://`.
-3. Tarefas mecânicas e de escopo fechado (ex.: S8, trocar literais de CSS por tokens, um tipo por vez) e segunda opinião de revisão. Não para segurança, persistência ou design.
+3. Tarefas mecânicas e de escopo fechado (ex.: S8, trocar literais de CSS por tokens, um tipo por vez) e segunda opinião de revisão. Não para IMPLEMENTAR segurança, persistência ou design (revisar e deliberar sobre isso é permitido, em read-only).
 4. Pedido no formato do orquestrador (objetivo, arquivos, o que não fazer, verificação, devolução), em inglês.
