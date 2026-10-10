@@ -763,6 +763,13 @@ textarea.svg-d:focus { border-color: color-mix(in srgb, var(--accent) 65%, trans
 .present-path { color: var(--text); }
 .present-url svg { margin-right: 6px; }
 .present-pages { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.present-pages:focus-visible { opacity: 1; background: var(--bg); color: var(--text); outline: 2px solid var(--accent); }
+.present-tabs { display: flex; flex: 0 1 auto; min-width: 120px; max-width: min(420px, 38vw); gap: 3px; overflow-x: auto; scrollbar-width: thin; }
+.present-tab { flex: none; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 10px; height: 30px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); cursor: grab; }
+.present-tab:hover { background: var(--panel-2); color: var(--text); }
+.present-tab[aria-selected="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 38%, transparent); color: var(--text); }
+.present-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.present-tab.dragging { opacity: .4; cursor: grabbing; }
 .present-widths { display: flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
 .present-widths button { height: 26px; padding: 0 9px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-variant-numeric: tabular-nums; }
 .present-widths button:hover { color: var(--text); }
@@ -771,6 +778,15 @@ textarea.svg-d:focus { border-color: color-mix(in srgb, var(--accent) 65%, trans
 .present-viewport { flex: 1; min-height: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; padding: 16px; background-color: var(--canvas); background-image: radial-gradient(var(--dot) 1px, transparent 1px); background-size: 16px 16px; }
 .present-board { flex: none; transform-origin: top center; border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--border), 0 24px 70px rgba(0, 0, 0, .45); }
 .present-frame { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+@media (max-width: 640px) {
+  .present-bar { gap: 4px; padding: 6px; }
+  .present-url { flex: 1 1 100%; min-width: 0; max-width: none; order: 1; }
+  .present-tabs { flex: 1 1 100%; min-width: 0; max-width: 100%; order: 2; }
+  .present-widths { flex: 1 1 100%; min-width: 0; max-width: 100%; gap: 1px; overflow-x: auto; order: 3; }
+  .present-widths button { padding-inline: 7px; }
+  .present-size { flex: 1; min-width: 60px; order: 4; }
+  .present-ib[data-act="tab"] { margin-left: auto; }
+}
 .proto-path { fill: none; stroke: var(--accent-2); stroke-width: 2; }
 .proto-arrow { fill: var(--accent-2); }
 
@@ -1827,6 +1843,13 @@ body.ai-open .toolbar { left: calc((100% - 400px) / 2); }
 .comp-thumb img { max-width: 88%; max-height: 62px; object-fit: contain; }
 .comp-name { padding: 0 8px; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .comp-meta { padding: 0 8px; font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-asset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.image-asset-card { display: flex; min-width: 0; flex-direction: column; gap: 3px; padding: 0 0 8px; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); color: var(--text); text-align: left; cursor: grab; transition: border-color .12s, transform .12s; }
+.image-asset-card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); transform: translateY(-1px); }
+.image-asset-card[hidden] { display: none; }
+.image-asset-card[data-dragging] { opacity: .5; }
+.image-asset-thumb { display: block; width: 100%; height: 72px; margin-bottom: 4px; overflow: hidden; background: var(--panel); }
+.image-asset-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .layer-row:hover .layer-badge, .layer-row.selected .layer-badge { display: inline-block; }
 
 /* ============================================================ marca, conta e página de Configurações */

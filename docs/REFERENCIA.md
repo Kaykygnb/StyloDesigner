@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-75 arquivos · 1180 funções e constantes documentadas.
+75 arquivos · 1181 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -1983,22 +1983,23 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 **ABA "RECURSOS" (COMPONENTES E ESTILOS)** · [abrir o código](../src/ui/assets.js)
 
-- **`cssSlug(s)`** <sub>do módulo</sub> · [L18](../src/ui/assets.js#L18) — Nome da variável de CSS (o mesmo do código gerado).
-- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L27](../src/ui/assets.js#L27) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
+- **`cssSlug(s)`** <sub>do módulo</sub> · [L19](../src/ui/assets.js#L19) — Nome da variável de CSS (o mesmo do código gerado).
+- **`createAssetsPanel({ store, commands, canvas, container, toast })`** · [L28](../src/ui/assets.js#L28) — Cria a aba RECURSOS (painel esquerdo): três listas do documento —
 
    - Componentes: clicar insere uma instância no centro da tela
    - Cores: estilos de cor; clicar aplica à seleção; +, renomear e excluir
    - Tipografia: estilos de texto; idem
   Mudar um estilo muda todas as camadas ligadas a ele (ver components.js → syncStyles).
-- **`section(title, add, body)`** <sub>interna</sub> · [L34](../src/ui/assets.js#L34) — Seção da lista: título, botão "+" opcional e linhas.
-- **`components()`** <sub>interna</sub> · [L38](../src/ui/assets.js#L38) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
-- **`compQuery`** <sub>interna</sub> · [L45](../src/ui/assets.js#L45) — Busca da biblioteca de componentes (lembrada entre redesenhos).
-- **`usage()`** <sub>interna</sub> · [L47](../src/ui/assets.js#L47) — Quantas cópias (instâncias) de cada componente existem no documento.
-- **`thumb(n, page)`** <sub>interna</sub> · [L53](../src/ui/assets.js#L53) — Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas.
-- **`componentGrid(comps)`** <sub>interna</sub> · [L61](../src/ui/assets.js#L61) — Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também.
-- **`render()`** <sub>interna</sub> · [L98](../src/ui/assets.js#L98) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
-- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L202](../src/ui/assets.js#L202) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
-- **`askColors(title)`** <sub>interna</sub> · [L216](../src/ui/assets.js#L216) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
+- **`section(title, add, body)`** <sub>interna</sub> · [L35](../src/ui/assets.js#L35) — Seção da lista: título, botão "+" opcional e linhas.
+- **`components()`** <sub>interna</sub> · [L39](../src/ui/assets.js#L39) — Todos os componentes principais do documento (de qualquer página), com a página de cada um.
+- **`compQuery`** <sub>interna</sub> · [L46](../src/ui/assets.js#L46) — Busca da biblioteca de componentes (lembrada entre redesenhos).
+- **`usage()`** <sub>interna</sub> · [L49](../src/ui/assets.js#L49) — Quantas cópias (instâncias) de cada componente existem no documento.
+- **`thumb(n, page)`** <sub>interna</sub> · [L55](../src/ui/assets.js#L55) — Miniatura do componente (SVG do próprio desenho). Só para os da página aberta, que estão medidos no canvas.
+- **`componentGrid(comps)`** <sub>interna</sub> · [L63](../src/ui/assets.js#L63) — Grade de cards: miniatura, nome e usos. Clique insere uma cópia no centro; arrastar para o canvas também.
+- **`imageGrid(doc)`** <sub>interna</sub> · [L100](../src/ui/assets.js#L100) — Biblioteca das imagens já embutidas no projeto; o asset original é reutilizado ao inserir.
+- **`render()`** <sub>interna</sub> · [L147](../src/ui/assets.js#L147) — Reconstrói as três listas a partir do documento (só roda com a aba aberta).
+- **`applyColor(hex, asStroke)`** <sub>interna</sub> · [L252](../src/ui/assets.js#L252) — Aplica uma cor da paleta à seleção: preenchimento (ou contorno, com Shift).
+- **`askColors(title)`** <sub>interna</sub> · [L266](../src/ui/assets.js#L266) — Pede uma lista de cores escrita/colada e devolve as válidas (ou null se cancelou).
 
 ---
 

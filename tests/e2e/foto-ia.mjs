@@ -39,6 +39,9 @@ const MAGENTA = solidPng(1024, 1024, [255, 0, 255]).toString('base64');
 // ---------------------------------------------------------------- API de imagens FALSA (formato da OpenAI)
 const calls = [];
 let fakeMode = 'ok';
+let holdNextImageResponse = false;
+let releaseImageResponse = null;
+let imageRequestStarted = null;
 const fake = createServer(async (req, res) => {
   const chunks = [];
   for await (const c of req) chunks.push(c);
@@ -51,6 +54,10 @@ const fake = createServer(async (req, res) => {
     prompt: field('prompt') ?? (req.url.endsWith('generations') ? JSON.parse(text).prompt : undefined),
     hasImage: text.includes('name="image"; filename='), hasMask: text.includes('name="mask"; filename='), size: field('size'),
   });
+  if (holdNextImageResponse) {
+    holdNextImageResponse = false;
+    await new Promise((resolve) => { releaseImageResponse = resolve; imageRequestStarted?.(); });
+  }
   if (fakeMode === '401') { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: { message: 'Incorrect API key provided' } })); return; }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ created: 1, data: [{ b64_json: MAGENTA }] }));
@@ -296,6 +303,28 @@ try {
   ok('generate_image_edit muda só a área pedida', center[0] > 200 && center[1] < 90 && !(corner[0] > 200 && corner[1] < 90), `${center} / ${corner}`);
   await page.keyboard.press('Control+z');
   ok('Ctrl+Z desfaz a edição do agente', (await fill(id)).assetId === before);
+
+  // Uma resposta generativa atrasada não deve substituir uma imagem que a pessoa trocou enquanto aguardava.
+  const requestStarted = new Promise((resolve) => { imageRequestStarted = resolve; });
+  holdNextImageResponse = true;
+  await editBtn.click();
+  await page.locator('.ia-editor').waitFor();
+  const pendingImageEdit = page.evaluate(({ id }) => designer.agent.runner.run('generate_image_edit', {
+    id, mode: 'fill', prompt: 'resultado atrasado', area: { x: 40, y: 40, w: 20, h: 20 },
+  }, 'Teste concorrência humana', { admin: true }), { id });
+  await requestStarted;
+  await page.getByRole('slider', { name: 'Brilho' }).fill('25');
+  await page.locator('.ia-head-actions').getByRole('button', { name: 'Aplicar' }).click();
+  await page.locator('.ia-editor').waitFor({ state: 'detached' });
+  const humanAssetId = (await fill(id)).assetId;
+  releaseImageResponse();
+  const staleImageResult = await pendingImageEdit;
+  ok('imagem editada pela pessoa durante a geração não é substituída por resposta antiga',
+    /imagem desta camada mudou/.test(staleImageResult.error || '') && (await fill(id)).assetId === humanAssetId,
+    JSON.stringify({ error: staleImageResult.error, current: (await fill(id)).assetId, humanAssetId }));
+  await page.keyboard.press('Control+z');
+  imageRequestStarted = null;
+
   await putImageCfg({ baseUrl: 'https://integrate.api.nvidia.com/v1', model: '' });
   r = await run('generate_image_edit', { id, mode: 'fill', prompt: 'x', area: { x: 0, y: 0, w: 10, h: 10 } });
   ok('generate_image_edit sem modelo de imagem: erro claro', /não tem API de imagem/.test(r.error || ''), JSON.stringify(r));

@@ -14,6 +14,7 @@ import { rgba } from '../css.js';
 import { walk, defaultFill, defaultStroke, slugify } from '../model.js';
 import { toSvg } from '../svg.js';
 import { createPhotosPanel } from './photos.js';
+import { imageAssetCatalog } from '../image-assets.js';
 /** Nome da variável de CSS (o mesmo do código gerado). */
 const cssSlug = (s) => slugify(s || 'variavel');
 
@@ -43,6 +44,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
 
   /** Busca da biblioteca de componentes (lembrada entre redesenhos). */
   let compQuery = '';
+  let imageQuery = '';
   /** Quantas cópias (instâncias) de cada componente existem no documento. */
   function usage() {
     const count = new Map();
@@ -94,6 +96,53 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     return h('div.comp-lib', comps.length > 4 ? search : null, grid, empty);
   }
 
+  /** Biblioteca das imagens já embutidas no projeto; o asset original é reutilizado ao inserir. */
+  function imageGrid(doc) {
+    const items = imageAssetCatalog(doc);
+    if (!items.length) return [h('p.hint', 'Importe uma imagem pelo canvas ou pela biblioteca de fotos; ela ficará disponível aqui para reutilizar.')];
+    const search = h('input.comp-search', { type: 'search', placeholder: 'Buscar imagem', 'aria-label': 'Buscar imagem', value: imageQuery,
+      oninput: (e) => { imageQuery = e.target.value; filter(); }, onkeydown: (e) => e.stopPropagation() });
+    const cards = items.map((asset) => {
+      const src = doc.assets[asset.id];
+      const card = h('button.image-asset-card', {
+        type: 'button', draggable: true, dataset: { name: `${asset.name} ${asset.id} ${asset.format} ${asset.usedBy.map((x) => x.page).join(' ')}`.toLowerCase() },
+        title: store.selected().some((n) => n.type !== 'group' && n.type !== 'section')
+          ? `Aplicar “${asset.name}” à seleção (ou arraste para inserir)`
+          : `Inserir “${asset.name}” no centro da tela (ou arraste para o canvas)`,
+        onclick: () => {
+          const nodes = store.selected().filter((n) => n.type !== 'group' && n.type !== 'section');
+          if (nodes.length) {
+            store.update(() => nodes.forEach((n) => { n.fill = { ...defaultFill(), type: 'image', assetId: asset.id, fit: 'cover', ...(asset.width ? { natW: asset.width } : {}), ...(asset.height ? { natH: asset.height } : {}) }; }));
+            store.commit();
+            toast?.(`Imagem aplicada a ${nodes.length === 1 ? '1 camada' : `${nodes.length} camadas`}.`);
+          } else commands.insertImageAsset(asset.id).catch((err) => toast?.(err.message || 'Não consegui inserir a imagem.'));
+        },
+        ondragstart: (e) => { e.dataTransfer.setData('text/plain', asset.id); e.dataTransfer.effectAllowed = 'copy'; card.dataset.dragging = '1'; },
+        ondragend: (e) => {
+          delete card.dataset.dragging;
+          const vp = canvas.vpRect();
+          if (e.clientX >= vp.left && e.clientX <= vp.right && e.clientY >= vp.top && e.clientY <= vp.bottom) {
+            commands.insertImageAsset(asset.id, canvas.toWorld(e.clientX, e.clientY)).catch((err) => toast?.(err.message || 'Não consegui inserir a imagem.'));
+          }
+        },
+      },
+      h('span.image-asset-thumb', h('img', { src, alt: '', loading: 'lazy' })),
+      h('span.comp-name', asset.name),
+      h('span.comp-meta', `${asset.width && asset.height ? `${asset.width} × ${asset.height} · ` : ''}${asset.usageCount} ${asset.usageCount === 1 ? 'uso' : 'usos'} · ${asset.kb} KB`));
+      return card;
+    });
+    const grid = h('div.image-asset-grid', cards);
+    const empty = h('p.hint', { hidden: true }, 'Nenhuma imagem encontrada.');
+    const filter = () => {
+      const q = imageQuery.trim().toLowerCase();
+      let shown = 0;
+      for (const c of cards) { const ok = !q || c.dataset.name.includes(q); c.hidden = !ok; if (ok) shown++; }
+      empty.hidden = shown > 0;
+    };
+    filter();
+    return [items.length > 4 ? search : null, grid, empty];
+  }
+
   /** Reconstrói as três listas a partir do documento (só roda com a aba aberta). */
   function render() {
     // com o seletor de cor aberto a partir de uma amostra daqui, não reconstrói a lista (o seletor fecharia)
@@ -101,6 +150,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
     if (pa && el.contains(pa)) return;
     const doc = store.state.doc;
     const comps = components();
+    const images = imageGrid(doc);
     const sel = () => store.selected();
 
     const compRows = comps.length ? [componentGrid(comps)] : [h('p.hint', 'Selecione um frame e aperte Ctrl+Alt+K para criar um componente reutilizável.')];
@@ -271,6 +321,7 @@ export function createAssetsPanel({ store, commands, canvas, container, toast })
 
     el.replaceChildren(
       section('Fotos', null, [photos.el]),
+      section('Imagens do projeto', null, images),
       section('Componentes', null, compRows),
       section('Cores', addColor, colorRows.length ? colorRows : [h('p.hint', 'Crie estilos de cor: mudou aqui, muda em todas as camadas.')]),
       section('Variáveis', addVarBtn, varRows.length ? varRows : [h('p.hint', 'Números reutilizáveis (espaçamento, raio, fonte). Ligue um campo do painel Design a uma variável: mudou aqui, muda em todas as camadas, e o CSS usa var(--nome).')]),
