@@ -716,7 +716,7 @@ export async function openImageEditor({ store, nodeId, toast = () => {}, tool = 
       const status = c.available
         ? h('div.ia-status.ok', ico('sparkle', 14), h('span', 'Modelo ', h('code', c.model), ` em ${c.providerName}`))
         : h('div.ia-status.warn', h('strong', 'Edição generativa indisponível'), h('p', c.reason),
-          h('button.btn.small', { type: 'button', onclick: () => { close(true); document.dispatchEvent(new CustomEvent('stylo:abrir-configuracoes', { detail: 'ai' })); } }, 'Abrir Configurações'));
+          h('button.btn.small', { type: 'button', onclick: () => { close(true); document.dispatchEvent(new CustomEvent('stylo:abrir-configuracoes', { detail: 'keys' })); } }, 'Abrir Configurações'));
       const modes = [['fill', 'Preencher área'], ['replace', 'Trocar objeto'], ['expand', 'Expandir']];
       const prompt = h('textarea.text.ia-prompt', { rows: 3, maxLength: 1000, 'aria-label': 'Pedido para a IA', placeholder: gen.mode === 'fill' ? 'ex.: tire a pessoa e continue a parede' : gen.mode === 'replace' ? 'ex.: troque a caneca por um vaso de flores (sem área pintada = variação da foto toda)' : 'ex.: continue a paisagem com o mesmo céu' });
       prompt.value = gen.prompt;

@@ -38,11 +38,8 @@ import { createPresence, targetsOf, DOCUMENT_LOCK } from './server/presence.js';
 import { createEditorBridge } from './server/editor-bridge.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
 import { VERSION } from './src/version.js';
-import { PROVIDERS, providerOf, isLocalUrl } from './src/agent/providers.js';
 import { AGENT_INSTRUCTIONS, toolByName } from './src/agent/schema.js';
-import { createChatAccumulator, createSseReader, reasoningParams, rejectsExtras, rejectsTools } from './src/agent/stream.js';
-import { JEV_URL, JEV_MODEL, buildJevRequest, readJevAnswer, isJevTool } from './src/agent/jev.js';
-import { createImageAi, imageConfigOf } from './server/imageai.js';
+import { createImageAi } from './server/imageai.js';
 
 /** Pasta do projeto (onde está este arquivo). Tudo que o servidor entrega é lido a partir daqui. */
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -572,179 +569,17 @@ async function mcpRoute(req, res) {
 /** IA de foto (server/imageai.js): lê a configuração atual e grava as mudanças no mesmo arquivo. */
 const imageAi = createImageAi({ getConfig: () => config, saveConfig: async (next) => { config = next; await writeJsonAtomic(configFile, config); } });
 
-/** Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro). */
-const DEFAULT_PROVIDER = PROVIDERS[0];
-/**
- * Configuração do Assistente: endereço da API, modelo e a chave DAQUELE endereço. Cada provedor guarda a sua chave
- * (config.agent.keys[endereço]); a chave também pode vir da variável de ambiente do provedor (OPENAI_API_KEY,
- * NVIDIA_API_KEY). `config.agent.apiKey` é o formato antigo (uma chave só) e continua valendo.
- */
-const agentConfig = () => {
-  const baseUrl = (config.agent?.baseUrl || DEFAULT_PROVIDER.baseUrl).replace(/\/+$/, '');
-  const provider = providerOf(baseUrl);
-  const model = config.agent?.model || provider?.model || DEFAULT_PROVIDER.model;
-  const legacy = baseUrl === DEFAULT_PROVIDER.baseUrl ? config.agent?.apiKey : '';
-  const apiKey = config.agent?.keys?.[baseUrl] || legacy || (provider?.envKey && process.env[provider.envKey]) || '';
-  // tempos e raciocínio (Configurações → Agente de IA): sem 1º pedaço em firstTokenSec → erro claro; pensando há mais
-  // de maxThinkSec sem responder → para; limitReasoning pede à NVIDIA NIM para pensar menos; maxTokens só na NIM
-  const num = (v, d, lo, hi) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Math.max(lo, Math.min(hi, Math.round(Number(v)))) : d);
-  return {
-    baseUrl, model, apiKey, provider,
-    firstTokenSec: num(config.agent?.firstTokenSec, 60, 5, 600),
-    maxThinkSec: num(config.agent?.maxThinkSec, 120, 10, 1800),
-    maxTokens: num(config.agent?.maxTokens, 4096, 0, 65536),
-    limitReasoning: config.agent?.limitReasoning !== false,
-  };
-};
-/**
- * Chave e endereço do Jev (TypeSafe): a chave vem de Configurações → Chaves de API (config.jev.apiKey) ou da variável
- * de ambiente JEV_API_KEY, e NUNCA volta ao navegador. O endereço pode ser trocado por JEV_API_URL ou, só para um
- * servidor DESTA máquina (testes), por config.jev.url.
- */
-const jevConfig = () => {
-  const apiKey = config.jev?.apiKey || process.env.JEV_API_KEY || '';
-  const local = config.jev?.url && isLocalUrl(config.jev.url) ? config.jev.url : '';
-  return { apiKey, url: local || process.env.JEV_API_URL || JEV_URL, source: config.jev?.apiKey ? 'config' : process.env.JEV_API_KEY ? 'env' : '' };
-};
 /**
  * Instruções da IA (quem ela é, o que pode fazer, como a ferramenta funciona): o arquivo server/instrucoes-agente.txt, lido a cada
  * conversa (editar o arquivo muda o comportamento na hora, sem reiniciar). Sem o arquivo, vale o texto curto embutido.
  */
 const agentInstructions = () => readFile(join(root, 'server', 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
-/** Monta o cabeçalho de autorização (servidores locais, como o Ollama, não usam chave). */
-const authHeader = (a) => (a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {});
-
-/** Erro de uma conversa com a IA, com um código para a tela (first_token, thinking, no_tools, http, network). */
-const chatError = (code, message, extra = {}) => Object.assign(new Error(message), { code, ...extra });
-
-/**
- * Uma rodada de chat em STREAMING com a API (OpenAI, NVIDIA NIM, Ollama...). Repassa os pedaços em `onDelta`
- * ({ text, reasoning }) enquanto chegam e devolve a mensagem completa ({ content, reasoning, tool_calls, ... }).
- * Tempos: sem nenhum pedaço em `firstTokenMs` → erro "first_token"; só raciocínio por mais de `maxThinkMs` →
- * erro "thinking"; parado sem receber nada por `firstTokenMs` no meio → erro "stalled". `signal` aborta tudo
- * (botão Parar). Servidores que ignoram stream:true e mandam JSON inteiro também funcionam.
- */
-async function streamChat({ a, model, messages, tools, extras = {}, signal, onDelta = () => {}, firstTokenMs, maxThinkMs }) {
-  const ctrl = new AbortController();
-  let reason = null;
-  const fail = (err) => { if (!reason) { reason = err; ctrl.abort(); } };
-  const onOuter = () => fail(chatError('aborted', 'Parado.'));
-  if (signal?.aborted) onOuter(); else signal?.addEventListener('abort', onOuter, { once: true });
-  const started = Date.now();
-  let firstAt = 0;
-  let idle = setTimeout(() => fail(chatError('first_token', `O modelo “${model}” não começou a responder em ${Math.round(firstTokenMs / 1000)} s.`)), firstTokenMs);
-  const acc = createChatAccumulator();
-  const emit = (d) => {
-    if (!d.text && !d.reasoning) return;
-    if (!firstAt) firstAt = Date.now();
-    onDelta(d);
-  };
-  const tick = () => {
-    clearTimeout(idle);
-    idle = setTimeout(() => fail(chatError('stalled', `O modelo “${model}” parou de mandar a resposta no meio (${Math.round(firstTokenMs / 1000)} s sem nada).`)), firstTokenMs);
-    if (firstAt && !acc.answering() && Date.now() - firstAt > maxThinkMs) fail(chatError('thinking', `O modelo “${model}” ficou ${Math.round((Date.now() - firstAt) / 1000)} s só pensando, sem responder.`));
-  };
-  try {
-    let r;
-    try {
-      r = await fetch(`${a.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json', ...authHeader(a) },
-        body: JSON.stringify({ model, messages, ...(tools?.length ? { tools, tool_choice: 'auto' } : {}), stream: true, ...extras }),
-        signal: ctrl.signal,
-      });
-    } catch (err) {
-      if (reason) throw reason;
-      throw chatError('network', `Não consegui falar com ${a.baseUrl} (${err.cause?.code || err.message}). Confira a internet e o endereço em Configurações.`);
-    }
-    if (!r.ok) {
-      const raw = await r.text().catch(() => '');
-      let data = {};
-      try { data = JSON.parse(raw); } catch { /* texto puro */ }
-      const detail = String(data.error?.message || data.detail || data.title || data.message || raw.slice(0, 300) || r.status);
-      throw chatError(rejectsTools(r.status, detail) ? 'no_tools' : 'http', detail, { status: r.status, detail });
-    }
-    if (/application\/json/i.test(r.headers.get('content-type') || '')) {
-      // servidor que ignorou o streaming: a resposta inteira de uma vez
-      const data = await r.json().catch(() => ({}));
-      tick();
-      emit(acc.add(data));
-    } else {
-      const decoder = new TextDecoder();
-      const sse = createSseReader((data) => {
-        if (!data) return;
-        let json;
-        try { json = JSON.parse(data); } catch { return; }
-        if (json.error) fail(chatError('http', String(json.error.message || json.error)));
-        emit(acc.add(json));
-        tick();
-      });
-      for await (const chunk of r.body) {
-        tick();
-        sse.push(decoder.decode(chunk, { stream: true }));
-        if (reason) break;
-      }
-      sse.end();
-    }
-    if (reason) throw reason;
-    emit(acc.end());
-    const out = acc.result();
-    return { ...out, firstTokenMs: firstAt ? firstAt - started : null, totalMs: Date.now() - started };
-  } catch (err) {
-    throw reason || err;
-  } finally {
-    clearTimeout(idle);
-    signal?.removeEventListener('abort', onOuter);
-  }
-}
-
-/**
- * Chat com as tentativas certas: manda os extras de raciocínio da NIM (reasoningParams) e, se a API recusar algum
- * campo extra, tenta de novo sem eles. Devolve o mesmo que streamChat e `note` (aviso para a tela, se houver).
- */
-async function chatWithRetry({ a, model, system, messages, tools, signal, onDelta }) {
-  const rp = reasoningParams(model, { provider: a.provider?.id, limit: a.limitReasoning, maxTokens: a.maxTokens });
-  const sys = { role: 'system', content: rp.system ? `${rp.system}\n\n${system}` : system };
-  const opts = { a, model, tools, signal, onDelta, firstTokenMs: a.firstTokenSec * 1000, maxThinkMs: a.maxThinkSec * 1000 };
-  try {
-    return { ...(await streamChat({ ...opts, messages: [sys, ...messages], extras: rp.body })), note: rp.note };
-  } catch (err) {
-    if (!(err.code === 'http' && Object.keys(rp.body).length && rejectsExtras(err.status, err.detail))) throw err;
-    return { ...(await streamChat({ ...opts, messages: [{ role: 'system', content: system }, ...messages], extras: {} })), note: rp.note };
-  }
-}
-
-/** Frase para a tela a partir do erro de chat (com o que fazer). */
-function chatErrorText(err, model, a) {
-  const nim = a.provider?.id === 'nvidia';
-  const tip = nim ? ' Tente de novo (na NVIDIA NIM, modelos grandes às vezes ficam na fila) ou troque por um menor e rápido (ex.: meta/llama-3.3-70b-instruct); “Testar modelo” em Configurações compara os modelos.' : ' Tente de novo ou troque o modelo no topo do painel.';
-  switch (err.code) {
-    case 'first_token': return `${err.message}${tip} Se o modelo for lento mesmo, aumente “Esperar o 1º pedaço” em Configurações → Agente de IA.`;
-    case 'stalled': return `${err.message}${tip}`;
-    case 'thinking': return `${err.message} Ligue “Pedir menos raciocínio” em Configurações → Agente de IA, aumente o “Tempo máximo pensando” ou use um modelo “instruct” (sem raciocínio).`;
-    case 'no_tools': return `A API respondeu: ${err.detail} — o modelo “${model}” não aceita ferramentas (tool calling), então não consegue mexer no design. Escolha outro no topo do painel (use “Testar modelo” em Configurações para achar um que funcione).`;
-    case 'http': return `A API respondeu: ${err.detail || err.message}${err.status === 401 ? ' (chave inválida? Confira em Configurações → Chaves de API)' : err.status === 404 ? ` (o modelo “${model}” existe nesta conta? Use “Ver modelos”)` : ''}`;
-    default: return err.message;
-  }
-}
-
-/** Ferramenta mínima usada por "Testar modelo" (mede se o modelo chama ferramentas). */
-const PING_TOOL = { type: 'function', function: { name: 'ping', description: 'Responde "pong". Use quando pedirem para testar.', parameters: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] } } };
-
 /**
  * Rotas da IA:
  *   GET  /api/agent/events   → o editor fica ouvindo os pedidos de ferramenta (Server-Sent Events)
  *   POST /api/agent/reply    { id, result } → o editor devolve o resultado de um pedido
- *   GET  /api/agent/config   → { baseUrl, model, hasKey, editors } (a chave NUNCA é devolvida)
- *   PUT  /api/agent/config   { apiKey?, model?, baseUrl? } → grava (apiKey "" apaga a chave)
- *   POST /api/agent/chat     { messages, tools, model?, memory?, subagent? } → repassa à API de chat (OpenAI, NVIDIA NIM,
- *                            Ollama...) com a SUA chave e as instruções de server/instrucoes-agente.txt, em STREAMING: responde NDJSON
- *                            (um JSON por linha): {type:"start"} · {type:"reasoning", text} · {type:"text", text} ·
- *                            {type:"done", message, model, firstTokenMs, totalMs} · {type:"error", error, code}.
- *                            Fechar a conexão (botão Parar) aborta o pedido à API na hora.
- *   POST /api/agent/test     { model? } → testa o modelo: tempo até o 1º pedaço e se ele chama ferramentas (guarda)
- *   POST /api/agent/jev      { tool, args } → roda jev_choose / jev_score / jev_check na API do Jev (chave só aqui)
- *   GET  /api/agent/models   → { models } a lista de modelos da conta (testa a chave)
+ *   GET  /api/agent/config   → { editors, mcpUrl, mcpScript, mcpAdmin, pexels } (chaves NUNCA são devolvidas)
+ *   PUT  /api/agent/config   { pexelsKey? } → grava (vazio apaga)
  *   PUT  /api/agent/mcp      { admin } → liga/desliga o "Acesso de administrador" do MCP (só programas deste computador)
  */
 async function agentApi(req, res, parts) {
@@ -779,59 +614,20 @@ async function agentApi(req, res, parts) {
     return sendJson(res, 200, { ok: true });
   }
   if (what === 'config' && req.method === 'GET') {
-    const a = agentConfig();
-    // caminho do script stdio e endereço HTTP do MCP: a janela de Configurações mostra os comandos prontos para copiar
     return sendJson(res, 200, {
-      baseUrl: a.baseUrl, model: a.model, provider: a.provider?.id || 'custom', hasKey: !!a.apiKey, needsKey: !a.apiKey && !isLocalUrl(a.baseUrl),
       editors: editors.size, mcpUrl: `http://localhost:${port}/mcp`, mcpScript: join(root, 'scripts', 'mcp.mjs'), instructions: join(root, 'server', 'instrucoes-agente.txt'),
-      mcpAdmin: !!config.mcp?.admin, pluginDir: join(root, 'integrations', 'claude-code'),
-      firstTokenSec: a.firstTokenSec, maxThinkSec: a.maxThinkSec, maxTokens: a.maxTokens, limitReasoning: a.limitReasoning,
-      tested: config.agent?.tested || {},
-      // Jev: só se há chave e de onde ela vem (a chave em si nunca sai daqui)
-      jev: !!jevConfig().apiKey, jevSource: jevConfig().source,
+      mcpAdmin: !!config.mcp?.admin,
       pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY), pexelsSource: config.pexels?.apiKey ? 'config' : process.env.PEXELS_API_KEY ? 'env' : '',
     });
   }
   if (what === 'config' && req.method === 'PUT') {
     const body = await jsonObject(req);
-    const next = { ...(config.agent || {}), keys: { ...(config.agent?.keys || {}) } };
-    if (body.baseUrl !== undefined) {
-      const u = String(body.baseUrl).trim().replace(/\/+$/, '');
-      if (u && !/^https?:\/\/[^\s]+$/i.test(u)) throw httpError(400, 'Endereço inválido: use algo como https://integrate.api.nvidia.com/v1 ou http://localhost:11434/v1.');
-      if (u) next.baseUrl = u; else delete next.baseUrl;
-    }
-    if (body.model !== undefined) { const m = String(body.model).trim(); if (m) next.model = m.slice(0, 120); else delete next.model; }
-    // a chave vale para o endereço ESCOLHIDO (já com a troca acima): cada provedor guarda a sua
-    if (body.apiKey !== undefined) {
-      const k = String(body.apiKey).trim();
-      const url = (next.baseUrl || DEFAULT_PROVIDER.baseUrl).replace(/\/+$/, '');
-      if (k) next.keys[url] = k; else { delete next.keys[url]; if (url === DEFAULT_PROVIDER.baseUrl) delete next.apiKey; }
-    }
-    if (!Object.keys(next.keys).length) delete next.keys;
-    // tempos e raciocínio (números fora da faixa são ajustados em agentConfig)
-    for (const k of ['firstTokenSec', 'maxThinkSec', 'maxTokens']) {
-      if (body[k] === undefined) continue;
-      if (body[k] === '' || body[k] === null) delete next[k];
-      else if (!Number.isFinite(Number(body[k]))) throw httpError(400, `${k}: use um número.`);
-      else next[k] = Number(body[k]);
-    }
-    if (body.limitReasoning !== undefined) next.limitReasoning = !!body.limitReasoning;
     const pexels = { ...(config.pexels || {}) };
     if (body.pexelsKey !== undefined) { const k = String(body.pexelsKey).trim(); if (k) pexels.apiKey = k.slice(0, 400); else delete pexels.apiKey; }
-    // CHAVE DO JEV (TypeSafe): "" apaga. jevUrl só aceita endereço desta máquina (servidor de teste).
-    let jev = { ...(config.jev || {}) };
-    if (body.jevKey !== undefined) { const k = String(body.jevKey).trim(); if (k) jev.apiKey = k.slice(0, 400); else delete jev.apiKey; }
-    if (body.jevUrl !== undefined) {
-      const u = String(body.jevUrl).trim();
-      if (u && !isLocalUrl(u)) throw httpError(400, 'jevUrl só aceita um endereço desta máquina (localhost). Para outro, use a variável JEV_API_URL.');
-      if (u) jev.url = u; else delete jev.url;
-    }
-    config = { ...config, agent: next, ...(Object.keys(jev).length ? { jev } : {}), ...(Object.keys(pexels).length ? { pexels } : {}) };
-    if (!Object.keys(jev).length) delete config.jev;
+    config = { ...config, ...(Object.keys(pexels).length ? { pexels } : {}) };
     if (!Object.keys(pexels).length) delete config.pexels;
     await writeJsonAtomic(configFile, config);
-    const a = agentConfig();
-    return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, jev: !!jevConfig().apiKey, pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY) });
+    return sendJson(res, 200, { ok: true, pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY) });
   }
   if (what === 'mcp' && req.method === 'PUT') {
     // { admin: boolean } — "Acesso de administrador" do MCP: programas de IA DESTE computador agem sem a janela de
@@ -842,128 +638,6 @@ async function agentApi(req, res, parts) {
     config = { ...config, mcp: next };
     await writeJsonAtomic(configFile, config);
     return sendJson(res, 200, { ok: true, mcpAdmin: !!next.admin });
-  }
-  if (what === 'models' && req.method === 'GET') {
-    // lista os modelos da conta (GET /models, padrão da OpenAI que a NVIDIA e o Ollama também têm): ajuda a escolher
-    // o nome certo e, de quebra, testa se a chave funciona
-    const a = agentConfig();
-    if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Salve a chave de ${a.provider?.name || 'API'} antes.`);
-    let r;
-    try { r = await fetch(`${a.baseUrl}/models`, { headers: authHeader(a), signal: AbortSignal.timeout(20000) }); } catch (err) {
-      throw httpError(502, `Não consegui falar com ${a.baseUrl} (${err.cause?.code || err.message}).`);
-    }
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw httpError(r.status === 401 ? 401 : 502, `A API respondeu: ${data.error?.message || data.detail || r.status}${r.status === 401 ? ' (chave inválida?)' : ''}`);
-    const ids = (data.data || data.models || []).map((m) => m.id || m.name).filter(Boolean).sort();
-    return sendJson(res, 200, { models: ids });
-  }
-  if (what === 'chat' && req.method === 'POST') {
-    const { messages, tools, model: wanted, memory, subagent } = await jsonObject(req, MAX_MEDIUM);
-    if (!Array.isArray(messages) || !messages.length) throw httpError(400, 'Mensagens vazias.');
-    const a = agentConfig();
-    if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Configure a chave de ${a.provider?.name || 'API'} em Configurações → Chaves de API.`);
-    // as instruções (server/instrucoes-agente.txt) entram aqui, no servidor: sempre as mais novas, e o navegador não consegue trocá-las
-    // memória do projeto (notas que o agente guardou com "remember" ou que você escreveu): vai junto das instruções
-    const notes = Array.isArray(memory) ? memory.map((m) => String(m).slice(0, 500)).slice(0, 60) : [];
-    const memoryText = notes.length
-      ? `\n\n## Memória deste projeto\nCoisas que você já combinou com a pessoa ou anotou (use a ferramenta remember para guardar novas):\n${notes.map((n) => `- ${n}`).join('\n')}`
-      : '';
-    const subText = subagent ? '\n\n## Você é um SUBAGENTE\nVocê recebeu UMA tarefa do agente principal. Faça só ela, sem perguntar nada, e termine com um resumo de 1 a 3 frases.' : '';
-    const system = (await agentInstructions()) + memoryText + subText;
-    // modelo escolhido na aba do agente (por conversa); sem escolha, vale o das Configurações
-    const model = typeof wanted === 'string' && /^[\w.:/@+-]{1,120}$/.test(wanted) ? wanted : a.model;
-    // ferramentas do Jev só com chave (sem ela, nem aparecem para o modelo)
-    const hasJev = !!jevConfig().apiKey;
-    // edição generativa de foto só aparece para o modelo se houver modelo de imagem configurado (server/imageai.js)
-    const hasImageAi = imageConfigOf(config).available;
-    const offered = Array.isArray(tools) ? tools.filter((t) => (hasJev || !isJevTool(t?.function?.name)) && (hasImageAi || t?.function?.name !== 'generate_image_edit')) : [];
-    // só os campos que a API conhece (o navegador guarda outros, como o raciocínio, que não voltam para a IA)
-    const clean = messages.filter((m) => m && m.role !== 'system').map((m) => ({
-      role: m.role, content: m.content ?? '',
-      ...(m.tool_calls?.length ? { tool_calls: m.tool_calls.map((c) => ({ id: c.id, type: 'function', function: { name: c.function?.name, arguments: typeof c.function?.arguments === 'string' ? c.function.arguments : JSON.stringify(c.function?.arguments ?? {}) } })) } : {}),
-      ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-    }));
-    // STREAMING para o navegador: NDJSON (um evento por linha), enviado assim que cada pedaço chega
-    res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
-    const send = (ev) => { if (!res.writableEnded && !res.destroyed) res.write(`${JSON.stringify(ev)}\n`); };
-    // botão Parar: o navegador fecha a conexão → aborta o pedido à API (não fica gastando tokens à toa)
-    const stop = new AbortController();
-    res.on('close', () => { if (!res.writableFinished) stop.abort(); });
-    send({ type: 'start', model });
-    // batimento: mantém a conexão viva e deixa a tela contar o tempo mesmo sem pedaços
-    const beat = setInterval(() => send({ type: 'wait' }), 5000);
-    try {
-      const out = await chatWithRetry({ a, model, system, messages: clean, tools: offered, signal: stop.signal, onDelta: (d) => {
-        if (d.reasoning) send({ type: 'reasoning', text: d.reasoning });
-        if (d.text) send({ type: 'text', text: d.text });
-      } });
-      if (out.note) send({ type: 'note', text: out.note });
-      const message = { role: 'assistant', content: out.content || '', ...(out.tool_calls.length ? { tool_calls: out.tool_calls } : {}) };
-      send({ type: 'done', message, reasoning: out.reasoning || '', model, finishReason: out.finish_reason, firstTokenMs: out.firstTokenMs, totalMs: out.totalMs, usage: out.usage || null });
-    } catch (err) {
-      if (err.code !== 'aborted') send({ type: 'error', code: err.code || 'error', error: chatErrorText(err, model, a) });
-    } finally {
-      clearInterval(beat);
-      if (!res.writableEnded) res.end();
-    }
-    return;
-  }
-  if (what === 'test' && req.method === 'POST') {
-    // TESTAR MODELO: pede para chamar uma ferramenta "ping" e mede o tempo até o 1º pedaço. O resultado fica guardado
-    // (config.agent.tested) para marcar na lista de modelos quais funcionaram.
-    const body = await jsonObject(req);
-    const a = agentConfig();
-    if (!a.apiKey && !isLocalUrl(a.baseUrl)) throw httpError(400, `Salve a chave de ${a.provider?.name || 'API'} antes.`);
-    const model = typeof body.model === 'string' && /^[\w.:/@+-]{1,120}$/.test(body.model.trim()) ? body.model.trim() : a.model;
-    const stop = new AbortController();
-    res.on('close', () => { if (!res.writableFinished) stop.abort(); });
-    const t0 = Date.now();
-    let result;
-    try {
-      const out = await chatWithRetry({
-        a: { ...a, firstTokenSec: Math.min(a.firstTokenSec, 90), maxThinkSec: Math.min(a.maxThinkSec, 90) }, model,
-        system: 'Você está sendo testado. Quando pedirem, chame a ferramenta indicada, sem escrever texto.',
-        messages: [{ role: 'user', content: 'Chame a ferramenta ping com {"ok": true}.' }], tools: [PING_TOOL], signal: stop.signal,
-      });
-      const tools = out.tool_calls.some((c) => c.function?.name === 'ping');
-      result = { ok: tools, tools, firstTokenMs: out.firstTokenMs ?? out.totalMs, totalMs: out.totalMs, reasoning: !!out.reasoning,
-        ...(tools ? {} : { error: out.content ? 'Respondeu em texto em vez de chamar a ferramenta (não serve para mexer no design).' : 'Não chamou a ferramenta.' }) };
-    } catch (err) {
-      if (err.code === 'aborted') return;
-      result = { ok: false, tools: err.code === 'no_tools' ? false : null, totalMs: Date.now() - t0, code: err.code || 'error', error: chatErrorText(err, model, a) };
-    }
-    result = { ...result, model, at: Date.now() };
-    // guarda (no máximo 80 modelos testados, os mais recentes)
-    const tested = Object.entries({ ...(config.agent?.tested || {}), [model]: result }).sort((x, y) => y[1].at - x[1].at).slice(0, 80);
-    config = { ...config, agent: { ...(config.agent || {}), tested: Object.fromEntries(tested) } };
-    await writeJsonAtomic(configFile, config);
-    return sendJson(res, 200, result);
-  }
-  if (what === 'jev' && req.method === 'POST') {
-    // JEV: o servidor chama a API da TypeSafe com a chave guardada aqui; o navegador só vê a resposta
-    const { tool, args } = await jsonObject(req);
-    const j = jevConfig();
-    if (!j.apiKey) throw httpError(400, 'O Jev não está configurado: coloque a chave em Configurações → Chaves de API (ou a variável JEV_API_KEY).');
-    if (!isJevTool(tool)) throw httpError(400, `Ferramenta do Jev desconhecida: ${tool}.`);
-    let q;
-    try { q = buildJevRequest(tool, args || {}); } catch (err) { return sendJson(res, 200, { error: err.message }); }
-    const t0 = Date.now();
-    let r;
-    try {
-      r = await fetch(j.url, {
-        method: 'POST', headers: { Authorization: `Bearer ${j.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: q.state, model: process.env.JEV_MODEL || JEV_MODEL, questions: q.questions }), signal: AbortSignal.timeout(20000),
-      });
-    } catch (err) {
-      return sendJson(res, 200, { error: err.name === 'TimeoutError' ? 'O Jev não respondeu em 20 s. Siga sem ele.' : `Não consegui falar com o Jev (${err.cause?.code || err.message}). Siga sem ele.` });
-    }
-    if (!r.ok) {
-      const detail = (await r.text().catch(() => '')).slice(0, 300);
-      return sendJson(res, 200, { error: r.status === 401 || r.status === 403 ? 'O Jev recusou a chave (confira JEV_API_KEY em Configurações → Chaves de API).' : `O Jev respondeu ${r.status}${detail ? `: ${detail}` : ''}.` });
-    }
-    try {
-      return sendJson(res, 200, { ...readJevAnswer(tool, await r.json(), q), latencyMs: Date.now() - t0 });
-    } catch (err) { return sendJson(res, 200, { error: err.message }); }
   }
   throw httpError(404, 'Rota não encontrada.');
 }

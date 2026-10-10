@@ -11,7 +11,7 @@ trabalham no mesmo projeto**, criando, editando e exportando sites.
 - Humanos usam o editor visual no navegador; humanos e agentes podem estar no mesmo projeto ao mesmo tempo
   (presença, travas por camada, comentários). Isso pede contas e banco de dados (hoje: arquivos JSON numa pasta).
 
-**Estado desta cópia:** limpeza em andamento. Tudo que era documentação, plano, captura de tela e identidade visual
+**Estado desta cópia:** limpeza em andamento. O chat de IA embutido (OpenAI/NIM/Ollama, Jev, subagentes) já foi removido: agentes entram só pelo MCP. Tudo que era documentação, plano, captura de tela e identidade visual
 foi removido (está no histórico do GitHub). Este é o único `.md`.
 
 ## Rodar
@@ -48,7 +48,7 @@ Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/m
 ### Servidor (Node, sem framework) — `server.js` + `server/`
 | Arquivo | Faz |
 |---|---|
-| `server.js` (1000 linhas, **a fatiar**) | HTTP cru: estáticos, API `/api` (projetos, versões, miniaturas, conta, config), rota `/mcp`, rotas do chat de IA |
+| `server.js` (700 linhas, **a fatiar**) | HTTP cru: estáticos, API `/api` (projetos, versões, miniaturas, conta, config), rota `/mcp`, ponte com o editor |
 | `server/mcp.js` | protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping) |
 | `server/editor-bridge.js` | **ponto-chave de hoje:** repassa cada chamada de ferramenta à aba do editor aberta (SSE) e espera a resposta |
 | `server/presence.js` | quem está no projeto (pessoas/agentes) e travas por camada, em memória |
@@ -65,7 +65,7 @@ Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/m
 | `runner.js` | **executa** cada ferramenta usando store + commands — hoje só no navegador |
 | `bridge.js` | permissão ("A IA quer alterar...") e escuta de `/api/agent/events` |
 | `content.js` | divide conteúdo grande em trechos UTF-8 |
-| `stream.js`, `providers.js`, `jev.js`, `subagents.js`, `ui/assistant.js` | **chat de IA embutido** (OpenAI/NIM/Ollama, Jev, subagentes) — candidato a remoção |
+| `providers.js` | endereços de provedores de imagem (usado só por `server/imageai.js`) |
 
 ### Editor visual (navegador) — só interface; fora do escopo desta limpeza
 `src/main.js`, `canvas.js`, `overlay.js`, `tools.js`, `commands.js`, `pen.js`, `rulers.js`, `present.js`,
@@ -75,6 +75,27 @@ Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/m
 Hoje **o editor aberto no navegador é quem executa as ferramentas MCP** (`runner.js` precisa de `store` e
 `commands`, que tocam o DOM). Sem aba aberta, o agente não consegue trabalhar. Para "server ligado, qualquer agente
 acessa" o documento e as operações precisam rodar **no servidor** (headless), com o navegador sendo só mais um cliente.
+
+## Decisões tomadas (com a pessoa dona do projeto)
+1. **Sem agente embutido.** Toda IA entra por MCP. O MCP é um *core plugin*, não um detalhe do servidor.
+2. **Modularização é a regra:** nenhum arquivo faz mil coisas. Cada parte tem uma pasta e um motivo.
+3. **Core plugins:** documento, exportação, MCP, fotos, imagem, (futuro) identidade visual. Cada plugin registra
+   suas ferramentas MCP, sua lógica e seus testes. Formato proposto: `{ nome, ferramentas, executar }`.
+4. **Execução headless:** documento e operações rodam no servidor; o navegador é só mais um cliente.
+5. **Dependências são bem-vindas** se encolherem o código (Hono/Fastify no servidor, SDK oficial do MCP).
+6. **Hospedagem pessoal / multiusuário:** a pessoa roda num servidor próprio e acessa de vários lugares, com amigos
+   editando junto. Banco de verdade (SQLite primeiro; Postgres/Redis só se precisar). JSON fica como formato de
+   **exportar/importar** projeto, não como armazenamento.
+7. **Contas locais:** uma conta mestre que autoriza (ou não) pessoas e agentes.
+8. **Agentes cadastrados:** cada agente MCP tem identidade, aparece na presença ("bolinha") com o que está fazendo e
+   o que fez (log de atividade).
+9. **Comentários e notas de decisão** por camada/projeto (por que se fez algo), visíveis a pessoas e agentes.
+
+## Ordem de trabalho
+1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
+2. Separar `runner` e `commands` do DOM e rodar no servidor (headless); editor vira cliente.
+3. Estrutura de plugins + fatiar `server.js` (framework + SDK do MCP).
+4. SQLite, contas, cadastro de agentes, log de atividade, notas.
 
 ## Testes
 `tests/*.test.js` (unitários e API, `node --test`) e `tests/e2e/*.mjs` (Playwright). Estado ao limpar: 364 passam.

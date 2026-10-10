@@ -45,7 +45,6 @@ import { pageThumbnail } from './thumbnail.js';
 import { folder } from './storage.js';
 import { createRunner } from './agent/runner.js';
 import { createApprover, connectMcpBridge } from './agent/bridge.js';
-import { createAssistant } from './ui/assistant.js';
 import { createPresence } from './ui/presence.js';
 import { createAccount, avatarEl } from './account.js';
 /** Lugar da presença na barra do topo (preenchido quando a presença é criada, mais abaixo). */
@@ -373,7 +372,6 @@ async function confirmReplace(question) {
 }
 
 // botão do Assistente de IA (o painel é criado mais abaixo, junto com o MCP)
-const aiBtn = h('button.btn.ghost.ai-btn', { type: 'button', title: 'Agente de IA: conversas, modelos e memória do projeto' }, ico('sparkle', 15), h('span.tab-label', ' Agente'));
 // monta a barra superior
 $('#topbar').append(
   // logo + nome do app: leva à página inicial (o nome do projeto fica logo depois, editável)
@@ -391,7 +389,6 @@ $('#topbar').append(
   responsive.topEl,
   h('div.spacer'),
   presenceSlot,
-  aiBtn,
   h('button.btn.primary', { type: 'button', title: 'Apresentar protótipo (Ctrl+Alt+Enter)', onclick: () => { if (!present.open(ui.selection[0])) toast('Crie pelo menos um frame para apresentar.'); } }, ico('play', 13), ' Apresentar'),
   themeBtn,
   accountBtn,
@@ -613,13 +610,10 @@ requestAnimationFrame(() => {
   syncTopbar(); syncTools(); syncZoom(); syncCommentBadge();
 });
 
-// ---------------------------------------------------------------- IA: assistente interno e MCP
-// As duas portas de entrada de uma IA usam o MESMO executor (agent/runner.js) e a MESMA janela de permissão:
-// o Assistente (painel flutuante, com a sua chave da OpenAI) e programas externos via MCP (Claude Code, Codex...).
+// ---------------------------------------------------------------- IA: MCP
+// Programas externos via MCP (Claude Code, Codex...) usam o executor (agent/runner.js) e a janela de permissão.
 const approve = createApprover();
 const runner = createRunner({ store, commands, approve, saving, folder });
-const assistant = createAssistant({ store, runner, openSettings, stage: $('.stage'), approve, prefs, savePrefs });
-aiBtn.addEventListener('click', () => assistant.toggle());
 // o editor fica "ouvindo" pedidos do MCP enquanto o servidor estiver no ar (sem servidor, não há MCP)
 let bridge = null;
 const presence = createPresence({ store, prefs, savePrefs, toast, onProfile: () => bridge?.reconnect(), editProfile: () => openSettings('account') });
@@ -630,7 +624,7 @@ presenceSlot.replaceWith(presence.el);
 if (ui.server) bridge = connectMcpBridge({ runner, toast, profile: () => presence.profile(), onPresence: (d) => presence.update(d) });
 
 // exposto no console do navegador para depuração e para os testes automáticos (window.designer.store etc.)
-window.designer = { store, canvas, commands, tools, agent: { runner, approve, assistant } };
+window.designer = { store, canvas, commands, tools, agent: { runner, approve } };
 
 // ---------------------------------------------------------------- fontes do Google
 // Baixa as fontes do Google que os textos do projeto usam: ao abrir e depois de cada mudança gravada no histórico
