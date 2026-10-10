@@ -1,9 +1,9 @@
 // Cliente mínimo do `codex app-server` (JSON-RPC por stdio, uma mensagem JSON por linha) para usar o Codex como subagente.
-// Uso: node scripts/codex-worker.mjs <worktree> "<tarefa em inglês>" [effort]  (sempre numa worktree descartável; veja docs/estado/CODEX.md)
+// Uso: node scripts/codex-worker.mjs <worktree> "<tarefa em inglês>" [effort=low] [modelo] [sandbox=workspace-write|read-only]  (sempre numa worktree descartável; veja docs/estado/CODEX.md)
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
-const [cwd, task, effort = 'low'] = process.argv.slice(2);
+const [cwd, task, effort = 'low', model = null, sandbox = 'workspace-write'] = process.argv.slice(2);
 const child = spawn('codex', ['app-server', '--listen', 'stdio://', '-c', 'windows.sandbox="unelevated"'], { stdio: ['pipe', 'pipe', 'inherit'], shell: process.platform === 'win32' });
 const pending = new Map();
 let nextId = 1;
@@ -39,9 +39,9 @@ createInterface({ input: child.stdout }).on('line', (line) => {
 const t0 = Date.now();
 await request('initialize', { clientInfo: { name: 'stylo-orquestrador', title: 'Stylo orquestrador', version: '0.1.0' } });
 send({ method: 'initialized' });
-const started = await request('thread/start', { cwd, ephemeral: true, approvalPolicy: 'never', sandbox: 'workspace-write', serviceName: 'stylo' });
+const started = await request('thread/start', { cwd, ephemeral: true, approvalPolicy: 'never', sandbox, serviceName: 'stylo', ...(model && { model }) });
 log.threadId = started?.thread?.id ?? started?.threadId;
-await request('turn/start', { threadId: log.threadId, cwd, effort, input: [{ type: 'text', text: task }] });
+await request('turn/start', { threadId: log.threadId, cwd, effort, ...(model && { model }), input: [{ type: 'text', text: task }] });
 await Promise.race([finished, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 300000))]).catch((e) => console.error(e.message));
 console.log(JSON.stringify({ seconds: (Date.now() - t0) / 1000, threadId: log.threadId, usage: log.usage, itemTypes: log.items, lastMessage: log.messages.at(-1), status: log.completed?.turn?.status ?? log.completed }, null, 2));
 child.kill();

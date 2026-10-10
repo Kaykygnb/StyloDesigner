@@ -17,6 +17,22 @@ O script abre `codex app-server --listen stdio://` com `-c windows.sandbox="unel
 - Meu pedido esqueceu `npm run docs`; o teste da referência falhou até regenerar. Toda tarefa que mude comentários/linhas de `src/` deve pedir `npm run docs` (ou eu rodo depois).
 - Não medi `codex exec` na mesma tarefa; não afirmo que o app-server economiza tokens. A primeira tentativa (sem o ajuste do Windows) gastou ~137 mil tokens sem resultado.
 
+## Política de modelo (decidida com o Jev; plano Plus, cota limitada)
+Modelos da conta (`model/list`): `gpt-6.1-sol` (padrão, trabalho geral), `gpt-6-astra` (o mais forte), `gpt-6-luna` (rápido e barato), mais versões antigas. Esforços: low/medium/high/xhigh.
+
+| Tarefa | Modelo | Esforço | Sandbox | Jev |
+|---|---|---|---|---|
+| Remoção de código morto, edição trivial | `gpt-6-luna` | low | workspace-write | 0,70 |
+| Troca mecânica por regra (S8, literais → tokens) | `gpt-6.1-sol` | low | workspace-write | 0,66 / 0,74 |
+| Correções pequenas com teste primeiro | `gpt-6.1-sol` (Jev: Luna 0,52 × Sol 0,48, incerto) | medium | workspace-write | 0,28 `review` |
+| Revisão de segurança do diff | `gpt-6-astra` | high | read-only | 0,77 / 0,82 |
+| Deliberar decisão de arquitetura | `gpt-6-astra` | high | read-only | 0,51 / 0,46 `confirm` |
+A Astra gasta cota rápido (Jev: risco de desperdício 0,97 em tarefa rotineira): reservar para revisão de segurança e para poucas deliberações. Sem o argumento de modelo o cliente usa o padrão da conta (Sol).
+Exemplo: `node scripts/codex-worker.mjs <worktree> "<tarefa>" high gpt-6-astra read-only`.
+
+## Subagentes do próprio Codex e deliberação
+O Codex pode criar seus próprios subagentes se o pedido disser para isso (não testei). Para deliberar, mando o dilema com as opções e a minha inclinação, em `read-only`, e peço contra-argumentos e o que ele verificaria; a decisão final é minha e fica no `DECISOES.md`, com a objeção dele se for relevante.
+
 ## Regras
 1. Sempre worktree descartável; nunca a árvore principal. Revisar o diff e rodar `npm test` eu mesmo.
 2. Sem `ws://`; só `stdio://`.
