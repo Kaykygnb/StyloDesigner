@@ -3,12 +3,8 @@
 ## Caminho principal: plugin oficial `codex@openai-codex` (instalado em 10/10/2026, v1.0.6, escopo de usuário)
 Instalado por `claude plugin marketplace add openai/codex-plugin-cc` e `claude plugin install codex@openai-codex` (autorizado pela pessoa). Traz `/codex:review`, `/codex:adversarial-review`, `/codex:rescue`, `/codex:status`, `/codex:result`, `/codex:cancel`, `/codex:transfer` e o subagente `codex:codex-rescue`. Precisa de `/reload-plugins` numa sessão já aberta. O gate de revisão no Stop é opcional e está DESLIGADO (não gasta cota sozinho).
 Uso com a nossa política de modelos (tabela abaixo): `/codex:rescue --model gpt-6-luna --effort low <tarefa>`; revisão: `/codex:adversarial-review <foco>`; fora do Claude Code: `node ~/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/codex-companion.mjs task [--write] --model <m> --effort <e> "<tarefa>"`. `task` é só-leitura sem `--write`.
-**Passo pendente para funcionar neste Windows** (teste de 10/10: o Codex rodou, mas todo comando dele falhou com `exit -1`, a sandbox não sobe): acrescentar ao `~/.codex/config.toml`
-```toml
-[windows]
-sandbox = "unelevated"
-```
-É o mesmo ajuste que o `codex-worker.mjs` passa por `-c`. Ainda não foi feito porque é arquivo da pessoa, compartilhado com o app do Codex (veja `PENDENTE-HUMANO.md`). Até lá, o plugin só serve para tarefas que não executam comandos e o `scripts/codex-worker.mjs` (abaixo) continua sendo a reserva que funciona.
+**Estado em 10/10/2026 (testado):** o `~/.codex/config.toml` tinha `[windows] sandbox = "elevated"` (exige helper de administrador, falhava com `exit -1`). Troquei para `"unelevated"` com a pessoa autorizando ("quero que funcione"); backup em `~/.codex/config.toml.bak-antes-do-plugin`. Resultado: o plugin **executa comandos** (listar `scripts/` devolveu 8 arquivos `.mjs`, certo). **Não executa `node --test`**: o modo leve da sandbox bloqueia processos filhos (`spawn EPERM`). Portanto, o Codex edita e analisa; **quem roda `npm test` sou eu**, como antes.
+**Sem sandbox (não aplicado):** a pessoa disse que não precisa de sandbox, mas o classificador de segurança do Claude Code bloqueou eu alterar o plugin para usar `danger-full-access` em tarefas `--write` (`codex-companion.mjs` linha ~491). Para liberar, a pessoa precisa decidir por si: ou aplicar o ajuste manualmente (trocar `request.write ? "workspace-write" : "read-only"` por `request.write ? "danger-full-access" : "read-only"`; uma atualização do plugin desfaz) ou adicionar uma regra de permissão para essa ação nas configurações do Claude Code. Alternativa sem tocar no plugin: usar o `codex exec` do orquestrador com `-s danger-full-access` numa worktree descartável.
 
 ## Reserva: cliente próprio do `codex app-server`
 
