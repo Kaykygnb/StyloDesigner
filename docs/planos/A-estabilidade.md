@@ -2,7 +2,7 @@
 
 Só correções e verificações. Nenhuma mudança visual.
 
-1. **Zoom inicial errado** ao abrir um projeto: o editor abriu em 2% com o conteúdo minúsculo até `Shift+1`. Reproduzir (viewport 1440×900), achar a causa no ajuste inicial de zoom (`src/canvas.js`/`src/main.js`) e corrigir com teste E2E.
+1. **Zoom não reajusta ao redimensionar a janela** enquanto o projeto está "novo" (`view.fresh`): abrir o editor numa janela pequena e ampliá-la deixa o conteúdo em ~2% até `Shift+1`. Não ocorre com a janela já grande. Baixa prioridade; reproduzir e, se confirmado, refazer o ajuste no `resize` (`src/main.js`).
 2. [#14](https://github.com/Kaykygnb/StyloDesigner/issues/14) F11 no editor de código não deve pôr o navegador em tela cheia.
 3. [#10](https://github.com/Kaykygnb/StyloDesigner/issues/10) `@media` da página no canvas deve seguir a largura da tela desenhada.
 4. Exportação responsiva: remover a raiz fixa de 1440 px e validar 390/768/1440 sem overflow (pendência do benchmark Linear).
