@@ -132,7 +132,10 @@ export function createCommands(store, canvas) {
     // "into" = frame de destino quando há exatamente um frame selecionado
     const sel = store.selected();
     const into = sel.length === 1 && sel[0].type === 'frame' && !clip.nodes.some((c) => c.id === sel[0].id || c.type === 'section') ? sel[0] : null;
-    const parent = into || (clip.parentId ? store.get(clip.parentId) : null);
+    // o pai de origem só vale se estiver NESTA página (a camada copiada pode ainda existir noutra)
+    const onThisPage = (p) => { let top = p; while (top && store.parentOf(top.id)) top = store.parentOf(top.id); return !!top && store.page().children.includes(top); };
+    const origin = clip.parentId ? store.get(clip.parentId) : null;
+    const parent = into || (origin && onThisPage(origin) ? origin : null);
     const list = parent?.children ?? store.page().children;
     const created = [];
     store.update(() => {

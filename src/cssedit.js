@@ -164,10 +164,12 @@ export function lintLayerCss(text, supports) {
 export function applyLayerCss(node, parent, assets, text) {
   const { body } = declarationsText(text);
   const wanted = new Map();
+  const important = new Set();
   const ignored = [];
   for (const d of parseDeclarations(body)) {
     if (checkDecl(d, 0).some((e) => e.level === 'error')) { ignored.push(d.prop); continue; }
     wanted.set(d.prop, d.value);
+    if (d.important) important.add(d.prop);
   }
   const opts = { fluid: true };
   const before = nodeStyle(node, parent, assets, opts);
@@ -183,7 +185,7 @@ export function applyLayerCss(node, parent, assets, text) {
   const gen = nodeStyle(plain, parent, assets, opts);
   const custom = {};
   const unset = [];
-  for (const [k, v] of wanted) if (!mapped.includes(k) && gen[k] !== v) custom[k] = v;
+  for (const [k, v] of wanted) if (!mapped.includes(k) && gen[k] !== v) custom[k] = important.has(k) ? `${v} !important` : v;
   for (const k of Object.keys(gen)) {
     if (wanted.has(k) || k === 'box-sizing') continue;
     // apagada pela pessoa: só vira unset se ela existia no que era mostrado (antes)

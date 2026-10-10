@@ -269,7 +269,7 @@ export function parseCssBlocks(text) {
 export function parseDeclarations(body) {
   const out = [];
   const src = String(body ?? '').replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '));
-  let start = 0, depth = 0, q = '';
+  let start = 0, depth = 0, q = '', brace = 0;
   const push = (end) => {
     const part = src.slice(start, end);
     const lineOff = src.slice(0, start).split('\n').length - 1 + (part.match(/^\s*/)[0].split('\n').length - 1);
@@ -289,9 +289,11 @@ export function parseDeclarations(body) {
     if (c === '"' || c === "'") q = c;
     else if (c === '(') depth++;
     else if (c === ')') depth--;
-    else if (c === ';' && depth <= 0) push(k);
+    else if (c === '{') brace++;
+    else if (c === '}') { if (brace && !--brace) start = k + 1; } // bloco aninhado (CSS nesting): descartado inteiro
+    else if (c === ';' && depth <= 0 && !brace) push(k);
   }
-  push(src.length);
+  if (!brace) push(src.length);
   return out;
 }
 

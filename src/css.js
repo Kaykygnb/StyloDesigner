@@ -487,13 +487,27 @@ function sizeLimitsCss(node, s) {
  */
 export function parseCustomCss(text) {
   const out = {};
-  for (const part of String(text || '').replace(/\/\*[\s\S]*?\*\//g, '').split(';')) {
+  const clean = String(text || '').replace(/\/\*[\s\S]*?(\*\/|$)/g, '');
+  const parts = [];
+  let start = 0, depth = 0, q = '';
+  for (let k = 0; k < clean.length; k++) {
+    const c = clean[k];
+    if (q) { if (c === '\\') k++; else if (c === q) q = ''; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(') depth++;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if (c === ';' && !depth) { parts.push(clean.slice(start, k)); start = k + 1; }
+  }
+  parts.push(clean.slice(start));
+  for (const part of parts) {
     const i = part.indexOf(':');
     if (i < 0) continue;
     const prop = part.slice(0, i).trim().toLowerCase();
-    const value = part.slice(i + 1).trim().replace(/\s*!important$/i, '');
+    let value = part.slice(i + 1).trim();
+    const important = /!\s*important$/i.test(value);
+    if (important) value = value.replace(/\s*!\s*important$/i, '');
     if (!/^(--[\w-]+|-?[a-z][a-z0-9-]*)$/.test(prop) || !value || value.length > 400 || /[{}<>@]|url\(\s*['"]?\s*javascript:/i.test(value)) continue;
-    out[prop] = value;
+    out[prop] = important ? `${value} !important` : value;
   }
   return out;
 }
@@ -785,7 +799,7 @@ export function classNamesOf(roots) {
   const map = new Map();
   for (const r of roots) {
     const namer = makeClassNamer();
-    const visit = (n) => { if (!n.visible) return; map.set(n.id, namer(n)); (n.children || []).forEach(visit); };
+    const visit = (n) => { if (n.visible === false) return; map.set(n.id, namer(n)); (n.children || []).forEach(visit); };
     visit(r);
   }
   return map;
@@ -853,7 +867,7 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
   scan(nodes);
   const media = new Map(BREAKPOINTS.map((b) => [b.id, []]));
   const build = (node, par, depth, isRoot, ancestors) => {
-    if (!node.visible) return '';
+    if (node.visible === false) return '';
     const cls = className(node);
     const base = nodeStyle(node, par, assets, { root: isRoot, fluid: true });
     useTokens(node, base);

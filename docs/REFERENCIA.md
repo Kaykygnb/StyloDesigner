@@ -293,15 +293,15 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - Com UM frame selecionado (que não seja o próprio copiado): cola DENTRO dele, mantendo a posição se couber
      ou centralizando se não couber.
    - Caso contrário: cola no mesmo pai de onde foi copiado, deslocando 16px a cada colagem seguida.
-- **`setSelectionBox({ x, y, w, h })`** <sub>interna</sub> · [L171](../src/commands.js#L171) — Move e/ou redimensiona várias camadas como UM conjunto, pelos campos X/Y/W/H do painel. Cada campo é opcional. Mudar W/H escala cada camada e a distância dela até a borda do conjunto (como esticar a caixa de seleção). Camadas dentro de auto layout só mudam de tamanho (a posição é do navegador). `structural:false`: só números mudam, o índice do store continua válido (mais rápido).
-- **`STYLE_KEYS`** <sub>interna</sub> · [L199](../src/commands.js#L199) — "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
-- **`copyStyle()`** <sub>interna</sub> · [L203](../src/commands.js#L203) — Guarda a aparência da 1ª camada selecionada em ui.styleClipboard.
-- **`pasteStyle()`** <sub>interna</sub> · [L216](../src/commands.js#L216) — Aplica a aparência guardada a todas as camadas selecionadas, ignorando o que não faz sentido para o tipo do destino (ex.: tipografia em retângulo, cantos em elipse/texto, fill em grupo).
-- **`group()`** <sub>interna</sub> · [L240](../src/commands.js#L240) — Agrupa as camadas selecionadas (Ctrl+G). Só agrupa irmãs do MESMO pai (a 1ª selecionada manda). O grupo entra na posição da camada mais alta e os filhos mantêm a ordem z. Antes, congela as posições (ver freezePositions). A caixa do grupo é calculada depois, no commit, por fitGroups.
-- **`ungroup()`** <sub>interna</sub> · [L263](../src/commands.js#L263) — Desagrupa (Ctrl+Shift+G): os filhos sobem um nível, no lugar do grupo, mantendo a posição visual (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
-- **`reorder(mode)`** <sub>interna</sub> · [L290](../src/commands.js#L290) — Muda a ordem z (quem fica na frente). A ordem do array É a ordem de desenho: o último é o que fica por cima.
+- **`setSelectionBox({ x, y, w, h })`** <sub>interna</sub> · [L174](../src/commands.js#L174) — Move e/ou redimensiona várias camadas como UM conjunto, pelos campos X/Y/W/H do painel. Cada campo é opcional. Mudar W/H escala cada camada e a distância dela até a borda do conjunto (como esticar a caixa de seleção). Camadas dentro de auto layout só mudam de tamanho (a posição é do navegador). `structural:false`: só números mudam, o índice do store continua válido (mais rápido).
+- **`STYLE_KEYS`** <sub>interna</sub> · [L202](../src/commands.js#L202) — "Copiar propriedades" (Ctrl+Alt+C / Ctrl+Alt+V), como "copiar formato" do Word: leva só a APARÊNCIA (preenchimento, contorno, cantos, sombras, blur, opacidade, mesclagem) e, se a origem é texto, também a tipografia.
+- **`copyStyle()`** <sub>interna</sub> · [L206](../src/commands.js#L206) — Guarda a aparência da 1ª camada selecionada em ui.styleClipboard.
+- **`pasteStyle()`** <sub>interna</sub> · [L219](../src/commands.js#L219) — Aplica a aparência guardada a todas as camadas selecionadas, ignorando o que não faz sentido para o tipo do destino (ex.: tipografia em retângulo, cantos em elipse/texto, fill em grupo).
+- **`group()`** <sub>interna</sub> · [L243](../src/commands.js#L243) — Agrupa as camadas selecionadas (Ctrl+G). Só agrupa irmãs do MESMO pai (a 1ª selecionada manda). O grupo entra na posição da camada mais alta e os filhos mantêm a ordem z. Antes, congela as posições (ver freezePositions). A caixa do grupo é calculada depois, no commit, por fitGroups.
+- **`ungroup()`** <sub>interna</sub> · [L266](../src/commands.js#L266) — Desagrupa (Ctrl+Shift+G): os filhos sobem um nível, no lugar do grupo, mantendo a posição visual (somamos x/y do grupo). Funciona em grupos e em frames comuns; componentes/instâncias são ignorados.
+- **`reorder(mode)`** <sub>interna</sub> · [L293](../src/commands.js#L293) — Muda a ordem z (quem fica na frente). A ordem do array É a ordem de desenho: o último é o que fica por cima.
   - `mode` <sub>'front'\|'back'\|'forward'\|'backward'</sub> — frente / fundo / um passo à frente / um passo atrás
-- **`enableAutoLayout(frame)`** <sub>interna</sub> · [L324](../src/commands.js#L324) — Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão, para nada "pular" de lugar:
+- **`enableAutoLayout(frame)`** <sub>interna</sub> · [L327](../src/commands.js#L327) — Liga o auto layout num frame que tinha filhos livres, DEDUZINDO a configuração a partir de onde eles estão, para nada "pular" de lugar:
 
    - direção: filhos espalhados mais na horizontal → 'row'; senão 'column'. Um filho só: frame alto (ex.: uma
      sidebar) → 'column'; largo → 'row';
@@ -312,9 +312,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - alinhamento: conteúdo centralizado no frame → 'center'; encostado no fim → 'flex-end'. No eixo cruzado, com
      vários filhos, olha se eles estavam alinhados pelo início, pelo centro ou pelo fim.
   Também reordena os filhos na ordem em que aparecem na tela, e tira o "absoluto" de todos.
-- **`disableAutoLayout(frame)`** <sub>interna</sub> · [L372](../src/commands.js#L372) — Desliga o auto layout congelando as posições atuais (nada muda visualmente).
-- **`setLayoutMode(frames, mode)`** <sub>interna</sub> · [L382](../src/commands.js#L382) — Troca o modo do layout (none | row | column | grid). Ao LIGAR numa frame livre, deduz a configuração (enableAutoLayout); ao DESLIGAR, congela as posições. Em grid, sugere um nº de colunas pela raiz da qtd de filhos. Chamado de dentro de `store.update`, por isso não faz commit.
-- **`toggleAutoLayout()`** <sub>interna</sub> · [L412](../src/commands.js#L412) — Shift+A — "Adicionar auto layout", tentando entender a INTENÇÃO (como no Figma), em vez de só embrulhar:
+- **`disableAutoLayout(frame)`** <sub>interna</sub> · [L375](../src/commands.js#L375) — Desliga o auto layout congelando as posições atuais (nada muda visualmente).
+- **`setLayoutMode(frames, mode)`** <sub>interna</sub> · [L385](../src/commands.js#L385) — Troca o modo do layout (none | row | column | grid). Ao LIGAR numa frame livre, deduz a configuração (enableAutoLayout); ao DESLIGAR, congela as posições. Em grid, sugere um nº de colunas pela raiz da qtd de filhos. Chamado de dentro de `store.update`, por isso não faz commit.
+- **`toggleAutoLayout()`** <sub>interna</sub> · [L415](../src/commands.js#L415) — Shift+A — "Adicionar auto layout", tentando entender a INTENÇÃO (como no Figma), em vez de só embrulhar:
 
    - FRAME selecionado → liga/desliga o auto layout dele;
    - um RETÂNGULO sozinho → ele VIRA um frame com auto layout (mesma cor, cantos, contorno, sombra e id), pronto
@@ -323,68 +323,68 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - várias camadas → um frame novo envolve todas. Se a camada MAIS AO FUNDO for um retângulo que contém todas as
      outras (ex.: o fundo de uma sidebar com itens em cima), ele vira o FUNDO do frame em vez de mais um item —
      senão o auto layout colocaria o fundo e os itens lado a lado. Sem fundo, o frame abraça o conteúdo (hug).
-- **`frameFrom(r, props)`** <sub>interna</sub> · [L425](../src/commands.js#L425) — Frame com a APARÊNCIA de um retângulo (para o retângulo "virar" o frame).
-- **`shift(node, dx, dy)`** <sub>interna</sub> · [L485](../src/commands.js#L485) — Soma dx/dy à posição x/y da camada (arredondando).
-- **`align(kind)`** <sub>interna</sub> · [L495](../src/commands.js#L495) — Alinha a seleção. Com UMA camada, alinha dentro do pai; com várias, alinha entre si (pela caixa do conjunto). Camadas em auto layout são ignoradas (o navegador decide a posição delas).
+- **`frameFrom(r, props)`** <sub>interna</sub> · [L428](../src/commands.js#L428) — Frame com a APARÊNCIA de um retângulo (para o retângulo "virar" o frame).
+- **`shift(node, dx, dy)`** <sub>interna</sub> · [L488](../src/commands.js#L488) — Soma dx/dy à posição x/y da camada (arredondando).
+- **`align(kind)`** <sub>interna</sub> · [L498](../src/commands.js#L498) — Alinha a seleção. Com UMA camada, alinha dentro do pai; com várias, alinha entre si (pela caixa do conjunto). Camadas em auto layout são ignoradas (o navegador decide a posição delas).
   - `kind` <sub>'left'\|'hcenter'\|'right'\|'top'\|'vcenter'\|'bottom'</sub> — 
-- **`distribute(axis)`** <sub>interna</sub> · [L526](../src/commands.js#L526) — Distribui 3+ camadas com vãos IGUAIS entre elas, mantendo a primeira e a última no lugar.
+- **`distribute(axis)`** <sub>interna</sub> · [L529](../src/commands.js#L529) — Distribui 3+ camadas com vãos IGUAIS entre elas, mantendo a primeira e a última no lugar.
   - `axis` <sub>'h'\|'v'</sub> — horizontal ou vertical
-- **`reparent(nodes, newParent, index = null)`** <sub>interna</sub> · [L559](../src/commands.js#L559) — Move camadas para outro pai (ou para a raiz da página) MANTENDO a posição visual: lê a origem de cada uma no DOM antes e recalcula x/y relativo ao novo pai. Usado ao arrastar para dentro de frames e no arrastar da lista de camadas. Não deixa mover uma camada para dentro de si mesma/de um descendente.
+- **`reparent(nodes, newParent, index = null)`** <sub>interna</sub> · [L562](../src/commands.js#L562) — Move camadas para outro pai (ou para a raiz da página) MANTENDO a posição visual: lê a origem de cada uma no DOM antes e recalcula x/y relativo ao novo pai. Usado ao arrastar para dentro de frames e no arrastar da lista de camadas. Não deixa mover uma camada para dentro de si mesma/de um descendente.
   - `nodes` <sub>object[]</sub> — camadas a mover
   - `newParent` <sub>object\|null</sub> — novo pai (null = raiz)
   - `[index]` <sub>number\|null</sub> — posição na lista do novo pai (null = no topo)
-- **`importAsset(file)`** <sub>interna</sub> · [L587](../src/commands.js#L587) — Lê o arquivo de imagem (reduzindo se for grande), guarda em doc.assets e devolve { assetId, w, h }.
-- **`addImageFiles(files, at)`** <sub>interna</sub> · [L599](../src/commands.js#L599) — Cria uma camada-retângulo com preenchimento de imagem para cada arquivo (botão, arrastar, colar). A imagem é reduzida para caber em 520px de maior lado e fica centralizada na posição `at` (ou no centro da vista).
+- **`importAsset(file)`** <sub>interna</sub> · [L590](../src/commands.js#L590) — Lê o arquivo de imagem (reduzindo se for grande), guarda em doc.assets e devolve { assetId, w, h }.
+- **`addImageFiles(files, at)`** <sub>interna</sub> · [L602](../src/commands.js#L602) — Cria uma camada-retângulo com preenchimento de imagem para cada arquivo (botão, arrastar, colar). A imagem é reduzida para caber em 520px de maior lado e fica centralizada na posição `at` (ou no centro da vista).
   - ↩︎ `Promise<boolean>` true se criou alguma camada
-- **`insertImageAsset(assetId, at, { parentId = null, index, name } = {})`** <sub>interna</sub> · [L636](../src/commands.js#L636) — Reutiliza uma imagem já importada no projeto, sem duplicar seu data URL.
-- **`notify(msg)`** <sub>interna</sub> · [L681](../src/commands.js#L681) — Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`).
-- **`placeNew(node, at)`** <sub>interna</sub> · [L687](../src/commands.js#L687) — Insere uma camada NOVA já pronta: dentro do frame selecionado (centralizada nele; se o frame tem auto layout, ela entra no fluxo) ou na raiz da página, centralizada em `at` (mundo) ou no meio da tela. Seleciona e grava.
-- **`insertSvg(text, { at, name, currentColor, fill, size } = {})`** <sub>interna</sub> · [L714](../src/commands.js#L714) — Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa O QUE do SVG ficou de fora (ex.: "sombra interna, máscara"). Lança erro se o texto não for um SVG com formas.
+- **`insertImageAsset(assetId, at, { parentId = null, index, name } = {})`** <sub>interna</sub> · [L639](../src/commands.js#L639) — Reutiliza uma imagem já importada no projeto, sem duplicar seu data URL.
+- **`notify(msg)`** <sub>interna</sub> · [L684](../src/commands.js#L684) — Mostra um aviso ao usuário (main.js liga em `commands.notify = toast`).
+- **`placeNew(node, at)`** <sub>interna</sub> · [L690](../src/commands.js#L690) — Insere uma camada NOVA já pronta: dentro do frame selecionado (centralizada nele; se o frame tem auto layout, ela entra no fluxo) ou na raiz da página, centralizada em `at` (mundo) ou no meio da tela. Seleciona e grava.
+- **`insertSvg(text, { at, name, currentColor, fill, size } = {})`** <sub>interna</sub> · [L717](../src/commands.js#L717) — Importa um SVG (texto) como vetores editáveis e insere (ver placeNew). Avisa O QUE do SVG ficou de fora (ex.: "sombra interna, máscara"). Lança erro se o texto não for um SVG com formas.
   - `text` <sub>string</sub> — 
-- **`addHtmlEmbed(at)`** <sub>interna</sub> · [L725](../src/commands.js#L725) — Cria uma camada "Código HTML" (HTML escrito à mão, ver html.js → sanitizeHtml) no frame selecionado ou no meio da tela e abre a aba Código já no modo de edição do HTML.
-- **`addText(textValue, at)`** <sub>interna</sub> · [L733](../src/commands.js#L733) — Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas).
-- **`wrapInFrame(same, name)`** <sub>interna</sub> · [L749](../src/commands.js#L749) — Envolve camadas irmãs num frame novo (sem layout, sem preenchimento) do tamanho do conjunto. Base de "Envolver em frame", "Criar componente" de vários itens e "Auto layout" de vários itens. Deve ser chamada dentro de `store.update`.
-- **`sameLevel(nodes)`** <sub>interna</sub> · [L765](../src/commands.js#L765) — Filtra a seleção para as camadas que estão na mesma lista que a primeira (irmãs), ordenadas pela ordem z.
-- **`createComponent()`** <sub>interna</sub> · [L774](../src/commands.js#L774) — Ctrl+Alt+K: transforma a seleção em COMPONENTE PRINCIPAL. Várias camadas (ou texto/linha soltos) são primeiro envolvidas num frame, porque componente precisa de uma raiz.
-- **`insertInstance(mainId, at)`** <sub>interna</sub> · [L795](../src/commands.js#L795) — Cria uma INSTÂNCIA de um componente. Sem posição dada, entra ao lado do principal; com `at`, centralizada ali (usado ao clicar no componente na aba Recursos).
+- **`addHtmlEmbed(at)`** <sub>interna</sub> · [L728](../src/commands.js#L728) — Cria uma camada "Código HTML" (HTML escrito à mão, ver html.js → sanitizeHtml) no frame selecionado ou no meio da tela e abre a aba Código já no modo de edição do HTML.
+- **`addText(textValue, at)`** <sub>interna</sub> · [L736](../src/commands.js#L736) — Cria uma camada de texto com o texto dado (usado ao colar texto do sistema no canvas).
+- **`wrapInFrame(same, name)`** <sub>interna</sub> · [L752](../src/commands.js#L752) — Envolve camadas irmãs num frame novo (sem layout, sem preenchimento) do tamanho do conjunto. Base de "Envolver em frame", "Criar componente" de vários itens e "Auto layout" de vários itens. Deve ser chamada dentro de `store.update`.
+- **`sameLevel(nodes)`** <sub>interna</sub> · [L768](../src/commands.js#L768) — Filtra a seleção para as camadas que estão na mesma lista que a primeira (irmãs), ordenadas pela ordem z.
+- **`createComponent()`** <sub>interna</sub> · [L777](../src/commands.js#L777) — Ctrl+Alt+K: transforma a seleção em COMPONENTE PRINCIPAL. Várias camadas (ou texto/linha soltos) são primeiro envolvidas num frame, porque componente precisa de uma raiz.
+- **`insertInstance(mainId, at)`** <sub>interna</sub> · [L798](../src/commands.js#L798) — Cria uma INSTÂNCIA de um componente. Sem posição dada, entra ao lado do principal; com `at`, centralizada ali (usado ao clicar no componente na aba Recursos).
   - `mainId` <sub>string</sub> — id do componente principal
-- **`detach()`** <sub>interna</sub> · [L816](../src/commands.js#L816) — Ctrl+Alt+B: desanexa as instâncias selecionadas (viram camadas comuns).
-- **`goToMain(id)`** <sub>interna</sub> · [L823](../src/commands.js#L823) — "Ir ao principal": abre a página do componente principal, seleciona e enquadra.
-- **`toggleMask()`** <sub>interna</sub> · [L838](../src/commands.js#L838) — Ctrl+Alt+M: máscara. Com várias camadas: agrupa e usa a de baixo como máscara (recorta as outras, via clip-path). Com uma camada que já está num grupo: liga/desliga o papel de máscara dela.
-- **`flip(axis)`** <sub>interna</sub> · [L853](../src/commands.js#L853) — Espelha as camadas selecionadas na horizontal ('x') ou vertical ('y').
-- **`addColorStyle(node, name)`** <sub>interna</sub> · [L862](../src/commands.js#L862) — Cria um estilo de cor compartilhado a partir do preenchimento de uma camada e já liga a camada a ele.
-- **`addColorStyles(items)`** <sub>interna</sub> · [L870](../src/commands.js#L870) — Cria vários estilos de cor de uma vez (ex.: a partir de uma paleta): [{ name, color }]. Um único passo de desfazer.
-- **`addColorMode({ name, scheme = null, auto = false })`** <sub>interna</sub> · [L876](../src/commands.js#L876) — Cria um modo de cor (escuro...) e já o mostra no canvas. `auto`: gera os valores invertendo a luminosidade.
-- **`renameColorMode(id, name)`** <sub>interna</sub> · [L883](../src/commands.js#L883) — Muda o nome de um modo de cor (o atributo data-theme no CSS acompanha).
-- **`setModeScheme(id, scheme)`** <sub>interna</sub> · [L890](../src/commands.js#L890) — Define se o modo vale sozinho pela preferência do sistema ('dark' | 'light' | null = só com data-theme).
-- **`deleteColorMode(id)`** <sub>interna</sub> · [L897](../src/commands.js#L897) — Apaga um modo de cor (os valores dele nos estilos também).
-- **`addSizeVar(name, value)`** <sub>interna</sub> · [L903](../src/commands.js#L903) — Cria uma variável de tamanho (espaçamento, raio, fonte).
-- **`setSizeVar(id, patch)`** <sub>interna</sub> · [L909](../src/commands.js#L909) — Muda o valor de uma variável e leva o valor a todas as camadas ligadas a ela.
-- **`deleteSizeVar(id)`** <sub>interna</sub> · [L918](../src/commands.js#L918) — Apaga uma variável (as camadas mantêm o valor que tinham).
-- **`bindSizeVar(nodes, prop, v)`** <sub>interna</sub> · [L923](../src/commands.js#L923) — Liga (ou, com `v` nulo, desliga) um campo de várias camadas a uma variável de tamanho.
-- **`addTextStyle(node, name)`** <sub>interna</sub> · [L928](../src/commands.js#L928) — Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele.
-- **`removeStyle(kind, id)`** <sub>interna</sub> · [L936](../src/commands.js#L936) — Apaga um estilo ('colors' ou 'texts'); as camadas ligadas mantêm os valores que tinham.
-- **`guides()`** <sub>interna</sub> · [L945](../src/commands.js#L945) — Lista de guias da página atual (cria se não existir, para páginas de projetos antigos).
-- **`addGuide(axis, pos)`** <sub>interna</sub> · [L947](../src/commands.js#L947) — Cria uma guia de régua. axis 'x' = linha vertical na posição x; 'y' = linha horizontal na posição y.
-- **`removeGuide(i)`** <sub>interna</sub> · [L951](../src/commands.js#L951) — Remove a guia de índice `i`.
-- **`addPathFromWorld(pts, closed, parent)`** <sub>interna</sub> · [L963](../src/commands.js#L963) — Cria uma camada-vetor a partir de pontos em coordenadas do MUNDO (o que a caneta coleta). Calcula a caixa que envolve o desenho (incluindo as curvas) e converte os pontos para o espaço local do vetor.
+- **`detach()`** <sub>interna</sub> · [L819](../src/commands.js#L819) — Ctrl+Alt+B: desanexa as instâncias selecionadas (viram camadas comuns).
+- **`goToMain(id)`** <sub>interna</sub> · [L826](../src/commands.js#L826) — "Ir ao principal": abre a página do componente principal, seleciona e enquadra.
+- **`toggleMask()`** <sub>interna</sub> · [L841](../src/commands.js#L841) — Ctrl+Alt+M: máscara. Com várias camadas: agrupa e usa a de baixo como máscara (recorta as outras, via clip-path). Com uma camada que já está num grupo: liga/desliga o papel de máscara dela.
+- **`flip(axis)`** <sub>interna</sub> · [L856](../src/commands.js#L856) — Espelha as camadas selecionadas na horizontal ('x') ou vertical ('y').
+- **`addColorStyle(node, name)`** <sub>interna</sub> · [L865](../src/commands.js#L865) — Cria um estilo de cor compartilhado a partir do preenchimento de uma camada e já liga a camada a ele.
+- **`addColorStyles(items)`** <sub>interna</sub> · [L873](../src/commands.js#L873) — Cria vários estilos de cor de uma vez (ex.: a partir de uma paleta): [{ name, color }]. Um único passo de desfazer.
+- **`addColorMode({ name, scheme = null, auto = false })`** <sub>interna</sub> · [L879](../src/commands.js#L879) — Cria um modo de cor (escuro...) e já o mostra no canvas. `auto`: gera os valores invertendo a luminosidade.
+- **`renameColorMode(id, name)`** <sub>interna</sub> · [L886](../src/commands.js#L886) — Muda o nome de um modo de cor (o atributo data-theme no CSS acompanha).
+- **`setModeScheme(id, scheme)`** <sub>interna</sub> · [L893](../src/commands.js#L893) — Define se o modo vale sozinho pela preferência do sistema ('dark' | 'light' | null = só com data-theme).
+- **`deleteColorMode(id)`** <sub>interna</sub> · [L900](../src/commands.js#L900) — Apaga um modo de cor (os valores dele nos estilos também).
+- **`addSizeVar(name, value)`** <sub>interna</sub> · [L906](../src/commands.js#L906) — Cria uma variável de tamanho (espaçamento, raio, fonte).
+- **`setSizeVar(id, patch)`** <sub>interna</sub> · [L912](../src/commands.js#L912) — Muda o valor de uma variável e leva o valor a todas as camadas ligadas a ela.
+- **`deleteSizeVar(id)`** <sub>interna</sub> · [L921](../src/commands.js#L921) — Apaga uma variável (as camadas mantêm o valor que tinham).
+- **`bindSizeVar(nodes, prop, v)`** <sub>interna</sub> · [L926](../src/commands.js#L926) — Liga (ou, com `v` nulo, desliga) um campo de várias camadas a uma variável de tamanho.
+- **`addTextStyle(node, name)`** <sub>interna</sub> · [L931](../src/commands.js#L931) — Cria um estilo de texto compartilhado a partir da tipografia de uma camada e já liga a camada a ele.
+- **`removeStyle(kind, id)`** <sub>interna</sub> · [L939](../src/commands.js#L939) — Apaga um estilo ('colors' ou 'texts'); as camadas ligadas mantêm os valores que tinham.
+- **`guides()`** <sub>interna</sub> · [L948](../src/commands.js#L948) — Lista de guias da página atual (cria se não existir, para páginas de projetos antigos).
+- **`addGuide(axis, pos)`** <sub>interna</sub> · [L950](../src/commands.js#L950) — Cria uma guia de régua. axis 'x' = linha vertical na posição x; 'y' = linha horizontal na posição y.
+- **`removeGuide(i)`** <sub>interna</sub> · [L954](../src/commands.js#L954) — Remove a guia de índice `i`.
+- **`addPathFromWorld(pts, closed, parent)`** <sub>interna</sub> · [L966](../src/commands.js#L966) — Cria uma camada-vetor a partir de pontos em coordenadas do MUNDO (o que a caneta coleta). Calcula a caixa que envolve o desenho (incluindo as curvas) e converte os pontos para o espaço local do vetor.
   - `[]` <sub>{x,y,hin?,hout?</sub> — } pts  pontos com alças opcionais
   - `closed` <sub>boolean</sub> — caminho fechado (ganha preenchimento cinza)
   - `parent` <sub>object\|null</sub> — frame onde inserir (null = raiz)
-- **`updatePathFromWorld(id, pts, closed)`** <sub>interna</sub> · [L984](../src/commands.js#L984) — Atualiza um vetor EXISTENTE com novos pontos (em coordenadas do mundo): usado ao CONTINUAR um caminho aberto com a caneta. Como addPathFromWorld, recalcula a caixa; nome, cor e contorno do vetor continuam.
-- **`newIcon(size = 24)`** <sub>interna</sub> · [L1007](../src/commands.js#L1007) — Cria um frame de ÍCONE (24×24 por padrão, fundo branco, cortando o que sai) no centro da vista, com a grade de 1px ligada, enquadra com zoom grande, liga o encaixe de 1px e deixa a caneta pronta. É o começo de "desenhar o meu SVG".
-- **`normalizePath(node)`** <sub>interna</sub> · [L1031](../src/commands.js#L1031) — Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
-- **`addShapePath(kind, box, parent, sides = 5)`** <sub>interna</sub> · [L1056](../src/commands.js#L1056) — Cria um polígono regular (`sides` lados) ou estrela (pontas alternando raio 100% e 45%) já como vetor editável.
+- **`updatePathFromWorld(id, pts, closed)`** <sub>interna</sub> · [L987](../src/commands.js#L987) — Atualiza um vetor EXISTENTE com novos pontos (em coordenadas do mundo): usado ao CONTINUAR um caminho aberto com a caneta. Como addPathFromWorld, recalcula a caixa; nome, cor e contorno do vetor continuam.
+- **`newIcon(size = 24)`** <sub>interna</sub> · [L1010](../src/commands.js#L1010) — Cria um frame de ÍCONE (24×24 por padrão, fundo branco, cortando o que sai) no centro da vista, com a grade de 1px ligada, enquadra com zoom grande, liga o encaixe de 1px e deixa a caneta pronta. É o começo de "desenhar o meu SVG".
+- **`normalizePath(node)`** <sub>interna</sub> · [L1034](../src/commands.js#L1034) — Reajusta a caixa do vetor depois de editar pontos: recalcula o retângulo que envolve o desenho e desloca os pontos/posição para a caixa "colar" no desenho. Pula se o vetor está girado (a conta ficaria imprecisa).
+- **`addShapePath(kind, box, parent, sides = 5)`** <sub>interna</sub> · [L1059](../src/commands.js#L1059) — Cria um polígono regular (`sides` lados) ou estrela (pontas alternando raio 100% e 45%) já como vetor editável.
   - `kind` <sub>'polygon'\|'star'</sub> — 
-- **`BOOL_TYPES`** <sub>interna</sub> · [L1073](../src/commands.js#L1073) — Tipos que entram numa operação booleana.
-- **`worldContours(n)`** <sub>interna</sub> · [L1080](../src/commands.js#L1080) — Contornos de uma camada em coordenadas do MUNDO (rotação e espelhamento aplicados), ainda com curvas. Retângulo/frame (com cantos arredondados), elipse e vetor (com todos os contornos). Devolve { contours, rule }.
-- **`booleanOp(op)`** <sub>interna</sub> · [L1109](../src/commands.js#L1109) — OPERAÇÃO BOOLEANA com a seleção (2+ vetores/retângulos/elipses/frames): 'union' unir, 'subtract' subtrair (a camada de BAIXO menos as de cima, como no Figma), 'intersect' interseção, 'exclude' excluir a sobreposição. As curvas são achatadas em polígonos (geom.js) e o resultado é reajustado em curvas onde era curvo: o vetor final pode ter alguns pontos a mais que o original. O resultado fica no lugar da camada de baixo, com o estilo dela.
+- **`BOOL_TYPES`** <sub>interna</sub> · [L1076](../src/commands.js#L1076) — Tipos que entram numa operação booleana.
+- **`worldContours(n)`** <sub>interna</sub> · [L1083](../src/commands.js#L1083) — Contornos de uma camada em coordenadas do MUNDO (rotação e espelhamento aplicados), ainda com curvas. Retângulo/frame (com cantos arredondados), elipse e vetor (com todos os contornos). Devolve { contours, rule }.
+- **`booleanOp(op)`** <sub>interna</sub> · [L1112](../src/commands.js#L1112) — OPERAÇÃO BOOLEANA com a seleção (2+ vetores/retângulos/elipses/frames): 'union' unir, 'subtract' subtrair (a camada de BAIXO menos as de cima, como no Figma), 'intersect' interseção, 'exclude' excluir a sobreposição. As curvas são achatadas em polígonos (geom.js) e o resultado é reajustado em curvas onde era curvo: o vetor final pode ter alguns pontos a mais que o original. O resultado fica no lugar da camada de baixo, com o estilo dela.
   - ↩︎ `{node?: object, error?: string` }
-- **`localBox(node)`** <sub>interna</sub> · [L1167](../src/commands.js#L1167) — Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG.
-- **`frameSelection()`** <sub>interna</sub> · [L1176](../src/commands.js#L1176) — Ctrl+Alt+G: envolve a seleção num frame novo, sem layout.
-- **`cssOf(nodes)`** <sub>interna</sub> · [L1187](../src/commands.js#L1187) — CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS".
-- **`readImage(file)`** <sub>do módulo</sub> · [L1212](../src/commands.js#L1212) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
-- **`pathBounds(pts, closed = false)`** · [L1245](../src/commands.js#L1245) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
+- **`localBox(node)`** <sub>interna</sub> · [L1170](../src/commands.js#L1170) — Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG.
+- **`frameSelection()`** <sub>interna</sub> · [L1179](../src/commands.js#L1179) — Ctrl+Alt+G: envolve a seleção num frame novo, sem layout.
+- **`cssOf(nodes)`** <sub>interna</sub> · [L1190](../src/commands.js#L1190) — CSS (só o CSS, sem HTML) das camadas dadas — usado por "Copiar CSS".
+- **`readImage(file)`** <sub>do módulo</sub> · [L1215](../src/commands.js#L1215) — Lê um arquivo de imagem e devolve { dataUrl, w, h }. Imagens grandes (>1600px ou >400KB) são redesenhadas num <canvas> menor: o projeto inteiro é regravado a cada mudança (navegador e pasta), então imagem enorme deixaria o salvamento lento e o .json gigante. PNG continua PNG (preserva transparência); o resto vira JPEG 88%.
+- **`pathBounds(pts, closed = false)`** · [L1248](../src/commands.js#L1248) — Retângulo { x0, y0, x1, y1 } que envolve TODOS os pontos e também as curvas de Bézier (amostradas a cada 5%), já que uma curva pode "sair" para fora dos pontos de ancoragem.
   - `[]` <sub>{x,y,hin?,hout?</sub> — } pts
   - `[closed]` <sub>boolean</sub> — considera o segmento de volta ao primeiro ponto
 
@@ -539,52 +539,52 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`parseCustomCss(text)`** · [L488](../src/css.js#L488) — Lê o "CSS livre" de uma camada ("propriedade: valor;" por linha) e devolve só as declarações seguras: nome de propriedade válido (ou variável --x) e valor sem chaves, sinais de tag nem "@". Linhas ruins são ignoradas.
   - `text` <sub>string</sub> — 
   - ↩︎ `Record<string, string>`
-- **`transformOf(node)`** · [L501](../src/css.js#L501) — _(sem comentário)_
-- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L516](../src/css.js#L516) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
-- **`hasStrokeSides(node)`** · [L548](../src/css.js#L548) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
-- **`num(n)`** <sub>do módulo</sub> · [L553](../src/css.js#L553) — Arredonda para 2 casas (coordenadas de SVG).
-- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L563](../src/css.js#L563) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
+- **`transformOf(node)`** · [L515](../src/css.js#L515) — _(sem comentário)_
+- **`lineStyle(node, s, flow)`** <sub>do módulo</sub> · [L530](../src/css.js#L530) — Estilo da LINHA. Em vez de border ou SVG, a linha é uma caixa de ≥12px de altura com um `background` que desenha uma barra de `stroke.width` px no meio: sólida (linear-gradient), tracejada (gradiente repetido) ou pontilhada (radial-gradient repetido). Os 12px de altura só existem para facilitar clicar nela. Altera `s` diretamente.
+- **`hasStrokeSides(node)`** · [L562](../src/css.js#L562) — A camada usa contorno POR LADO? (`stroke.sides` = [cima, direita, baixo, esquerda] em px). Só retângulos, frames e grupos de imagem — em elipse, texto e vetor "lado" não faz sentido.
+- **`num(n)`** <sub>do módulo</sub> · [L567](../src/css.js#L567) — Arredonda para 2 casas (coordenadas de SVG).
+- **`pathData(points, closed, tx = (x) => x, ty = (y) => y)`** · [L577](../src/css.js#L577) — Gera o atributo `d` de um <path> SVG a partir dos pontos do vetor. Segmento reto quando nenhum dos dois pontos tem alça (comando L); curva de Bézier cúbica quando algum tem (C).
   - `[]` <sub>{x:number,y:number,hin?:object,hout?:object</sub> — } points  pontos; hin/hout = alças de entrada/saída
   - `closed` <sub>boolean</sub> — fecha o caminho com Z (liga o último ao primeiro)
   - `[tx]` <sub>(x:number)=>number</sub> — transformação opcional de x (usada pelo clip-path e pelo SVG exportado)
   - `[ty]` <sub>(y:number)=>number</sub> — idem para y
-- **`nodePathData(node, tx, ty)`** · [L585](../src/css.js#L585) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
+- **`nodePathData(node, tx, ty)`** · [L599](../src/css.js#L599) — `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver. Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
   - `node` <sub>object</sub> — camada do tipo 'path'
   - `[tx]` <sub>(x:number)=>number</sub> — 
   - `[ty]` <sub>(y:number)=>number</sub> — 
-- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L599](../src/css.js#L599) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
-- **`pathSvg(node, assets = {})`** · [L626](../src/css.js#L626) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
+- **`svgPaint(fill, id, assets)`** <sub>do módulo</sub> · [L613](../src/css.js#L613) — Preenchimento de um vetor em SVG. Gradientes precisam de uma definição (<linearGradient>) referenciada por url(#id); devolve { paint (valor do atributo fill), defs (markup das definições), opacity }. O ângulo CSS (0° = para cima) é convertido em x1,y1→x2,y2 do SVG (0..1).
+- **`pathSvg(node, assets = {})`** · [L640](../src/css.js#L640) — Markup <svg> de um nó `path` (usado no canvas, no HTML exportado e no modo apresentar).
 
    - preserveAspectRatio="none": o desenho estica junto com a caixa da camada.
    - vector-effect="non-scaling-stroke": a espessura do traço NÃO muda ao esticar.
    - 2º <path> transparente e grosso (stroke-width 12): serve só de "área de clique" para linhas finas.
-- **`strokeAlign(node)`** · [L662](../src/css.js#L662) — Onde fica o contorno de um VETOR: 'center' (padrão), 'inside' ou 'outside' (`stroke.align`). Dentro/fora só valem em caminho fechado; num caminho aberto o traço é sempre centrado. (Retângulos e frames usam `stroke.position`.)
-- **`dashAttr(st, w = st?.width)`** · [L672](../src/css.js#L672) — `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade; senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
-- **`dashList(text)`** · [L679](../src/css.js#L679) — "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → '').
-- **`maskClip(group)`** · [L689](../src/css.js#L689) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
-- **`toCssText(style)`** · [L706](../src/css.js#L706) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
-- **`cssRule(selector, style, indent = '')`** · [L712](../src/css.js#L712) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
-- **`stateStyle(node, parent, assets, opts, states)`** · [L728](../src/css.js#L728) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
+- **`strokeAlign(node)`** · [L676](../src/css.js#L676) — Onde fica o contorno de um VETOR: 'center' (padrão), 'inside' ou 'outside' (`stroke.align`). Dentro/fora só valem em caminho fechado; num caminho aberto o traço é sempre centrado. (Retângulos e frames usam `stroke.position`.)
+- **`dashAttr(st, w = st?.width)`** · [L686](../src/css.js#L686) — `stroke-dasharray` do contorno: o tracejado PERSONALIZADO (`stroke.dash`, ex.: "8 4" ou "12 4 2 4") tem prioridade; senão, o estilo tracejado/pontilhado gera um padrão proporcional à espessura. Devolve o atributo (com espaço) ou ''.
+- **`dashList(text)`** · [L693](../src/css.js#L693) — "8, 4 px" → "8 4" (só números ≥ 0; vazio ou tudo zero → '').
+- **`maskClip(group)`** · [L703](../src/css.js#L703) — Converte a camada marcada como máscara (`isMask`) do grupo em um `clip-path` CSS: elipse → ellipse(), vetor → path(), retângulo → inset() (com cantos arredondados se houver). Devolve '' se o grupo não tem máscara.
+- **`toCssText(style)`** · [L720](../src/css.js#L720) — Objeto de estilo → texto para `element.style.cssText` ("a:1;b:2").
+- **`cssRule(selector, style, indent = '')`** · [L726](../src/css.js#L726) — Objeto de estilo → regra CSS legível com uma propriedade por linha (usada no painel Código e no HTML exportado).
+- **`stateStyle(node, parent, assets, opts, states)`** · [L742](../src/css.js#L742) — CSS de UM estado, só com o que MUDA em relação ao normal (é o que vai dentro de `.botao:hover { ... }`). Propriedade que existia no normal e sumiu no estado vira `unset` (volta ao padrão do CSS: sem sombra, sem filtro, sem fundo...).
   - `node` <sub>object</sub> — 
   - `parent` <sub>object\|null</sub> — 
   - `assets` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 'hover' \| 'active' \| 'focus' (ou lista, em ordem de cascata)
-- **`pathStateStyle(node, assets, state)`** · [L742](../src/css.js#L742) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
-- **`makeClassNamer()`** <sub>do módulo</sub> · [L765](../src/css.js#L765) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
-- **`classNamesOf(roots)`** · [L784](../src/css.js#L784) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
-- **`withPageCss(css, styles)`** · [L795](../src/css.js#L795) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
-- **`noteComment(node)`** · [L801](../src/css.js#L801) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
-- **`escapeHtml(s)`** <sub>do módulo</sub> · [L807](../src/css.js#L807) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
-- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L818](../src/css.js#L818) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
+- **`pathStateStyle(node, assets, state)`** · [L756](../src/css.js#L756) — Estilo de um ESTADO (hover, pressionado, foco) para o desenho DENTRO do <svg> de um vetor: o que o estado muda no preenchimento e no contorno (cor, opacidade, espessura). Vira `.classe:hover path[data-vis] { fill: ...; stroke: ... }`. Gradientes e imagens não entram (precisariam de outra definição no <svg>); a cor sólida e o contorno, sim.
+- **`makeClassNamer()`** <sub>do módulo</sub> · [L779](../src/css.js#L779) — Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
+- **`classNamesOf(roots)`** · [L798](../src/css.js#L798) — Classe que cada camada recebe no código exportado (id → classe), como o generateCode faz quando cada raiz da lista é exportada sozinha (ex.: cada tela da página). Usado pelo canvas para o CSS da página valer no editor.
+- **`withPageCss(css, styles)`** · [L809](../src/css.js#L809) — Junta o CSS DA PÁGINA (doc.styles.pageCss, já limpo) depois das regras das camadas: assim ele vence na cascata.
+- **`noteComment(node)`** · [L815](../src/css.js#L815) — Texto da nota da camada pronto para virar comentário de HTML ou CSS (uma linha, sem "--" nem "*\/" que fechariam o comentário); '' se não vai ao código.
+- **`escapeHtml(s)`** <sub>do módulo</sub> · [L821](../src/css.js#L821) — Escapa & < > " para que texto digitado pelo usuário nunca vire HTML/atributo no código exportado.
+- **`generateCode(nodes, parent, assets = {}, { root = false, styles = null, ids = fa…)`** · [L832](../src/css.js#L832) — Gera { html, css } legíveis para uma lista de camadas: uma <div> (ou <p> para texto) por camada, cada uma com uma classe própria, e uma regra CSS por classe. Camadas ocultas não entram.
   - `nodes` <sub>object[]</sub> — camadas irmãs a exportar
   - `parent` <sub>object\|null</sub> — pai delas (define se são itens de flex/grid)
   - `[assets]` <sub>object</sub> — imagens do documento
-- **`colorVarNames(styles)`** · [L959](../src/css.js#L959) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
-- **`docCssVars(styles)`** · [L976](../src/css.js#L976) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
-- **`joinCss(parts)`** · [L993](../src/css.js#L993) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
+- **`colorVarNames(styles)`** · [L973](../src/css.js#L973) — Nomes das variáveis de CSS dos ESTILOS DE COR do documento: id do estilo → "--cor-nome" (nome sem acento, em minúsculas, com hífens; nomes repetidos ganham -2, -3...). Vazio se não há estilos.
+- **`docCssVars(styles)`** · [L990](../src/css.js#L990) — Variáveis CSS do projeto, na ordem: estilos de cor (--cor-x) e variáveis de tamanho (--espaco-md). Cada uma: { name, value, kind: 'color'|'size', label, hex? }. Usado pelo autocompletar do editor de código e pelo canvas (que as define no mundo, para `var(--cor-x)` escrito à mão valer no editor também).
+- **`joinCss(parts)`** · [L1007](../src/css.js#L1007) — Junta o CSS de várias chamadas de generateCode e escreve UM bloco `:root { --cor-x: ...; }` no topo com as variáveis usadas por elas. Sem variáveis, devolve só as regras.
   - `[]` <sub>{css: string, tokens?: [string, string][]</sub> — } parts
-- **`EXPORT_RESET`** · [L1023](../src/css.js#L1023) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
-- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1037](../src/css.js#L1037) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
+- **`EXPORT_RESET`** · [L1037](../src/css.js#L1037) — "Zera" os estilos que o NAVEGADOR dá sozinho a cada etiqueta. O editor desenha tudo com <div>, que não tem estilo próprio; no HTML exportado, porém, <ul> ganha recuo de 40px e marcadores, <button> ganha borda, fundo e texto centralizado, <a> fica azul e sublinhado, <h1> fica maior... Sem este bloco o site exportado ficava diferente do que o editor mostra. As regras das camadas (por classe) vêm depois e vencem estas.
+- **`exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {})`** · [L1051](../src/css.js#L1051) — Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos. Abre direto no navegador; o CSS fica num <style> no <head>.
 
 ---
 
@@ -614,8 +614,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `assets` <sub>object</sub> — 
   - `text` <sub>string</sub> — declarações ("prop: valor;" por linha) ou a regra inteira
   - ↩︎ `{ mapped: string[], custom: string[], unset: string[], ignored: string[] ` }
-- **`layerCssText(node, parent, assets)`** · [L202](../src/cssedit.js#L202) — Declarações que a camada mostra no editor (o CSS da exportação), uma por linha.
-- **`releaseOverrides(node, beforePlain, afterPlain)`** · [L215](../src/cssedit.js#L215) — O painel Design mandou de novo: tira do CSS livre da camada as propriedades cujo valor GERADO pelo modelo mudou nesta edição (ex.: o CSS editado à mão fixou `width` e agora a pessoa mexeu na largura pelo painel). Sem isso, o CSS livre (que vem por último) continuaria vencendo e o painel pareceria não funcionar.
+- **`layerCssText(node, parent, assets)`** · [L204](../src/cssedit.js#L204) — Declarações que a camada mostra no editor (o CSS da exportação), uma por linha.
+- **`releaseOverrides(node, beforePlain, afterPlain)`** · [L217](../src/cssedit.js#L217) — O painel Design mandou de novo: tira do CSS livre da camada as propriedades cujo valor GERADO pelo modelo mudou nesta edição (ex.: o CSS editado à mão fixou `width` e agora a pessoa mexeu na largura pelo painel). Sem isso, o CSS livre (que vem por último) continuaria vencendo e o painel pareceria não funcionar.
   - `node` <sub>object</sub> — 
   - `beforePlain` <sub>Record<string, string></sub> — nodeStyle da camada SEM o CSS livre, antes da edição
   - `afterPlain` <sub>Record<string, string></sub> — idem, depois da edição
@@ -771,23 +771,23 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`readPrelude()`** <sub>interna</sub> · [L190](../src/html.js#L190) — Lê até `{`, `;` ou `}` no nível atual (respeitando aspas e parênteses).
 - **`readBody()`** <sub>interna</sub> · [L206](../src/html.js#L206) — Lê o corpo entre { } (já depois da `{`) sem interpretar; devolve o texto.
 - **`parseDeclarations(body)`** · [L269](../src/html.js#L269) — Declarações de um corpo de regra `a: b; c: d` → [{prop, value, important, line}] (linha relativa ao corpo, 0 = 1ª). Respeita aspas e parênteses (url(data:...;...) não quebra).
-- **`unsafeCss(s)`** <sub>do módulo</sub> · [L299](../src/html.js#L299) — O valor de CSS é seguro (sem javascript:, expression(), quebra de <style>)?
-- **`trustedFontImport(prelude)`** <sub>do módulo</sub> · [L302](../src/html.js#L302) — Só permite folhas CSS do endpoint oficial do Google Fonts; @import é global e poderia estilizar o editor inteiro.
-- **`scopeSelector(selector, scope)`** · [L318](../src/html.js#L318) — Reescreve um seletor para valer SÓ dentro do canvas do editor, onde cada camada é um <div> com data-tag (etiqueta), data-cls (classes) e data-hid (id). `.card` → `:is([data-cls~="card"], .card)` (a 2ª forma pega o HTML real das camadas "Código HTML"), `#topo` e `h1` do mesmo jeito; html/body/:root viram o próprio escopo. Pseudo-classes (:hover...) ficam como estão.
-- **`printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '' } = {})`** <sub>do módulo</sub> · [L394](../src/html.js#L394) — Monta o texto de uma lista de blocos de volta (com transformação do seletor e das declarações).
-- **`safePageCss(text)`** · [L424](../src/html.js#L424) — CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
-- **`scopePageCss(text, scope = '.world')`** · [L437](../src/html.js#L437) — CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra). Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
-- **`lintCss(text, supports)`** · [L456](../src/html.js#L456) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
+- **`unsafeCss(s)`** <sub>do módulo</sub> · [L301](../src/html.js#L301) — O valor de CSS é seguro (sem javascript:, expression(), quebra de <style>)?
+- **`trustedFontImport(prelude)`** <sub>do módulo</sub> · [L304](../src/html.js#L304) — Só permite folhas CSS do endpoint oficial do Google Fonts; @import é global e poderia estilizar o editor inteiro.
+- **`scopeSelector(selector, scope)`** · [L320](../src/html.js#L320) — Reescreve um seletor para valer SÓ dentro do canvas do editor, onde cada camada é um <div> com data-tag (etiqueta), data-cls (classes) e data-hid (id). `.card` → `:is([data-cls~="card"], .card)` (a 2ª forma pega o HTML real das camadas "Código HTML"), `#topo` e `h1` do mesmo jeito; html/body/:root viram o próprio escopo. Pseudo-classes (:hover...) ficam como estão.
+- **`printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '' } = {})`** <sub>do módulo</sub> · [L396](../src/html.js#L396) — Monta o texto de uma lista de blocos de volta (com transformação do seletor e das declarações).
+- **`safePageCss(text)`** · [L426](../src/html.js#L426) — CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
+- **`scopePageCss(text, scope = '.world')`** · [L439](../src/html.js#L439) — CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra). Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
+- **`lintCss(text, supports)`** · [L458](../src/html.js#L458) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
   - `text` <sub>string</sub> — 
   - `[supports]` <sub>(prop:string, value:string) => boolean</sub> — 
   - ↩︎ `{line:number, msg:string, level:'error'\|'warn'` []}
-- **`checkDecl(d, line, supports)`** · [L475](../src/html.js#L475) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
-- **`LINK_TARGETS`** · [L489](../src/html.js#L489) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
-- **`BUTTON_TYPES`** · [L490](../src/html.js#L490) — _(sem comentário)_
-- **`ATTR_KEYS`** · [L492](../src/html.js#L492) — Campos da camada que viram atributos (todos opcionais).
-- **`cleanId(v)`** · [L495](../src/html.js#L495) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
-- **`cleanClasses(v)`** · [L497](../src/html.js#L497) — Lista de classes extras válidas (sem duplicadas).
-- **`htmlAttrs(node, tag)`** · [L505](../src/html.js#L505) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
+- **`checkDecl(d, line, supports)`** · [L477](../src/html.js#L477) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
+- **`LINK_TARGETS`** · [L491](../src/html.js#L491) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
+- **`BUTTON_TYPES`** · [L492](../src/html.js#L492) — _(sem comentário)_
+- **`ATTR_KEYS`** · [L494](../src/html.js#L494) — Campos da camada que viram atributos (todos opcionais).
+- **`cleanId(v)`** · [L497](../src/html.js#L497) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
+- **`cleanClasses(v)`** · [L499](../src/html.js#L499) — Lista de classes extras válidas (sem duplicadas).
+- **`htmlAttrs(node, tag)`** · [L507](../src/html.js#L507) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
   - `node` <sub>object</sub> — 
   - `tag` <sub>string</sub> — etiqueta efetiva no HTML exportado
 
