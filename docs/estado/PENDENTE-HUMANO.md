@@ -11,7 +11,8 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 6. [ ] ROADMAP (14 KB, com log de auditoria no topo): **mover o log para o CHANGELOG** / deixar. Benchmarks (`docs/benchmarks`) e as 9 capturas do README: **manter até refazer as capturas após o redesign**.
 
 ## Testes que só você consegue
-- [ ] S3/S4: testar MCP com seu Claude Code e Codex depois da correção de origem/token.
+- [ ] S3 (feita, commit `500659d`): conferir que seu Claude Code e Codex continuam conectando ao MCP (a mudança só recusa `Origin` de outra porta; clientes sem Origin seguem aceitos). Revisar o diff: `git show 500659d -- server.js`.
+- [ ] S4: revisar o diff quando eu concluir.
 - [ ] S12: abrir o site exportado num celular real.
 - [ ] S10: escolher o acento e o logo entre 3 opções.
 - [ ] Firefox/Safari: smoke test se a decisão 1 incluir.
