@@ -32,8 +32,10 @@ import { writeJsonAtomic } from './server/atomic.js';
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, parse, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { handleMcp } from './server/mcp.js';
+import { httpError } from './server/http-error.js';
+import { createProjects, checkName } from './server/projects.js';
 import { createPresence, targetsOf, DOCUMENT_LOCK } from './server/presence.js';
 import { createEditorBridge } from './server/editor-bridge.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
@@ -53,17 +55,10 @@ const configFile = resolve(process.env.DESIGNER_CONFIG || join(root, 'designer.c
 // CONTA LOCAL (perfil sem senha): arquivo ao lado da configuração. designer.config.json → designer.account.json
 const accountFile = configFile.replace(/(\.config)?\.json$/i, '') + '.account.json';
 const DEFAULTS = { folder: join(root, 'projetos'), keepVersions: 20 };
-/** Intervalo mínimo entre duas versões guardadas do mesmo projeto (o auto-salvar grava a cada poucos segundos; versões não). */
-const VERSION_EVERY_MS = 10 * 60 * 1000;
 /** Tamanho máximo aceito para um projeto (imagens embutidas deixam o .json grande). */
 const MAX_BODY = 200 * 1024 * 1024; // só o PUT de um projeto (pode levar imagens embutidas)
 const MAX_JSON = 1024 * 1024; // padrão das rotas JSON: configuração, conta, renomear etc.
 const MAX_MEDIUM = 32 * 1024 * 1024; // mensagens do agente e respostas de ferramentas (podem levar imagens), miniaturas, MCP
-/** Nome de arquivo aceito: começa com letra/número, só usa letras, números, ponto, - e _, e termina em .json. */
-const FILE_RE = /^[a-z0-9][a-z0-9._-]{0,90}\.json$/i;
-/** Nomes que o Windows trata como dispositivo (con.json, nul.json, com1.json...): gravar neles trava ou falha. */
-const RESERVED_RE = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i;
-
 /** Tipo MIME por extensão. O de .js precisa ser text/javascript, senão o navegador recusa carregar módulos ES. */
 const types = {
   '.html': 'text/html; charset=utf-8',
@@ -93,6 +88,8 @@ async function loadConfig() {
 }
 /** Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config. */
 let config = await loadConfig();
+/** Arquivos de projeto na pasta (server/projects.js); depois de cada gravação os editores abertos são avisados. */
+const projects = createProjects({ getConfig: () => config, onWrite: (event) => broadcastProjectChange(event) });
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
 
 /** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
@@ -135,30 +132,6 @@ async function useFolder(input) {
 const publicConfig = () => ({ folder: config.folder, keepVersions: config.keepVersions });
 
 // ---------------------------------------------------------------- utilidades HTTP
-/** Erro com status HTTP e mensagem que pode ir para a tela do usuário. */
-function httpError(status, message) {
-  return Object.assign(new Error(message), { status, expose: true });
-}
-/** Responde JSON. */
-/** Conteúdo de cada projeto que o servidor leu/gravou por último (ver PUT /api/projects/:arquivo). */
-const knownContent = new Map();
-/** Hash curto do conteúdo de um arquivo de projeto. */
-const hashOf = (data) => createHash('sha1').update(data).digest('hex');
-/** Serializa comparação de revisão + gravação por arquivo, sem bloquear projetos independentes. */
-const projectWriteQueues = new Map();
-async function withProjectWrite(name, task) {
-  const previous = projectWriteQueues.get(name) || Promise.resolve();
-  let release;
-  const current = new Promise((resolve) => { release = resolve; });
-  projectWriteQueues.set(name, current);
-  await previous;
-  try { return await task(); }
-  finally {
-    release();
-    if (projectWriteQueues.get(name) === current) projectWriteQueues.delete(name);
-  }
-}
-
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(data));
@@ -188,52 +161,6 @@ const localHost = (host = '') => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.te
 /** A página que fez o pedido (Origin) é ESTE servidor (mesma porta)? Outra porta de localhost é outro programa e é recusada. Pedidos sem Origin (curl, MCP stdio, testes) são aceitos; as escritas de navegador sempre enviam Origin, e GET/HEAD não alteram nada. */
 const OWN_ORIGINS = [`http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://[::1]:${port}`];
 const localOrigin = (origin) => !origin || OWN_ORIGINS.includes(String(origin).toLowerCase());
-
-/** Caminho do projeto `name` dentro da pasta configurada (o nome já foi validado por FILE_RE). */
-const projectPath = (name) => join(config.folder, name);
-/** Pasta onde ficam as versões antigas de um projeto: <pasta>/.versoes/<nome-sem-.json>/ */
-const versionsDir = (name) => join(config.folder, '.versoes', name.replace(/\.json$/i, ''));
-/** Miniatura (SVG) de um projeto, mostrada na página inicial: <pasta>/.miniaturas/<nome-sem-.json>.svg */
-const thumbPath = (name) => join(config.folder, '.miniaturas', name.replace(/\.json$/i, '.svg'));
-/** Tamanho máximo de uma miniatura (o app já tira imagens grandes antes de mandar). */
-const MAX_THUMB = 3 * 1024 * 1024;
-/** Valida o nome vindo da URL. */
-function checkName(name) {
-  if (!FILE_RE.test(name) || name.includes('..') || RESERVED_RE.test(name)) throw httpError(400, 'Nome de arquivo inválido.');
-  return name;
-}
-
-/** Lista as versões guardadas de um projeto, da mais nova para a mais antiga. */
-async function listVersions(name) {
-  try {
-    const files = (await readdir(versionsDir(name))).filter((f) => FILE_RE.test(f)).sort().reverse();
-    return await Promise.all(files.map(async (f) => {
-      const s = await stat(join(versionsDir(name), f));
-      return { id: f, modified: s.mtimeMs, size: s.size };
-    }));
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Antes de sobrescrever um projeto, guarda o conteúdo ANTERIOR como versão — mas só se a última versão tiver
- * mais de 10 min (senão o auto-salvar criaria centenas). Depois apaga as mais antigas além de `keepVersions`.
- */
-async function snapshotVersion(name) {
-  const keep = config.keepVersions;
-  if (!keep) return;
-  let current;
-  try { current = await readFile(projectPath(name)); } catch { return; } // projeto novo: nada a guardar
-  const versions = await listVersions(name);
-  if (versions[0] && Date.now() - versions[0].modified < VERSION_EVERY_MS) return;
-  await mkdir(versionsDir(name), { recursive: true });
-  // nome = data/hora ordenável com milissegundos (2026-10-07T14-03-22-517.json): a lista sai em ordem cronológica
-  // e duas versões no mesmo segundo não se sobrescrevem
-  const id = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '') + '.json';
-  await writeFile(join(versionsDir(name), id), current);
-  for (const old of (await listVersions(name)).slice(keep)) await rm(join(versionsDir(name), old.id), { force: true });
-}
 
 // ---------------------------------------------------------------- API
 /**
@@ -292,33 +219,13 @@ async function api(req, res, path) {
   // quem está no projeto agora (pessoas com o editor aberto e agentes do MCP) e o que fizeram por último
   if (parts[0] === 'presence' && req.method === 'GET') return sendJson(res, 200, presence.snapshot());
 
-  if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') {
-    await mkdir(config.folder, { recursive: true });
-    const names = (await readdir(config.folder)).filter((f) => FILE_RE.test(f));
-    const list = await Promise.all(names.map(async (file) => {
-      const s = await stat(projectPath(file));
-      if (!s.isFile()) return null;
-      const thumb = await stat(thumbPath(file)).then((t) => t.mtimeMs, () => 0);
-      return { file, modified: s.mtimeMs, size: s.size, thumb };
-    }));
-    return sendJson(res, 200, list.filter(Boolean).sort((a, b) => b.modified - a.modified));
-  }
+  if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await projects.list());
 
-  /**
-   * Impressão digital do conteúdo que ESTE servidor leu ou gravou por último, por arquivo. Em discos exFAT/FAT (pen
-   * drive, HD externo) a data de modificação é grosseira: duas gravações próximas ficam com a mesma data e a
-   * comparação só por data deixaria passar uma alteração feita fora do editor. Com o hash, não passa.
-   */
   if (parts[0] === 'projects' && parts[1]) {
     const name = checkName(parts[1]);
     if (parts.length === 2 && req.method === 'GET') {
-      const [data, s] = await Promise.all([readFile(projectPath(name)), stat(projectPath(name))]);
-      const contentHash = hashOf(data);
-      // só registra se a data mudou: com a MESMA data, o registro do último salvamento daqui é que vale (é com ele
-      // que o PUT descobre uma alteração feita por fora no mesmo instante)
-      const prev = knownContent.get(name);
-      if (!prev || Math.abs(prev.mtime - s.mtimeMs) > 1) knownContent.set(name, { mtime: s.mtimeMs, hash: contentHash });
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(s.mtimeMs), 'X-Content-Hash': contentHash });
+      const { data, modified, contentHash } = await projects.read(name);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(modified), 'X-Content-Hash': contentHash });
       return res.end(data);
     }
     if (parts.length === 2 && req.method === 'PUT') {
@@ -326,35 +233,19 @@ async function api(req, res, path) {
       let doc;
       try { doc = JSON.parse(text); } catch { throw httpError(400, 'O conteúdo não é JSON válido.'); }
       if (!Array.isArray(doc?.pages)) throw httpError(400, 'Isso não parece um projeto (faltam as páginas).');
-      return withProjectWrite(name, async () => {
-        // A comparação fica dentro da fila: duas abas com a mesma revisão não podem passar juntas.
-        const cur = await stat(projectPath(name)).catch(() => null);
-        const base = Number(req.headers['x-base-modified']);
-        const baseHash = String(req.headers['x-base-hash'] || '');
-        const known = knownContent.get(name);
-        const sameDate = !!base && Math.abs(cur?.mtimeMs - base) <= 1;
-        const diskText = cur ? await readFile(projectPath(name)) : null;
-        const diskHash = diskText === null ? '' : hashOf(diskText);
-        const changedInside = cur && sameDate && known && Math.abs(known.mtime - base) <= 1 && known.hash !== diskHash;
-        const staleHash = cur && baseHash && baseHash !== diskHash;
-        if (cur && req.headers['x-overwrite'] !== '1' && (staleHash || (!baseHash && (!sameDate || changedInside)))) {
-          if (changedInside || staleHash) knownContent.set(name, { mtime: cur.mtimeMs, hash: diskHash });
-          return sendJson(res, 409, { error: 'O arquivo foi alterado fora deste editor.', modified: cur.mtimeMs, contentHash: diskHash });
-        }
-        await mkdir(config.folder, { recursive: true });
-        await snapshotVersion(name);
-        // Nome exclusivo evita colisão entre processos e mantém o projeto antigo até o rename atômico.
-        const tmp = projectPath(`.${name}.${process.pid}.${randomUUID()}.tmp`);
-        await writeFile(tmp, text);
-        await rename(tmp, projectPath(name));
-        const saved = (await stat(projectPath(name))).mtimeMs;
-        const contentHash = hashOf(text);
-        knownContent.set(name, { mtime: saved, hash: contentHash });
-        return sendJson(res, 200, { ok: true, file: name, modified: saved, contentHash });
-      });
+      try {
+        const saved = await projects.write(name, text, {
+          base: { modified: req.headers['x-base-modified'], hash: req.headers['x-base-hash'] },
+          overwrite: req.headers['x-overwrite'] === '1', by: String(req.headers['x-editor-id'] || ''),
+        });
+        return sendJson(res, 200, { ok: true, ...saved });
+      } catch (err) {
+        if (err.status === 409) return sendJson(res, 409, { error: err.message, ...err.body });
+        throw err;
+      }
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
-      const data = await readFile(thumbPath(name));
+      const data = await projects.readThumb(name);
       // SVG pode conter <script>: a política de segurança abaixo impede que rode, mesmo se alguém abrir a URL direto
       res.writeHead(200, {
         'Content-Type': 'image/svg+xml',
@@ -366,30 +257,17 @@ async function api(req, res, path) {
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'PUT') {
       const { svg } = await jsonObject(req, MAX_MEDIUM);
-      if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) throw httpError(400, 'Miniatura inválida.');
-      if (svg.length > MAX_THUMB) throw httpError(413, 'Miniatura grande demais.');
-      await stat(projectPath(name)); // só aceita miniatura de projeto que existe (senão: 404)
-      await mkdir(join(config.folder, '.miniaturas'), { recursive: true });
-      await writeFile(thumbPath(name), svg);
+      await projects.writeThumb(name, svg);
       return sendJson(res, 200, { ok: true });
     }
     if (parts[2] === 'rename' && parts.length === 3 && req.method === 'POST') {
       const { to } = await jsonObject(req);
-      const target = checkName(String(to || ''));
-      if (target === name) return sendJson(res, 200, { ok: true, file: name });
-      await stat(projectPath(name)); // origem precisa existir (senão: 404)
-      if (await stat(projectPath(target)).catch(() => null)) throw httpError(409, `Já existe "${target}" na pasta.`);
-      await rename(projectPath(name), projectPath(target));
-      // versões e miniatura acompanham o projeto (se existirem)
-      await rename(versionsDir(name), versionsDir(target)).catch(() => {});
-      await rename(thumbPath(name), thumbPath(target)).catch(() => {});
-      return sendJson(res, 200, { ok: true, file: target, modified: (await stat(projectPath(target))).mtimeMs });
+      return sendJson(res, 200, { ok: true, ...(await projects.rename(name, to)) });
     }
     if (parts[2] === 'versions' && parts.length <= 4 && req.method === 'GET') {
-      if (parts.length === 3) return sendJson(res, 200, await listVersions(name));
-      const v = checkName(parts[3]);
+      if (parts.length === 3) return sendJson(res, 200, await projects.versions(name));
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(await readFile(join(versionsDir(name), v)));
+      return res.end(await projects.readVersion(name, parts[3]));
     }
   }
   throw httpError(404, 'Rota não encontrada.');
@@ -443,6 +321,16 @@ data: ${data}
 
 `); }
     catch { editors.delete(ed); editorSessions.delete(ed); }
+  }
+}
+/** Avisa os editores abertos que um projeto foi gravado (evento SSE "project"): quem não tem alterações pendentes recarrega. */
+function broadcastProjectChange(event) {
+  const data = JSON.stringify(event);
+  for (const ed of editors) {
+    try { ed.write(`event: project
+data: ${data}
+
+`); } catch { editors.delete(ed); editorSessions.delete(ed); }
   }
 }
 /** Executa uma ferramenta pedida por uma sessão MCP: presença, trava das camadas e registro da atividade. */
