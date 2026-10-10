@@ -266,6 +266,12 @@ ${PROP_HELP}`,
     } },
   },
   {
+    name: 'export_zip',
+    write: false,
+    description: 'Grava o projeto e devolve o endereço para baixar o SITE inteiro em .zip (HTML estruturado, uma página por prancheta visível, pronto para publicar) e o do projeto em .json (para importar em outro Stylo). Faça o download desses endereços com HTTP GET.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'set_responsive',
     write: true,
     description: 'Ajusta uma camada SÓ num breakpoint do projeto (padrão: "tablet" ≤1024px e "mobile" ≤640px; o projeto pode ter outros, veja get_document → breakpoints): vira @media no CSS. O Desktop continua igual. Ex.: grid de 3 colunas vira 1 no celular: props {"layout": {"cols": 1}}; esconder no celular: {"visible": false}; texto menor: {"fontSize": 36}. Aceita: x, y, w, h, sizeX, sizeY, minW, maxW, minH, maxH, aspect, margin, grow, absolute, visible, alignSelf, justifySelf, colSpan, rowSpan, layout, rotation, overflow, fluid, fontSize, lineHeight, letterSpacing, wordSpacing, textAlign, fontWeight, textTransform, truncate, lines, radius, opacity, blend, clip, fill, stroke, shadows, blur, bgBlur.',

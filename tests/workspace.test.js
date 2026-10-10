@@ -80,3 +80,15 @@ test('ferramentas que precisam de navegador respondem com erro claro, sem derrub
   assert.match((await t.workspace.call('get_image', {}, { sid: 'a' })).error, /navegador/);
   await t.done();
 });
+
+test('export_zip devolve os endereços do site .zip e do projeto, depois de gravar', async () => {
+  const t = await setup();
+  await t.workspace.call('new_project', { name: 'Zip' }, { sid: 'a' });
+  await t.workspace.call('create_layer', { type: 'frame', props: { name: 'Home', w: 400, h: 300 } }, { sid: 'a' });
+  const out = await t.workspace.call('export_zip', {}, { sid: 'a' });
+  assert.equal(out.error, undefined, out.error);
+  assert.match(out.site_zip_url, /\/api\/projects\/zip\.json\/site\.zip$/);
+  assert.ok(out.files.length >= 1);
+  assert.ok(JSON.stringify(JSON.parse(await readFile(join(t.folder, 'zip.json'), 'utf8'))).includes('Home'));
+  await t.done();
+});

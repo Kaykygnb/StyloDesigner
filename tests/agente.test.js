@@ -161,8 +161,8 @@ test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos intern
   assert.ok(!r.result.content[1].text.includes('iVBOR') && !r.result.content[1].text.includes('_summary'));
 });
 
-test('MCP completo: 41 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 41);
+test('MCP completo: 42 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 42);
   assert.equal(mcpTools().find((tool) => tool.name === 'export_site').annotations.readOnlyHint, true);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
   assert.deepEqual(destructive, ['delete_layers', 'delete_page']);

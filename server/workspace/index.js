@@ -22,15 +22,17 @@ import { createRunner } from '../../src/agent/runner.js';
 import { makeDoc } from '../../src/model.js';
 import { createModelCanvas } from './model-canvas.js';
 import { fileNameFor } from '../projects.js';
+import { exportSite } from '../../src/site-export.js';
 
 const IDLE_MS = 10 * 60 * 1000;
-const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project']);
+const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip']);
 
 /**
  * @param {object} deps
  * @param {ReturnType<import('../projects.js').createProjects>} deps.projects
+ * @param {() => string} [deps.baseUrl]  endereço público do servidor (para os links de download)
  */
-export function createWorkspace({ projects }) {
+export function createWorkspace({ projects, baseUrl = () => 'http://localhost:5173' }) {
   /** arquivo → Doc */
   const docs = new Map();
   /** id da sessão MCP → arquivo atual */
@@ -98,6 +100,17 @@ export function createWorkspace({ projects }) {
       const entry = await openDoc(file);
       current.set(sid, file);
       return { ok: true, file, project: doc.name };
+    },
+    async export_zip(_args, sid) {
+      const entry = await openDoc(need(sid));
+      if ((await entry.store.saveNow()) === false) throw new Error('Não consegui gravar o projeto antes de exportar.');
+      const site = exportSite(entry.store.state.doc);
+      const base = `${baseUrl()}/api/projects/${encodeURIComponent(entry.file)}`;
+      return {
+        ok: true, file: entry.file,
+        site_zip_url: `${base}/site.zip`, project_json_url: base,
+        files: site.files.map((f) => ({ path: f.path, bytes: Buffer.byteLength(f.content) })), warnings: site.warnings,
+      };
     },
     async save_project({ name } = {}, sid) {
       const entry = await openDoc(need(sid));

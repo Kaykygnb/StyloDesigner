@@ -37,6 +37,8 @@ import { handleMcp } from './server/mcp.js';
 import { httpError } from './server/http-error.js';
 import { createProjects, checkName } from './server/projects.js';
 import { createWorkspace } from './server/workspace/index.js';
+import { exportSite } from './src/site-export.js';
+import { createZip } from './src/zip.js';
 import { createPresence, targetsOf, DOCUMENT_LOCK } from './server/presence.js';
 import { mergeAccount, normalizeAccount } from './server/account.js';
 import { VERSION } from './src/version.js';
@@ -91,7 +93,7 @@ let config = await loadConfig();
 /** Arquivos de projeto na pasta (server/projects.js); depois de cada gravação os editores abertos são avisados. */
 const projects = createProjects({ getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
 /** Projetos abertos no servidor: é aqui que o MCP trabalha, sem precisar de navegador (server/workspace). */
-const workspace = createWorkspace({ projects });
+const workspace = createWorkspace({ projects, baseUrl: () => `http://localhost:${port}` });
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
 
 /** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
@@ -245,6 +247,14 @@ async function api(req, res, path) {
         if (err.status === 409) return sendJson(res, 409, { error: err.message, ...err.body });
         throw err;
       }
+    }
+    if (parts[2] === 'site.zip' && parts.length === 3 && req.method === 'GET') {
+      // o site inteiro em .zip (HTML estruturado, uma página por prancheta visível)
+      const { doc } = await projects.load(name);
+      const site = exportSite(doc);
+      const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
+      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${name.replace(/.json$/i, '')}-site.zip"`, 'Cache-Control': 'no-store' });
+      return res.end(zip);
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
       const data = await projects.readThumb(name);
