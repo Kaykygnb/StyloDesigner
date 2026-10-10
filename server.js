@@ -27,7 +27,8 @@
 
 import { createServer } from 'node:http';
 import { createPhotosHandler } from './server/photos.js';
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { writeJsonAtomic } from './server/atomic.js';
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,12 +77,18 @@ const types = {
 };
 
 // ---------------------------------------------------------------- configuração
-/** Lê a configuração salva (ou a padrão, se ainda não existir / estiver corrompida). */
+/** Lê a configuração salva (ou a padrão, se ainda não existir; se estiver corrompida, guarda uma cópia e usa a padrão). */
 async function loadConfig() {
+  let text;
+  try { text = await readFile(configFile, 'utf8'); } catch { return { ...DEFAULTS }; } // ainda não existe: padrão
   try {
-    const saved = JSON.parse(await readFile(configFile, 'utf8'));
-    return { ...DEFAULTS, ...saved };
+    return { ...DEFAULTS, ...JSON.parse(text) };
   } catch {
+    // existe mas está quebrada (queda no meio de uma gravação antiga, edição à mão): guarda uma cópia para a pessoa
+    // recuperar as chaves em vez de perdê-las em silêncio, e segue com o padrão
+    const backup = `${configFile}.corrompido-${Date.now()}`;
+    await copyFile(configFile, backup).catch(() => {});
+    console.warn(`  Aviso: a configuração estava corrompida. Cópia guardada em ${backup}; usando o padrão.`);
     return { ...DEFAULTS };
   }
 }
@@ -245,7 +252,7 @@ async function api(req, res, path) {
     const next = { ...config };
     if (body.folder !== undefined) next.folder = await useFolder(body.folder);
     if (body.keepVersions !== undefined) next.keepVersions = Math.max(0, Math.min(200, Math.round(Number(body.keepVersions) || 0)));
-    await writeFile(configFile, JSON.stringify(next, null, 2));
+    await writeJsonAtomic(configFile, next);
     config = next;
     return sendJson(res, 200, { ok: true, ...publicConfig() });
   }
@@ -256,7 +263,7 @@ async function api(req, res, path) {
     const body = JSON.parse((await readBody(req)) || '{}');
     let next;
     try { next = mergeAccount(await loadAccount(), body); } catch (err) { throw httpError(400, err.message); }
-    await writeFile(accountFile, JSON.stringify(next, null, 2));
+    await writeJsonAtomic(accountFile, next);
     return sendJson(res, 200, next);
   }
 
@@ -535,7 +542,7 @@ async function mcpRoute(req, res) {
 }
 
 /** IA de foto (server/imageai.js): lê a configuração atual e grava as mudanças no mesmo arquivo. */
-const imageAi = createImageAi({ getConfig: () => config, saveConfig: async (next) => { config = next; await writeFile(configFile, JSON.stringify(config, null, 2)); } });
+const imageAi = createImageAi({ getConfig: () => config, saveConfig: async (next) => { config = next; await writeJsonAtomic(configFile, config); } });
 
 /** Provedor padrão do Assistente (o 1º da lista: OpenAI). Troque em Configurações (OpenAI, NVIDIA NIM, Ollama, outro). */
 const DEFAULT_PROVIDER = PROVIDERS[0];
@@ -793,7 +800,7 @@ async function agentApi(req, res, parts) {
     config = { ...config, agent: next, ...(Object.keys(jev).length ? { jev } : {}), ...(Object.keys(pexels).length ? { pexels } : {}) };
     if (!Object.keys(jev).length) delete config.jev;
     if (!Object.keys(pexels).length) delete config.pexels;
-    await writeFile(configFile, JSON.stringify(config, null, 2));
+    await writeJsonAtomic(configFile, config);
     const a = agentConfig();
     return sendJson(res, 200, { ok: true, baseUrl: a.baseUrl, model: a.model, hasKey: !!a.apiKey, jev: !!jevConfig().apiKey, pexels: !!(config.pexels?.apiKey || process.env.PEXELS_API_KEY) });
   }
@@ -804,7 +811,7 @@ async function agentApi(req, res, parts) {
     const next = { ...(config.mcp || {}) };
     if (body.admin !== undefined) next.admin = !!body.admin;
     config = { ...config, mcp: next };
-    await writeFile(configFile, JSON.stringify(config, null, 2));
+    await writeJsonAtomic(configFile, config);
     return sendJson(res, 200, { ok: true, mcpAdmin: !!next.admin });
   }
   if (what === 'models' && req.method === 'GET') {
@@ -900,7 +907,7 @@ async function agentApi(req, res, parts) {
     // guarda (no máximo 80 modelos testados, os mais recentes)
     const tested = Object.entries({ ...(config.agent?.tested || {}), [model]: result }).sort((x, y) => y[1].at - x[1].at).slice(0, 80);
     config = { ...config, agent: { ...(config.agent || {}), tested: Object.fromEntries(tested) } };
-    await writeFile(configFile, JSON.stringify(config, null, 2));
+    await writeJsonAtomic(configFile, config);
     return sendJson(res, 200, result);
   }
   if (what === 'jev' && req.method === 'POST') {
