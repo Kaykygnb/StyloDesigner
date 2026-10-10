@@ -21,3 +21,6 @@ Responda quando puder. Sem resposta, sigo com o padrão indicado. Marque com `[x
 - **IA A (pesquisa):** checar disponibilidade e conflito da marca "Stylo" (INPI/EUIPO/USPTO, GitHub, npm) e listar licenças de Google Fonts usadas pelo app. Entregar tabela.
 - **IA B (design, só direção):** 3 diretrizes de marca para uma ferramenta de design sóbria e densa, com paleta (hex), tipografia e descrição do logo; sem imagens genéricas. Eu renderizo e meço contraste.
 - **IA C (revisão cruzada):** revisar o diff das etapas S3 e S4 sem ver meu relatório, para segunda opinião.
+
+## Codex como subagente (`codex app-server`)
+- [ ] Você tem Codex logado e quer gastar a cota do plano ChatGPT nisso? Padrão: **só depois da Fase 1**, com prova de conceito pequena (esquema → sessão → tarefa trivial numa worktree → medir tokens contra `codex exec`). `codex-cli 0.162.1` instalado; o `app-server` é experimental.
