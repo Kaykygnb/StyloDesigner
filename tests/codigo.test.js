@@ -95,7 +95,8 @@ test('scopeSelector prende os seletores ao canvas', () => {
   assert.equal(scopeSelector('li:nth-child(odd)', '.world'), '.world :is([data-tag="li"], li):nth-child(odd)');
   const css = scopePageCss('.a { color: red }\n@media (max-width: 9px) { .a { color: blue } }');
   assert.match(css, /\.world :is\(\[data-cls~="a"\], \.a\) \{\n {2}color: red !important;/);
-  assert.match(css, /@media \(max-width: 9px\) \{\n {2}\.world/);
+  // no canvas, @media de largura em px vira @container (issue #10): vale para a largura da tela desenhada
+  assert.match(css, /@container \(max-width: 9px\) \{\n {2}\.world/);
 });
 
 test('lintCss aponta chaves faltando, valores bloqueados e propriedades desconhecidas com a linha', () => {

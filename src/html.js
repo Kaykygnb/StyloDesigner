@@ -441,11 +441,38 @@ export function scopePageCss(text, scope = '.world') {
   const { blocks } = parseCssBlocks(text);
   const imports = blocks.filter((b) => b.name === 'import');
   const rest = blocks.filter((b) => b.name !== 'import');
-  const body = printBlocks(rest, {
+  // @media de largura → @container: no canvas a tela desenhada tem a largura dela, a janela do editor não importa
+  let usesContainer = false;
+  const toContainer = (list) => list.map((b) => {
+    if (!b.children) return b;
+    const prelude = mediaToContainer(b.prelude);
+    if (prelude !== b.prelude) usesContainer = true;
+    return { ...b, prelude, children: toContainer(b.children) };
+  });
+  const converted = toContainer(rest);
+  const body = printBlocks(converted, {
     selector: (s) => scopeSelector(s, scope),
     decls: (list) => list.map((d) => ({ ...d, important: true })),
   });
-  return [printBlocks(imports), body].filter(Boolean).join('\n\n').replace(/<\//g, '<\\/');
+  // só quando há regra de largura: telas de largura definida viram contêineres (marca data-board no canvas.js).
+  // Telas "hug" ficam de fora: inline-size containment as faria colapsar para largura zero.
+  const container = usesContainer ? `${scope} [data-board] {\n  container-type: inline-size;\n}` : '';
+  return [printBlocks(imports), container, body].filter(Boolean).join('\n\n').replace(/<\//g, '<\\/');
+}
+
+/**
+ * `@media (max-width: 640px)` → `@container (max-width: 640px)`, só quando TODA a condição é largura em px
+ * (min-width, max-width ou width, ligadas por "and", com "screen and"/"only screen and" opcional). Qualquer outra
+ * coisa (orientação, preferência de cor, em/rem, print) fica como @media: não dá para trocar sem mudar o sentido.
+ * @param {string} prelude  texto antes da chave, ex.: "@media (max-width: 640px)"
+ * @returns {string}
+ */
+export function mediaToContainer(prelude) {
+  const m = /^@media\s+(?:(?:only\s+)?screen\s+and\s+)?(.+)$/i.exec(String(prelude).trim());
+  if (!m) return prelude;
+  const parts = m[1].split(/\s+and\s+/i);
+  if (!parts.every((p) => /^\(\s*(?:min-|max-)?width\s*:\s*[\d.]+px\s*\)$/i.test(p.trim()))) return prelude;
+  return `@container ${m[1].trim()}`;
 }
 
 /**

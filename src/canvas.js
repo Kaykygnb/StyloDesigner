@@ -11,7 +11,7 @@
  */
 
 import { nodeStyle, pathSvg, toCssText, classNamesOf, docCssVars } from './css.js';
-import { round, stateView, bpView, tagOf } from './model.js';
+import { round, stateView, bpView, tagOf, isBoard } from './model.js';
 import { sanitizeHtml, scopePageCss, cleanClasses, cleanId } from './html.js';
 import { modeView } from './modes.js';
 
@@ -276,6 +276,8 @@ export function createCanvas(store, viewport) {
     mark('tag', tagOf(node));
     mark('cls', [classMap.get(node.id), ...cleanClasses(node.classes)].filter(Boolean).join(' '));
     mark('hid', cleanId(node.htmlId));
+    // telas de largura definida são o "contêiner" das regras @media de largura do CSS da página (ver scopePageCss)
+    mark('board', isBoard(node, parent) && node.sizeX !== 'hug' ? '1' : '');
 
     // garante a ordem dos irmãos no DOM igual à do array (ordem z = ordem de desenho)
     if (parentEl.children[index] !== el) parentEl.insertBefore(el, parentEl.children[index] || null);

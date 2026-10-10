@@ -85,7 +85,7 @@ As prioridades foram decididas com ajuda do [Jev](https://typesafe.ai) (decisõe
 
 ### Editor e CSS
 - [ ] Booleanas não destrutivas e com texto/grupos — [#9](https://github.com/Kaykygnb/StyloDesigner/issues/9)
-- [ ] `@media` do CSS da página no canvas pela largura da tela desenhada — [#10](https://github.com/Kaykygnb/StyloDesigner/issues/10)
+- [x] `@media` do CSS da página no canvas pela largura da tela desenhada (container query) — [#10](https://github.com/Kaykygnb/StyloDesigner/issues/10)
 - [ ] Fotos exportadas como `<img>` de verdade — [#11](https://github.com/Kaykygnb/StyloDesigner/issues/11)
 - [ ] Limite de quina no contorno — [#3](https://github.com/Kaykygnb/StyloDesigner/issues/3)
 - [ ] Unidades além de px (`%`, `rem`, `vw`, `calc()`) direto nos campos do painel

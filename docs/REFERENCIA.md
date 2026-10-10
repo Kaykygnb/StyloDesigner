@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-77 arquivos · 1207 funções e constantes documentadas.
+77 arquivos · 1208 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -166,8 +166,8 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `parent` <sub>object\|null</sub> — o pai (decide se é item de flex/grid)
   - `parentEl` <sub>HTMLElement</sub> — elemento DOM do pai
   - `index` <sub>number</sub> — posição desejada entre os irmãos (a ordem do array é a ordem z)
-- **`measureBack(list, parent)`** <sub>interna</sub> · [L291](../src/canvas.js#L291) — "Medida de volta": para camadas com tamanho 'hug'/'fill' (ou dentro de auto layout), o tamanho real só o navegador sabe. Lemos offsetWidth/Height e gravamos em node.w/h, para o painel, o SVG e o 'ajustar' mostrarem o tamanho verdadeiro. Não cria entrada no histórico (é dado derivado).
-- **`render()`** <sub>interna</sub> · [L315](../src/canvas.js#L315) — Desenha a página atual: sincroniza todas as camadas, remove elementos órfãos (camada apagada ou de outra página), mede de volta os tamanhos e, se há texto em edição, dá foco e seleciona o conteúdo.
+- **`measureBack(list, parent)`** <sub>interna</sub> · [L293](../src/canvas.js#L293) — "Medida de volta": para camadas com tamanho 'hug'/'fill' (ou dentro de auto layout), o tamanho real só o navegador sabe. Lemos offsetWidth/Height e gravamos em node.w/h, para o painel, o SVG e o 'ajustar' mostrarem o tamanho verdadeiro. Não cria entrada no histórico (é dado derivado).
+- **`render()`** <sub>interna</sub> · [L317](../src/canvas.js#L317) — Desenha a página atual: sincroniza todas as camadas, remove elementos órfãos (camada apagada ou de outra página), mede de volta os tamanhos e, se há texto em edição, dá foco e seleciona o conteúdo.
 
 ---
 
@@ -787,17 +787,20 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 - **`printBlocks(blocks, { selector = (s) => s, decls = (d) => d, indent = '' } = {})`** <sub>do módulo</sub> · [L396](../src/html.js#L396) — Monta o texto de uma lista de blocos de volta (com transformação do seletor e das declarações).
 - **`safePageCss(text)`** · [L426](../src/html.js#L426) — CSS da página pronto para o ARQUIVO EXPORTADO (e a apresentação): o mesmo texto, relido e reescrito sem nada perigoso (javascript:, expression(), "</style"). @import do Google Fonts vai para o topo (exigência do CSS).
 - **`scopePageCss(text, scope = '.world')`** · [L439](../src/html.js#L439) — CSS da página para o CANVAS do editor: cada seletor só vale dentro de `scope` (ver scopeSelector) e as declarações ganham !important, porque no canvas o estilo de cada camada é inline (venceria qualquer regra). Só @import do Google Fonts fica no topo; outras folhas globais podem estilizar a própria interface do editor.
-- **`lintCss(text, supports)`** · [L458](../src/html.js#L458) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
+- **`mediaToContainer(prelude)`** · [L470](../src/html.js#L470) — `@media (max-width: 640px)` → `@container (max-width: 640px)`, só quando TODA a condição é largura em px (min-width, max-width ou width, ligadas por "and", com "screen and"/"only screen and" opcional). Qualquer outra coisa (orientação, preferência de cor, em/rem, print) fica como @media: não dá para trocar sem mudar o sentido.
+  - `prelude` <sub>string</sub> — texto antes da chave, ex.: "@media (max-width: 640px)"
+  - ↩︎ `string`
+- **`lintCss(text, supports)`** · [L485](../src/html.js#L485) — Confere uma folha de CSS: erros de estrutura (chaves) e, se `supports` for dado (CSS.supports do navegador), propriedades/valores que o navegador não entende. Devolve mensagens com o número da linha.
   - `text` <sub>string</sub> — 
   - `[supports]` <sub>(prop:string, value:string) => boolean</sub> — 
   - ↩︎ `{line:number, msg:string, level:'error'\|'warn'` []}
-- **`checkDecl(d, line, supports)`** · [L477](../src/html.js#L477) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
-- **`LINK_TARGETS`** · [L491](../src/html.js#L491) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
-- **`BUTTON_TYPES`** · [L492](../src/html.js#L492) — _(sem comentário)_
-- **`ATTR_KEYS`** · [L494](../src/html.js#L494) — Campos da camada que viram atributos (todos opcionais).
-- **`cleanId(v)`** · [L497](../src/html.js#L497) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
-- **`cleanClasses(v)`** · [L499](../src/html.js#L499) — Lista de classes extras válidas (sem duplicadas).
-- **`htmlAttrs(node, tag)`** · [L507](../src/html.js#L507) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
+- **`checkDecl(d, line, supports)`** · [L504](../src/html.js#L504) — Confere UMA declaração (usada pelo lintCss e pelo editor de CSS da camada).
+- **`LINK_TARGETS`** · [L518](../src/html.js#L518) — Valores aceitos em alguns atributos (lista fechada: o texto vai para o HTML).
+- **`BUTTON_TYPES`** · [L519](../src/html.js#L519) — _(sem comentário)_
+- **`ATTR_KEYS`** · [L521](../src/html.js#L521) — Campos da camada que viram atributos (todos opcionais).
+- **`cleanId(v)`** · [L524](../src/html.js#L524) — Id válido de HTML/CSS (letra primeiro; letras, números, - e _). '' se inválido.
+- **`cleanClasses(v)`** · [L526](../src/html.js#L526) — Lista de classes extras válidas (sem duplicadas).
+- **`htmlAttrs(node, tag)`** · [L534](../src/html.js#L534) — Atributos extras de uma camada, já escapados, prontos para entrar na etiqueta (cada um começa com espaço). A classe da camada (gerada) e o href/aria-label continuam no gerador (css.js); aqui ficam os novos.
   - `node` <sub>object</sub> — 
   - `tag` <sub>string</sub> — etiqueta efetiva no HTML exportado
 
