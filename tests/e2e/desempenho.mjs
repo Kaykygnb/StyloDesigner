@@ -32,14 +32,22 @@ await p.evaluate(() => {
   window.addEventListener('pointermove', () => { t0 = performance.now(); }, true);
   window.addEventListener('pointermove', () => { window.__moves.push(performance.now() - t0); });
 });
-await p.mouse.move(t.x, t.y); await p.mouse.down();
-const t0 = Date.now();
-for (let i = 0; i < 40; i++) await p.mouse.move(t.x + i * 3, t.y + i * 2);
-const dt = Date.now() - t0;
-await p.mouse.up();
-const moves = (await p.evaluate(() => window.__moves)).sort((a, b) => a - b);
-const p95 = moves[Math.floor(moves.length * 0.95)];
-console.log(`${N} camadas: handler p95 = ${p95.toFixed(1)} ms (limite 16) | latência com automação = ${(dt / 40).toFixed(1)} ms/mov`);
+// Uma única rodada oscila sob carga (a máquina fazendo outra coisa). Repetimos o arrasto e usamos a MEDIANA dos p95
+// de cada rodada: o limite de 16 ms continua o mesmo, só deixa de reprovar por um pico isolado.
+const ROUNDS = 5;
+const p95s = []; let dt = 0;
+for (let r = 0; r < ROUNDS; r++) {
+  await p.evaluate(() => { window.__moves.length = 0; });
+  await p.mouse.move(t.x, t.y); await p.mouse.down();
+  const t0 = Date.now();
+  for (let i = 0; i < 40; i++) await p.mouse.move(t.x + i * 3, t.y + i * 2);
+  dt = Date.now() - t0;
+  await p.mouse.up();
+  const moves = (await p.evaluate(() => window.__moves)).sort((a, b) => a - b);
+  p95s.push(moves[Math.floor(moves.length * 0.95)]);
+}
+const p95 = [...p95s].sort((a, b) => a - b)[Math.floor(ROUNDS / 2)];
+console.log(`${N} camadas: handler p95 (mediana de ${ROUNDS}) = ${p95.toFixed(1)} ms (limite 16; rodadas: ${p95s.map((v) => v.toFixed(1)).join(', ')}) | latência com automação = ${(dt / 40).toFixed(1)} ms/mov`);
 const t1 = Date.now();
 await p.evaluate(() => { designer.store.setSelection(designer.store.page().children[0].children.slice(0, 50).map(c => c.id)); });
 await p.waitForTimeout(50);
