@@ -17,7 +17,8 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { folder, saveLocal, fileNameFor } from './storage.js';
+import { folder, saveLocal, fileNameFor, forkLocalProject } from './storage.js';
+import { createProjectId, forkProject } from './model.js';
 import { saveProject } from './export.js';
 import { ask } from './ui/menus.js';
 
@@ -82,13 +83,15 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
       }
       return;
     }
-    const changedOnDisk = Math.abs(disk.modified - link.modified) > 1;
+    const changedOnDisk = link.contentHash
+      ? disk.contentHash !== link.contentHash
+      : Math.abs(disk.modified - link.modified) > 1;
     const browserAhead = link.synced === false;
     if (!changedOnDisk) {
       if (browserAhead) store.touch();
       else store.ui.savedWhere = 'folder';
     } else if (!browserAhead) {
-      store.loadDoc(disk.doc, { link: { file: link.file, modified: disk.modified, synced: true } });
+      store.loadDoc(disk.doc, { link: { file: link.file, modified: disk.modified, contentHash: disk.contentHash, synced: true } });
       store.ui.savedWhere = 'folder';
     } else {
       link.conflict = true;
@@ -112,8 +115,9 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     if (link && (link.conflict || prefs.autoFolder === false || !server)) link.synced = false;
     if (link && !link.conflict && prefs.autoFolder !== false && server) {
       try {
-        const r = await folder.save(link.file, record.doc, { base: link.modified });
+        const r = await folder.save(link.file, record.doc, { base: link.modified, baseHash: link.contentHash });
         link.modified = r.modified;
+        link.contentHash = r.contentHash;
         link.synced = true;
         where = 'folder';
         ui.folderProblem = null;
@@ -134,6 +138,20 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     }
     await saveLocal({ ...record, link: ui.link });
     return where;
+  }
+
+  /** Depois que a pessoa dá um nome à cópia conflitante, separa o autosave desta aba do documento compartilhado. */
+  async function recoverConflictCopy(link = store.ui.link) {
+    await forkLocalProject({
+      doc: store.state.doc,
+      views: store.ui.views,
+      theme: store.ui.theme,
+      link,
+    });
+    store.ui.saveState = 'saved';
+    store.ui.savedWhere = link ? 'folder' : 'browser';
+    store.ui.link = link;
+    store.emit('ui');
   }
 
   /**
@@ -160,6 +178,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
   async function quickSave() {
     if (!server && !(await refresh())) {
       saveProject(store.state.doc);
+      if (store.ui.saveState === 'conflict') await recoverConflictCopy(null);
       toast('Sem servidor (npm start): baixei o projeto como .json.');
       return true;
     }
@@ -193,8 +212,28 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     file = fileNameFor(String(file).replace(/\.json$/i, ''));
     try {
       const same = store.ui.link?.file === file;
-      const r = await folder.save(file, store.state.doc, { base: same ? store.ui.link.modified : undefined, overwrite });
-      store.setLink({ file, modified: r.modified, synced: true });
+      let projectId = store.state.doc.projectId || createProjectId();
+      if (!same) {
+        if (overwrite) {
+          try {
+            const target = await folder.load(file);
+            projectId = target.doc?.projectId || createProjectId();
+          } catch (err) {
+            if (err.status !== 404) throw err;
+            projectId = createProjectId();
+          }
+        } else {
+          projectId = createProjectId();
+        }
+      }
+      const project = { ...store.state.doc, projectId };
+      const r = await folder.save(file, project, { base: same ? store.ui.link.modified : undefined, baseHash: same ? store.ui.link.contentHash : undefined, overwrite });
+      // O documento só passa a ser a nova identidade após a gravação ter sido concluída.
+      store.state.doc.projectId = projectId;
+      const savedLink = { file, modified: r.modified, contentHash: r.contentHash, synced: true };
+      if (store.ui.saveState === 'conflict') await recoverConflictCopy(savedLink);
+      store.setLink(savedLink);
+      store.touch();
       store.ui.folderProblem = null;
       // acabou de ser gravado na pasta: o indicador e a troca de projeto já podem contar com isso (antes só o próximo
       // salvamento automático marcava, e abrir outro projeto logo depois perguntava à toa)
@@ -221,9 +260,9 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
   /** Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo. */
   async function open(file) {
     await store.saveNow();
-    const { doc, modified } = await folder.load(file);
+    const { doc, modified, contentHash } = await folder.load(file);
     if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
-    store.loadDoc(doc, { link: { file, modified, synced: true } });
+    store.loadDoc(doc, { link: { file, modified, contentHash, synced: true } });
   }
 
   /**
@@ -261,6 +300,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     let target = `${base}-copia.json`;
     while (names.has(target)) target = `${base}-copia-${++n}.json`;
     doc.name = `${doc.name || base} (cópia)`;
+    Object.assign(doc, forkProject(doc));
     await folder.save(target, doc);
     // a miniatura também vem junto (se existir), para a cópia não aparecer em branco na página inicial
     try {
@@ -279,6 +319,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     refresh,
     quickSave,
     saveAs,
+    recoverConflictCopy,
     open,
     openVersion,
     get server() { return server; },

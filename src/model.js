@@ -27,6 +27,22 @@
 export const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 8);
 
+/** Identidade estável do projeto, distinta dos IDs curtos usados nas camadas. */
+export function createProjectId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `project-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** Cria uma cópia independente sem alterar o documento de origem. */
+export const forkProject = (doc) => ({ ...doc, projectId: createProjectId() });
+
 /**
  * Arredonda `n` para `d` casas decimais (padrão 2).
  * Usado em quase todo lugar onde um número vai para o documento ou para o CSS, para evitar
@@ -556,14 +572,14 @@ export function makePage(name = 'Página 1') {
 
 /**
  * Documento vazio. Estrutura completa:
- *  { version, name,
+ *  { version, projectId, name,
  *    pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
  *    assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
  *    styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
  *    comments: [...] }                          // comentários nas camadas (veja comments.js)
  */
 export function makeDoc() {
-  return { version: 1, name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
+  return { version: 1, projectId: createProjectId(), name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
 }
 
 /** Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página. */

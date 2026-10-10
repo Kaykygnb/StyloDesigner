@@ -22,6 +22,8 @@ const DB_NAME = 'projeto-designer';
 const DB_STORE = 'kv';
 /** Chave do registro do projeto atual. */
 const DOC_KEY = 'current';
+const TAB_KEY_PREFIX = 'tab:';
+const CONFLICT_KEY_PREFIX = 'conflict:';
 /** Chave antiga do localStorage (versões ≤ 0.5). Lida uma vez para migrar. */
 const LEGACY_KEY = 'projeto-designer:v1';
 /** Preferências de interface (largura dos painéis, auto-salvar na pasta...) — pequenas, ficam no localStorage. */
@@ -29,6 +31,60 @@ const PREF_KEY = 'projeto-designer:prefs';
 
 // ---------------------------------------------------------------- IndexedDB
 let dbPromise = null;
+let activeDocKey = DOC_KEY;
+let activeRevision = null;
+let conflictDraft = false;
+let tabId = null;
+let tabIdPromise = null;
+let tabChannel = null;
+// Serializa autosave, cópia separada e recuperação: activeDocKey/revision são estado desta aba.
+let localWriteQueue = Promise.resolve();
+function enqueueLocalWrite(operation) {
+  const result = localWriteQueue.then(operation, operation);
+  localWriteQueue = result.catch(() => {});
+  return result;
+}
+
+/** Identifica esta aba durante a sessão para separar seus rascunhos e projetos depois de um conflito. */
+async function editorTabId() {
+  if (tabId) return tabId;
+  tabIdPromise ||= (async () => {
+    const randomId = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    let candidate;
+    try { candidate = sessionStorage.getItem('stylo:editor-tab-id') || randomId(); }
+    catch { candidate = randomId(); }
+    const nonce = randomId();
+    if (typeof BroadcastChannel !== 'function') {
+      tabId = candidate;
+      try { sessionStorage.setItem('stylo:editor-tab-id', tabId); } catch { /* memória local basta nesta sessão */ }
+      return tabId;
+    }
+
+    const activePeers = new Set();
+    tabChannel = new BroadcastChannel('stylo:editor-tabs');
+    tabChannel.onmessage = ({ data }) => {
+      if (!data || data.id !== candidate || data.nonce === nonce) return;
+      if (data.type === 'probe') tabChannel.postMessage({ type: 'active', id: candidate, nonce });
+      if (data.type === 'active') activePeers.add(data.nonce);
+    };
+    tabChannel.postMessage({ type: 'probe', id: candidate, nonce });
+    // sessionStorage pode ser copiado ao duplicar uma aba; dá tempo para a titular atual responder.
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    if (activePeers.size) candidate = randomId();
+    tabId = candidate;
+    try { sessionStorage.setItem('stylo:editor-tab-id', tabId); } catch { /* continua com o id em memória */ }
+    tabChannel.onmessage = ({ data }) => {
+      if (data?.type === 'probe' && data.id === tabId && data.nonce !== nonce) {
+        tabChannel.postMessage({ type: 'active', id: tabId, nonce });
+      }
+    };
+    tabChannel.postMessage({ type: 'active', id: tabId, nonce });
+    return tabId;
+  })();
+  return tabIdPromise;
+}
+const tabDocKey = () => `${TAB_KEY_PREFIX}${tabId}`;
+const tabConflictKey = () => `${CONFLICT_KEY_PREFIX}${tabId}`;
 /** Abre (uma vez) o banco IndexedDB. Rejeita se o navegador não oferecer (ex.: algumas janelas anônimas). */
 function db() {
   dbPromise ||= new Promise((ok, fail) => {
@@ -63,15 +119,53 @@ let useIdb = true;
  */
 export async function loadLocal() {
   try {
+    await editorTabId();
+    const ownKey = tabDocKey();
+    const own = await tx('readonly', (s) => s.get(ownKey));
+    if (own?.doc?.pages?.length) {
+      activeDocKey = ownKey;
+      activeRevision = Number(own.revision) || 0;
+      conflictDraft = false;
+      return own;
+    }
     const rec = await tx('readonly', (s) => s.get(DOC_KEY));
-    if (rec?.doc?.pages?.length) return rec;
+    const draft = await tx('readonly', (s) => s.get(tabConflictKey()));
+    if (draft?.doc?.pages?.length) {
+      activeDocKey = tabConflictKey();
+      activeRevision = Number(draft.revision) || 0;
+      conflictDraft = true;
+      return { ...draft, storageConflict: true };
+    }
+    if (rec?.doc?.pages?.length) {
+      activeDocKey = DOC_KEY;
+      activeRevision = Number(rec.revision) || 0;
+      conflictDraft = false;
+      return rec;
+    }
+    activeDocKey = DOC_KEY;
+    activeRevision = 0;
+    conflictDraft = false;
   } catch {
     useIdb = false;
   }
+  // Recupera primeiro cópias de conflito e projetos separados desta aba no fallback antigo.
+  try {
+    const own = JSON.parse(localStorage.getItem(tabDocKey()) || 'null');
+    if (own?.doc?.pages?.length) {
+      activeDocKey = tabDocKey(); activeRevision = Number(own.revision) || 0; conflictDraft = false;
+      return own;
+    }
+    const draft = JSON.parse(localStorage.getItem(tabConflictKey()) || 'null');
+    if (draft?.doc?.pages?.length) {
+      activeDocKey = tabConflictKey(); activeRevision = Number(draft.revision) || 0; conflictDraft = true;
+      return { ...draft, storageConflict: true };
+    }
+  } catch { /* armazenamento antigo indisponível ou corrompido */ }
   // migração: projeto salvo por versões antigas no localStorage
   try {
     const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
     if (legacy?.doc?.pages?.length) {
+      activeDocKey = DOC_KEY; activeRevision = 0; conflictDraft = false;
       legacy.migrated = true;
       return legacy;
     }
@@ -84,21 +178,191 @@ export async function loadLocal() {
  * No IndexedDB o objeto é copiado na hora da chamada (structured clone), então pode continuar sendo editado.
  * Depois da primeira gravação bem-sucedida no IndexedDB, apaga a cópia antiga do localStorage (migração concluída).
  */
-export async function saveLocal(record) {
+export function saveLocal(record) {
+  return enqueueLocalWrite(() => saveLocalUnlocked(record));
+}
+
+async function saveLocalUnlocked(record) {
+  await editorTabId();
   const rec = { ...record, savedAt: Date.now() };
   if (useIdb) {
     try {
-      await tx('readwrite', (s) => s.put(rec, DOC_KEY));
+      const database = await db();
+      const expectedRevision = activeRevision ?? 0;
+      let nextRevision = expectedRevision;
+      let conflict = null;
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction(DB_STORE, 'readwrite');
+        const store = transaction.objectStore(DB_STORE);
+        const current = store.get(activeDocKey);
+        current.onsuccess = () => {
+          const actualRevision = Number(current.result?.revision) || 0;
+          if (conflictDraft) {
+            conflict = Object.assign(new Error('Esta cópia foi separada para resolver um conflito entre abas.'), {
+              name: 'LocalConflictError', code: 'LOCAL_CONFLICT', expectedRevision, actualRevision,
+            });
+            nextRevision = actualRevision + 1;
+            store.put({ ...rec, revision: nextRevision, storageConflict: true, baseRevision: current.result?.baseRevision }, activeDocKey);
+            return;
+          }
+          if (actualRevision !== expectedRevision) {
+            conflict = Object.assign(new Error('Outra aba salvou uma versão mais recente deste projeto.'), {
+              name: 'LocalConflictError',
+              code: 'LOCAL_CONFLICT',
+              expectedRevision,
+              actualRevision,
+            });
+            // Salva o rascunho nesta transação sem alterar `current`; ele poderá ser recuperado após recarregar.
+            nextRevision = 1;
+            store.put({ ...rec, revision: nextRevision, storageConflict: true, baseRevision: actualRevision }, tabConflictKey());
+            return;
+          }
+          nextRevision = actualRevision + 1;
+          store.put({ ...rec, revision: nextRevision }, activeDocKey);
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = () => reject(conflict || transaction.error || new Error('transação abortada'));
+        transaction.onerror = () => reject(conflict || transaction.error || new Error('falha ao gravar no IndexedDB'));
+      });
+      activeRevision = nextRevision;
+      if (conflict) {
+        if (!conflictDraft) { activeDocKey = tabConflictKey(); conflictDraft = true; }
+        conflict.draftSaved = true;
+        throw conflict;
+      }
       try { localStorage.removeItem(LEGACY_KEY); } catch { /* ignore */ }
       return 'browser';
     } catch (err) {
+      // Conflito não é indisponibilidade: cair para localStorage permitiria sobrescrever o outro documento.
+      if (err?.code === 'LOCAL_CONFLICT') throw err;
       // cota cheia de verdade → erro para o usuário; outros problemas → tenta o localStorage
       if (err?.name === 'QuotaExceededError') throw err;
       useIdb = false;
     }
   }
-  localStorage.setItem(LEGACY_KEY, JSON.stringify(rec)); // pode lançar QuotaExceededError (~5 MB)
+  const fallbackKey = conflictDraft ? tabConflictKey() : activeDocKey === DOC_KEY ? LEGACY_KEY : activeDocKey;
+  localStorage.setItem(fallbackKey, JSON.stringify({ ...rec, revision: (activeRevision || 0) + 1, storageConflict: conflictDraft || undefined }));
+  activeRevision = (activeRevision || 0) + 1;
+  if (conflictDraft) {
+    const err = Object.assign(new Error('Outra aba salvou uma versão mais recente deste projeto.'), { code: 'LOCAL_CONFLICT', draftSaved: true });
+    throw err;
+  }
   return 'browser';
+}
+
+/** Separa uma cópia conflitante depois que a pessoa a salvou explicitamente como outro projeto. */
+export function forkLocalProject(record) {
+  return enqueueLocalWrite(() => forkLocalProjectUnlocked(record));
+}
+
+async function forkLocalProjectUnlocked(record) {
+  await editorTabId();
+  const key = tabDocKey();
+  let revision = 1;
+  if (useIdb) {
+    const database = await db();
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(DB_STORE, 'readwrite');
+      const store = transaction.objectStore(DB_STORE);
+      const current = store.get(key);
+      current.onsuccess = () => {
+        revision = (Number(current.result?.revision) || 0) + 1;
+        store.put({ ...record, revision }, key);
+        if (conflictDraft) store.delete(tabConflictKey());
+      };
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('Não consegui separar a cópia local.'));
+      transaction.onabort = () => reject(transaction.error || new Error('A cópia local não foi separada.'));
+    });
+  } else {
+    const previous = JSON.parse(localStorage.getItem(key) || 'null');
+    revision = (Number(previous?.revision) || 0) + 1;
+    localStorage.setItem(key, JSON.stringify({ ...record, revision }));
+    if (conflictDraft) localStorage.removeItem(tabConflictKey());
+  }
+  activeDocKey = key;
+  activeRevision = revision;
+  conflictDraft = false;
+  return 'browser';
+}
+
+/** Lista projetos e rascunhos locais recuperáveis, inclusive os de abas já fechadas. */
+export async function listLocalProjects() {
+  const projects = [];
+  try {
+    await editorTabId();
+    if (useIdb) {
+      const database = await db();
+      const entries = await new Promise((resolve, reject) => {
+        const transaction = database.transaction(DB_STORE, 'readonly');
+        const store = transaction.objectStore(DB_STORE);
+        const keys = store.getAllKeys();
+        const values = store.getAll();
+        transaction.oncomplete = () => resolve(keys.result.map((key, i) => [String(key), values.result[i]]));
+        transaction.onerror = () => reject(transaction.error || new Error('Não consegui listar projetos locais.'));
+        transaction.onabort = () => reject(transaction.error || new Error('A lista local foi cancelada.'));
+      });
+      for (const [key, record] of entries) {
+        if (!key.startsWith(TAB_KEY_PREFIX) && !key.startsWith(CONFLICT_KEY_PREFIX)) continue;
+        if (!record?.doc?.pages?.length) continue;
+        projects.push({ key, name: record.doc.name || 'Projeto sem nome', revision: Number(record.revision) || 0,
+          savedAt: Number(record.savedAt) || 0, conflict: key.startsWith(CONFLICT_KEY_PREFIX) || !!record.storageConflict });
+      }
+      return projects.sort((a, b) => b.savedAt - a.savedAt);
+    }
+  } catch { useIdb = false; }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(TAB_KEY_PREFIX) && !key?.startsWith(CONFLICT_KEY_PREFIX)) continue;
+      const record = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!record?.doc?.pages?.length) continue;
+      projects.push({ key, name: record.doc.name || 'Projeto sem nome', revision: Number(record.revision) || 0,
+        savedAt: Number(record.savedAt) || 0, conflict: key.startsWith(CONFLICT_KEY_PREFIX) || !!record.storageConflict });
+    }
+  } catch { /* armazenamento local indisponível ou corrompido */ }
+  return projects.sort((a, b) => b.savedAt - a.savedAt);
+}
+
+/** Abre uma cópia recuperável listada por listLocalProjects. */
+export async function openLocalProject(key) {
+  if (typeof key !== 'string' || (!key.startsWith(TAB_KEY_PREFIX) && !key.startsWith(CONFLICT_KEY_PREFIX))) {
+    throw new Error('Projeto local inválido.');
+  }
+  await editorTabId();
+  let record = null;
+  if (useIdb) {
+    try { record = await tx('readonly', (store) => store.get(key)); }
+    catch { useIdb = false; }
+  }
+  if (!record) {
+    try { record = JSON.parse(localStorage.getItem(key) || 'null'); } catch { /* corrompido */ }
+  }
+  if (!record?.doc?.pages?.length) throw new Error('A cópia local não existe mais.');
+  activeDocKey = key;
+  activeRevision = Number(record.revision) || 0;
+  conflictDraft = key.startsWith(CONFLICT_KEY_PREFIX) || !!record.storageConflict;
+  return { ...record, storageConflict: conflictDraft || undefined };
+}
+
+/** Remove uma cópia local antiga; protege o documento que a aba está editando agora. */
+export async function deleteLocalProject(key) {
+  if (typeof key !== 'string' || (!key.startsWith(TAB_KEY_PREFIX) && !key.startsWith(CONFLICT_KEY_PREFIX))) {
+    throw new Error('Projeto local inválido.');
+  }
+  await editorTabId();
+  if (key === activeDocKey) throw new Error('Não é possível apagar a cópia que está aberta nesta aba.');
+  if (useIdb) {
+    try { await tx('readwrite', (store) => store.delete(key)); return; }
+    catch { useIdb = false; }
+  }
+  try { localStorage.removeItem(key); } catch { throw new Error('Não consegui apagar a cópia local.'); }
+}
+
+/** Informa se a chave aponta para o documento que esta aba está editando. */
+export async function isActiveLocalProject(key) {
+  await editorTabId();
+  return key === activeDocKey;
 }
 
 /** Espaço usado/disponível para este site (quando o navegador informa). */
@@ -179,18 +443,20 @@ export const folder = {
   /** Lê um projeto: { doc, modified }. `modified` é usado depois para detectar conflito ao gravar. */
   async load(file) {
     const res = await call('/projects/' + encodeURIComponent(file), { raw: true });
-    return { doc: await res.json(), modified: Number(res.headers.get('X-Modified')) };
+    return { doc: await res.json(), modified: Number(res.headers.get('X-Modified')), contentHash: res.headers.get('X-Content-Hash') || '' };
   },
   /**
-   * Grava um projeto. `base` = data de modificação que conhecemos (de load/save anterior); se o arquivo mudou
-   * desde então, o servidor responde 409 (ServerError com status 409). `overwrite` grava mesmo assim.
-   * @returns {Promise<{modified: number}>}
+   * Grava um projeto. `base` e `baseHash` identificam a revisão carregada; se ela mudou, o servidor responde 409.
+   * `overwrite` grava mesmo assim. @returns {Promise<{modified: number, contentHash: string}>}
    */
-  save: (file, doc, { base, overwrite = false } = {}) => call('/projects/' + encodeURIComponent(file), {
-    method: 'PUT',
-    body: serialize(doc),
-    headers: { ...(base ? { 'X-Base-Modified': String(base) } : {}), ...(overwrite ? { 'X-Overwrite': '1' } : {}) },
-  }),
+  save: async (file, doc, { base, baseHash, overwrite = false } = {}) => {
+    const result = await call('/projects/' + encodeURIComponent(file), {
+      method: 'PUT',
+      body: serialize(doc),
+      headers: { ...(base ? { 'X-Base-Modified': String(base) } : {}), ...(baseHash ? { 'X-Base-Hash': baseHash } : {}), ...(overwrite ? { 'X-Overwrite': '1' } : {}) },
+    });
+    return result;
+  },
   /** Versões antigas guardadas de um projeto: [{ id, modified, size }]. */
   versions: (file) => call(`/projects/${encodeURIComponent(file)}/versions`),
   /** Conteúdo de uma versão antiga. */

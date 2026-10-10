@@ -11,7 +11,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { makeDoc, makePage, fitGroups, walk, uid, setBreakpoints, BREAKPOINTS } from './model.js';
+import { makeDoc, makePage, fitGroups, walk, uid, createProjectId, setBreakpoints, BREAKPOINTS } from './model.js';
 const BREAKPOINTS_IDS = () => BREAKPOINTS.map((b) => b.id);
 import { buildSampleShowcase } from './sample-vitrine.js';
 import { syncInstances, syncStyles } from './components.js';
@@ -45,6 +45,9 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
   let scheduled = false;
   // `version` sobe quando a ESTRUTURA da árvore muda (inserir/remover/reordenar). O índice id→nó é refeito só então.
   let version = 0;
+  // Sobe em qualquer mutação do documento (inclusive sem commit), para operações assíncronas
+  // saberem se alguém editou enquanto aguardavam rede/disco e evitarem rollback sobre trabalho alheio.
+  let docRevision = 0;
   let indexCache = null;
   let indexVersion = -1;
   // timer do salvamento automático (debounce de 400 ms)
@@ -103,6 +106,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
 
   // `api` é o objeto que o resto do app recebe. As funções são penduradas nele mais abaixo.
   const api = { state, ui: state.ui, onSaveError: null };
+  api.docRevision = () => docRevision;
 
   // ---------------------------------------------------------------- eventos
   /**
@@ -180,6 +184,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
    */
   api.update = (fn, { commit = false, structural = true } = {}) => {
     fn(api.page(), api);
+    docRevision++;
     // structural:false = só valores mudaram (mover, girar, editar número): o índice id→nó continua válido
     if (structural) version++;
     if (commit) api.commit();
@@ -209,6 +214,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     syncVars(state.doc); // variáveis de tamanho (gap, padding, raio, fonte) → camadas ligadas
     pruneComments(state.doc); // camada apagada leva os comentários dela (desfazer traz de volta)
     version++;
+    docRevision++;
     const snap = snapshot();
     if (snap !== history.stack[history.i]) {
       state.ui.pristine = false;
@@ -234,6 +240,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     if (state.ui.bp && !BREAKPOINTS_IDS().includes(state.ui.bp)) state.ui.bp = null;
     if (!state.doc.pages.some((p) => p.id === state.ui.pageId)) state.ui.pageId = state.doc.pages[0].id;
     version++;
+    docRevision++;
     api.setSelection(state.ui.selection.filter((id) => api.get(id)));
     state.ui.editingId = null;
     scheduleSave();
@@ -329,7 +336,9 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
    * `link` = arquivo da pasta de onde o projeto veio ({ file, modified }); sem ele (novo, exemplo, importado),
    * o projeto fica só no navegador até você usar "Salvar na pasta" — assim um exemplo nunca sobrescreve seu arquivo.
    */
-  api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false } = {}) => {
+  api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false, views, theme } = {}) => {
+    // Migra projetos antigos uma única vez; o ID acompanha o documento, não o nome ou caminho.
+    doc.projectId ||= createProjectId();
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     doc.styles ||= { colors: [], texts: [] };
     doc.comments ||= []; // projetos antigos não têm comentários
@@ -337,11 +346,17 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     state.ui.bp = null;
     state.doc = doc;
     state.ui.link = link;
+    if (views) state.ui.views = { ...views };
+    if (theme) {
+      state.ui.theme = theme;
+      if (globalThis.document) document.documentElement.dataset.theme = theme;
+    }
     state.ui.pristine = pristine;
     state.ui.pageId = doc.pages[0].id;
     state.ui.selection = [];
     state.ui.editingId = null;
     version++;
+    docRevision++;
     history.stack = [snapshot()];
     history.i = 0;
     scheduleSave();
@@ -388,13 +403,20 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     }
     if (!dirty) return Promise.resolve();
     dirty = false;
+    // Uma gravação consecutiva também precisa aparecer como pendente. O primeiro persist pode
+    // terminar depois de uma edição nova e não deve deixar a interface dizer "Salvo" durante
+    // a gravação dessa versão mais recente.
+    if (state.ui.saveState !== 'saving') {
+      state.ui.saveState = 'saving';
+      emit('ui');
+    }
     saving = (async () => {
       try {
         const where = await persist({ doc: state.doc, views: state.ui.views, theme: state.ui.theme, link: state.ui.link });
-        state.ui.saveState = 'saved';
         state.ui.savedWhere = where;
+        if (!dirty && !dirtyAgain) state.ui.saveState = 'saved';
       } catch (err) {
-        state.ui.saveState = 'error';
+        state.ui.saveState = err?.code === 'LOCAL_CONFLICT' ? 'conflict' : 'error';
         dirty = true; // continua pendente: a próxima tentativa grava de novo
         api.onSaveError?.(err);
       }
@@ -438,6 +460,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
       state.ui.views = initial.views || {};
       state.ui.theme = initial.theme || 'dark';
       state.ui.link = initial.link || null;
+      if (initial.storageConflict) state.ui.saveState = 'conflict';
       state.ui.pageId = state.doc.pages[0].id;
       history.stack = [snapshot()];
       history.i = 0;

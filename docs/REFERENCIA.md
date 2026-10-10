@@ -5,7 +5,7 @@
 >
 > Para entender o projeto antes de mergulhar aqui, leia o [Guia do código](GUIA-DO-CODIGO.md) e a [Arquitetura](ARQUITETURA.md).
 
-71 arquivos · 1158 funções e constantes documentadas.
+71 arquivos · 1167 funções e constantes documentadas.
 
 Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do módulo</sub> = só usada dentro do arquivo · <sub>interna</sub> = definida dentro de uma fábrica (`createStore`, `createTools`…) e acessível pelo objeto que ela devolve, se estiver na lista de retorno.
 
@@ -929,22 +929,24 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 ```
 
 - **`uid()`** · [L27](../src/model.js#L27) — Gera um id curto (8 caracteres) para camadas, páginas, estilos etc. Usa `crypto.randomUUID` quando existe (todo navegador moderno e Node 19+) e, se não, um fallback com Math.random + data. Colisão é praticamente impossível para o tamanho de um documento.
-- **`round(n, d = 2)`** · [L37](../src/model.js#L37) — Arredonda `n` para `d` casas decimais (padrão 2). Usado em quase todo lugar onde um número vai para o documento ou para o CSS, para evitar valores como 10.000000000002 que aparecem depois de contas com ponto flutuante.
+- **`createProjectId()`** · [L31](../src/model.js#L31) — Identidade estável do projeto, distinta dos IDs curtos usados nas camadas.
+- **`forkProject(doc)`** · [L44](../src/model.js#L44) — Cria uma cópia independente sem alterar o documento de origem.
+- **`round(n, d = 2)`** · [L53](../src/model.js#L53) — Arredonda `n` para `d` casas decimais (padrão 2). Usado em quase todo lugar onde um número vai para o documento ou para o CSS, para evitar valores como 10.000000000002 que aparecem depois de contas com ponto flutuante.
   - `n` <sub>number</sub> — número a arredondar
   - `[d=2]` <sub>number</sub> — casas decimais
-- **`FONT_FAMILIES`** · [L47](../src/model.js#L47) — Fontes oferecidas no painel de texto. As 4 últimas (Poppins, DM Sans, Playfair, JetBrains Mono) são carregadas do Google Fonts pelo index.html; sem internet o navegador usa uma fonte do sistema no lugar. O usuário também pode usar qualquer família que esteja instalada no computador dele.
-- **`FONT_WEIGHTS`** · [L53](../src/model.js#L53) — Pesos de fonte do CSS (`font-weight`) com o nome que o Figma/Penpot usam. Formato: [valor, rótulo].
-- **`BLEND_MODES`** · [L59](../src/model.js#L59) — Modos de mesclagem aceitos em `mix-blend-mode` (mesma lista do CSS). 'normal' = sem mesclagem.
-- **`TEXT_TAGS`** · [L69](../src/model.js#L69) — Etiquetas HTML que a camada pode virar no código exportado (campo opcional `tag`). A lista é FECHADA de propósito: o valor vai para o HTML gerado, então só entram nomes conhecidos e seguros.
-- **`BOX_TAGS`** · [L71](../src/model.js#L71) — _(sem comentário)_
-- **`tagOf(node)`** · [L74](../src/model.js#L74) — Etiqueta HTML efetiva da camada: a escolhida (se válida) ou a padrão (p para texto, section para seção, div para o resto).
-- **`INTERACTIVE_TAGS`** <sub>do módulo</sub> · [L81](../src/model.js#L81) — Etiquetas que não podem ficar uma dentro da outra (link/botão dentro de link/botão).
-- **`htmlTagIn(node, ancestors = [])`** · [L91](../src/model.js#L91) — Etiqueta que a camada usa NO HTML EXPORTADO, conferindo onde ela está. O editor desenha tudo com <div> (montado pelo JavaScript), mas o arquivo exportado é LIDO pelo navegador, e a leitura do HTML tem regras: um <li> dentro de outro <li> fecha o primeiro sozinho, um link dentro de outro link também. Sem esta conferência, a página exportada desmontava (itens saindo de dentro do card). Quando a etiqueta escolhida não cabe ali, volta para a padrão.
+- **`FONT_FAMILIES`** · [L63](../src/model.js#L63) — Fontes oferecidas no painel de texto. As 4 últimas (Poppins, DM Sans, Playfair, JetBrains Mono) são carregadas do Google Fonts pelo index.html; sem internet o navegador usa uma fonte do sistema no lugar. O usuário também pode usar qualquer família que esteja instalada no computador dele.
+- **`FONT_WEIGHTS`** · [L69](../src/model.js#L69) — Pesos de fonte do CSS (`font-weight`) com o nome que o Figma/Penpot usam. Formato: [valor, rótulo].
+- **`BLEND_MODES`** · [L75](../src/model.js#L75) — Modos de mesclagem aceitos em `mix-blend-mode` (mesma lista do CSS). 'normal' = sem mesclagem.
+- **`TEXT_TAGS`** · [L85](../src/model.js#L85) — Etiquetas HTML que a camada pode virar no código exportado (campo opcional `tag`). A lista é FECHADA de propósito: o valor vai para o HTML gerado, então só entram nomes conhecidos e seguros.
+- **`BOX_TAGS`** · [L87](../src/model.js#L87) — _(sem comentário)_
+- **`tagOf(node)`** · [L90](../src/model.js#L90) — Etiqueta HTML efetiva da camada: a escolhida (se válida) ou a padrão (p para texto, section para seção, div para o resto).
+- **`INTERACTIVE_TAGS`** <sub>do módulo</sub> · [L97](../src/model.js#L97) — Etiquetas que não podem ficar uma dentro da outra (link/botão dentro de link/botão).
+- **`htmlTagIn(node, ancestors = [])`** · [L107](../src/model.js#L107) — Etiqueta que a camada usa NO HTML EXPORTADO, conferindo onde ela está. O editor desenha tudo com <div> (montado pelo JavaScript), mas o arquivo exportado é LIDO pelo navegador, e a leitura do HTML tem regras: um <li> dentro de outro <li> fecha o primeiro sozinho, um link dentro de outro link também. Sem esta conferência, a página exportada desmontava (itens saindo de dentro do card). Quando a etiqueta escolhida não cabe ali, volta para a padrão.
   - `node` <sub>object</sub> — 
   - `ancestors` <sub>string[]</sub> — etiquetas dos pais, do mais externo ao pai direto
   - ↩︎ `{ tag: string, wanted: string, reason: string ` }  `reason` vazio = a escolhida vale
-- **`TYPE_LABEL`** · [L106](../src/model.js#L106) — Nome padrão (em português) de cada tipo de camada. Usado para nomear camadas novas ("Retângulo 3") e como fallback na lista de camadas.
-- **`defaultFill(color = '#D9D9D9')`** · [L127](../src/model.js#L127) — Cria um objeto de PREENCHIMENTO (fill) completo. Um fill guarda os dados de TODOS os tipos ao mesmo tempo, de propósito: assim, ao trocar de "cor sólida" para "gradiente" e voltar, o usuário não perde a cor que tinha escolhido. Só o campo `type` decide qual parte vale.
+- **`TYPE_LABEL`** · [L122](../src/model.js#L122) — Nome padrão (em português) de cada tipo de camada. Usado para nomear camadas novas ("Retângulo 3") e como fallback na lista de camadas.
+- **`defaultFill(color = '#D9D9D9')`** · [L143](../src/model.js#L143) — Cria um objeto de PREENCHIMENTO (fill) completo. Um fill guarda os dados de TODOS os tipos ao mesmo tempo, de propósito: assim, ao trocar de "cor sólida" para "gradiente" e voltar, o usuário não perde a cor que tinha escolhido. Só o campo `type` decide qual parte vale.
 
    - type:    'none' | 'solid' | 'linear' | 'radial' | 'conic' | 'image'  (conic = gradiente cônico/angular)
    - color/opacity: cor sólida (hex #RRGGBB) e opacidade 0..1
@@ -956,9 +958,9 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
      'contain'/'size', padrão 'no-repeat') e natW/natH (tamanho original da imagem, para o SVG exportado calcular o ladrilho)
    - styleId (opcional): liga a um estilo de cor compartilhado (ver components.js → syncStyles)
   - `[color='#D9D9D9']` <sub>string</sub> — cor sólida inicial
-- **`defaultStroke()`** · [L145](../src/model.js#L145) — Contorno (stroke). No CSS vira `outline` (não `border`) porque o outline NÃO altera o layout nem o tamanho da caixa — por isso trocar a espessura não "empurra" os vizinhos num auto layout. `position`: 'inside' | 'center' | 'outside' controla o `outline-offset`.
-- **`defaultShadow()`** · [L148](../src/model.js#L148) — Sombra (vira `box-shadow`; em textos vira `text-shadow`). `inset` = sombra interna.
-- **`defaultLayout()`** · [L162](../src/model.js#L162) — Configuração de auto layout de um FRAME. É literalmente CSS:
+- **`defaultStroke()`** · [L161](../src/model.js#L161) — Contorno (stroke). No CSS vira `outline` (não `border`) porque o outline NÃO altera o layout nem o tamanho da caixa — por isso trocar a espessura não "empurra" os vizinhos num auto layout. `position`: 'inside' | 'center' | 'outside' controla o `outline-offset`.
+- **`defaultShadow()`** · [L164](../src/model.js#L164) — Sombra (vira `box-shadow`; em textos vira `text-shadow`). `inset` = sombra interna.
+- **`defaultLayout()`** · [L178](../src/model.js#L178) — Configuração de auto layout de um FRAME. É literalmente CSS:
 
    - mode: 'none' (filhos livres, position:absolute) | 'row' | 'column' (display:flex) | 'grid' (display:grid)
    - gap / colGap / rowGap: espaço entre itens (flex usa `gap`; grid usa colGap e rowGap)
@@ -969,82 +971,82 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
    - justify: justify-content (flex) ou justify-items (grid)
    - align:   align-items
    - wrap:    flex-wrap: wrap
-- **`createNode(type, props = {})`** · [L185](../src/model.js#L185) — Cria uma camada ("nó") nova, com todos os campos que qualquer camada tem + os do seu tipo.
+- **`createNode(type, props = {})`** · [L201](../src/model.js#L201) — Cria uma camada ("nó") nova, com todos os campos que qualquer camada tem + os do seu tipo.
 
   SISTEMA DE COORDENADAS: `x` e `y` são relativos ao canto superior esquerdo do PAI (ou ao mundo, se for
   uma camada na raiz da página) e SEM rotação. A rotação gira a caixa em torno do próprio centro.
   - `type` <sub>'frame'\|'rect'\|'ellipse'\|'text'\|'group'\|'line'\|'path'\|'section'</sub> — tipo da camada
   - `[props]` <sub>object</sub> — campos que sobrescrevem os padrões (ex.: { x: 10, name: 'Botão' })
   - ↩︎ `object` o nó, já pronto para entrar em `page.children` ou `node.children`
-- **`OVERFLOWS`** · [L319](../src/model.js#L319) — Modos de "conteúdo que sai da caixa" de um frame: [valor, rótulo].
-- **`overflowOf(n)`** · [L324](../src/model.js#L324) — Modo de overflow de um frame: o campo `overflow`, ou — em projetos antigos — o que `clip` diz (true = cortar).
-- **`cleanTrackList(text)`** · [L332](../src/model.js#L332) — Limpa o texto de uma lista de trilhas do grid (grid-template-columns/rows) digitado pelo usuário: tira o que não faz parte de uma lista de trilhas (; { } : aspas, @, etc.), apara os espaços e limita o tamanho. Como o texto vai para o CSS exportado, isso impede que alguém "feche" a regra e escreva outras. Valor inválido para o CSS (ex.: "abc") é simplesmente ignorado pelo navegador.
-- **`isContainer(n)`** · [L337](../src/model.js#L337) — true para camadas que guardam filhos (frame, grupo e seção).
-- **`isBoard(node, parent)`** · [L345](../src/model.js#L345) — "Prancheta" (board): frame no nível de cima, ou seja, na raiz da página OU direto dentro de uma seção. É o que ganha nome flutuante acima do canvas, vira tela no modo Apresentar e não entra em outros frames ao ser arrastado.
+- **`OVERFLOWS`** · [L335](../src/model.js#L335) — Modos de "conteúdo que sai da caixa" de um frame: [valor, rótulo].
+- **`overflowOf(n)`** · [L340](../src/model.js#L340) — Modo de overflow de um frame: o campo `overflow`, ou — em projetos antigos — o que `clip` diz (true = cortar).
+- **`cleanTrackList(text)`** · [L348](../src/model.js#L348) — Limpa o texto de uma lista de trilhas do grid (grid-template-columns/rows) digitado pelo usuário: tira o que não faz parte de uma lista de trilhas (; { } : aspas, @, etc.), apara os espaços e limita o tamanho. Como o texto vai para o CSS exportado, isso impede que alguém "feche" a regra e escreva outras. Valor inválido para o CSS (ex.: "abc") é simplesmente ignorado pelo navegador.
+- **`isContainer(n)`** · [L353](../src/model.js#L353) — true para camadas que guardam filhos (frame, grupo e seção).
+- **`isBoard(node, parent)`** · [L361](../src/model.js#L361) — "Prancheta" (board): frame no nível de cima, ou seja, na raiz da página OU direto dentro de uma seção. É o que ganha nome flutuante acima do canvas, vira tela no modo Apresentar e não entra em outros frames ao ser arrastado.
   - `node` <sub>object</sub> — a camada
   - `parent` <sub>object\|null</sub> — o pai dela (null = raiz da página)
-- **`constraintsOf(n)`** · [L348](../src/model.js#L348) — Constraints de uma camada, com padrão (esquerda/topo) para documentos salvos antes desse recurso existir.
-- **`hasLayout(n)`** · [L351](../src/model.js#L351) — true se o nó é um frame com auto layout ligado (flex ou grid).
-- **`isFlow(node, parent)`** · [L357](../src/model.js#L357) — A camada participa do fluxo do auto layout do pai? Se sim, ela é `position: relative` e quem decide a posição é o navegador (flex/grid); se não, é `position: absolute` e usa x/y.
-- **`cloneDeep(v)`** · [L360](../src/model.js#L360) — Cópia profunda via JSON (suficiente: o documento só tem dados simples, sem funções nem datas).
-- **`STATE_KEYS`** · [L367](../src/model.js#L367) — Propriedades VISUAIS que um estado pode sobrescrever (o resto — tamanho, posição, layout — não muda com o mouse). `scale` só existe nos estados (padrão 1): vira `transform: scale()`.
-- **`STATE_LIST`** · [L369](../src/model.js#L369) — Estados disponíveis: [id, rótulo, pseudo-classe CSS].
-- **`STATE_DEFAULT`** <sub>do módulo</sub> · [L371](../src/model.js#L371) — Valor padrão das chaves que a camada base pode não ter.
-- **`canHaveStates(n)`** · [L374](../src/model.js#L374) — Camadas com caixa própria que aceitam estados (grupo, seção e linha não).
-- **`hasStates(n, which)`** · [L376](../src/model.js#L376) — A camada tem algum estado com sobrescritas? (`which`: um estado específico, ou qualquer um se omitido.)
-- **`stateView(node, states)`** · [L385](../src/model.js#L385) — "Visão" de uma camada num ou mais estados: uma cópia rasa dela com as sobrescritas do(s) estado(s) por cima, na ordem dada (como a cascata do CSS: ['hover', 'active'] = hover e depois pressionado por cima). Sem sobrescritas devolve a própria camada. Não altera nada.
+- **`constraintsOf(n)`** · [L364](../src/model.js#L364) — Constraints de uma camada, com padrão (esquerda/topo) para documentos salvos antes desse recurso existir.
+- **`hasLayout(n)`** · [L367](../src/model.js#L367) — true se o nó é um frame com auto layout ligado (flex ou grid).
+- **`isFlow(node, parent)`** · [L373](../src/model.js#L373) — A camada participa do fluxo do auto layout do pai? Se sim, ela é `position: relative` e quem decide a posição é o navegador (flex/grid); se não, é `position: absolute` e usa x/y.
+- **`cloneDeep(v)`** · [L376](../src/model.js#L376) — Cópia profunda via JSON (suficiente: o documento só tem dados simples, sem funções nem datas).
+- **`STATE_KEYS`** · [L383](../src/model.js#L383) — Propriedades VISUAIS que um estado pode sobrescrever (o resto — tamanho, posição, layout — não muda com o mouse). `scale` só existe nos estados (padrão 1): vira `transform: scale()`.
+- **`STATE_LIST`** · [L385](../src/model.js#L385) — Estados disponíveis: [id, rótulo, pseudo-classe CSS].
+- **`STATE_DEFAULT`** <sub>do módulo</sub> · [L387](../src/model.js#L387) — Valor padrão das chaves que a camada base pode não ter.
+- **`canHaveStates(n)`** · [L390](../src/model.js#L390) — Camadas com caixa própria que aceitam estados (grupo, seção e linha não).
+- **`hasStates(n, which)`** · [L392](../src/model.js#L392) — A camada tem algum estado com sobrescritas? (`which`: um estado específico, ou qualquer um se omitido.)
+- **`stateView(node, states)`** · [L401](../src/model.js#L401) — "Visão" de uma camada num ou mais estados: uma cópia rasa dela com as sobrescritas do(s) estado(s) por cima, na ordem dada (como a cascata do CSS: ['hover', 'active'] = hover e depois pressionado por cima). Sem sobrescritas devolve a própria camada. Não altera nada.
   - `node` <sub>object</sub> — 
   - `states` <sub>string\|string[]</sub> — 
-- **`editState(node, state, fn)`** · [L404](../src/model.js#L404) — Edita UM estado de uma camada: roda `fn` num RASCUNHO com os valores visuais do estado e guarda em `node.states[estado]` SÓ o que ficou diferente da camada base (se voltar ao valor base, a sobrescrita some; sem nenhuma, o estado some). É assim que o painel Design edita um estado sem saber que está num estado.
+- **`editState(node, state, fn)`** · [L420](../src/model.js#L420) — Edita UM estado de uma camada: roda `fn` num RASCUNHO com os valores visuais do estado e guarda em `node.states[estado]` SÓ o que ficou diferente da camada base (se voltar ao valor base, a sobrescrita some; sem nenhuma, o estado some). É assim que o painel Design edita um estado sem saber que está num estado.
   - `node` <sub>object</sub> — camada real (é alterada)
   - `state` <sub>string</sub> — 'hover' \| 'active' \| 'focus'
   - `fn` <sub>(draft: object) => void</sub> — recebe o rascunho (mexa só nas chaves de STATE_KEYS)
-- **`DEFAULT_BREAKPOINTS`** · [L429](../src/model.js#L429) — Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
-- **`BREAKPOINT_PRESETS`** · [L434](../src/model.js#L434) — Breakpoints prontos para adicionar ao projeto (os mais usados na web).
-- **`BREAKPOINTS`** · [L446](../src/model.js#L446) — Breakpoints ATIVOS do documento aberto, do maior para o menor (a ordem da cascata). É o mesmo array durante toda a vida do app: `setBreakpoints` troca o conteúdo quando o documento muda (cada projeto guarda os seus em `doc.breakpoints`; projetos antigos usam DEFAULT_BREAKPOINTS).
-- **`setBreakpoints(list)`** · [L448](../src/model.js#L448) — Normaliza e aplica a lista de breakpoints (sem duplicados, largura de 200 a 4000px, maior primeiro).
-- **`bpIcon(b)`** · [L459](../src/model.js#L459) — Ícone de um breakpoint pela largura (desktop / tablet / celular).
-- **`BP_KEYS`** · [L461](../src/model.js#L461) — Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela).
-- **`bpsUpTo(bp)`** · [L469](../src/model.js#L469) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
-- **`hasBps(n, which)`** · [L474](../src/model.js#L474) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
-- **`bpView(node, bp)`** · [L483](../src/model.js#L483) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
+- **`DEFAULT_BREAKPOINTS`** · [L445](../src/model.js#L445) — Larguras em que o design muda (CSS @media). Desktop é o desenho base; Tablet vale até `max` px de janela; Celular também (e vem depois, então vence o Tablet). `preview` = largura sugerida para as telas ao desenhar naquele modo.
+- **`BREAKPOINT_PRESETS`** · [L450](../src/model.js#L450) — Breakpoints prontos para adicionar ao projeto (os mais usados na web).
+- **`BREAKPOINTS`** · [L462](../src/model.js#L462) — Breakpoints ATIVOS do documento aberto, do maior para o menor (a ordem da cascata). É o mesmo array durante toda a vida do app: `setBreakpoints` troca o conteúdo quando o documento muda (cada projeto guarda os seus em `doc.breakpoints`; projetos antigos usam DEFAULT_BREAKPOINTS).
+- **`setBreakpoints(list)`** · [L464](../src/model.js#L464) — Normaliza e aplica a lista de breakpoints (sem duplicados, largura de 200 a 4000px, maior primeiro).
+- **`bpIcon(b)`** · [L475](../src/model.js#L475) — Ícone de um breakpoint pela largura (desktop / tablet / celular).
+- **`BP_KEYS`** · [L477](../src/model.js#L477) — Propriedades que um breakpoint pode mudar (as que fazem sentido variar com a largura da tela).
+- **`bpsUpTo(bp)`** · [L485](../src/model.js#L485) — Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile'].
+- **`hasBps(n, which)`** · [L490](../src/model.js#L490) — A camada tem sobrescritas em algum breakpoint (ou num específico)?
+- **`bpView(node, bp)`** · [L499](../src/model.js#L499) — "Visão" de uma camada num breakpoint: cópia rasa com as sobrescritas por cima, em cascata (celular = base + tablet + celular). `null` numa sobrescrita significa "esta propriedade não existe aqui". Sem sobrescritas devolve a própria camada. Não altera nada.
   - `node` <sub>object</sub> — 
   - `bp` <sub>string\|null</sub> — 'tablet' \| 'mobile' \| null (desktop)
-- **`editBp(node, bp, fn)`** · [L506](../src/model.js#L506) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
+- **`editBp(node, bp, fn)`** · [L522](../src/model.js#L522) — Edita UM breakpoint de uma camada: roda `fn` num RASCUNHO com os valores daquela largura e guarda em `node.bps[bp]` SÓ o que difere da largura anterior na cascata (se voltar ao valor de antes, a sobrescrita some). É assim que o painel Design edita o Tablet/Celular sem saber que está nele.
   - `node` <sub>object</sub> — camada real (é alterada)
   - `bp` <sub>string</sub> — 'tablet' \| 'mobile'
   - `fn` <sub>(draft: object) => void</sub> — recebe o rascunho (só as chaves de BP_KEYS ficam)
-- **`cloneNode(node)`** · [L528](../src/model.js#L528) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
-- **`walk(list, fn, parent = null)`** · [L544](../src/model.js#L544) — Percorre a árvore de camadas em profundidade.
+- **`cloneNode(node)`** · [L544](../src/model.js#L544) — Clona uma camada e TODOS os descendentes, gerando ids novos (usado em duplicar, copiar/colar e Alt+arrastar).
+- **`walk(list, fn, parent = null)`** · [L560](../src/model.js#L560) — Percorre a árvore de camadas em profundidade.
   - `list` <sub>object[]</sub> — lista de nós (ex.: page.children)
   - `fn` <sub>(node, parent, list, index) => (void\|false)</sub> — chamada para cada nó; retornar `false` NÃO desce nos filhos dele
   - `[parent]` <sub>object\|null</sub> — pai da lista (null na raiz)
-- **`makePage(name = 'Página 1')`** · [L553](../src/model.js#L553) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
-- **`makeDoc()`** · [L565](../src/model.js#L565) — Documento vazio. Estrutura completa: { version, name,
+- **`makePage(name = 'Página 1')`** · [L569](../src/model.js#L569) — Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo).
+- **`makeDoc()`** · [L581](../src/model.js#L581) — Documento vazio. Estrutura completa: { version, projectId, name,
 
      pages:  [{ id, name, children: [camadas], guides: [{axis:'x'|'y', pos}] }],
      assets: { [assetId]: 'data:image/...' }   // imagens ficam FORA das páginas para não pesarem no histórico
      styles: { colors: [...], texts: [...] },  // estilos compartilhados de cor e texto
      comments: [...] }                          // comentários nas camadas (veja comments.js)
-- **`nextName(page, type)`** · [L570](../src/model.js#L570) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
-- **`fitGroups(list)`** · [L591](../src/model.js#L591) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
+- **`nextName(page, type)`** · [L586](../src/model.js#L586) — Gera o próximo nome livre para o tipo ("Retângulo 1", "Retângulo 2"...), contando as camadas do mesmo tipo na página.
+- **`fitGroups(list)`** · [L607](../src/model.js#L607) — Ajusta cada GRUPO ao retângulo que envolve seus filhos e remove grupos vazios. Como um grupo não tem tamanho próprio, depois de mover/redimensionar um filho a caixa do grupo precisa ser recalculada. Roda no fim de cada gesto (em `store.commit`), não durante o arrasto, para não "mexer o chão" debaixo do ponteiro. As coordenadas dos filhos são relativas ao grupo, então ao mover a origem do grupo subtraímos o mesmo valor dos filhos (a posição visual não muda).
   - `list` <sub>object[]</sub> — lista de nós a processar (recursivo)
-- **`applyConstraints(frame, ow, oh)`** · [L625](../src/model.js#L625) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
+- **`applyConstraints(frame, ow, oh)`** · [L641](../src/model.js#L641) — Aplica as CONSTRAINTS dos filhos depois que o frame mudou de tamanho (de ow×oh para frame.w×frame.h). Por eixo, cada filho escolhe: colar no início (padrão), colar no fim (right/bottom), esticar entre as duas bordas (leftright/topbottom), manter o centro ou escalar proporcionalmente. Não faz nada em frames com auto layout (aí quem manda é o CSS). É recursivo: se um filho mudou de tamanho, os filhos dele reagem também.
   - `frame` <sub>object</sub> — frame JÁ com o tamanho novo
   - `ow` <sub>number</sub> — largura antiga
   - `oh` <sub>number</sub> — altura antiga
-- **`hasSizeLimits(n)`** · [L652](../src/model.js#L652) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
-- **`hasAspect(n)`** · [L655](../src/model.js#L655) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
-- **`limitSize(n, w, h)`** · [L662](../src/model.js#L662) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
+- **`hasSizeLimits(n)`** · [L668](../src/model.js#L668) — Tipos de camada que têm uma caixa CSS de verdade para receber limites de tamanho e proporção: grupos não têm tamanho próprio (a caixa é recalculada dos filhos) e a linha é só uma barra.
+- **`hasAspect(n)`** · [L671](../src/model.js#L671) — A camada tem proporção (aspect-ratio) ligada? Texto, grupo e linha não usam.
+- **`limitSize(n, w, h)`** · [L678](../src/model.js#L678) — Ajusta (w, h) aos LIMITES da camada: campos opcionais `minW`, `maxW`, `minH`, `maxH` em px (ausentes = sem limite). Como no CSS, o mínimo vence o máximo quando os dois se contradizem.
   - ↩︎ `[number, number]` largura e altura já limitadas
-- **`applyLimits(n)`** · [L675](../src/model.js#L675) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
-- **`resizeNode(n, nw, nh, axis = 'w')`** · [L691](../src/model.js#L691) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
+- **`applyLimits(n)`** · [L691](../src/model.js#L691) — Aplica os limites ao tamanho JÁ guardado, só nos eixos de tamanho FIXO (os eixos hug/fill quem decide é o navegador, e o canvas mede de volta). Se mudou, os filhos reagem como em qualquer redimensionamento (constraints).
+- **`resizeNode(n, nw, nh, axis = 'w')`** · [L707](../src/model.js#L707) — Redimensiona UMA camada de forma "inteligente": respeita "travar proporção", marca o eixo como 'fixed' e propaga o efeito para dentro (escala os filhos de um grupo; aplica constraints nos filhos de um frame).
   - `n` <sub>object</sub> — camada
   - `nw` <sub>number</sub> — nova largura
   - `nh` <sub>number</sub> — nova altura
   - `[axis='w']` <sub>'w'\|'h'</sub> — qual campo o usuário editou (importa para a trava de proporção)
-- **`scaleNode(node, sx, sy)`** · [L722](../src/model.js#L722) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
-- **`slugify(s)`** · [L739](../src/model.js#L739) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
+- **`scaleNode(node, sx, sy)`** · [L738](../src/model.js#L738) — Escala uma camada e (se for grupo) todos os filhos por (sx, sy), multiplicando posição e tamanho. Usado ao redimensionar grupos e seleções múltiplas. Textos viram 'fixed' na largura (senão voltariam ao tamanho natural no render).
+- **`slugify(s)`** · [L755](../src/model.js#L755) — Transforma um nome em "slug" seguro para classe CSS e nome de arquivo: tira acentos, deixa minúsculo e troca qualquer coisa fora de a-z/0-9 por '-'. "Botão primário" → "botao-primario". Vazio vira 'item'.
 
 ---
 
@@ -1362,16 +1364,16 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - SEM SERVIDOR (app aberto por outro servidor estático): "Salvar na pasta" vira "Baixar .json".
 ```
 
-- **`THUMB_EVERY_MS`** <sub>do módulo</sub> · [L25](../src/saving.js#L25) — Intervalo mínimo entre duas miniaturas do mesmo projeto: gerar SVG da página toda a cada tecla seria desperdício.
-- **`createSaving({ prefs, toast, thumbnail = () => null })`** · [L36](../src/saving.js#L36) — Cria o SALVAMENTO: decide quando e onde gravar (navegador sempre; pasta do computador quando o projeto está ligado a um arquivo), reconcilia ao abrir (navegador × pasta, avisando conflito) e envia as miniaturas.
+- **`THUMB_EVERY_MS`** <sub>do módulo</sub> · [L26](../src/saving.js#L26) — Intervalo mínimo entre duas miniaturas do mesmo projeto: gerar SVG da página toda a cada tecla seria desperdício.
+- **`createSaving({ prefs, toast, thumbnail = () => null })`** · [L37](../src/saving.js#L37) — Cria o SALVAMENTO: decide quando e onde gravar (navegador sempre; pasta do computador quando o projeto está ligado a um arquivo), reconcilia ao abrir (navegador × pasta, avisando conflito) e envia as miniaturas.
   - `deps` <sub>object</sub> — 
   - `deps.store` <sub>object</sub> — o store (criado DEPOIS: use `attach(store)`)
   - `deps.prefs` <sub>object</sub> — preferências (prefs.autoFolder: auto-salvar na pasta; padrão ligado)
   - `deps.toast` <sub>(msg: string) => void</sub> — 
   - `[deps.thumbnail]` <sub>() => string\|null</sub> — gera a miniatura SVG da página aberta (ver thumbnail.js)
-- **`server`** <sub>interna</sub> · [L41](../src/saving.js#L41) — Situação do servidor: { ok, folder, keepVersions } ou null (sem servidor). Atualizada por refresh().
-- **`refresh()`** <sub>interna</sub> · [L49](../src/saving.js#L49) — Pergunta ao servidor se ele está aí e qual é a pasta. Guarda em store.ui.server para os painéis mostrarem. Se o servidor VOLTOU e a pasta tinha ficado para trás, agenda um salvamento para pô-la em dia.
-- **`reconcile()`** <sub>interna</sub> · [L72](../src/saving.js#L72) — Ao ABRIR o app com um projeto ligado a um arquivo: a cópia do navegador e o arquivo da pasta podem divergir. Decidimos SEM comparar relógios, com duas perguntas:
+- **`server`** <sub>interna</sub> · [L42](../src/saving.js#L42) — Situação do servidor: { ok, folder, keepVersions } ou null (sem servidor). Atualizada por refresh().
+- **`refresh()`** <sub>interna</sub> · [L50](../src/saving.js#L50) — Pergunta ao servidor se ele está aí e qual é a pasta. Guarda em store.ui.server para os painéis mostrarem. Se o servidor VOLTOU e a pasta tinha ficado para trás, agenda um salvamento para pô-la em dia.
+- **`reconcile()`** <sub>interna</sub> · [L73](../src/saving.js#L73) — Ao ABRIR o app com um projeto ligado a um arquivo: a cópia do navegador e o arquivo da pasta podem divergir. Decidimos SEM comparar relógios, com duas perguntas:
 
     (a) o arquivo mudou desde a última vez que o vimos?  (data do disco ≠ link.modified)
     (b) o navegador tem mudanças que ainda não foram para a pasta?  (link.synced === false)
@@ -1382,17 +1384,18 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
   Caso real do (a)-sim/(b)-não: a última gravação na pasta aconteceu ao fechar a aba, mas a cópia do navegador
   não terminou de anotar a data nova. Arquivo sumiu da pasta → desliga o vínculo (o projeto continua no navegador).
-- **`persist(record)`** <sub>interna</sub> · [L107](../src/saving.js#L107) — Chamado pelo store a cada salvamento automático. Grava na pasta (se ligado e permitido) e no navegador. Ordem importa: pasta PRIMEIRO, para a cópia do navegador já guardar a data nova do arquivo (senão, ao recarregar, o editor acharia que o arquivo "mudou por fora" e acusaria conflito à toa).
+- **`persist(record)`** <sub>interna</sub> · [L110](../src/saving.js#L110) — Chamado pelo store a cada salvamento automático. Grava na pasta (se ligado e permitido) e no navegador. Ordem importa: pasta PRIMEIRO, para a cópia do navegador já guardar a data nova do arquivo (senão, ao recarregar, o editor acharia que o arquivo "mudou por fora" e acusaria conflito à toa).
   - ↩︎ `Promise<'folder'\|'browser'>` onde o projeto ficou salvo
-- **`sendThumb(file, { force = false } = {})`** <sub>interna</sub> · [L143](../src/saving.js#L143) — Gera e envia a miniatura do projeto (no máximo 1 a cada 15 s por arquivo; `force` ignora o intervalo). Roda "por fora": não atrasa o salvamento e, se falhar, só fica sem miniatura nova.
-- **`quickSave()`** <sub>interna</sub> · [L160](../src/saving.js#L160) — Ctrl+S. Projeto ligado a um arquivo → grava agora. Em conflito → pergunta se substitui o arquivo do disco. Não ligado → devolve false (quem chamou abre a janela "Projetos" para escolher o nome). Sem servidor → baixa o .json (o comportamento antigo).
+- **`recoverConflictCopy(link = store.ui.link)`** <sub>interna</sub> · [L144](../src/saving.js#L144) — Depois que a pessoa dá um nome à cópia conflitante, separa o autosave desta aba do documento compartilhado.
+- **`sendThumb(file, { force = false } = {})`** <sub>interna</sub> · [L161](../src/saving.js#L161) — Gera e envia a miniatura do projeto (no máximo 1 a cada 15 s por arquivo; `force` ignora o intervalo). Roda "por fora": não atrasa o salvamento e, se falhar, só fica sem miniatura nova.
+- **`quickSave()`** <sub>interna</sub> · [L178](../src/saving.js#L178) — Ctrl+S. Projeto ligado a um arquivo → grava agora. Em conflito → pergunta se substitui o arquivo do disco. Não ligado → devolve false (quem chamou abre a janela "Projetos" para escolher o nome). Sem servidor → baixa o .json (o comportamento antigo).
   - ↩︎ `Promise<boolean>` true se resolveu sozinho
-- **`saveAs(file, { overwrite = false } = {})`** <sub>interna</sub> · [L192](../src/saving.js#L192) — Grava o projeto atual com o nome `file` e liga o projeto a ele. Se já existir outro arquivo com esse nome, pergunta antes de substituir. @returns {Promise<boolean>} true se gravou
-- **`open(file)`** <sub>interna</sub> · [L222](../src/saving.js#L222) — Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo.
-- **`openVersion(file, id)`** <sub>interna</sub> · [L233](../src/saving.js#L233) — Abre uma VERSÃO ANTIGA como projeto solto (não ligado a arquivo), para você conferir sem estragar o atual. Para restaurar, use "Salvar na pasta" com o mesmo nome e confirme a substituição.
-- **`renameFile(file, newName)`** <sub>interna</sub> · [L243](../src/saving.js#L243) — Renomeia um projeto da pasta. Se for o projeto aberto, o vínculo passa para o nome novo.
+- **`saveAs(file, { overwrite = false } = {})`** <sub>interna</sub> · [L211](../src/saving.js#L211) — Grava o projeto atual com o nome `file` e liga o projeto a ele. Se já existir outro arquivo com esse nome, pergunta antes de substituir. @returns {Promise<boolean>} true se gravou
+- **`open(file)`** <sub>interna</sub> · [L261](../src/saving.js#L261) — Abre um projeto da pasta (salvando o atual antes) e liga o editor ao arquivo.
+- **`openVersion(file, id)`** <sub>interna</sub> · [L272](../src/saving.js#L272) — Abre uma VERSÃO ANTIGA como projeto solto (não ligado a arquivo), para você conferir sem estragar o atual. Para restaurar, use "Salvar na pasta" com o mesmo nome e confirme a substituição.
+- **`renameFile(file, newName)`** <sub>interna</sub> · [L282](../src/saving.js#L282) — Renomeia um projeto da pasta. Se for o projeto aberto, o vínculo passa para o nome novo.
   - ↩︎ `Promise<string\|null>` o nome final do arquivo, ou null se não deu
-- **`duplicateFile(file)`** <sub>interna</sub> · [L256](../src/saving.js#L256) — Cria uma cópia de um projeto da pasta ("nome-copia.json", "nome-copia-2.json"...). Não abre a cópia.
+- **`duplicateFile(file)`** <sub>interna</sub> · [L295](../src/saving.js#L295) — Cria uma cópia de um projeto da pasta ("nome-copia.json", "nome-copia-2.json"...). Não abre a cópia.
 
 ---
 
@@ -1417,22 +1420,28 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
 
 - **`DB_NAME`** <sub>do módulo</sub> · [L21](../src/storage.js#L21) — Nome do banco IndexedDB e da "tabela" chave→valor dentro dele.
 - **`DOC_KEY`** <sub>do módulo</sub> · [L24](../src/storage.js#L24) — Chave do registro do projeto atual.
-- **`LEGACY_KEY`** <sub>do módulo</sub> · [L26](../src/storage.js#L26) — Chave antiga do localStorage (versões ≤ 0.5). Lida uma vez para migrar.
-- **`PREF_KEY`** <sub>do módulo</sub> · [L28](../src/storage.js#L28) — Preferências de interface (largura dos painéis, auto-salvar na pasta...) — pequenas, ficam no localStorage.
-- **`db()`** <sub>do módulo</sub> · [L33](../src/storage.js#L33) — Abre (uma vez) o banco IndexedDB. Rejeita se o navegador não oferecer (ex.: algumas janelas anônimas).
-- **`tx(mode, fn)`** <sub>do módulo</sub> · [L45](../src/storage.js#L45) — Executa uma operação numa transação e devolve o resultado como Promise.
-- **`useIdb`** <sub>do módulo</sub> · [L58](../src/storage.js#L58) — Usa o IndexedDB? Se falhar uma vez, caímos para o localStorage pelo resto da sessão.
-- **`loadLocal()`** · [L64](../src/storage.js#L64) — Lê o projeto guardado no navegador. Ordem: IndexedDB → (migração) localStorage antigo → null.
+- **`LEGACY_KEY`** <sub>do módulo</sub> · [L28](../src/storage.js#L28) — Chave antiga do localStorage (versões ≤ 0.5). Lida uma vez para migrar.
+- **`PREF_KEY`** <sub>do módulo</sub> · [L30](../src/storage.js#L30) — Preferências de interface (largura dos painéis, auto-salvar na pasta...) — pequenas, ficam no localStorage.
+- **`editorTabId()`** <sub>do módulo</sub> · [L49](../src/storage.js#L49) — Identifica esta aba durante a sessão para separar seus rascunhos e projetos depois de um conflito.
+- **`db()`** <sub>do módulo</sub> · [L89](../src/storage.js#L89) — Abre (uma vez) o banco IndexedDB. Rejeita se o navegador não oferecer (ex.: algumas janelas anônimas).
+- **`tx(mode, fn)`** <sub>do módulo</sub> · [L101](../src/storage.js#L101) — Executa uma operação numa transação e devolve o resultado como Promise.
+- **`useIdb`** <sub>do módulo</sub> · [L114](../src/storage.js#L114) — Usa o IndexedDB? Se falhar uma vez, caímos para o localStorage pelo resto da sessão.
+- **`loadLocal()`** · [L120](../src/storage.js#L120) — Lê o projeto guardado no navegador. Ordem: IndexedDB → (migração) localStorage antigo → null.
   - ↩︎ `Promise<{doc, views?, theme?, link?, savedAt?` \|null>}
-- **`saveLocal(record)`** · [L87](../src/storage.js#L87) — Grava o projeto no navegador. `record` = { doc, views, theme, link }. No IndexedDB o objeto é copiado na hora da chamada (structured clone), então pode continuar sendo editado. Depois da primeira gravação bem-sucedida no IndexedDB, apaga a cópia antiga do localStorage (migração concluída).
-- **`browserUsage()`** · [L105](../src/storage.js#L105) — Espaço usado/disponível para este site (quando o navegador informa).
-- **`requestPersistence()`** · [L118](../src/storage.js#L118) — Pede ao navegador para NÃO apagar os dados deste site quando faltar espaço (armazenamento "persistente"). O Chrome costuma aceitar sozinho para sites usados com frequência; o Firefox pode perguntar.
-- **`loadPrefs()`** · [L124](../src/storage.js#L124) — Lê as preferências de interface (objeto vazio se não houver ou estiverem corrompidas).
-- **`savePrefs(prefs)`** · [L128](../src/storage.js#L128) — Grava as preferências (falha em silêncio: são só conveniências).
-- **`call(path, { method = 'GET', body, headers = {}, raw = false } = {})`** <sub>do módulo</sub> · [L139](../src/storage.js#L139) — Faz um pedido à API e devolve o JSON (ou lança ServerError com a mensagem do servidor).
-- **`fileNameFor(name)`** · [L155](../src/storage.js#L155) — Converte o nome do projeto num nome de arquivo aceito pelo servidor: "Meu App!" → "meu-app.json".
-- **`serialize(doc)`** <sub>do módulo</sub> · [L164](../src/storage.js#L164) — Projeto pronto para gravar em arquivo: o MESMO formato do "Baixar .json" (um arquivo baixado pode ir para a pasta e vice-versa).
-- **`folder`** · [L170](../src/storage.js#L170) — API da pasta. Todas as funções lançam ServerError quando o servidor recusa e TypeError quando não há servidor (ex.: o app foi aberto por outro servidor estático, como `python -m http.server`).
+- **`saveLocal(record)`** · [L181](../src/storage.js#L181) — Grava o projeto no navegador. `record` = { doc, views, theme, link }. No IndexedDB o objeto é copiado na hora da chamada (structured clone), então pode continuar sendo editado. Depois da primeira gravação bem-sucedida no IndexedDB, apaga a cópia antiga do localStorage (migração concluída).
+- **`forkLocalProject(record)`** · [L254](../src/storage.js#L254) — Separa uma cópia conflitante depois que a pessoa a salvou explicitamente como outro projeto.
+- **`listLocalProjects()`** · [L290](../src/storage.js#L290) — Lista projetos e rascunhos locais recuperáveis, inclusive os de abas já fechadas.
+- **`openLocalProject(key)`** · [L328](../src/storage.js#L328) — Abre uma cópia recuperável listada por listLocalProjects.
+- **`deleteLocalProject(key)`** · [L349](../src/storage.js#L349) — Remove uma cópia local antiga; protege o documento que a aba está editando agora.
+- **`isActiveLocalProject(key)`** · [L363](../src/storage.js#L363) — Informa se a chave aponta para o documento que esta aba está editando.
+- **`browserUsage()`** · [L369](../src/storage.js#L369) — Espaço usado/disponível para este site (quando o navegador informa).
+- **`requestPersistence()`** · [L382](../src/storage.js#L382) — Pede ao navegador para NÃO apagar os dados deste site quando faltar espaço (armazenamento "persistente"). O Chrome costuma aceitar sozinho para sites usados com frequência; o Firefox pode perguntar.
+- **`loadPrefs()`** · [L388](../src/storage.js#L388) — Lê as preferências de interface (objeto vazio se não houver ou estiverem corrompidas).
+- **`savePrefs(prefs)`** · [L392](../src/storage.js#L392) — Grava as preferências (falha em silêncio: são só conveniências).
+- **`call(path, { method = 'GET', body, headers = {}, raw = false } = {})`** <sub>do módulo</sub> · [L403](../src/storage.js#L403) — Faz um pedido à API e devolve o JSON (ou lança ServerError com a mensagem do servidor).
+- **`fileNameFor(name)`** · [L419](../src/storage.js#L419) — Converte o nome do projeto num nome de arquivo aceito pelo servidor: "Meu App!" → "meu-app.json".
+- **`serialize(doc)`** <sub>do módulo</sub> · [L428](../src/storage.js#L428) — Projeto pronto para gravar em arquivo: o MESMO formato do "Baixar .json" (um arquivo baixado pode ir para a pasta e vice-versa).
+- **`folder`** · [L434](../src/storage.js#L434) — API da pasta. Todas as funções lançam ServerError quando o servidor recusa e TypeError quando não há servidor (ex.: o app foi aberto por outro servidor estático, como `python -m http.server`).
 
 ---
 
@@ -1460,17 +1469,17 @@ Legenda: sem marca = **exportada** (outros arquivos podem importar) · <sub>do m
   - `[opts.initial]` <sub>object\|null</sub> — projeto já carregado do navegador ({ doc, views, theme, link }) — ver storage.loadLocal. null/ausente = abre o projeto de exemplo.
   - `[opts.persist]` <sub>(record) => Promise<string></sub> — grava o projeto (navegador e, se ligado, a pasta). Devolve onde gravou ('browser' \| 'folder'). O store só decide QUANDO salvar; o COMO fica em main.js/storage.js.
   - ↩︎ `object` a API do store (get, update, commit, undo, setSelection, subscribe...)
-- **`emit(reason)`** <sub>interna</sub> · [L115](../src/store.js#L115) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
+- **`emit(reason)`** <sub>interna</sub> · [L119](../src/store.js#L119) — Avisa que algo mudou, dizendo o MOTIVO ('doc' | 'selection' | 'view' | 'tool' | 'history' | 'ui' | 'overlay' | 'hover'...). Dois canais de entrega, de propósito:
 
    - síncrono (subscribeSync): o canvas e o overlay precisam estar em dia ANTES do próximo evento do mouse,
      senão medem o DOM desatualizado durante um arrasto;
    - 1x por frame (subscribe): painéis pesados (camadas, propriedades) juntam vários motivos em uma só atualização.
-- **`index()`** <sub>interna</sub> · [L140](../src/store.js#L140) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
-- **`restore(snap)`** <sub>interna</sub> · [L226](../src/store.js#L226) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
-- **`scheduleSave()`** <sub>interna</sub> · [L368](../src/store.js#L368) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
-- **`save()`** <sub>interna</sub> · [L383](../src/store.js#L383) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
+- **`index()`** <sub>interna</sub> · [L144](../src/store.js#L144) — Índice id → { node, parent, list, i, page } de TODAS as camadas de todas as páginas. É reconstruído só quando `version` mudou (estrutura nova), o que torna get(id) barato mesmo com milhares de camadas. `list` é o array onde o nó vive (page.children ou parent.children) e `i` a posição dele nesse array.
+- **`restore(snap)`** <sub>interna</sub> · [L232](../src/store.js#L232) — Volta o documento para uma foto do histórico (usado por desfazer/refazer). Mantém a seleção do que ainda existe.
+- **`scheduleSave()`** <sub>interna</sub> · [L383](../src/store.js#L383) — Agenda o salvamento automático para 400 ms depois da ÚLTIMA mudança (debounce): editar 50 vezes seguidas grava só 1 vez. Marca saveState='saving' para o topo mostrar "Salvando…".
+- **`save()`** <sub>interna</sub> · [L398](../src/store.js#L398) — Grava o projeto chamando `persist` (navegador + pasta, ver main.js). Só UMA gravação por vez: se algo mudar enquanto grava, marcamos `dirtyAgain` e gravamos de novo ao terminar (a última versão nunca se perde). Se falhar, saveState vira 'error' e `onSaveError` avisa o usuário.
   - ↩︎ `Promise<void>` resolve quando o projeto (como estava) terminou de ser gravado
-- **`init()`** <sub>interna</sub> · [L433](../src/store.js#L433) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
+- **`init()`** <sub>interna</sub> · [L455](../src/store.js#L455) — Estado inicial: usa o projeto que main.js já leu do navegador (`initial`); se não houver, abre o exemplo. Campos novos (assets, styles) são preenchidos para aceitar projetos salvos por versões antigas do app.
 
 ---
 

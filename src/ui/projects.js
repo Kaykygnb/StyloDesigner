@@ -11,7 +11,7 @@
 
 import { h, ico } from './dom.js';
 import { openModal } from './menus.js';
-import { folder, fileNameFor } from '../storage.js';
+import { folder, fileNameFor, listLocalProjects, openLocalProject, deleteLocalProject, isActiveLocalProject } from '../storage.js';
 import { saveProject } from '../export.js';
 import { formatBytes } from './settings.js';
 
@@ -41,11 +41,45 @@ export function openProjects({ store, saving, canvas, toast, openSettings, confi
 
   async function render() {
     const server = await saving.refresh();
+    const localProjects = await listLocalProjects();
+    const localRows = localProjects.map((project) => {
+      const row = h('li.proj-row',
+        h('div.proj-main',
+          h('div.proj-info', h('strong', project.name),
+            h('span.muted.small', `${project.conflict ? 'Rascunho de conflito' : 'Cópia local'} · ${when(project.savedAt)}`)),
+          h('button.btn.small', { type: 'button', onclick: async () => {
+            if (!(await confirmReplace(`Abrir a cópia local "${project.name}"?`))) return;
+            try {
+              const record = await openLocalProject(project.key);
+              store.loadDoc(record.doc, { views: record.views, theme: record.theme, link: null });
+              canvas.fit(null);
+              toast(`Cópia local "${project.name}" aberta.`);
+              close();
+            } catch (err) { toast(err.message || 'Não consegui abrir a cópia local.'); }
+          } }, 'Abrir'),
+          h('button.btn.ghost.small', { type: 'button', 'aria-label': `Apagar ${project.name}`,
+            onclick: async () => {
+              if (!window.confirm(`Apagar a cópia local "${project.name}"?`)) return;
+              try { await deleteLocalProject(project.key); await render(); }
+              catch (err) { toast(err.message || 'Não consegui apagar a cópia local.'); }
+            } }, 'Apagar')));
+      return row;
+    });
+    const localSection = localRows.length
+      ? h('section.proj-local', h('h3', 'Cópias e rascunhos neste navegador'),
+        h('p.muted.small', 'Inclui cópias separadas e conflitos de abas que já foram fechadas.'),
+        h('ul.proj-list', { 'aria-label': 'Cópias e rascunhos locais' }, localRows))
+      : null;
     if (!server) {
       body.replaceChildren(
         h('p', 'O servidor do projeto não está rodando, então não há pasta para salvar.'),
         h('p.muted', 'Abra o app com ', h('code', 'npm start'), ' para salvar e abrir arquivos de uma pasta do computador. Enquanto isso, você pode baixar o projeto:'),
-        h('button.btn.primary', { type: 'button', onclick: () => { saveProject(store.state.doc); close(); } }, ico('download', 14), ' Baixar .json'));
+        h('button.btn.primary', { type: 'button', onclick: async () => {
+          saveProject(store.state.doc);
+          if (store.ui.saveState === 'conflict') await saving.recoverConflictCopy(null);
+          close();
+        } }, ico('download', 14), ' Baixar .json'),
+        ...(localSection ? [localSection] : []));
       return;
     }
     let list = [];
@@ -126,7 +160,8 @@ export function openProjects({ store, saving, canvas, toast, openSettings, confi
       ...(error ? [h('p.set-msg.error', error)] : []),
       list.length
         ? h('ul.proj-list', { 'aria-label': 'Projetos na pasta' }, rows)
-        : h('p.muted', 'Nenhum projeto nesta pasta ainda.'));
+        : h('p.muted', 'Nenhum projeto nesta pasta ainda.'),
+      ...(localSection ? [localSection] : []));
     if (mode === 'save') { nameInput.focus(); nameInput.select(); }
     else body.querySelector('.proj-row:not(.current) .btn.small:not(.ghost)')?.focus();
   }
