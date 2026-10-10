@@ -48,22 +48,22 @@ Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/m
 ### Servidor (Node, sem framework) — `server.js` + `server/`
 | Arquivo | Faz |
 |---|---|
-| `server.js` (700 linhas, **a fatiar**) | HTTP cru: estáticos, API `/api` (projetos, versões, miniaturas, conta, config), rota `/mcp`, ponte com o editor |
+| `server.js` (~700 linhas, **a fatiar**) | HTTP cru: estáticos, API `/api` (conta, config, rotas de projeto), rota `/mcp`, sessões MCP, presença |
+| `server/projects.js` | **único** que sabe como projetos ficam no disco: listar/ler/gravar atômico, versões, miniaturas, renomear, detecção de conflito |
+| `server/workspace/index.js` | **onde o MCP trabalha**: projetos abertos em memória (store + comandos + executor), um "projeto atual" por sessão, grava sozinho, recarrega se outro autor gravar |
+| `server/workspace/model-canvas.js` | geometria calculada do modelo (substitui o DOM nos comandos) |
 | `server/mcp.js` | protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping) |
-| `server/editor-bridge.js` | **ponto-chave de hoje:** repassa cada chamada de ferramenta à aba do editor aberta (SSE) e espera a resposta |
 | `server/presence.js` | quem está no projeto (pessoas/agentes) e travas por camada, em memória |
-| `server/account.js` | conta local (perfil sem senha) |
-| `server/atomic.js` | gravação atômica de JSON |
-| `server/photos.js`, `server/imageai.js` | busca de fotos (Openverse etc.) e edição generativa de imagem |
-| `server/instrucoes-agente.txt` | instruções que o MCP entrega ao agente (lido pelo servidor a cada conexão) |
+| `server/account.js`, `server/atomic.js`, `server/http-error.js` | conta local, gravação atômica de JSON, erro HTTP |
+| `server/photos.js`, `server/imageai.js` | busca de fotos e edição generativa de imagem |
+| `server/instrucoes-agente.txt` | instruções que o MCP entrega a cada agente |
 | `scripts/mcp.mjs` | ponte stdio → `/mcp` |
 
 ### Ferramentas MCP — `src/agent/`
 | Arquivo | Faz |
 |---|---|
 | `schema.js` | as 41 ferramentas (nome, descrição, JSON Schema), compartilhada por servidor e navegador |
-| `runner.js` | **executa** cada ferramenta usando store + commands — hoje só no navegador |
-| `bridge.js` | permissão ("A IA quer alterar...") e escuta de `/api/agent/events` |
+| `runner.js` | **executa** cada ferramenta usando store + commands. Roda no servidor (workspace); sem navegador, `get_image`, `edit_image` e `generate_image_edit` ficam indisponíveis |
 | `content.js` | divide conteúdo grande em trechos UTF-8 |
 | `providers.js` | endereços de provedores de imagem (usado só por `server/imageai.js`) |
 
@@ -71,10 +71,18 @@ Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/m
 `src/main.js`, `canvas.js`, `overlay.js`, `tools.js`, `commands.js`, `pen.js`, `rulers.js`, `present.js`,
 `saving.js`, `storage.js`, `export.js`, `thumbnail.js`, `sample-vitrine.js`, `styles/app.css`, `ui/*`, `index.html`.
 
-## Problema arquitetural central
-Hoje **o editor aberto no navegador é quem executa as ferramentas MCP** (`runner.js` precisa de `store` e
-`commands`, que tocam o DOM). Sem aba aberta, o agente não consegue trabalhar. Para "server ligado, qualquer agente
-acessa" o documento e as operações precisam rodar **no servidor** (headless), com o navegador sendo só mais um cliente.
+## Como o MCP funciona agora
+```
+agente ──HTTP /mcp──▶ sessão MCP ──▶ workspace.call(tool) ──▶ runner.run ──▶ store ──(400 ms)──▶ projects.write
+                                                                                                      │
+editor (navegador) ◀──── SSE "project" (recarrega se não tem alteração pendente) ◀────────────────────┘
+```
+- Sem editor aberto o agente cria projeto (`new_project`), edita e exporta (`export_zip`, `export_site`, `export_html`).
+- `src/live.js` é a única ligação do editor com o servidor para MCP/presença (eventos `presence` e `project`).
+- **Limites conhecidos:** (1) se duas pessoas gravam o mesmo arquivo, a gravação de fora vence e o workspace recarrega
+  (colaboração em tempo real de verdade — CRDT ou operações — é trabalho futuro); (2) `get_image` precisa de um
+  renderizador (plugin com Chromium/Playwright, ainda não feito); (3) seleção e histórico (`undo`) são do projeto, não da sessão;
+  (4) sem contas/tokens: o `/mcp` só aceita pedidos desta máquina.
 
 ## Decisões tomadas (com a pessoa dona do projeto)
 1. **Sem agente embutido.** Toda IA entra por MCP. O MCP é um *core plugin*, não um detalhe do servidor.
@@ -93,9 +101,10 @@ acessa" o documento e as operações precisam rodar **no servidor** (headless), 
 
 ## Ordem de trabalho
 1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
-2. Separar `runner` e `commands` do DOM e rodar no servidor (headless); editor vira cliente.
+2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
 3. Estrutura de plugins + fatiar `server.js` (framework + SDK do MCP).
 4. SQLite, contas, cadastro de agentes, log de atividade, notas.
 
 ## Testes
-`tests/*.test.js` (unitários e API, `node --test`) e `tests/e2e/*.mjs` (Playwright). Estado ao limpar: 364 passam.
+`tests/*.test.js` (unitários e API, `node --test`, incluindo `workspace.test.js`) e `tests/e2e/*.mjs` (Playwright).
+Estado: 352 unitários passam. Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.

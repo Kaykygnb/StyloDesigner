@@ -27,7 +27,7 @@
 
 import { createServer } from 'node:http';
 import { createPhotosHandler } from './server/photos.js';
-import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { writeJsonAtomic } from './server/atomic.js';
 import { homedir } from 'node:os';
 import { extname, isAbsolute, join, normalize, parse, resolve, sep } from 'node:path';
