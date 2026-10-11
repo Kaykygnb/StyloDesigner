@@ -13,10 +13,10 @@ pequenos. Conversa em português. As decisões de **negócio** (seção 3) são 
 
 ## 1. Comece aqui (verificado num clone limpo, 2026-10-11)
 
-**De onde vem o código:** o trabalho está **só nesta máquina**, na pasta `C:UsersLENOVODesktopBlblaStyloDesigner` (é um repositório git próprio, branch `limpeza`).
+**De onde vem o código:** o trabalho está **só nesta máquina**, na pasta `C:/Users/LENOVO/Desktop/Blbla/StyloDesigner` (é um repositório git próprio, branch `limpeza`).
 **O GitHub (`Kaykygnb/StyloDesigner`) tem a versão ANTIGA e não tem nada deste trabalho — não clone nem puxe de lá.** Opções, da mais simples à mais segura:
 1. **Trabalhar na própria pasta** (recomendado; abra a sessão do agente DENTRO de `StyloDesigner`, para o `CLAUDE.md` ser lido). Só um agente por vez nela: dois ao mesmo tempo se atropelam nos arquivos, no banco local (PGlite aceita um processo) e na porta 5173.
-2. **Trabalhar num clone local**: `git clone C:UsersLENOVODesktopBlblaStyloDesigner outra-pasta` (traz a branch `limpeza` com todo o histórico; **não** traz os dados locais ignorados pelo git, como `designer.db/` e `designer.secret`, e isso é bom). Depois, para devolver o trabalho, `git pull` ou `git fetch` a partir do clone na pasta original.
+2. **Trabalhar num clone local**: `git clone C:/Users/LENOVO/Desktop/Blbla/StyloDesigner outra-pasta` (traz a branch `limpeza` com todo o histórico; **não** traz os dados locais ignorados pelo git, como `designer.db/` e `designer.secret`, e isso é bom). Depois, para devolver o trabalho, `git pull` ou `git fetch` a partir do clone na pasta original.
 3. **Enviar ao GitHub** e trabalhar de lá: só depois da decisão **D2** (o que fazer com o histórico).
 
 ```bash
