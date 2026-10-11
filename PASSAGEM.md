@@ -161,6 +161,8 @@ Lista viva: tudo que foi visto e deixado de lado, com o motivo e o que destrava.
 | Exportador **React Native** e variante TypeScript do React | o React veio primeiro; RN exige outro modelo (View/Text/StyleSheet, só flex, sem grid) | P5 |
 | Auditoria: regras de acessibilidade além de contraste/alt/tamanho (ordem de foco, área de toque ≥44px, hierarquia de títulos), lint de consistência (cores fora dos estilos) | o essencial primeiro; `check_design` é fácil de estender (`packages/core/src/audit.ts`) | quando um agente precisar |
 | Medida de layout só no desktop e no breakpoint pedido (`get_image`/`check_design`); `get_layer` mostra o tamanho do desktop | a medida de volta do editor também ignora breakpoints | medir por breakpoint se um agente precisar dos tamanhos do celular |
+| Resposta de `build_layout`/`create_layer` mostra a altura "hug" ANTES da medida (ex.: 240 em vez do real) | a medida só roda antes de leituras; medir a cada escrita deixaria cada chamada ~300 ms mais lenta | medir em segundo plano após escritas, ou refazer o resumo depois da medida |
+| Mensagem de erro de `add_font`/`library_*` quando o servidor de assets não está ligado ("Cannot read properties of undefined") | só acontece fora do servidor real (testes/scripts) | validar `services` no início das ferramentas de assets |
 | Rota HTTP `react.zip` sem teste próprio | usa o mesmo caminho do `site.zip` (que também não tem teste HTTP dedicado) | teste de integração das rotas de zip |
 | Estilos de interação (hover/estado) e animações no React | saem como o CSS atual gera; sem revisão específica | conferir com um projeto que use estados |
 | Exposição na internet (HTTPS, limites, SSE por pessoa, login) | produto ainda não hospedado | P7 |
