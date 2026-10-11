@@ -11,6 +11,8 @@ trabalham no mesmo projeto**, criando, editando e exportando sites.
 - Humanos usam o editor visual no navegador; humanos e agentes podem estar no mesmo projeto ao mesmo tempo
   (presença, travas por camada, comentários). Isso pede contas e banco de dados (hoje: arquivos JSON numa pasta).
 
+**Leia também `decisoes.md`** — o diário do que foi decidido e por quê (só se acrescenta no fim; nunca reescrever entradas antigas).
+
 **Estado desta cópia:** limpeza em andamento. O chat de IA embutido (OpenAI/NIM/Ollama, Jev, subagentes) já foi removido: agentes entram só pelo MCP. Tudo que era documentação, plano, captura de tela e identidade visual
 foi removido (está no histórico do GitHub). Este é o único `.md`.
 
