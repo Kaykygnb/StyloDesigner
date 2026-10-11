@@ -18,10 +18,9 @@ import { createNode, defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, B
 import { generateCode, joinCss, exportHtml } from '../css.js';
 import { makeComponent, createInstance } from '../components.js';
 import { addComment } from '../comments.js';
-import { renderPng } from '../export.js';
 import { importSvg } from '../svgimport.js';
 import { GOOGLE, SYSTEM_FONTS } from '../fonts.js';
-import { iconUrl, iconExists, searchIcons } from '../ui/googleicons.js';
+import { iconUrl, iconExists, searchIcons } from '../icons.js';
 import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName } from './schema.js';
 import { exportSite } from '../site-export.js';
@@ -231,12 +230,6 @@ export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
  * @param {object} [deps.saving]  salvamento (abrir/salvar projetos da pasta) · @param {object} [deps.folder]  API da pasta (listar)
  * @returns {{ run: (tool: string, args: object, client?: string, opts?: {external?: boolean, admin?: boolean}) => Promise<object> }}
  */
-/** Renderização padrão (navegador): PNG do design em base64. No servidor não há navegador: injete outra ou nenhuma. */
-async function renderInBrowser(node, doc, scale) {
-  const blob = await renderPng(node, doc.assets, scale, doc.styles);
-  return new Promise((ok, fail) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = fail; fr.readAsDataURL(blob); });
-}
-
 /**
  * @param {object} deps
  * @param {object} deps.store
@@ -244,10 +237,10 @@ async function renderInBrowser(node, doc, scale) {
  * @param {Function} [deps.approve]  janela de permissão (editor); sem ela só vale 'admin' em run()
  * @param {object} [deps.saving]  salvamento do editor (navegador)
  * @param {object} [deps.folder]  pasta de projetos do editor (navegador)
- * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização
- * @param {boolean} [deps.imageEditing]  edição de imagem por pixel precisa do navegador
+ * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização (o navegador ou um renderizador injeta)
+ * @param {object|null} [deps.imageOps]  edição de imagem por pixel ({ editImageLocal, generativeEdit, restoreOriginal, applyImageToNode }); só existe no navegador
  */
-export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = renderInBrowser, imageEditing = true }) {
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, imageOps = null }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -730,11 +723,10 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { project: store.state.doc.name };
     },
     async edit_image(args) {
-      if (!imageEditing) throw new Error('edit_image mexe nos pixels e precisa de um navegador: não está disponível neste servidor.');
+      if (!imageOps) throw new Error('edit_image mexe nos pixels e precisa de um navegador: não está disponível neste servidor.');
       const target = imageTarget(args.id);
       const n = target.node;
-      // o editor de imagem só é carregado quando usado (ele mexe com canvas; o resto do executor roda até no Node)
-      const ia = await import('../ui/imageai.js');
+      const ia = imageOps;
       if (args.restore_original) {
         if (!(await ia.restoreOriginal(store, n.id, { commit: false, beforeApply: target.assertCurrent }))) throw new Error('Esta camada não tem imagem original guardada (ela ainda não foi editada pelo editor de imagem).');
         return { restored: true, image: imageInfo(n) };
@@ -749,9 +741,9 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { image: imageInfo(current), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
     },
     async generate_image_edit({ id, mode, prompt, area, expand }) {
-      if (!imageEditing) throw new Error('generate_image_edit precisa de um navegador: não está disponível neste servidor.');
+      if (!imageOps) throw new Error('generate_image_edit precisa de um navegador: não está disponível neste servidor.');
       const target = imageTarget(id);
-      const ia = await import('../ui/imageai.js');
+      const ia = imageOps;
       const res = await ia.generativeEdit({ src: target.source, mode, prompt: String(prompt || '').trim(), area, expand });
       const current = target.assertCurrent();
       ia.applyImageToNode(store, current.id, res, { commit: false });
@@ -784,7 +776,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (tool === 'set_project_css' && typeof args?.css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
-      if ((tool === 'edit_image' || tool === 'generate_image_edit') && !imageEditing) throw new Error(`${tool} precisa de um navegador: não está disponível neste servidor.`);
+      if ((tool === 'edit_image' || tool === 'generate_image_edit') && !imageOps) throw new Error(`${tool} precisa de um navegador: não está disponível neste servidor.`);
       if (tool === 'edit_image' || tool === 'generate_image_edit') imageLayer(args?.id);
       if (tool === 'generate_image_edit') {
         if (!String(args?.prompt || '').trim()) throw new Error('prompt: diga o que a IA de imagem deve fazer.');

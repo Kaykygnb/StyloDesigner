@@ -139,7 +139,7 @@ test('applyProps: fill ligado a um estilo de cor do projeto; estilo inexistente 
 });
 
 test('ícones do Google: busca em português e conferência do nome (o agente usa isso)', async () => {
-  const { searchIcons, iconExists } = await import('../src/ui/googleicons.js');
+  const { searchIcons, iconExists } = await import('../src/icons.js');
   assert.equal(searchIcons('carrinho')[0], 'shopping_cart');
   assert.equal(searchIcons('casa')[0], 'home');
   assert.ok(iconExists('local_pizza'));

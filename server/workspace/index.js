@@ -48,7 +48,7 @@ export function createWorkspace({ projects, baseUrl = () => 'http://localhost:51
     entry.store = createStore({ initial: { doc, views: {}, theme: 'dark', link: { file, modified: base.modified, contentHash: base.hash, synced: true } }, persist });
     const canvas = createModelCanvas(entry.store);
     entry.commands = createCommands(entry.store, canvas);
-    entry.runner = createRunner({ store: entry.store, commands: entry.commands, approve: null, renderImage: null, imageEditing: false });
+    entry.runner = createRunner({ store: entry.store, commands: entry.commands, approve: null, renderImage: null });
     docs.set(file, entry);
     return entry;
   }
