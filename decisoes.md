@@ -135,3 +135,16 @@ do undici), IP privado/loopback/link-local/reservado é recusado (IPv4, IPv6 e I
 a cada passo, limite de 16 MB e 12 s.
 **Achado:** em `runner.js` já existia um auxiliar local chamado `imageInfo`; importar outro com o mesmo nome o sombreou
 (o erro só apareceu em teste). Importado como `sniffImage`.
+
+## 2026-10-10 — Identidade visual = conjunto de auxiliares; o agente decide (esclarecido pela pessoa)
+**Decisão:** NÃO haverá ferramenta que "gera a identidade de uma vez". Haverá um **conjunto de ferramentas auxiliares**
+independentes (cores, tipografia, escalas, tokens, brief) que o agente — ou a pessoa, pela interface — combina como quiser no
+mesmo projeto. Quem decide o que fazer é sempre quem usa o MCP. Auxiliares **calculam** (ex.: paleta a partir de uma cor,
+contraste, escala tipográfica); não criam nada sozinhos nem escolhem por ninguém.
+**Propósito mais amplo:** a ferramenta serve a IAs/agentes que constroem projetos em **React, React Native e o que for**; ela é a
+fonte do design (estrutura, tokens, assets) que o agente traduz para o framework dele.
+**Estado de cobertura registrado:** HTML/CSS sim; JavaScript não (scripts são removidos de propósito por segurança); assets
+só imagens (PNG/JPEG/GIF/WebP/SVG) e hoje a exportação embute imagem como data URL no CSS (a corrigir: arquivos reais);
+faltam vídeo, áudio, 3D (glb/gltf), Lottie, fontes próprias; faltam ferramentas MCP para variáveis/modos e estilos de texto.
+**Bundler (Webpack/Vite):** não é papel da ferramenta — é do projeto que consome. Nosso papel: entregar arquivos reais com
+nomes estáveis e dados estruturados.
