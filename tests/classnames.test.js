@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode } from '../src/model.js';
-import { generateCode, classNamesOf } from '../src/css.js';
+import { createNode } from '@stylo/core/model.js';
+import { generateCode, classNamesOf } from '@stylo/core/css.js';
 
 const named = (name) => ({ ...createNode('rect', { x: 0, y: 0 }), name });
 const classesOf = (names) => {

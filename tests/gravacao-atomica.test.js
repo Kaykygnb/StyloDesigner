@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer as createProbeServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { writeJsonAtomic } from '../server/atomic.js';
+import { writeJsonAtomic } from '@stylo/server/atomic.js';
 
 test('writeJsonAtomic: 50 gravações concorrentes terminam num JSON válido, a última vence, sem .tmp', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'designer-atomic-'));
@@ -46,7 +46,7 @@ test('servidor: configuração corrompida vira cópia .corrompido e o servidor s
   const { port } = probe.address();
   probe.close();
   await once(probe, 'close');
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../server.js', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
   t.after(() => child.kill());
   let ok = false;
   for (let i = 0; i < 100 && !ok; i++) {

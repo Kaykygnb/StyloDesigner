@@ -5,7 +5,7 @@ import {
   adjustPixels, toneLut, boxBlur, applyFilter, FILTERS, renderPixels, normalizeAdj, isNeutral,
   magicWand, borderColors, autoBackground, combineSelection, paintMask, paintStroke, applyMask, maskCoverage, resizeMask,
   cropForRatio, clampCrop, fitWidth, formatBytes, dataUrlBytes, planGenerative, buildMultipart, parseDataUrl,
-} from '../src/imagefx.js';
+} from '@stylo/core/imagefx.js';
 
 /** Imagem w×h preenchida por uma função (x, y) → [r, g, b, a]. */
 function img(w, h, fn) {

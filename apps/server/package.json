@@ -1,0 +1,9 @@
+{
+  "name": "@stylo/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor: API de projetos, MCP, workspace (projetos abertos), presença e contas.",
+  "bin": { "stylo-mcp": "./bin/mcp.mjs" },
+  "exports": { "./*": "./src/*" }
+}

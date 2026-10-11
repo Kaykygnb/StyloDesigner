@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, applyConstraints, defaultFill } from '../src/model.js';
-import { nodeStyle, pathData, pathSvg, maskClip, transformOf, generateCode } from '../src/css.js';
-import { syncInstances, makeComponent, createInstance, detachInstance, syncStyles } from '../src/components.js';
+import { createNode, applyConstraints, defaultFill } from '@stylo/core/model.js';
+import { nodeStyle, pathData, pathSvg, maskClip, transformOf, generateCode } from '@stylo/core/css.js';
+import { syncInstances, makeComponent, createInstance, detachInstance, syncStyles } from '@stylo/core/components.js';
 
 const mkButton = () => {
   const b = createNode('frame', { name: 'Botão', w: 120, h: 40 });
@@ -181,7 +181,7 @@ test('estilos de cor e texto atualizam as camadas vinculadas', () => {
   assert.equal(r.fill.styleId, undefined);
 });
 
-import { toSvg } from '../src/svg.js';
+import { toSvg } from '@stylo/core/svg.js';
 
 test('SVG: frame com filhos, gradiente, sombra, texto e vetor', () => {
   const frame = createNode('frame', { name: 'Card', w: 200, h: 100 });
@@ -216,7 +216,7 @@ test('SVG: elipse, linha, rotação e espelhar', () => {
   assert.match(svg, /<line x1="0" y1="6" x2="80" y2="6"/);
 });
 
-import { measures } from '../src/overlay.js';
+import { measures } from '@stylo/web/overlay.js';
 
 test('medidas Alt: distância horizontal e vertical entre camadas', () => {
   const A = { x: 0, y: 0, w: 50, h: 50 };
@@ -238,7 +238,7 @@ test('medidas Alt: camada dentro de outra mostra as 4 margens', () => {
 });
 
 import { buildSampleApp } from './fixtures/amostras.js';
-import { walk } from '../src/model.js';
+import { walk } from '@stylo/core/model.js';
 
 test('exemplo "app mobile": instâncias sincronizadas, estilos ligados e protótipo navegável', () => {
   const doc = buildSampleApp();
@@ -273,7 +273,7 @@ test('exemplo "app mobile": instâncias sincronizadas, estilos ligados e protót
 });
 
 test('nome novo usa o MAIOR número existente + 1 (não repete quando algo virou frame ou foi apagado)', async () => {
-  const { nextName } = await import('../src/model.js');
+  const { nextName } = await import('@stylo/core/model.js');
   const page = { children: [{ type: 'frame', name: 'Retângulo 1', children: [{ type: 'rect', name: 'Retângulo 4' }, { type: 'rect', name: 'Retângulo 2' }] }] };
   assert.equal(nextName(page, 'rect'), 'Retângulo 5');
   assert.equal(nextName({ children: [] }, 'rect'), 'Retângulo 1');
@@ -361,7 +361,7 @@ test('peso e trilhas sincronizam: peso do filho vem do principal; peso da raiz �
 });
 
 // ---------------------------------------------------------------- comentários nas camadas
-import { addComment, addReply, setResolved, removeComment, forNode, openCount, pruneComments, timeAgo, commentsOf } from '../src/comments.js';
+import { addComment, addReply, setResolved, removeComment, forNode, openCount, pruneComments, timeAgo, commentsOf } from '@stylo/core/comments.js';
 
 const docWith = () => {
   const a = createNode('rect', { name: 'A' });

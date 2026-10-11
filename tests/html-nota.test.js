@@ -1,9 +1,9 @@
 // Etiquetas HTML escolhidas no painel, link, descrição (aria-label) e nota da camada virando comentário no código.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, tagOf, TEXT_TAGS, BOX_TAGS } from '../src/model.js';
-import { generateCode, noteComment } from '../src/css.js';
-import { OVERRIDE_PROPS } from '../src/components.js';
+import { createNode, tagOf, TEXT_TAGS, BOX_TAGS } from '@stylo/core/model.js';
+import { generateCode, noteComment } from '@stylo/core/css.js';
+import { OVERRIDE_PROPS } from '@stylo/core/components.js';
 
 const frame = (extra = {}) => createNode('frame', { name: 'Caixa', w: 100, h: 50, ...extra });
 const texto = (extra = {}) => createNode('text', { name: 'Título', text: 'Olá', ...extra });
@@ -77,9 +77,9 @@ test('etiqueta, link e descrição entram nas propriedades que as instâncias he
 });
 
 // ---- acabamentos: estado em vetor no HTML, filtros de cor no SVG, editar comentário
-import { editText, addComment } from '../src/comments.js';
-import { colorFilterPrimitives, toSvg } from '../src/svg.js';
-import { editState } from '../src/model.js';
+import { editText, addComment } from '@stylo/core/comments.js';
+import { colorFilterPrimitives, toSvg } from '@stylo/core/svg.js';
+import { editState } from '@stylo/core/model.js';
 
 test('estado (hover) em vetor vira regra para o <path> de dentro do <svg>', () => {
   const p = createNode('path', { name: 'Icone', w: 24, h: 24, vw: 24, vh: 24, points: [{ x: 0, y: 0, in: null, out: null }, { x: 24, y: 24, in: null, out: null }], closed: false });

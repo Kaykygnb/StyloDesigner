@@ -13,3 +13,5 @@ capturas-fase1/
 
 # capturas de tela dos testes (não vão para o git)
 capturas/
+
+apps/web/dist/

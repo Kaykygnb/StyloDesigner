@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode } from '../src/model.js';
-import { exportHtml } from '../src/css.js';
-import { commercialLicense, normalizeOpenverse, normalizePexels, normalizeResults, validateProxyUrl, validateImageResponse, boundedPhotoBytes, createPhotosHandler, MAX_PHOTO_BYTES } from '../server/photos.js';
+import { createNode } from '@stylo/core/model.js';
+import { exportHtml } from '@stylo/core/css.js';
+import { commercialLicense, normalizeOpenverse, normalizePexels, normalizeResults, validateProxyUrl, validateImageResponse, boundedPhotoBytes, createPhotosHandler, MAX_PHOTO_BYTES } from '@stylo/server/photos.js';
 
 test('normaliza campos do Openverse e Pexels no formato comum', () => {
   const [openverse, pexels] = normalizeResults([
@@ -101,7 +101,7 @@ test('busca sem internet traduz filtros de orientação e pede apenas licença c
 });
 
 test('licenças sem derivação (nd) ou não comerciais (nc) ficam de fora', async () => {
-  const { commercialLicense } = await import('../server/photos.js');
+  const { commercialLicense } = await import('@stylo/server/photos.js');
   assert.equal(commercialLicense({ license: 'by-nd' }), false);
   assert.equal(commercialLicense({ license: 'by-nc' }), false);
   assert.equal(commercialLicense({ license: 'by-nd', license_type: 'commercial' }), false);
@@ -110,7 +110,7 @@ test('licenças sem derivação (nd) ou não comerciais (nc) ficam de fora', asy
 });
 
 test('busca no Openverse pede no máximo 20 por página (limite sem login)', async () => {
-  const { createPhotosHandler, OPENVERSE_PAGE } = await import('../server/photos.js');
+  const { createPhotosHandler, OPENVERSE_PAGE } = await import('@stylo/server/photos.js');
   assert.ok(OPENVERSE_PAGE <= 20);
   let asked = '';
   const fetchImpl = async (u) => { asked = String(u); return new Response(JSON.stringify({ results: [] }), { headers: { 'content-type': 'application/json' } }); };

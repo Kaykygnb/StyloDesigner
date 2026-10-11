@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../src/store.js';
-import { createProjectId, forkProject, makeDoc } from '../src/model.js';
-import { openProjectFile } from '../src/export.js';
+import { createStore } from '@stylo/core/store.js';
+import { createProjectId, forkProject, makeDoc } from '@stylo/core/model.js';
+import { openProjectFile } from '@stylo/web/export.js';
 
 test('cada novo projeto recebe identidade estável e distinta', () => {
   const first = makeDoc();

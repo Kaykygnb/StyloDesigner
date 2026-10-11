@@ -1,7 +1,7 @@
 // Bugs menores do núcleo: reproduzidos primeiro, corrigidos depois.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { safePageCss, scopePageCss } from '../src/html.js';
+import { safePageCss, scopePageCss } from '@stylo/core/html.js';
 
 test('CSS nesting na página não quebra as regras vizinhas nem gera "&: hover"', () => {
   const css = '.a { color: red; &:hover { color: blue; } }\n.b { color: green; }';
@@ -13,7 +13,7 @@ test('CSS nesting na página não quebra as regras vizinhas nem gera "&: hover"'
   }
 });
 
-import { parseCustomCss } from '../src/css.js';
+import { parseCustomCss } from '@stylo/core/css.js';
 
 test('parseCustomCss: ";" dentro de url()/aspas não separa; "/*" sem fechar é descartado', () => {
   const r = parseCustomCss('background: url(data:image/png;base64,AAA); color: red');
@@ -24,9 +24,9 @@ test('parseCustomCss: ";" dentro de url()/aspas não separa; "/*" sem fechar é 
   assert.deepEqual(open, { color: 'red' });
 });
 
-import { createStore } from '../src/store.js';
-import { makeDoc, createNode } from '../src/model.js';
-import { createCommands } from '../src/commands.js';
+import { createStore } from '@stylo/core/store.js';
+import { makeDoc, createNode } from '@stylo/core/model.js';
+import { createCommands } from '@stylo/core/commands.js';
 
 test('colar: camada copiada que ainda existe noutra página vai para a página atual', () => {
   const store = createStore({ initial: { doc: makeDoc() }, persist: () => Promise.resolve() });
@@ -47,7 +47,7 @@ test('colar: camada copiada que ainda existe noutra página vai para a página a
   assert.equal(outer.children.length, 1, 'não colou dentro do pai da outra página');
 });
 
-import { generateCode } from '../src/css.js';
+import { generateCode } from '@stylo/core/css.js';
 
 test('visible indefinido = visível no gerador de código (igual ao site-export)', () => {
   const n = createNode('frame', { name: 'Caixa', w: 10, h: 10 });
@@ -58,7 +58,7 @@ test('visible indefinido = visível no gerador de código (igual ao site-export)
   assert.equal(generateCode([h], null, {}, { root: true }).html.trim(), '');
 });
 
-import { applyLayerCss } from '../src/cssedit.js';
+import { applyLayerCss } from '@stylo/core/cssedit.js';
 
 test('applyLayerCss: !important do CSS livre sobrevive até o código gerado', () => {
   const n = createNode('frame', { name: 'A', w: 10, h: 10 });

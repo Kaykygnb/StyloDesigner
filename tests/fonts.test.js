@@ -1,9 +1,9 @@
 // Testes do módulo de fontes (src/fonts.js): URL do Google Fonts, pesos, fontes usadas e o <link> no HTML exportado.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { googleFontsUrl, nearestWeight, weightsOf, usedFonts, GOOGLE, SYSTEM_FONTS } from '../src/fonts.js';
-import { exportHtml } from '../src/css.js';
-import { createNode } from '../src/model.js';
+import { googleFontsUrl, nearestWeight, weightsOf, usedFonts, GOOGLE, SYSTEM_FONTS } from '@stylo/core/fonts.js';
+import { exportHtml } from '@stylo/core/css.js';
+import { createNode } from '@stylo/core/model.js';
 
 test('lista embutida tem as fontes do Google mais conhecidas, com pesos', () => {
   assert.ok(GOOGLE.size > 1500);

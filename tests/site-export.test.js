@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode } from '../src/model.js';
-import { exportSite } from '../src/site-export.js';
-import { createZip } from '../src/zip.js';
+import { createNode } from '@stylo/core/model.js';
+import { exportSite } from '@stylo/core/site-export.js';
+import { createZip } from '@stylo/core/zip.js';
 
 const frame = (name, children = [], props = {}) => createNode('frame', { name, children, ...props });
 const docOf = (...children) => ({

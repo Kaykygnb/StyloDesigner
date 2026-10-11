@@ -2,11 +2,11 @@
 // alças de Bézier, contorno e preenchimento. Antes só dava para criar frame, rect, ellipse, text, line e icon.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../src/store.js';
-import { makeDoc } from '../src/model.js';
-import { createRunner } from '../src/agent/runner.js';
-import { AGENT_TOOLS } from '../src/agent/schema.js';
-import { generateCode } from '../src/css.js';
+import { createStore } from '@stylo/core/store.js';
+import { makeDoc } from '@stylo/core/model.js';
+import { createRunner } from '@stylo/core/tools/runner.js';
+import { AGENT_TOOLS } from '@stylo/core/tools/schema.js';
+import { generateCode } from '@stylo/core/css.js';
 
 const novo = () => {
   const store = createStore({ initial: { doc: makeDoc() } });

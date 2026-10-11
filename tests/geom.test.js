@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {
   rdp, fitCurve, smoothStroke, flattenContour, polygonArea, booleanPolygons, polygonsToContours, insideShape,
   pointMode, dragHandle, smoothPoint, cornerPoint, reversePoints, ellipseContour, rectContour, cubicAt,
-} from '../src/geom.js';
-import { pathData } from '../src/css.js';
+} from '@stylo/core/geom.js';
+import { pathData } from '@stylo/core/css.js';
 
 const square = (x, y, s) => [{ x, y }, { x: x + s, y }, { x: x + s, y: y + s }, { x, y: y + s }];
 const area = (rings) => rings.reduce((s, r) => s + polygonArea(r), 0);

@@ -1,10 +1,10 @@
 // Modos de cor (claro/escuro) e variáveis de tamanho: dados puros e o CSS que eles geram.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill } from '../src/model.js';
-import { generateCode, joinCss } from '../src/css.js';
-import { addMode, removeMode, darkVariant, modeView, setStyleColor, styleValue, addVar, removeVar, bindVar, unbindVar, syncVars, VAR_PROPS } from '../src/modes.js';
-import { syncStyles } from '../src/components.js';
+import { createNode, defaultFill } from '@stylo/core/model.js';
+import { generateCode, joinCss } from '@stylo/core/css.js';
+import { addMode, removeMode, darkVariant, modeView, setStyleColor, styleValue, addVar, removeVar, bindVar, unbindVar, syncVars, VAR_PROPS } from '@stylo/core/modes.js';
+import { syncStyles } from '@stylo/core/components.js';
 
 const styles = () => ({ colors: [{ id: 's1', name: 'Fundo', color: '#FFFFFF', opacity: 1 }, { id: 's2', name: 'Texto', color: '#111111', opacity: 1 }], texts: [] });
 const withStyle = (id, color = '#FFFFFF') => { const n = createNode('frame', { name: 'Caixa', w: 100, h: 50 }); n.fill = { ...defaultFill(color), styleId: id }; return n; };

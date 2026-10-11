@@ -1,8 +1,8 @@
 // Responsivo: visões por breakpoint (cascata), edição por diferença, CSS em @media, largura fluida, ocultar.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, bpView, editBp, hasBps, bpsUpTo, BP_KEYS, BREAKPOINTS } from '../src/model.js';
-import { generateCode } from '../src/css.js';
+import { createNode, bpView, editBp, hasBps, bpsUpTo, BP_KEYS, BREAKPOINTS } from '@stylo/core/model.js';
+import { generateCode } from '@stylo/core/css.js';
 
 const row = () => {
   const f = createNode('frame', { name: 'Cartao', w: 800, h: 300 });
@@ -114,8 +114,8 @@ test('largura fluida na raiz: width 100%, max-width e min-height; sem fluid fica
 });
 
 test('breakpoints do projeto: setBreakpoints ordena, limpa e o CSS sai com o @media personalizado', async () => {
-  const { setBreakpoints, BREAKPOINTS, DEFAULT_BREAKPOINTS, createNode, editBp } = await import('../src/model.js');
-  const { generateCode } = await import('../src/css.js');
+  const { setBreakpoints, BREAKPOINTS, DEFAULT_BREAKPOINTS, createNode, editBp } = await import('@stylo/core/model.js');
+  const { generateCode } = await import('@stylo/core/css.js');
   setBreakpoints([{ id: 'mobile', name: 'Celular', max: 640 }, { id: 'tv', name: 'Dobra', max: 900, preview: 900 }, { id: 'tv', name: 'dup', max: 1 }]);
   assert.deepEqual(BREAKPOINTS.map((b) => b.id), ['tv', 'mobile']);
   const f = createNode('frame', { w: 400, h: 200 });

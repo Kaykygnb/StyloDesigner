@@ -1,7 +1,7 @@
 // Testes do lado servidor da IA de foto (server/imageai.js): de onde vêm endereço/modelo/chave e as mensagens de erro.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { imageConfigOf, apiErrorText, readImageResult } from '../server/imageai.js';
+import { imageConfigOf, apiErrorText, readImageResult } from '@stylo/server/imageai.js';
 
 test('modelo de imagem: OpenAI tem padrão, NVIDIA não tem; escolha própria vale', () => {
   const openai = imageConfigOf({ agent: { keys: { 'https://api.openai.com/v1': 'sk-x' } } }, {});

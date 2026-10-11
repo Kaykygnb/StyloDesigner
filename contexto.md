@@ -14,62 +14,65 @@ trabalham no mesmo projeto**, criando, editando e exportando sites.
 **Estado desta cópia:** limpeza em andamento. O chat de IA embutido (OpenAI/NIM/Ollama, Jev, subagentes) já foi removido: agentes entram só pelo MCP. Tudo que era documentação, plano, captura de tela e identidade visual
 foi removido (está no histórico do GitHub). Este é o único `.md`.
 
+## Organização do repositório (monorepo, npm workspaces)
+```
+packages/core/   @stylo/core    documento puro (sem DOM): model, store, commands, css/html/svg, exportação, zip, ferramentas MCP (src/tools)
+apps/server/     @stylo/server  servidor Node: API, MCP, workspace, presença, contas (src/), ponte stdio (bin/mcp.mjs)
+apps/web/        @stylo/web     editor no navegador (JS legado; a interface será refeita). Vite
+tests/                          testes unitários e de API (importam os pacotes por @stylo/*) e e2e (desatualizados)
+scripts/                        utilitários soltos (listas do Google, benchmark)
+```
+Regra de dependência: `web → core`, `server → core`, `core → nada`. O `core` não pode importar de `web` nem de `server`.
+Imports entre pacotes usam o nome (`@stylo/core/model.js`); dentro do pacote, caminho relativo.
+
 ## Rodar
 ```
-npm start        # http://localhost:5173  (PORT e DESIGNER_CONFIG mudam porta e arquivo de configuração)
+npm start        # http://localhost:5173 (sem build: o servidor sobe o Vite junto, na mesma porta; PORT e DESIGNER_CONFIG mudam porta e config)
+npm run build    # gera apps/web/dist; com ele presente o servidor entrega os arquivos de lá (STYLO_DEV=1 força o Vite)
 npm test         # testes unitários e de API (node --test, ~3 s)
 npm run test:e2e # testes de navegador (precisa de playwright)
 ```
 Conectar um agente: Claude Code `claude mcp add --transport http projeto-designer http://localhost:5173/mcp`;
-Codex/Claude Desktop (só stdio): `node scripts/mcp.mjs`, que repassa para o `/mcp`.
+Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa para o `/mcp`.
 
 ## Mapa do código (o quê, onde, por quê)
 
-### Núcleo do documento — puro, roda no Node, tem teste unitário
+### `packages/core/src` — documento, puro, roda no Node e no navegador
 | Arquivo | Faz |
 |---|---|
-| `src/model.js` | formato do documento (páginas → camadas), `createNode`, árvore, grupos, constraints |
-| `src/store.js` | estado único, histórico (undo/redo), eventos, quando salvar |
-| `src/components.js` | componentes/instâncias, estilos compartilhados |
-| `src/modes.js`, `src/palettes.js`, `src/color.js` | variáveis por modo (claro/escuro), paletas, cores |
-| `src/comments.js` | notas e comentários |
-| `src/validate.js` | validação do JSON de um projeto |
-| `src/geom.js`, `src/imagefx.js`, `src/image-assets.js` | geometria e imagens |
+| `model.js` | formato do documento (páginas → camadas), `createNode`, árvore, grupos, constraints |
+| `store.js` | estado único, histórico (undo/redo), eventos, quando salvar |
+| `commands.js` | operações sobre a árvore (agrupar, duplicar, alinhar, auto layout, componentes...). Pede geometria a um "canvas" injetado |
+| `components.js`, `modes.js`, `palettes.js`, `color.js`, `comments.js` | componentes, modos de cor/variáveis, paletas, cores, notas e comentários |
+| `validate.js`, `geom.js`, `imagefx.js`, `image-assets.js` | validação do JSON, geometria, imagens |
+| `css.js`, `html.js`, `cssedit.js`, `codeassist.js` | camada → CSS, HTML/CSS gerado, edição de CSS livre |
+| `svg.js`, `svgimport.js` | exportar e importar SVG |
+| `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
+| `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
+| `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
+| `tools/schema.js` | as 42 ferramentas MCP (nome, descrição, JSON Schema) |
+| `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
+| `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
-### Exportação — puro
+### `apps/server/src` — Node, sem framework (por enquanto)
 | Arquivo | Faz |
 |---|---|
-| `src/css.js` | camada → CSS, `generateCode` (HTML+CSS), vetores, máscaras |
-| `src/html.js`, `src/cssedit.js`, `src/codeassist.js` | HTML/CSS gerado, edição de CSS livre, ajudas de código |
-| `src/svg.js`, `src/svgimport.js` | exportar e importar SVG |
-| `src/site-export.js`, `src/zip.js` | site multipágina em **zip** (sem dependência) |
-| `src/fonts.js`, `src/data/*` | Google Fonts / ícones (listas geradas por `scripts/gerar-listas-google.mjs`) |
+| `server.js` (~560 linhas, **a fatiar**) | HTTP cru: API `/api` (conta, config, projetos), rota `/mcp`, sessões MCP, presença |
+| `web.js` | entrega o editor: `apps/web/dist` em produção, Vite (middleware, mesma porta) em desenvolvimento |
+| `projects.js` | **único** que sabe como projetos ficam no disco: listar/ler/gravar atômico, versões, miniaturas, renomear, conflito |
+| `workspace/index.js` | **onde o MCP trabalha**: projetos abertos em memória (store + comandos + executor), "projeto atual" por sessão, grava sozinho, recarrega se outro autor gravar |
+| `workspace/model-canvas.js` | geometria calculada do modelo (substitui o DOM nos comandos) |
+| `mcp.js` | protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping) |
+| `presence.js` | quem está no projeto (pessoas/agentes) e travas por camada, em memória |
+| `account.js`, `atomic.js`, `http-error.js` | conta local, gravação atômica de JSON, erro HTTP |
+| `photos.js`, `imageai.js`, `providers.js` | busca de fotos, edição generativa de imagem, provedores de imagem |
+| `instrucoes-agente.txt` | instruções que o MCP entrega a cada agente |
+| `../bin/mcp.mjs` | ponte stdio → `/mcp` |
 
-### Servidor (Node, sem framework) — `server.js` + `server/`
-| Arquivo | Faz |
-|---|---|
-| `server.js` (~700 linhas, **a fatiar**) | HTTP cru: estáticos, API `/api` (conta, config, rotas de projeto), rota `/mcp`, sessões MCP, presença |
-| `server/projects.js` | **único** que sabe como projetos ficam no disco: listar/ler/gravar atômico, versões, miniaturas, renomear, detecção de conflito |
-| `server/workspace/index.js` | **onde o MCP trabalha**: projetos abertos em memória (store + comandos + executor), um "projeto atual" por sessão, grava sozinho, recarrega se outro autor gravar |
-| `server/workspace/model-canvas.js` | geometria calculada do modelo (substitui o DOM nos comandos) |
-| `server/mcp.js` | protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping) |
-| `server/presence.js` | quem está no projeto (pessoas/agentes) e travas por camada, em memória |
-| `server/account.js`, `server/atomic.js`, `server/http-error.js` | conta local, gravação atômica de JSON, erro HTTP |
-| `server/photos.js`, `server/imageai.js` | busca de fotos e edição generativa de imagem |
-| `server/instrucoes-agente.txt` | instruções que o MCP entrega a cada agente |
-| `scripts/mcp.mjs` | ponte stdio → `/mcp` |
-
-### Ferramentas MCP — `src/agent/`
-| Arquivo | Faz |
-|---|---|
-| `schema.js` | as 41 ferramentas (nome, descrição, JSON Schema), compartilhada por servidor e navegador |
-| `runner.js` | **executa** cada ferramenta usando store + commands. Roda no servidor (workspace); sem navegador, `get_image`, `edit_image` e `generate_image_edit` ficam indisponíveis |
-| `content.js` | divide conteúdo grande em trechos UTF-8 |
-| `providers.js` | endereços de provedores de imagem (usado só por `server/imageai.js`) |
-
-### Editor visual (navegador) — só interface; fora do escopo desta limpeza
-`src/main.js`, `canvas.js`, `overlay.js`, `tools.js`, `commands.js`, `pen.js`, `rulers.js`, `present.js`,
-`saving.js`, `storage.js`, `export.js`, `thumbnail.js`, `sample-vitrine.js`, `styles/app.css`, `ui/*`, `index.html`.
+### `apps/web` — editor visual (interface será refeita; só o essencial aqui)
+`src/main.js` monta tudo; `canvas.js`, `overlay.js`, `tools.js`, `pen.js`, `rulers.js`, `present.js` desenham e editam;
+`saving.js`, `storage.js`, `export.js`, `thumbnail.js`, `account.js` salvam/exportam; `live.js` liga ao servidor
+(presença e "o projeto mudou"); `ui/*` painéis; `styles/app.css`; `index.html`, `public/assets`.
 
 ## Como o MCP funciona agora
 ```
@@ -78,7 +81,7 @@ agente ──HTTP /mcp──▶ sessão MCP ──▶ workspace.call(tool) ─�
 editor (navegador) ◀──── SSE "project" (recarrega se não tem alteração pendente) ◀────────────────────┘
 ```
 - Sem editor aberto o agente cria projeto (`new_project`), edita e exporta (`export_zip`, `export_site`, `export_html`).
-- `src/live.js` é a única ligação do editor com o servidor para MCP/presença (eventos `presence` e `project`).
+- `apps/web/src/live.js` é a única ligação do editor com o servidor para MCP/presença (eventos `presence` e `project`).
 - **Limites conhecidos:** (1) se duas pessoas gravam o mesmo arquivo, a gravação de fora vence e o workspace recarrega
   (colaboração em tempo real de verdade — CRDT ou operações — é trabalho futuro); (2) `get_image` precisa de um
   renderizador (plugin com Chromium/Playwright, ainda não feito); (3) seleção e histórico (`undo`) são do projeto, não da sessão;
@@ -90,10 +93,12 @@ editor (navegador) ◀──── SSE "project" (recarrega se não tem alteraç
 3. **Core plugins:** documento, exportação, MCP, fotos, imagem, (futuro) identidade visual. Cada plugin registra
    suas ferramentas MCP, sua lógica e seus testes. Formato proposto: `{ nome, ferramentas, executar }`.
 4. **Execução headless:** documento e operações rodam no servidor; o navegador é só mais um cliente.
-5. **Dependências são bem-vindas** se encolherem o código (Hono/Fastify no servidor, SDK oficial do MCP).
-6. **Hospedagem pessoal / multiusuário:** a pessoa roda num servidor próprio e acessa de vários lugares, com amigos
-   editando junto. Banco de verdade (SQLite primeiro; Postgres/Redis só se precisar). JSON fica como formato de
-   **exportar/importar** projeto, não como armazenamento.
+5. **Dependências são bem-vindas** se encolherem o código. **TypeScript** no lugar de JS puro; Hono no servidor; SDK oficial do MCP; Vite no editor.
+6. **Hospedagem pessoal e serviço pago:** a pessoa roda num servidor próprio e acessa de vários lugares, com amigos
+   editando junto; o projeto também será oferecido como serviço cobrado. Banco: **Postgres + Prisma** (JSONB para a
+   árvore do design). JSON fica como formato de **exportar/importar**. Redis só se houver várias instâncias.
+   Licença: source-available (não vender a ferramenta como produto próprio; usar o resultado é livre) — **a definir**
+   (FSL ou PolyForm Shield são os candidatos; o repositório ainda está em MIT).
 7. **Contas locais:** uma conta mestre que autoriza (ou não) pessoas e agentes.
 8. **Agentes cadastrados:** cada agente MCP tem identidade, aparece na presença ("bolinha") com o que está fazendo e
    o que fez (log de atividade).
@@ -102,8 +107,11 @@ editor (navegador) ◀──── SSE "project" (recarrega se não tem alteraç
 ## Ordem de trabalho
 1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
 2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
-3. Estrutura de plugins + fatiar `server.js` (framework + SDK do MCP).
-4. SQLite, contas, cadastro de agentes, log de atividade, notas.
+3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
+4. TypeScript (por módulo, começando pelo `core`), Hono + SDK oficial do MCP, fatiar `server.js`.
+5. Postgres + Prisma: contas, agentes/tokens, projetos, operações (log), comentários/notas. JSON só para exportar/importar.
+6. Plugins do núcleo (documento, exportação, MCP, fotos, imagem, identidade visual).
+7. Edição simultânea de verdade (operações ou CRDT) e renderizador para `get_image`.
 
 ## Testes
 `tests/*.test.js` (unitários e API, `node --test`, incluindo `workspace.test.js`) e `tests/e2e/*.mjs` (Playwright).

@@ -2,7 +2,7 @@
 // perigoso de verdade (os endereços usam o domínio reservado .invalid e o script só escreve no console).
 // Uso: node tests/fixtures/gerar-projeto-hostil.mjs
 import { writeFileSync } from 'node:fs';
-import { createNode, defaultFill, makeDoc } from '../../src/model.js';
+import { createNode, defaultFill, makeDoc } from '@stylo/core/model.js';
 
 const doc = makeDoc();
 doc.name = 'Projeto hostil (teste de segurança)';

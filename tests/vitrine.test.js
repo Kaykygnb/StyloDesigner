@@ -1,10 +1,10 @@
 // O exemplo "Vitrine" tem de usar de verdade os recursos que promete (e gerar HTML/CSS válido).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSampleShowcase } from '../src/sample-vitrine.js';
-import { walk, hasBps, hasStates, STATE_LIST } from '../src/model.js';
-import { generateCode, joinCss } from '../src/css.js';
-import { pruneComments, commentsOf } from '../src/comments.js';
+import { buildSampleShowcase } from '@stylo/core/sample-vitrine.js';
+import { walk, hasBps, hasStates, STATE_LIST } from '@stylo/core/model.js';
+import { generateCode, joinCss } from '@stylo/core/css.js';
+import { pruneComments, commentsOf } from '@stylo/core/comments.js';
 
 const doc = buildSampleShowcase();
 const all = [];

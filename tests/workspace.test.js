@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createProjects } from '../server/projects.js';
-import { createWorkspace } from '../server/workspace/index.js';
+import { createProjects } from '@stylo/server/projects.js';
+import { createWorkspace } from '@stylo/server/workspace/index.js';
 
 async function setup() {
   const folder = await mkdtemp(join(tmpdir(), 'stylo-ws-'));

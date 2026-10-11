@@ -2,7 +2,7 @@
 // janela do editor. O canvas converte essas condições em container queries; a exportação continua com @media.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { scopePageCss, safePageCss } from '../src/html.js';
+import { scopePageCss, safePageCss } from '@stylo/core/html.js';
 
 const css = (media) => `.card { color: blue }\n${media} { .card { color: red } }`;
 

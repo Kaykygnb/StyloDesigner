@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, makeDoc, defaultFill } from '../src/model.js';
-import { imageAssetCatalog } from '../src/image-assets.js';
+import { createNode, makeDoc, defaultFill } from '@stylo/core/model.js';
+import { imageAssetCatalog } from '@stylo/core/image-assets.js';
 
 test('inventário de imagens deriva nome, dimensões e usos sem devolver o data URL', () => {
   const doc = makeDoc();

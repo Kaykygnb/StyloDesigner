@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeAccount, normalizeAccount, emptyAccount, MAX_AVATAR } from '../server/account.js';
+import { mergeAccount, normalizeAccount, emptyAccount, MAX_AVATAR } from '@stylo/server/account.js';
 
 test('conta local: valida, limita e carimba datas', () => {
   const a = mergeAccount(emptyAccount(), { name: '  Kayky\n Silva  ' + 'x'.repeat(100), email: 'k@exemplo.com', role: 'Designer', color: '#5CC98F', language: 'en', foo: 1 });

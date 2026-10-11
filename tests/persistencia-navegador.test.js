@@ -54,7 +54,7 @@ function makeIdb() {
 }
 
 let n = 0;
-const freshStorage = () => import(`../src/storage.js?t=${++n}`);
+const freshStorage = () => import(`../apps/web/src/storage.js?t=${++n}`);
 const D = (name) => ({ doc: { name, pages: [{ id: 'p1' }] } });
 
 function setup(t) {
@@ -120,9 +120,9 @@ test('B: falha permanente não entra em loop e não apaga dados', async (t) => {
 });
 
 // ---------------------------------------------------------------- C: saveNow informa sucesso; open não descarta
-import { createStore } from '../src/store.js';
-import { makeDoc } from '../src/model.js';
-import { createSaving } from '../src/saving.js';
+import { createStore } from '@stylo/core/store.js';
+import { makeDoc } from '@stylo/core/model.js';
+import { createSaving } from '@stylo/web/saving.js';
 
 test('C: saveNow resolve true quando grava e false quando falha', async () => {
   let fail = false;

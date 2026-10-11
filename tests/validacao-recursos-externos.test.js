@@ -2,7 +2,7 @@
 // fazer o navegador buscar endereços sem a pessoa saber: o carregamento avisa quais hosts o CSS da página acessa.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeDoc } from '../src/validate.js';
+import { sanitizeDoc } from '@stylo/core/validate.js';
 
 const docComCss = (pageCss) => ({ pages: [{ id: 'p', children: [] }], styles: { colors: [], texts: [], pageCss } });
 const avisoExterno = (css) => sanitizeDoc(docComCss(css)).filter((w) => /de fora|externo/i.test(w));

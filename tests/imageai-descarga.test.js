@@ -1,7 +1,7 @@
 // Download da imagem gerada quando a API devolve só uma URL (issue #2): endereço restrito e tamanho limitado de verdade.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readImageResult } from '../server/imageai.js';
+import { readImageResult } from '@stylo/server/imageai.js';
 
 const png = (bytes) => new Response(bytes, { status: 200, headers: { 'content-type': 'image/png' } });
 const okFetch = async () => png(new Uint8Array([1, 2, 3]));

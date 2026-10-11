@@ -3,8 +3,8 @@
 // camada, fica em tests/e2e/exportacao-fiel.mjs.)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, htmlTagIn, editBp } from '../src/model.js';
-import { exportHtml, generateCode, nodeStyle } from '../src/css.js';
+import { createNode, htmlTagIn, editBp } from '@stylo/core/model.js';
+import { exportHtml, generateCode, nodeStyle } from '@stylo/core/css.js';
 
 const frame = (name, tag, children = [], extra = {}) => createNode('frame', { name, tag, children, ...extra });
 const text = (t, tag) => createNode('text', { text: t, tag });

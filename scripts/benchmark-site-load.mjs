@@ -1,8 +1,8 @@
 // Mede o HTML estático exportado em Chromium com um servidor local descartável.
 // As fontes do Google são bloqueadas para tornar a medição repetível; registre essa limitação junto ao resultado.
 import { createServer } from 'node:http';
-import { buildSampleShowcase } from '../src/sample-vitrine.js';
-import { exportHtml } from '../src/css.js';
+import { buildSampleShowcase } from '@stylo/core/sample-vitrine.js';
+import { exportHtml } from '@stylo/core/css.js';
 import { chromium } from 'playwright';
 
 const doc = buildSampleShowcase();

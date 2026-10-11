@@ -27,7 +27,7 @@ test('API de salvamento: pasta, gravar/ler, conflito, versões, miniatura, renom
   const tmp = await mkdtemp(join(tmpdir(), 'designer-api-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../server.js', import.meta.url))], {
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
     stdio: 'ignore',
   });

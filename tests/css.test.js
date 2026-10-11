@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates, cleanTrackList } from '../src/model.js';
-import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle, colorVarNames, joinCss } from '../src/css.js';
-import { toSvg } from '../src/svg.js';
+import { createNode, defaultFill, defaultShadow, defaultStroke, fitGroups, cloneNode, scaleNode, resizeNode, applyLimits, limitSize, stateView, editState, hasStates, canHaveStates, cleanTrackList } from '@stylo/core/model.js';
+import { nodeStyle, rgba, exportHtml, generateCode, fillCss, stateStyle, colorVarNames, joinCss } from '@stylo/core/css.js';
+import { toSvg } from '@stylo/core/svg.js';
 import { buildSample } from './fixtures/amostras.js';
 
 test('rgba converte hex e opacidade', () => {
@@ -561,7 +561,7 @@ test('sticky e pointer-events: só itens em fluxo grudam, e só fora do editor',
 });
 
 test('CSS livre, order, flex-shrink, white-space, word-break, text-wrap e skew', async () => {
-  const { parseCustomCss } = await import('../src/css.js');
+  const { parseCustomCss } = await import('@stylo/core/css.js');
   assert.deepEqual(parseCustomCss('a{b}: 1; scroll-margin-top: 80px; color: red} ; --cor: #fff; background: url(javascript:x)'), { 'scroll-margin-top': '80px', '--cor': '#fff' });
   const row = createNode('frame');
   row.layout = { mode: 'row', gap: 0, padding: [0, 0, 0, 0], justify: 'flex-start', align: 'flex-start', wrap: false };

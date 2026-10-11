@@ -1,8 +1,8 @@
 // Exportar site: avisar quando uma tela de largura fixa vai rolar na horizontal em celular.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, makeDoc } from '../src/model.js';
-import { exportSite } from '../src/site-export.js';
+import { createNode, makeDoc } from '@stylo/core/model.js';
+import { exportSite } from '@stylo/core/site-export.js';
 
 const docWith = (...boards) => {
   const doc = makeDoc();

@@ -3,8 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sanitizeDoc } from '../src/validate.js';
-import { exportHtml } from '../src/css.js';
+import { sanitizeDoc } from '@stylo/core/validate.js';
+import { exportHtml } from '@stylo/core/css.js';
 
 const carregar = () => JSON.parse(readFileSync(new URL('./fixtures/projeto-hostil.json', import.meta.url), 'utf8'));
 

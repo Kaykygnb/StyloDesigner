@@ -1,7 +1,7 @@
 // Presença e travas: vários agentes MCP no mesmo projeto não sobrescrevem o trabalho um do outro.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPresence, targetsOf, colorFor, LOCK_MS, DOCUMENT_LOCK } from '../server/presence.js';
+import { createPresence, targetsOf, colorFor, LOCK_MS, DOCUMENT_LOCK } from '@stylo/server/presence.js';
 
 test('targetsOf junta as camadas que a ferramenta vai alterar', () => {
   assert.deepEqual(targetsOf({ id: 'a', ids: ['b', 'a'], parent_id: 'root' }), ['a', 'b']);

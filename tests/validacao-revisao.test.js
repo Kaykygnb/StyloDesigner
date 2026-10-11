@@ -3,9 +3,9 @@
 // chaves que enganam a conversão de tipos e seletor/id que escapam do <style> e do atributo SVG.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isSafeCssValue, cssRule, nodeStyle } from '../src/css.js';
-import { sanitizeDoc } from '../src/validate.js';
-import { createNode } from '../src/model.js';
+import { isSafeCssValue, cssRule, nodeStyle } from '@stylo/core/css.js';
+import { sanitizeDoc } from '@stylo/core/validate.js';
+import { createNode } from '@stylo/core/model.js';
 
 test('isSafeCssValue: escapes e caracteres de controle que o navegador trata diferente são recusados', () => {
   const bad = [

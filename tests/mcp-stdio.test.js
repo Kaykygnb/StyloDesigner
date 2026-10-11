@@ -8,7 +8,7 @@ test('ponte stdio MCP mostra status e motivo de respostas HTTP inesperadas', asy
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   t.after(() => server.close());
   const { port } = server.address();
-  const child = spawn(process.execPath, ['scripts/mcp.mjs'], {
+  const child = spawn(process.execPath, ['apps/server/bin/mcp.mjs'], {
     env: { ...process.env, DESIGNER_URL: `http://127.0.0.1:${port}` },
     stdio: ['pipe', 'pipe', 'pipe'],
   });

@@ -7,8 +7,8 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from '../../src/model.js';
-import { createInstance, makeComponent, syncInstances } from '../../src/components.js';
+import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from '@stylo/core/model.js';
+import { createInstance, makeComponent, syncInstances } from '@stylo/core/components.js';
 
 /** Atalho para criar uma camada de texto: o nome da camada é o início do próprio texto. */
 const text = (t, props = {}) => createNode('text', { name: t.slice(0, 24), text: t, ...props });

@@ -1,7 +1,7 @@
 // Matemática de cor: conversões, harmonias, contraste WCAG.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hexToRgb, rgbToHex, rgbToHsv, hsvToRgb, rgbToHsl, hslToRgb, rotateHue, withLightness, harmonies, contrast, wcagLevel, luminance } from '../src/color.js';
+import { hexToRgb, rgbToHex, rgbToHsv, hsvToRgb, rgbToHsl, hslToRgb, rotateHue, withLightness, harmonies, contrast, wcagLevel, luminance } from '@stylo/core/color.js';
 
 test('hex ↔ rgb', () => {
   assert.deepEqual(hexToRgb('#7c5cff'), { r: 124, g: 92, b: 255 });

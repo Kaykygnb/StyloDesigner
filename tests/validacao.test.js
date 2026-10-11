@@ -2,10 +2,10 @@
 // nem puxar recurso externo. Duas camadas: validar ao carregar (sanitizeDoc) e escapar na saída (css.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultFill, defaultStroke } from '../src/model.js';
-import { exportHtml, generateCode, toCssText, safeIdent, isSafeCssValue } from '../src/css.js';
-import { sanitizeDoc } from '../src/validate.js';
-import { buildSampleShowcase } from '../src/sample-vitrine.js';
+import { createNode, defaultFill, defaultStroke } from '@stylo/core/model.js';
+import { exportHtml, generateCode, toCssText, safeIdent, isSafeCssValue } from '@stylo/core/css.js';
+import { sanitizeDoc } from '@stylo/core/validate.js';
+import { buildSampleShowcase } from '@stylo/core/sample-vitrine.js';
 
 const HOSTIL = 'normal;}</style><script>alert(1)</script>';
 const perigoso = (html) => /<script|<\/style>\s*</i.test(html.replace(/<\/style>\s*<\/head>/i, ''));

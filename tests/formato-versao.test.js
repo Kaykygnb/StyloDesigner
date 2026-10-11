@@ -2,9 +2,9 @@
 // deste Stylo abre com aviso (nada some em silêncio); a vitrine e um documento novo estão na versão atual.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FORMAT_VERSION, makeDoc } from '../src/model.js';
-import { sanitizeDoc } from '../src/validate.js';
-import { buildSampleShowcase } from '../src/sample-vitrine.js';
+import { FORMAT_VERSION, makeDoc } from '@stylo/core/model.js';
+import { sanitizeDoc } from '@stylo/core/validate.js';
+import { buildSampleShowcase } from '@stylo/core/sample-vitrine.js';
 
 test('FORMAT_VERSION existe e o documento novo e a vitrine estão nela', () => {
   assert.equal(typeof FORMAT_VERSION, 'number');

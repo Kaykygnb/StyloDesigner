@@ -1,7 +1,7 @@
 // Autocompletar do editor de código (src/codeassist.js): sugestões por contexto em CSS e HTML, busca fuzzy e Emmet.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { completeCss, completeHtml, expandEmmet, emmetAbbrBefore, fuzzyMatch, scanCss, openTags, CARET, CSS_PROPERTIES } from '../src/codeassist.js';
+import { completeCss, completeHtml, expandEmmet, emmetAbbrBefore, fuzzyMatch, scanCss, openTags, CARET, CSS_PROPERTIES } from '@stylo/core/codeassist.js';
 
 /** Roda o autocompletar com o cursor onde está o "|". */
 const at = (fn, text, opts) => {

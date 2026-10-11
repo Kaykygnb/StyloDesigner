@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { boundedUtf8Chunk } from '../src/agent/content.js';
+import { boundedUtf8Chunk } from '@stylo/core/tools/content.js';
 
 test('trechos UTF-8 respeitam o limite e remontam sem corromper caracteres', () => {
   const text = `A😀${'é'.repeat(700)}fim`;

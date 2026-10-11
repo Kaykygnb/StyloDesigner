@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertCurrentImageTarget } from '../src/agent/runner.js';
+import { assertCurrentImageTarget } from '@stylo/core/tools/runner.js';
 
 test('resultado lento de imagem só pode aplicar na mesma camada, documento e origem', () => {
   const node = { id: 'imagem-1', fill: { type: 'image', assetId: 'asset-1' } };

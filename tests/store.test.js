@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../src/store.js';
-import { makeDoc, createNode, setBreakpoints, BREAKPOINTS, DEFAULT_BREAKPOINTS, bpView } from '../src/model.js';
-import { generateCode } from '../src/css.js';
+import { createStore } from '@stylo/core/store.js';
+import { makeDoc, createNode, setBreakpoints, BREAKPOINTS, DEFAULT_BREAKPOINTS, bpView } from '@stylo/core/model.js';
+import { generateCode } from '@stylo/core/css.js';
 
 const deferred = () => {
   let resolve;

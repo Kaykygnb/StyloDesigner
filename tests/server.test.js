@@ -18,9 +18,9 @@ async function unusedPort() {
 test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t) => {
   // codex: escolhe uma porta livre e espera o servidor ficar pronto para evitar colisões entre execuções.
   const port = await unusedPort();
-  const serverPath = fileURLToPath(new URL('../server.js', import.meta.url));
+  const serverPath = fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url));
   const child = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, PORT: String(port), STYLO_DEV: '1' },
     stdio: 'ignore',
   });
   t.after(() => child.kill());
@@ -63,7 +63,7 @@ test('salvar acusa conflito mesmo com a MESMA data (disco exFAT/FAT de data gros
   const configFile = join(dir, 'config.json');
   await writeFile(configFile, JSON.stringify({ folder: join(dir, 'projetos') }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../server.js', import.meta.url))], {
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: configFile }, stdio: 'ignore',
   });
   t.after(async () => { child.kill(); await rm(dir, { recursive: true, force: true }); });

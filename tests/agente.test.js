@@ -3,10 +3,10 @@
 // Assistente, fica em tests/e2e/agente-mcp.mjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleMcp, PROTOCOL_VERSIONS } from '../server/mcp.js';
-import { AGENT_TOOLS, openAiTools, mcpTools } from '../src/agent/schema.js';
-import { applyProps, summarize, describeCall, PROPS, createRunner } from '../src/agent/runner.js';
-import { createNode } from '../src/model.js';
+import { handleMcp, PROTOCOL_VERSIONS } from '@stylo/server/mcp.js';
+import { AGENT_TOOLS, openAiTools, mcpTools } from '@stylo/core/tools/schema.js';
+import { applyProps, summarize, describeCall, PROPS, createRunner } from '@stylo/core/tools/runner.js';
+import { createNode } from '@stylo/core/model.js';
 
 const rpc = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
 
@@ -111,7 +111,7 @@ test('summarize e describeCall: resumo curto para a IA e frase clara para a jane
 });
 
 test('provedores: OpenAI, NVIDIA NIM e Ollama reconhecidos pelo endereço; locais não pedem chave', async () => {
-  const { PROVIDERS, providerOf, isLocalUrl } = await import('../src/agent/providers.js');
+  const { PROVIDERS, providerOf, isLocalUrl } = await import('@stylo/server/providers.js');
   assert.deepEqual(PROVIDERS.map((p) => p.id), ['openai', 'nvidia', 'ollama']);
   assert.equal(providerOf('https://integrate.api.nvidia.com/v1/').id, 'nvidia');
   assert.equal(providerOf('https://exemplo.com/v1'), null);
@@ -139,7 +139,7 @@ test('applyProps: fill ligado a um estilo de cor do projeto; estilo inexistente 
 });
 
 test('ícones do Google: busca em português e conferência do nome (o agente usa isso)', async () => {
-  const { searchIcons, iconExists } = await import('../src/icons.js');
+  const { searchIcons, iconExists } = await import('@stylo/core/icons.js');
   assert.equal(searchIcons('carrinho')[0], 'shopping_cart');
   assert.equal(searchIcons('casa')[0], 'home');
   assert.ok(iconExists('local_pizza'));

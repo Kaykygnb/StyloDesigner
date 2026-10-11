@@ -2,8 +2,8 @@
 // A parte que usa o DOM (importSvg) é testada no navegador em tests/e2e/svg-icones-fontes.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePathD, arcToCubics, parseTransform, transformContours, contoursBounds, parseColor, multiply } from '../src/svgimport.js';
-import { nodePathData } from '../src/css.js';
+import { parsePathD, arcToCubics, parseTransform, transformContours, contoursBounds, parseColor, multiply } from '@stylo/core/svgimport.js';
+import { nodePathData } from '@stylo/core/css.js';
 
 const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
 
@@ -98,7 +98,7 @@ test('vetor com contornos extras gera um `d` com todos', () => {
 });
 
 test('nomes de fonte "técnicos" (como o Illustrator exporta) viram família + peso + itálico', async () => {
-  const { resolveFontName } = await import('../src/svgimport.js');
+  const { resolveFontName } = await import('@stylo/core/svgimport.js');
   assert.deepEqual(resolveFontName("'Poppins-Bold'"), { family: 'Poppins', weight: 700 });
   assert.deepEqual(resolveFontName('OpenSans-SemiBoldItalic'), { family: 'Open Sans', weight: 600, italic: true });
   assert.deepEqual(resolveFontName('Montserrat-Regular'), { family: 'Montserrat', weight: 400 });

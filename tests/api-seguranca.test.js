@@ -26,7 +26,7 @@ async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-seg-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../server.js', import.meta.url))], {
+  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
     stdio: 'ignore',
   });

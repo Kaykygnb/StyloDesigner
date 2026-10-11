@@ -1,7 +1,7 @@
 // Paletas de cor próprias: funções puras (normalizar, criar, parse de texto, cores do projeto, CSS, limpeza).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeHex, makePalette, addColor, removeColor, parseColors, docColors, paletteCss, sanitize, slug, MAX_COLORS } from '../src/palettes.js';
+import { normalizeHex, makePalette, addColor, removeColor, parseColors, docColors, paletteCss, sanitize, slug, MAX_COLORS } from '@stylo/core/palettes.js';
 
 test('normalizeHex: aceita 3 e 6 dígitos, com ou sem #, e rejeita o resto', () => {
   assert.equal(normalizeHex('#abc'), '#AABBCC');

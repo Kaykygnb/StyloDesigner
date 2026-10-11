@@ -1,10 +1,10 @@
 // Código à mão: sanitização do HTML, CSS da página (canvas e exportação), atributos HTML e o CSS da camada editado.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNode, defaultLayout } from '../src/model.js';
-import { exportHtml, generateCode } from '../src/css.js';
-import { sanitizeHtml, safeUrl, scopeSelector, scopePageCss, safePageCss, lintCss, htmlAttrs, cleanId, cleanClasses } from '../src/html.js';
-import { applyLayerCss, lintLayerCss, layerCssText, parseColor } from '../src/cssedit.js';
+import { createNode, defaultLayout } from '@stylo/core/model.js';
+import { exportHtml, generateCode } from '@stylo/core/css.js';
+import { sanitizeHtml, safeUrl, scopeSelector, scopePageCss, safePageCss, lintCss, htmlAttrs, cleanId, cleanClasses } from '@stylo/core/html.js';
+import { applyLayerCss, lintLayerCss, layerCssText, parseColor } from '@stylo/core/cssedit.js';
 
 test('sanitizeHtml remove script, on*, javascript: e iframe sem https', () => {
   const { html, removed } = sanitizeHtml(`<div onclick="x()"><script>alert(1)</script><p>Oi</p>
@@ -156,7 +156,7 @@ test('lintLayerCss e parseColor', () => {
 });
 
 test('painel Design volta a mandar: a edição tira do CSS livre só o que mudou', async () => {
-  const { releaseOverrides } = await import('../src/cssedit.js');
+  const { releaseOverrides } = await import('@stylo/core/cssedit.js');
   const n = { customCss: 'width: 500px;\nborder-radius: 40px;\ninset: 0;' };
   const freed = releaseOverrides(n, { width: '200px', left: '10px' }, { width: '320px', left: '30px' });
   assert.deepEqual(freed.sort(), ['inset', 'width']);

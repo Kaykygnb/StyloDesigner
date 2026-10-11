@@ -22,7 +22,7 @@ if (!fontsJson || !codepoints) {
   console.error('uso: node scripts/gerar-listas-google.mjs <api-response.json> <arquivo.codepoints>');
   process.exit(1);
 }
-const out = (name) => fileURLToPath(new URL(`../src/data/${name}`, import.meta.url));
+const out = (name) => fileURLToPath(new URL(`../packages/core/src/data/${name}`, import.meta.url));
 
 // ---------------------------------------------------------------- fontes
 // As mais usadas primeiro (a lista do Google vem em ordem alfabética); o resto em ordem alfabética.
