@@ -6,7 +6,7 @@
  * poder crescer sem quebrar. Ver model.ts para os valores padrão e a explicação de cada campo.
  */
 
-export type LayerType = 'frame' | 'rect' | 'ellipse' | 'text' | 'group' | 'line' | 'path' | 'section' | 'html';
+export type LayerType = 'frame' | 'rect' | 'ellipse' | 'text' | 'group' | 'line' | 'path' | 'section' | 'html' | 'media';
 
 export interface GradientStop { color: string; opacity: number; pos: number }
 
@@ -82,6 +82,12 @@ export interface LayerNode {
   textAlign?: string; textDecoration?: string; textTransform?: string; textVAlign?: string;
   points?: PathPoint[]; closed?: boolean; vw?: number; vh?: number;
   html?: string;
+  mediaKind?: 'video' | 'audio' | 'model3d' | 'lottie';
+  mediaAssetId?: string;
+  mediaAutoplay?: boolean;
+  mediaControls?: boolean;
+  mediaLoop?: boolean;
+  mediaMuted?: boolean;
   /** Etiqueta HTML escolhida (div, section, h1...). */
   tag?: string;
   href?: string; alt?: string; note?: string;

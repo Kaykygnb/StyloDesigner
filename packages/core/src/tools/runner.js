@@ -37,7 +37,9 @@ const SIMPLE = [
   'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor',
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
+  'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted',
 ];
+const MEDIA_FLAGS = ['mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted'];
 /** Campos com tratamento próprio (ver applyProps). */
 const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'layout', 'tag'];
 /** Tudo que update_layer / create_layer aceitam. */
@@ -79,6 +81,10 @@ export function applyProps(node, props, ctx = {}) {
     if (!SIMPLE.includes(k)) continue;
     if (ENUMS[k] && !ENUMS[k].includes(v)) throw new Error(`${k} precisa ser um destes: ${ENUMS[k].join(', ')}.`);
     if (['text'].includes(k) && node.type !== 'text') throw new Error('text só vale para camadas de texto.');
+    if (MEDIA_FLAGS.includes(k)) {
+      if (node.type !== 'media') throw new Error(`${k} só vale para camadas de mídia (vídeo, áudio, 3D, Lottie).`);
+      if (typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);
+    }
     node[k] = v;
   }
   if ('w' in props || 'h' in props) {
@@ -244,9 +250,10 @@ export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
  * @param {object} [deps.folder]  pasta de projetos do editor (navegador)
  * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização (o navegador ou um renderizador injeta)
  * @param {((url: string) => Promise<{ bytes: Uint8Array }>)|null} [deps.fetchImage]  baixa uma imagem por endereço (o servidor injeta uma versão protegida contra SSRF)
+ * @param {((name: string) => Uint8Array|null)|null} [deps.vendor]  entrega os players de mídia (model-viewer, lottie) para o zip
  * @param {object|null} [deps.imageOps]  edição de imagem por pixel ({ editImageLocal, generativeEdit, restoreOriginal, applyImageToNode }); só existe no navegador
  */
-export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, fetchImage = null, imageOps = null }) {
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, fetchImage = null, imageOps = null, vendor = null }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -363,7 +370,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       return { file: `${slugify(n.name || 'pagina')}.html`, html: content, ...chunk };
     },
     export_site({ includeContent = false, path, maxBytes = DEFAULT_AGENT_CONTENT_BYTES, offset = 0 } = {}) {
-      const site = exportSite(store.state.doc);
+      const site = exportSite(store.state.doc, { vendor });
       const files = path ? site.files.filter((file) => file.path === path) : site.files;
       if (path && !files.length) throw new Error(`O arquivo “${path}” não existe no pacote de site.`);
       // imagens são arquivos binários em assets/: aparecem na lista (com binary:true), mas o conteúdo vai pelo zip

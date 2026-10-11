@@ -6,6 +6,7 @@ import { exportHtml } from './css.js';
 import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
 import { parseDataUrl, parseImageDataUrl } from './image-size.js';
 import { extensionFor } from './asset-kinds.js';
+import { addMediaRuntime, type VendorProvider } from './media-runtime.ts';
 
 /** Um arquivo do pacote: texto (HTML) ou bytes (imagens). */
 export interface SiteFile { path: string; content: string | Uint8Array }
@@ -29,15 +30,19 @@ export function externalizeAssets(files: SiteFile[], assets: Record<string, unkn
   const replacements: [string, string][] = [];
   const out = new Map<string, Uint8Array>();
   for (const src of Object.values(assets)) {
-    if (typeof src !== 'string' || !src.startsWith('data:image/')) continue;
+    if (typeof src !== 'string' || !src.startsWith('data:')) continue;
     const escaped = escapeHtml(src);
     if (!files.some((f) => typeof f.content === 'string' && (f.content.includes(src) || f.content.includes(escaped)))) continue;
-    const parsed = parseImageDataUrl(src);
+    const parsed = parseImageDataUrl(src) || (() => {
+      const any = parseDataUrl(src);
+      return any ? { bytes: any.bytes, info: { mime: any.declared || 'application/octet-stream' } } : null;
+    })();
     if (!parsed) continue;
-    const ext = IMAGE_EXT[parsed.info.mime] || 'bin';
-    let path = `assets/img-${fnv(parsed.bytes)}.${ext}`;
+    const ext = IMAGE_EXT[parsed.info.mime] || extensionFor(parsed.info.mime);
+    const prefix = String(parsed.info.mime).startsWith('image/') ? 'img' : 'media';
+    let path = `assets/${prefix}-${fnv(parsed.bytes)}.${ext}`;
     // nome igual com conteúdo diferente (colisão do hash curto, raríssimo): acrescenta o tamanho
-    if (out.has(path) && out.get(path)!.length !== parsed.bytes.length) path = `assets/img-${fnv(parsed.bytes)}-${parsed.bytes.length}.${ext}`;
+    if (out.has(path) && out.get(path)!.length !== parsed.bytes.length) path = `assets/${prefix}-${fnv(parsed.bytes)}-${parsed.bytes.length}.${ext}`;
     out.set(path, parsed.bytes);
     replacements.push([src, path], [escaped, path]);
   }
@@ -134,7 +139,7 @@ export function addCredits(files: SiteFile[], doc: any): SiteFile[] {
   return [...files, { path: 'CREDITS.txt', content: `Créditos dos assets usados neste site\n\n${lines.join('\n')}\n` }];
 }
 
-export function exportSite(doc, { assets = 'files' }: { assets?: 'files' | 'inline' } = {}): { files: SiteFile[]; warnings: string[] } {
+export function exportSite(doc, { assets = 'files', vendor = null }: { assets?: 'files' | 'inline'; vendor?: VendorProvider | null } = {}): { files: SiteFile[]; warnings: string[] } {
   if (!doc || !Array.isArray(doc.pages)) throw new Error('Projeto inválido: páginas não encontradas.');
   const { boards, warnings } = boardsOf(doc);
   const used = new Set();
@@ -145,6 +150,7 @@ export function exportSite(doc, { assets = 'files' }: { assets?: 'files' | 'inli
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
   if (assets === 'files') files = externalizeAssets(files, doc.assets || {});
   files = addFonts(files, doc);
+  files = addMediaRuntime(files, vendor, warnings);
   files = addCredits(files, doc);
 
   // Tela de largura FIXA maior que o menor aparelho do projeto vira rolagem horizontal no celular. Não mudamos o

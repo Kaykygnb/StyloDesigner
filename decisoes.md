@@ -223,3 +223,11 @@ interface para cadastrar chaves (hoje por `PUT /api/providers/<id>/key`); testar
 regras de trabalho e armadilhas) para outro programador continuar. **Achado de segurança:** `designer.secret` (chave de cifragem local)
 tinha sido commitado por engano; removido do controle de versão e do `.gitignore` (`*.secret`, `*.blobs/`, `designer.config.json`). A
 cópia antiga existe só no histórico local (nunca enviado ao GitHub); se algum dia o histórico for publicado, gerar nova chave.
+
+## 2026-10-11 — Mídia no projeto: players dentro do zip, sem CDN
+A camada `media` (vídeo, áudio, 3D, Lottie) já existia; faltava o site exportado funcionar. `<model-viewer>` e Lottie precisam de script:
+em vez de CDN, o zip leva `vendor/model-viewer.min.js` (@google/model-viewer 4.4.0) e `vendor/lottie_light.min.js` (lottie-web 5.13.0, mais um
+iniciador de 10 linhas) — **só** nas páginas que usam, e offline funciona. Lottie deixou de ser `<lottie-player>` (descontinuado) e virou
+`<div data-lottie-src>`. O core continua puro: `exportSite(doc, { vendor })` recebe uma função; quem lê `node_modules` é o servidor. Mídia
+dentro do projeto ≤ 25 MB (a biblioteca aceita até 200 MB): limite provisório porque o projeto ainda carrega a mídia como data URL na memória;
+a solução definitiva é guardar só a referência no documento e os bytes no armazenamento de blobs.

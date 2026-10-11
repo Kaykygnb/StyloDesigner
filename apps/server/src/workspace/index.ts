@@ -20,6 +20,7 @@ import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
 import { exportSite } from '@stylo/core/site-export.js';
+import { vendorFiles } from '../services/vendor.ts';
 import { createModelCanvas } from './model-canvas.js';
 import { fileNameFor, type Projects, type WriteEvent } from '../services/projects.js';
 import type { Notes } from '../services/notes.js';
@@ -94,7 +95,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
     entry.commands = commands;
-    entry.runner = createRunner({ store: entry.store, commands, renderImage, fetchImage });
+    entry.runner = createRunner({ store: entry.store, commands, renderImage, fetchImage, vendor: vendorFiles });
     docs.set(id, entry);
     return entry;
   }
@@ -173,7 +174,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       if (!has(actor, 'export')) throw new Error('Este agente não tem permissão de exportar.');
       const { entry } = need(sid);
       if ((await entry.store.saveNow()) === false) throw new Error('Não consegui gravar o projeto antes de exportar.');
-      const site = exportSite(entry.store.state.doc);
+      const site = exportSite(entry.store.state.doc, { vendor: vendorFiles });
       const base = `${baseUrl()}/api/projects/${encodeURIComponent(entry.file)}`;
       return {
         ok: true, file: entry.file,

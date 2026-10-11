@@ -84,7 +84,8 @@ Fluxo do MCP: agente → `/mcp` (Bearer token ou nome do programa) → `workspac
 
 ## 5. Próximos passos (por prioridade, com detalhes)
 
-### P1. Camada de mídia no projeto (o maior buraco hoje)
+### P1. Camada de mídia no projeto — **feita em grande parte (2026-10-11)**
+**Já existe:** camada `media` (vídeo, áudio, 3D, Lottie) criada por `library_use insert:true`; `update_layer` aceita `mediaAutoplay/Controls/Loop/Muted`; exportação escreve `<video>`, `<audio>`, `<model-viewer>` e `<div data-lottie-src>`, copia os arquivos para `assets/media-*` e, para 3D e Lottie, põe o player em `vendor/` (de `node_modules`, via `apps/server/src/services/vendor.ts`; `exportSite(doc, { vendor })`; sem o fornecedor avisa). Limite de 25 MB por mídia dentro do projeto. **Falta:** guardar mídia grande fora de `doc.assets` (hoje vira data URL em memória — por isso o limite), prévia no canvas do editor novo, `poster` do vídeo, e ferramenta para criar mídia a partir de URL sem passar pela biblioteca. O texto antigo abaixo descreve o plano original:
 Vídeo, áudio, 3D (`.glb`) e Lottie podem ser **buscados e guardados na biblioteca**, mas **não entram no projeto** (`library_use` recusa com mensagem clara).
 Fazer: novo tipo de camada `media` (`packages/core/src/types.ts`, `model.ts`) que aponta para um asset; no canvas aparece uma **imagem de prévia**; na exportação sai
 `<video>`, `<audio>`, `<model-viewer>` (glb) ou player Lottie, **com os arquivos copiados para `assets/`** (não como data URL: são grandes). Pontos de atenção:

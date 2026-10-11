@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { definePlugin } from '@stylo/core/plugin.ts';
 import { defineTool } from '@stylo/core/tools/schema.ts';
+import { createNode } from '@stylo/core/model.ts';
 import { MAX_BYTES, extensionFor, kindFromTool, kindToTool, sniffAsset, type AssetKindName } from '@stylo/core/asset-kinds.ts';
 import { fromBase64, toDataUrl } from '@stylo/core/image-size.ts';
 import { checkCustomSource } from './custom.ts';
@@ -36,6 +37,25 @@ const dedupeCredit = (store: any, entry: { text: string; license?: string }) => 
 
 /** Coloca os bytes de uma imagem em doc.assets (reaproveitando a que já existe) e devolve o id. */
 function putImage(store: any, bytes: Uint8Array, mime: string) {
+  const dataUrl = toDataUrl(bytes, mime);
+  const assets = store.state.doc.assets || {};
+  const existing = Object.keys(assets).find((k) => assets[k] === dataUrl);
+  if (existing) return { assetId: existing, reused: true };
+  const assetId = Math.random().toString(36).slice(2, 10);
+  store.addAsset(assetId, dataUrl);
+  return { assetId, reused: false };
+}
+
+/** Mídia dentro do PROJETO fica em memória como data URL a cada abertura: por isso o limite é bem menor que o da biblioteca. */
+export const PROJECT_MEDIA_MAX_BYTES = 25 * 1024 * 1024;
+
+export function assertFitsProject(kind: string, size: number, name = 'O arquivo') {
+  if (kind !== 'IMAGE' && size > PROJECT_MEDIA_MAX_BYTES) {
+    throw new Error(`${name} tem ${(size / 1048576).toFixed(1)} MB; dentro de um projeto o limite de mídia é ${PROJECT_MEDIA_MAX_BYTES / 1048576} MB (a biblioteca aceita mais). Use uma versão menor/comprimida.`);
+  }
+}
+
+function putProjectAsset(store: any, bytes: Uint8Array, mime: string) {
   const dataUrl = toDataUrl(bytes, mime);
   const assets = store.state.doc.assets || {};
   const existing = Object.keys(assets).find((k) => assets[k] === dataUrl);
@@ -171,10 +191,10 @@ export const assets = definePlugin({
       def: defineTool({
         name: 'library_use',
         write: true, needs: 'write',
-        description: 'COPIA um asset da biblioteca para o PROJETO ABERTO (a partir daí ele faz parte do projeto, com o crédito registrado para o CREDITS.txt do site exportado). Imagens e ícones SVG viram um asset do projeto; com insert:true já cria a camada. Fontes: use add_font. Vídeo, áudio e 3D ficam na biblioteca até existir a camada de mídia no projeto.',
+        description: 'COPIA um asset da biblioteca para o PROJETO ABERTO (a partir daí ele faz parte do projeto, com o crédito registrado para o CREDITS.txt do site exportado). Imagens e ícones SVG viram um asset do projeto; vídeo, áudio, 3D e Lottie viram assets e, com insert:true, uma camada de mídia. Fontes: use add_font.',
         input: z.object({
           id: z.string().describe('id devolvido por library_list'),
-          insert: z.boolean().describe('se true, já cria a camada de imagem').optional(),
+          insert: z.boolean().describe('se true, já cria a camada correspondente no projeto').optional(),
           name: z.string().describe('nome da camada criada').optional(),
           parent_id: z.string().optional(),
           at: z.object({ x: z.number(), y: z.number() }).optional(),
@@ -184,16 +204,28 @@ export const assets = definePlugin({
       run: async ({ id, insert, name, parent_id, at }, ctx) => {
         const { asset, data } = await svc(ctx).library.bytes(ctx.actor.userId, String(id));
         const sniff = sniffAsset(data, asset.mime);
-        if (sniff.kind !== 'IMAGE') {
-          throw new Error(sniff.kind === 'FONT' ? 'Fontes entram no projeto com add_font.' : `Assets de ${kindToTool(sniff.kind)} ainda não podem ser colocados no projeto (a camada de mídia está a caminho); ficam guardados na biblioteca.`);
-        }
         const store = ctx.project!.store;
-        const { assetId, reused } = putImage(store, data, sniff.mime);
+        if (sniff.kind === 'FONT') throw new Error('Fontes entram no projeto com add_font.');
+        if (!['IMAGE', 'VIDEO', 'AUDIO', 'MODEL3D', 'LOTTIE'].includes(sniff.kind)) throw new Error(`O tipo ${kindToTool(sniff.kind)} não pode ser usado no projeto.`);
+        assertFitsProject(sniff.kind, data.length, `“${asset.name}”`);
+        const { assetId, reused } = putProjectAsset(store, data, sniff.mime);
         if (asset.credit) dedupeCredit(store, { text: asset.credit, license: asset.license?.name });
-        const out: Record<string, unknown> = { asset_id: assetId, reused, name: asset.name, width: sniff.width, height: sniff.height, _summary: `Usou “${asset.name}” da biblioteca` };
+        const out: Record<string, unknown> = { asset_id: assetId, reused, name: asset.name, kind: kindToTool(sniff.kind), width: sniff.width, height: sniff.height, _summary: `Usou “${asset.name}” da biblioteca` };
         if (insert) {
-          const node = await ctx.project!.commands.insertImageAsset(assetId, at, { parentId: parent_id || null, name: name || asset.name });
-          out.created = { id: node.id, name: node.name, w: node.w, h: node.h };
+          if (sniff.kind === 'IMAGE') {
+            const node = await ctx.project!.commands.insertImageAsset(assetId, at, { parentId: parent_id || null, name: name || asset.name });
+            out.created = { id: node.id, name: node.name, w: node.w, h: node.h };
+          } else {
+            const node = createNode('media', { name: name || asset.name, mediaKind: kindToTool(sniff.kind) as 'video' | 'audio' | 'model3d' | 'lottie', mediaAssetId: assetId, w: sniff.width || 320, h: sniff.height || 180 });
+            const parent = parent_id ? store.get(parent_id) : null;
+            if (parent_id && !parent) throw new Error(`Frame "${parent_id}" não existe.`);
+            store.update((page) => {
+              if (parent) parent.children.push(node); else page.children.push(node);
+            });
+            store.setSelection([node.id]);
+            store.commit();
+            out.created = { id: node.id, name: node.name, w: node.w, h: node.h };
+          }
         }
         return out;
       },

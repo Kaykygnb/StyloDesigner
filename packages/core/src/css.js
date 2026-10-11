@@ -959,7 +959,7 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       ? String(node.photoCredit.attribution || `${node.photoCredit.author || 'Autor'} · ${node.photoCredit.license || ''}`)
       : '';
     const htmlNode = photoAttribution ? { ...node, title: [node.title, photoAttribution].filter(Boolean).join(' · ') } : node;
-    const hasKids = node.type !== 'text' && node.type !== 'path' && (node.children || []).length > 0;
+    const hasKids = !['text', 'path', 'media'].includes(node.type) && (node.children || []).length > 0;
     // classes: a gerada + as extras escritas pela pessoa; depois id, title, role, target/rel... (html.js → htmlAttrs)
     const extra = cleanClasses(node.classes).filter((c) => c !== cls);
     const attrs = ` class="${[cls, ...extra].join(' ')}"`
@@ -979,6 +979,16 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     }
     if (node.type === 'path') {
       return `${noteHtml}${creditHtml}${pad}<${tag}${attrs}>\n${pad}  ${pathSvg(node, assets)}\n${pad}</${tag}>`;
+    }
+    if (node.type === 'media') {
+      const src = typeof node.mediaAssetId === 'string' ? assets?.[node.mediaAssetId] : '';
+      const safeSrc = typeof src === 'string' && (src.startsWith('data:') || src.startsWith('https://') || src.startsWith('./') || src.startsWith('assets/')) ? src : '';
+      const kind = node.mediaKind || 'video';
+      const mediaAttrs = `${node.mediaControls !== false ? ' controls' : ''}${node.mediaAutoplay ? ' autoplay' : ''}${node.mediaLoop ? ' loop' : ''}${node.mediaMuted ? ' muted' : ''}`;
+      if (kind === 'audio') return `${noteHtml}${creditHtml}${pad}<audio${attrs}${mediaAttrs} src="${escapeHtml(safeSrc)}"></audio>`;
+      if (kind === 'model3d') return `${noteHtml}${creditHtml}${pad}<model-viewer${attrs} src="${escapeHtml(safeSrc)}"${node.mediaControls !== false ? ' camera-controls' : ''}></model-viewer>`;
+      if (kind === 'lottie') return `${noteHtml}${creditHtml}${pad}<div${attrs} data-lottie-src="${escapeHtml(safeSrc)}"${node.mediaAutoplay ? ' data-autoplay' : ''}${node.mediaLoop ? ' data-loop' : ''}></div>`;
+      return `${noteHtml}${creditHtml}${pad}<video${attrs}${mediaAttrs} src="${escapeHtml(safeSrc)}"></video>`;
     }
     // CÓDIGO HTML escrito à mão: vai limpo (html.js → sanitizeHtml) dentro da caixa da camada
     if (node.type === 'html') {

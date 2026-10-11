@@ -273,7 +273,7 @@ test('library_add: arquivo próprio por base64 ou endereço; tipo pelo conteúdo
   await t.close();
 });
 
-test('library_use: copia para o projeto (asset + camada + crédito); vídeo ainda não entra; add_font hospeda a fonte no projeto', async () => {
+test('library_use: copia imagem e mídia para o projeto; add_font hospeda a fonte no projeto', async () => {
   const t = await setup();
   const a = await t.actor();
   t.files.set('https://img.test/gato.png', PNG);
@@ -296,7 +296,10 @@ test('library_use: copia para o projeto (asset + camada + crédito); vídeo aind
   const again = await t.call('library_use', { id: imgId }, a);
   assert.equal(again.asset_id, used.asset_id, 'mesma imagem, mesmo asset');
   assert.equal(again.reused, true);
-  assert.match((await t.call('library_use', { id: vidId }, a)).error, /camada de mídia/);
+  const video = await t.call('library_use', { id: vidId, insert: true, name: 'Vídeo do mar' }, a);
+  assert.equal(video.error, undefined, video.error);
+  assert.equal(video.kind, 'video');
+  assert.equal(video.created.name, 'Vídeo do mar');
 
   // fonte: pesos 400 e 700 no alfabeto padrão, hospedados no projeto
   const font = await t.call('add_font', { id: 'inter', weights: [400, 700] }, a);
@@ -351,4 +354,11 @@ test('fontes cadastradas pela pessoa (sem código): validação, busca por mapa 
   await t.call('asset_source_remove', { name: 'Minha Loja' }, a);
   assert.equal((await t.call('asset_providers', {}, a)).providers.some((p: any) => p.custom), false);
   await t.close();
+});
+
+test('mídia dentro do projeto tem limite próprio (menor que o da biblioteca); imagem segue o dela', async () => {
+  const { assertFitsProject } = await import('@stylo/plugins/assets/index.ts');
+  assert.doesNotThrow(() => assertFitsProject('VIDEO', 25 * 1024 * 1024));
+  assert.throws(() => assertFitsProject('VIDEO', 26 * 1024 * 1024, 'clip'), /clip.*limite de mídia é 25 MB/);
+  assert.doesNotThrow(() => assertFitsProject('IMAGE', 30 * 1024 * 1024));
 });

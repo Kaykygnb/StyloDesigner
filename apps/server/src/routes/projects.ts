@@ -13,6 +13,7 @@
 
 import { Hono } from 'hono';
 import { exportSite } from '@stylo/core/site-export.js';
+import { vendorFiles } from '../services/vendor.ts';
 import { createZip } from '@stylo/core/zip.js';
 import { httpError } from '../http-error.js';
 import type { Services } from '../context.js';
@@ -57,7 +58,7 @@ export function projectRoutes(s: Services, id: Identity) {
   r.get('/projects/:file/site.zip', async (c) => {
     const name = checkName(c.req.param('file'));
     const { doc } = await s.projects.load(await id.userOf(c), name);
-    const site = exportSite(doc);
+    const site = exportSite(doc, { vendor: vendorFiles });
     const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
     return c.body(zip, 200, {
       'Content-Type': 'application/zip',

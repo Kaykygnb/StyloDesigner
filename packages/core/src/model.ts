@@ -123,7 +123,7 @@ export function htmlTagIn(node: LayerNode, ancestors: string[] = []) {
  */
 export const TYPE_LABEL = {
   frame: 'Frame', rect: 'Retângulo', ellipse: 'Elipse', text: 'Texto', group: 'Grupo',
-  line: 'Linha', path: 'Vetor', section: 'Seção', html: 'Código HTML',
+  line: 'Linha', path: 'Vetor', section: 'Seção', html: 'Código HTML', media: 'Mídia',
 };
 
 /**
@@ -316,6 +316,15 @@ export function createNode(type: LayerType, props: Partial<LayerNode> = {}): Lay
       w: 60, h: 22,
       fill: defaultFill('#111111'),
     });
+  } else if (type === 'media') {
+    node.w = 320; node.h = 180;
+    node.fill = { ...defaultFill(), type: 'none' };
+    node.mediaKind = 'video';
+    node.mediaAssetId = '';
+    node.mediaControls = true;
+    node.mediaAutoplay = false;
+    node.mediaLoop = false;
+    node.mediaMuted = false;
   } else if (type === 'ellipse') {
     node.fill = defaultFill('#D9D9D9');
   } else if (type === 'html') {

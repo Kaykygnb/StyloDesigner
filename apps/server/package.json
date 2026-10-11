@@ -11,11 +11,13 @@
     "./*": "./src/*"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.4.0",
     "@hono/node-server": "^2.1.4",
     "@modelcontextprotocol/sdk": "^1.32.1",
+    "@stylo/plugins": "*",
     "hono": "^4.13.13",
     "linkedom": "^0.18.13",
-    "@stylo/plugins": "*",
+    "lottie-web": "^5.13.0",
     "playwright-core": "^1.58.0",
     "undici": "^8.11.2"
   }
