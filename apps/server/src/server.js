@@ -35,7 +35,11 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { handleMcp } from './mcp.js';
 import { httpError } from './http-error.js';
-import { createProjects, checkName } from './projects.js';
+import { openDb } from './db.js';
+import { createProjects, checkName } from './services/projects.js';
+import { createAuth } from './services/auth.js';
+import { createAgents } from './services/agents.js';
+import { createOperations } from './services/operations.js';
 import { createWorkspace } from './workspace/index.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { createWebHandler } from './web.js';
@@ -80,10 +84,25 @@ async function loadConfig() {
 }
 /** Configuração atual, carregada uma vez ao iniciar e atualizada pelo PUT /api/config. */
 let config = await loadConfig();
-/** Arquivos de projeto na pasta (server/projects.js); depois de cada gravação os editores abertos são avisados. */
-const projects = createProjects({ getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
+/**
+ * BANCO (server/db.ts): DATABASE_URL = Postgres; sem ele, PGlite (Postgres embutido) numa pasta ao lado da configuração.
+ * Tudo que persiste mora aqui: contas, agentes, projetos, versões, log de operações.
+ */
+const dbDir = process.env.DESIGNER_DB_DIR || configFile.replace(/(\.config)?\.json$/i, '') + '.db';
+const { db, close: closeDb } = await openDb({ dir: dbDir });
+const auth = createAuth(db);
+const agents = createAgents(db);
+const operations = createOperations(db);
+/** 'local' = sem login (servidor só desta máquina; tudo age como o usuário local). 'accounts' = contas e senha. */
+const AUTH_MODE = process.env.STYLO_AUTH === 'accounts' ? 'accounts' : 'local';
+const localUser = await auth.localUser();
+/** Projetos no banco (server/services/projects.ts); depois de cada gravação os editores abertos são avisados. */
+const projects = createProjects({ db, getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
 /** Projetos abertos no servidor: é aqui que o MCP trabalha, sem precisar de navegador (server/workspace). */
-const workspace = createWorkspace({ projects, baseUrl: () => `http://localhost:${port}` });
+const workspace = createWorkspace({
+  projects, baseUrl: () => `http://localhost:${port}`,
+  onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },
+});
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
 
 /** Conta local salva (sempre completa; arquivo ausente ou corrompido = conta vazia). */
@@ -156,6 +175,25 @@ const localHost = (host = '') => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.te
 const OWN_ORIGINS = [`http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://[::1]:${port}`];
 const localOrigin = (origin) => !origin || OWN_ORIGINS.includes(String(origin).toLowerCase());
 
+// ---------------------------------------------------------------- identidade
+const bearerOf = (req) => (/^Bearer\s+(\S+)$/i.exec(String(req.headers.authorization || '')) || [])[1] || '';
+const cookieOf = (req, name) => (String(req.headers.cookie || '').split(/;\s*/).map((c) => c.split('=')).find(([k]) => k === name) || [])[1] || '';
+/** A pessoa dona deste pedido: no modo local, o usuário local; com contas, quem tem a sessão (cookie ou Bearer). */
+async function userOf(req) {
+  if (AUTH_MODE === 'local') return localUser;
+  const user = await auth.userFromToken(bearerOf(req) || cookieOf(req, 'stylo_session'));
+  if (!user) throw httpError(401, 'Entre com a sua conta.');
+  return user;
+}
+const ownerOf = async (req) => {
+  const user = await userOf(req);
+  if (user.role !== 'OWNER') throw httpError(403, 'Só a conta mestre faz isto.');
+  return user;
+};
+/** Política de entrada de agentes sem token: configurável; padrão aberta no modo local e fechada com contas. */
+const agentPolicy = () => ['open', 'approval', 'closed'].includes(config.mcp?.agentPolicy) ? config.mcp.agentPolicy : AUTH_MODE === 'local' ? 'open' : 'closed';
+const sessionCookie = (token, maxAge) => `stylo_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+
 // ---------------------------------------------------------------- API
 /**
  * Rotas da API (todas respondem JSON):
@@ -213,14 +251,62 @@ async function api(req, res, path) {
   // quem está no projeto agora (pessoas com o editor aberto e agentes do MCP) e o que fizeram por último
   if (parts[0] === 'presence' && req.method === 'GET') return sendJson(res, 200, presence.snapshot());
 
-  if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await projects.list());
+  // ---- contas, login e agentes
+  if (parts[0] === 'auth') {
+    if (parts[1] === 'state' && req.method === 'GET') {
+      const user = AUTH_MODE === 'local' ? localUser : await auth.userFromToken(bearerOf(req) || cookieOf(req, 'stylo_session'));
+      return sendJson(res, 200, { mode: AUTH_MODE, hasAccounts: AUTH_MODE === 'local' ? true : await auth.hasAccounts(), user });
+    }
+    if (AUTH_MODE === 'local') throw httpError(404, 'Este servidor está no modo local (sem login). Ligue STYLO_AUTH=accounts para usar contas.');
+    if (parts[1] === 'setup' && req.method === 'POST') {
+      const b = await jsonObject(req);
+      await auth.setup({ email: String(b.email || ''), name: String(b.name || ''), password: String(b.password || '') });
+      const { token, user } = await auth.login(String(b.email), String(b.password));
+      res.setHeader('Set-Cookie', sessionCookie(token, 30 * 86400));
+      return sendJson(res, 201, { user, token });
+    }
+    if (parts[1] === 'login' && req.method === 'POST') {
+      const b = await jsonObject(req);
+      const { token, user } = await auth.login(String(b.email || ''), String(b.password || ''));
+      res.setHeader('Set-Cookie', sessionCookie(token, 30 * 86400));
+      return sendJson(res, 200, { user, token });
+    }
+    if (parts[1] === 'logout' && req.method === 'POST') {
+      await auth.logout(bearerOf(req) || cookieOf(req, 'stylo_session'));
+      res.setHeader('Set-Cookie', sessionCookie('', 0));
+      return sendJson(res, 200, { ok: true });
+    }
+  }
+  if (parts[0] === 'me' && req.method === 'GET') return sendJson(res, 200, await userOf(req));
+  if (parts[0] === 'users' && parts.length === 1) {
+    await ownerOf(req);
+    if (req.method === 'GET') return sendJson(res, 200, await auth.users());
+    if (req.method === 'POST') {
+      const b = await jsonObject(req);
+      return sendJson(res, 201, await auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password: String(b.password || '') }));
+    }
+  }
+  if (parts[0] === 'agents') {
+    const owner = await ownerOf(req);
+    if (parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await agents.list());
+    if (parts.length === 1 && req.method === 'POST') {
+      const b = await jsonObject(req);
+      return sendJson(res, 201, await agents.create(owner.id, { name: String(b.name || ''), scopes: Array.isArray(b.scopes) ? b.scopes.map(String) : undefined }));
+    }
+    if (parts.length === 3 && parts[2] === 'approve' && req.method === 'POST') return sendJson(res, 200, await agents.approve(parts[1]));
+    if (parts.length === 3 && parts[2] === 'revoke' && req.method === 'POST') return sendJson(res, 200, await agents.revoke(parts[1]));
+  }
+
+  // ---- projetos
+  if (parts[0] === 'projects' && parts.length === 1 && req.method === 'GET') return sendJson(res, 200, await projects.list(await userOf(req)));
 
   if (parts[0] === 'projects' && parts[1]) {
+    const user = await userOf(req);
     const name = checkName(parts[1]);
     if (parts.length === 2 && req.method === 'GET') {
-      const { data, modified, contentHash } = await projects.read(name);
+      const { doc, modified, contentHash } = await projects.load(user, name);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Modified': String(modified), 'X-Content-Hash': contentHash });
-      return res.end(data);
+      return res.end(JSON.stringify(doc));
     }
     if (parts.length === 2 && req.method === 'PUT') {
       const text = await readBody(req, MAX_BODY);
@@ -228,9 +314,9 @@ async function api(req, res, path) {
       try { doc = JSON.parse(text); } catch { throw httpError(400, 'O conteúdo não é JSON válido.'); }
       if (!Array.isArray(doc?.pages)) throw httpError(400, 'Isso não parece um projeto (faltam as páginas).');
       try {
-        const saved = await projects.write(name, text, {
-          base: { modified: req.headers['x-base-modified'], hash: req.headers['x-base-hash'] },
-          overwrite: req.headers['x-overwrite'] === '1', by: String(req.headers['x-editor-id'] || ''),
+        const saved = await projects.write(user, name, doc, {
+          base: { hash: String(req.headers['x-base-hash'] || '') },
+          overwrite: req.headers['x-overwrite'] === '1', by: String(req.headers['x-editor-id'] || ''), size: text.length,
         });
         return sendJson(res, 200, { ok: true, ...saved });
       } catch (err) {
@@ -240,14 +326,14 @@ async function api(req, res, path) {
     }
     if (parts[2] === 'site.zip' && parts.length === 3 && req.method === 'GET') {
       // o site inteiro em .zip (HTML estruturado, uma página por prancheta visível)
-      const { doc } = await projects.load(name);
+      const { doc } = await projects.load(user, name);
       const site = exportSite(doc);
       const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
-      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${name.replace(/.json$/i, '')}-site.zip"`, 'Cache-Control': 'no-store' });
+      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${name.replace(/\.json$/i, '')}-site.zip"`, 'Cache-Control': 'no-store' });
       return res.end(zip);
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'GET') {
-      const data = await projects.readThumb(name);
+      const svg = await projects.readThumb(user, name);
       // SVG pode conter <script>: a política de segurança abaixo impede que rode, mesmo se alguém abrir a URL direto
       res.writeHead(200, {
         'Content-Type': 'image/svg+xml',
@@ -255,21 +341,25 @@ async function api(req, res, path) {
         'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'",
         'X-Content-Type-Options': 'nosniff',
       });
-      return res.end(data);
+      return res.end(svg);
     }
     if (parts[2] === 'thumb' && parts.length === 3 && req.method === 'PUT') {
       const { svg } = await jsonObject(req, MAX_MEDIUM);
-      await projects.writeThumb(name, svg);
+      await projects.writeThumb(user, name, svg);
       return sendJson(res, 200, { ok: true });
     }
     if (parts[2] === 'rename' && parts.length === 3 && req.method === 'POST') {
       const { to } = await jsonObject(req);
-      return sendJson(res, 200, { ok: true, ...(await projects.rename(name, to)) });
+      return sendJson(res, 200, { ok: true, ...(await projects.rename(user, name, to)) });
     }
     if (parts[2] === 'versions' && parts.length <= 4 && req.method === 'GET') {
-      if (parts.length === 3) return sendJson(res, 200, await projects.versions(name));
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(await projects.readVersion(name, parts[3]));
+      if (parts.length === 3) return sendJson(res, 200, await projects.versions(user, name));
+      return sendJson(res, 200, await projects.readVersion(user, name, parts[3]));
+    }
+    if (parts[2] === 'activity' && parts.length === 3 && req.method === 'GET') {
+      const { id } = await projects.load(user, name);
+      const limit = Number(new URL(req.url, 'http://x').searchParams.get('limit')) || 50;
+      return sendJson(res, 200, await operations.list(id, { limit }));
     }
   }
   throw httpError(404, 'Rota não encontrada.');
@@ -358,7 +448,8 @@ async function callAgentTool(sid, state, tool, args, name, signal) {
   }
   broadcastPresence();
   try {
-    const out = await workspace.call(tool, args, { sid, client: name, signal });
+    const actor = { type: 'AGENT', userId: state.agent.ownerId, agentId: state.agent.id, name, scopes: state.agent.scopes };
+    const out = await workspace.call(tool, args, { sid, actor, signal });
     presence.done(sid, tool, def?.write ? (out?._summary || `usou ${tool}`) : null, !(out?.error || out?.refused));
     return out;
   } catch (err) {
@@ -412,6 +503,14 @@ async function mcpRoute(req, res) {
     return sendJson(res, 429, { error: `Há ${MAX_MCP_SESSIONS} sessões MCP abertas. Feche alguma (DELETE /mcp com Mcp-Session-Id) ou aguarde 10 min sem uso.` });
   }
   const session = mcpSessions.get(sid) || { activeCalls: 0, closing: false, lastSeen: Date.now() };
+  // QUEM é o agente: token (Authorization: Bearer) ou, no modo local, o nome do programa (política de agentes)
+  const bearer = bearerOf(req);
+  if (bearer) session.agent = await agents.authenticate(bearer); // confere a cada pedido: revogar vale na hora
+  else if (!session.agent) {
+    if (AUTH_MODE === 'accounts') throw httpError(401, 'Envie o token do agente: Authorization: Bearer stylo_agt_...');
+    const init = messages.find((m) => m?.method === 'initialize');
+    session.agent = await agents.forClient(localUser.id, String(req.headers['x-stylo-agent'] || init?.params?.clientInfo?.name || 'IA externa'), agentPolicy());
+  }
   session.lastSeen = Date.now();
   mcpSessions.set(sid, session);
   const forced = String(req.headers['x-stylo-agent'] || '').slice(0, 40);
@@ -532,7 +631,16 @@ const httpServer = createServer(async (req, res) => {
 /** Entrega o editor (apps/web): arquivos de dist em produção, Vite em desenvolvimento. */
 const web = createWebHandler({ webRoot: join(root, 'apps', 'web'), httpServer });
 // escuta só em 127.0.0.1 (localhost): ninguém na sua rede consegue acessar o servidor
+let stopping = false;
+async function shutdown() {
+  if (stopping) return;
+  stopping = true;
+  try { await workspace.flushAll(); await closeDb(); } finally { process.exit(0); }
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 httpServer.listen(port, '127.0.0.1', () => {
   console.log(`\n  Stylo rodando em  http://localhost:${port}`);
-  console.log(`  Projetos salvos em           ${config.folder}\n`);
+  console.log(`  Banco de dados               ${process.env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : 'PGlite em ' + dbDir}`);
+  console.log(`  Acesso                       ${AUTH_MODE === 'local' ? 'modo local (sem login)' : 'contas e senha'}\n`);
 });

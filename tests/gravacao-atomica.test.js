@@ -46,10 +46,10 @@ test('servidor: configuração corrompida vira cópia .corrompido e o servidor s
   const { port } = probe.address();
   probe.close();
   await once(probe, 'close');
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
   t.after(() => child.kill());
   let ok = false;
-  for (let i = 0; i < 100 && !ok; i++) {
+  for (let i = 0; i < 400 && !ok; i++) {
     try { ok = (await fetch(`http://127.0.0.1:${port}/api/status`)).ok; } catch { await new Promise((r) => setTimeout(r, 25)); }
   }
   assert.ok(ok, 'o servidor sobe mesmo com a configuração quebrada');

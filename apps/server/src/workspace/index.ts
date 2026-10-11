@@ -1,0 +1,227 @@
+/**
+ * workspace/index.ts — OS PROJETOS ABERTOS NO SERVIDOR (o MCP trabalha aqui, sem navegador)
+ *
+ *   sessão MCP ──▶ workspace.call(tool, actor) ──▶ runner.run(tool) ──▶ store ──(400 ms)──▶ projects.write (banco)
+ *                                    │                                                          │
+ *                                    └─▶ onOperation (log de quem fez o quê)                     └─▶ editores abertos (SSE "project")
+ *
+ * - Cada projeto aberto é um `Doc` (store + comandos + executor). Vários agentes no mesmo projeto compartilham o Doc.
+ * - Cada sessão MCP tem um projeto "atual" e um PAPEL nele (dono, editor ou leitor). Ferramentas de escrita exigem
+ *   editor e o escopo "write" do agente.
+ * - Se OUTRO autor gravar o projeto (o editor, outra instância), o Doc é recarregado do banco: a gravação de fora
+ *   vence, e a próxima chamada da sessão recebe um `notice`.
+ * - Docs sem uso e já gravados saem da memória depois de IDLE_MS.
+ */
+
+import { createStore } from '@stylo/core/store.js';
+import { createCommands } from '@stylo/core/commands.js';
+import { createRunner } from '@stylo/core/tools/runner.js';
+import { toolByName } from '@stylo/core/tools/schema.js';
+import { makeDoc } from '@stylo/core/model.js';
+import { exportSite } from '@stylo/core/site-export.js';
+import { createModelCanvas } from './model-canvas.js';
+import { fileNameFor, type Projects, type WriteEvent } from '../services/projects.js';
+
+const IDLE_MS = 10 * 60 * 1000;
+const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip']);
+
+/** Quem está pedindo: uma pessoa ou um agente. `userId` é a conta com a qual se acessa o banco. */
+export interface Actor {
+  type: 'USER' | 'AGENT' | 'SYSTEM';
+  userId: string;
+  agentId?: string;
+  name: string;
+  /** Escopos do agente (read/write/export). Pessoas têm todos. */
+  scopes?: string[];
+}
+
+export interface OperationRecord {
+  projectId: string;
+  actor: Actor;
+  tool: string;
+  args: unknown;
+  summary: string | null;
+  layerIds: string[];
+  ok: boolean;
+}
+
+interface Doc {
+  id: string;
+  file: string;
+  ownerId: string;
+  base: { hash: string };
+  notices: string[];
+  lastUsed: number;
+  store: any;
+  runner: any;
+}
+
+export function createWorkspace({ projects, baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+  projects: Projects;
+  baseUrl?: () => string;
+  onOperation?: (op: OperationRecord) => void;
+}) {
+  /** id do projeto → Doc */
+  const docs = new Map<string, Doc>();
+  /** id da sessão MCP → projeto atual e papel nele */
+  const current = new Map<string, { id: string; role: string }>();
+
+  function mount(id: string, file: string, ownerId: string, doc: unknown, base: { hash: string }): Doc {
+    const entry: Doc = { id, file, ownerId, base, notices: [], lastUsed: Date.now(), store: null, runner: null };
+    const persist = async (record: { doc: unknown }) => {
+      // grava como o dono do projeto: o controle de quem pode escrever é feito em `call`, antes de executar a ferramenta
+      const saved = await projects.write({ id: ownerId }, entry.file, record.doc, { base: entry.base, by: 'workspace' });
+      entry.base = { hash: saved.contentHash };
+      return 'server';
+    };
+    entry.store = createStore({ initial: { doc, views: {}, theme: 'dark', link: { file, synced: true } }, persist });
+    const canvas = createModelCanvas(entry.store);
+    const commands = createCommands(entry.store, canvas);
+    entry.runner = createRunner({ store: entry.store, commands, approve: null, renderImage: null });
+    docs.set(id, entry);
+    return entry;
+  }
+
+  async function open(actor: Actor, file: string) {
+    const loaded = await projects.load({ id: actor.userId }, file);
+    if (!Array.isArray(loaded.doc?.pages) || !loaded.doc.pages.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
+    const entry = docs.get(loaded.id) ?? mount(loaded.id, file, loaded.ownerId, loaded.doc, { hash: loaded.contentHash });
+    return { entry, role: loaded.role };
+  }
+
+  /** Alguém que não é este workspace gravou o projeto: recarrega o Doc para não trabalhar sobre uma cópia velha. */
+  async function externalWrite(event: WriteEvent) {
+    if (event.by === 'workspace') return;
+    const entry = docs.get(event.projectId);
+    if (!entry) return;
+    try {
+      const loaded = await projects.load({ id: entry.ownerId }, entry.file);
+      entry.base = { hash: loaded.contentHash };
+      entry.store.loadDoc(loaded.doc, { link: { file: entry.file, synced: true }, clean: true });
+      entry.notices.push(`O projeto "${entry.file}" foi alterado por outra pessoa e foi recarregado do banco. Releia com get_document antes de continuar.`);
+    } catch { /* projeto apagado ou ilegível: o próximo save mostra o erro */ }
+  }
+
+  const need = (sid: string) => {
+    const cur = current.get(sid);
+    if (!cur) throw new Error('Nenhum projeto aberto nesta sessão. Use list_projects e open_project, ou new_project para criar um.');
+    const entry = docs.get(cur.id);
+    if (!entry) { current.delete(sid); return need(sid); }
+    return { entry, role: cur.role };
+  };
+
+  const has = (actor: Actor, scope: string) => !actor.scopes || actor.scopes.includes(scope);
+
+  /** Ferramentas de projeto: escolhem o arquivo atual da sessão (não passam pelo executor do documento). */
+  const PROJECT: Record<string, (args: any, sid: string, actor: Actor) => Promise<object>> = {
+    async list_projects(_args, sid, actor) {
+      const list = await projects.list({ id: actor.userId });
+      return { open: current.has(sid) ? docs.get(current.get(sid)!.id)?.file ?? null : null, projects: list.map((p) => ({ file: p.file, modified: new Date(p.modified).toISOString(), size: p.size })) };
+    },
+    async open_project({ file }, sid, actor) {
+      const { entry, role } = await open(actor, String(file));
+      current.set(sid, { id: entry.id, role });
+      return { ok: true, opened: entry.file, role, project: entry.store.state.doc.name };
+    },
+    async new_project({ name } = {}, sid, actor) {
+      if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
+      const file = fileNameFor(name || 'projeto');
+      if (await projects.exists({ id: actor.userId }, file)) throw new Error(`Já existe "${file}". Escolha outro nome ou use open_project.`);
+      const doc = makeDoc();
+      if (name) doc.name = String(name).slice(0, 80);
+      const saved = await projects.write({ id: actor.userId }, file, doc, { overwrite: true, by: 'workspace' });
+      const { entry, role } = await open(actor, file);
+      current.set(sid, { id: entry.id, role });
+      onOperation({ projectId: saved.projectId, actor, tool: 'new_project', args: { name }, summary: `criou o projeto "${doc.name}"`, layerIds: [], ok: true });
+      return { ok: true, file, project: doc.name };
+    },
+    async save_project({ name } = {}, sid, actor) {
+      const { entry } = need(sid);
+      if ((await entry.store.saveNow()) === false) throw new Error('Não consegui gravar o projeto.');
+      if (name) {
+        const file = fileNameFor(name);
+        if (file !== entry.file) {
+          if (await projects.exists({ id: actor.userId }, file)) throw new Error(`Já existe "${file}". Escolha outro nome.`);
+          const copy = JSON.parse(JSON.stringify(entry.store.state.doc));
+          copy.name = String(name).slice(0, 80);
+          await projects.write({ id: actor.userId }, file, copy, { overwrite: true, by: 'workspace' });
+          const { entry: next, role } = await open(actor, file);
+          current.set(sid, { id: next.id, role });
+          return { ok: true, saved: file };
+        }
+      }
+      return { ok: true, saved: entry.file };
+    },
+    async export_zip(_args, sid, actor) {
+      if (!has(actor, 'export')) throw new Error('Este agente não tem permissão de exportar.');
+      const { entry } = need(sid);
+      if ((await entry.store.saveNow()) === false) throw new Error('Não consegui gravar o projeto antes de exportar.');
+      const site = exportSite(entry.store.state.doc);
+      const base = `${baseUrl()}/api/projects/${encodeURIComponent(entry.file)}`;
+      return {
+        ok: true, file: entry.file,
+        site_zip_url: `${base}/site.zip`, project_json_url: base,
+        files: site.files.map((f: { path: string; content: string }) => ({ path: f.path, bytes: Buffer.byteLength(f.content) })), warnings: site.warnings,
+      };
+    },
+  };
+
+  /** Camadas que a chamada mexeu (para o log): ids nos argumentos e na resposta. */
+  const layerIdsOf = (args: any, out: any): string[] => {
+    const ids = new Set<string>();
+    const take = (v: unknown) => { if (typeof v === 'string' && v) ids.add(v); };
+    take(args?.id); take(args?.parent_id);
+    for (const id of args?.ids ?? []) take(id);
+    take(out?.created?.id);
+    return [...ids].slice(0, 50);
+  };
+
+  /**
+   * Executa uma ferramenta pedida por uma sessão MCP.
+   * @returns o resultado do executor ({ ok, ... } ou { error }) mais `notice` quando houver aviso
+   */
+  async function call(tool: string, args: any, { sid, actor, signal }: { sid: string; actor: Actor; signal?: AbortSignal }): Promise<any> {
+    try {
+      if (PROJECT_TOOLS.has(tool)) return { ...(await PROJECT[tool](args || {}, sid, actor)) };
+      const def = toolByName(tool);
+      const { entry, role } = need(sid);
+      if (def?.write) {
+        if (role === 'VIEWER') throw new Error('Você só pode ler este projeto.');
+        if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
+      } else if (!has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
+      entry.lastUsed = Date.now();
+      const out = await entry.runner.run(tool, args, actor.name, { external: true, admin: true, signal });
+      if (def?.write) {
+        onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error && !out?.refused });
+      }
+      if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
+      return out;
+    } catch (err: any) {
+      return { error: err.message || String(err) };
+    }
+  }
+
+  /** Solta da memória os projetos parados e já gravados. */
+  async function sweep() {
+    for (const [id, entry] of docs) {
+      if (Date.now() - entry.lastUsed < IDLE_MS) continue;
+      if ((await entry.store.saveNow()) === false) continue;
+      if ([...current.values()].some((c) => c.id === id)) continue;
+      docs.delete(id);
+    }
+  }
+  const timer = setInterval(() => sweep().catch(() => {}), 60 * 1000);
+  timer.unref();
+
+  return {
+    call,
+    externalWrite,
+    endSession: (sid: string) => { current.delete(sid); },
+    /** Gravação imediata de tudo que está pendente (desligar o servidor). */
+    flushAll: () => Promise.all([...docs.values()].map((e) => e.store.saveNow())),
+    /** Projetos abertos agora. */
+    openDocs: () => [...docs.values()].map((e) => ({ id: e.id, file: e.file, name: e.store.state.doc.name, sessions: [...current.values()].filter((c) => c.id === e.id).length })),
+  };
+}
+
+export type Workspace = ReturnType<typeof createWorkspace>;

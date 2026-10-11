@@ -91,7 +91,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
       if (browserAhead) store.touch();
       else store.ui.savedWhere = 'folder';
     } else if (!browserAhead) {
-      store.loadDoc(disk.doc, { link: { file: link.file, modified: disk.modified, contentHash: disk.contentHash, synced: true } });
+      store.loadDoc(disk.doc, { link: { file: link.file, modified: disk.modified, contentHash: disk.contentHash, synced: true }, clean: true });
       store.ui.savedWhere = 'folder';
     } else {
       link.conflict = true;
@@ -269,7 +269,7 @@ export function createSaving({ prefs, toast, thumbnail = () => null }) {
     await saveBeforeSwitch();
     const { doc, modified, contentHash } = await folder.load(file);
     if (!doc?.pages?.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
-    store.loadDoc(doc, { link: { file, modified, contentHash, synced: true } });
+    store.loadDoc(doc, { link: { file, modified, contentHash, synced: true }, clean: true });
   }
 
   /**

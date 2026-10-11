@@ -66,3 +66,20 @@ test('init restaura breakpoints personalizados, projectId e comments do projeto 
     setBreakpoints(DEFAULT_BREAKPOINTS);
   }
 });
+
+test('loadDoc com clean:true não agenda salvamento (documento recém-vindo do servidor)', async () => {
+  const { createStore } = await import('@stylo/core/store.js');
+  const { makeDoc } = await import('@stylo/core/model.js');
+  let saves = 0;
+  const store = createStore({ initial: null, persist: async () => { saves++; return 'x'; } });
+  await store.saveNow();
+  const before = saves;
+  store.loadDoc(makeDoc(), { clean: true });
+  await store.saveNow();
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(saves, before, 'nada foi gravado');
+  assert.equal(store.ui.saveState, 'saved');
+  store.loadDoc(makeDoc());
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(saves, before + 1, 'sem clean, grava como antes');
+});

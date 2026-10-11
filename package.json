@@ -14,10 +14,10 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "node apps/server/src/server.js",
+    "dev": "node --import tsx apps/server/src/server.js",
     "build": "vite build apps/web",
-    "start": "node apps/server/src/server.js",
-    "test": "node --import tsx --test tests/*.test.js tests/*.test.ts",
+    "start": "node --import tsx apps/server/src/server.js",
+    "test": "node --import tsx --import ./tests/_setup.mjs --test tests/*.test.js tests/*.test.ts",
     "test:e2e": "node tests/e2e/rodar-todos.mjs",
     "typecheck": "tsc -p packages/db",
     "db:generate": "prisma generate --config packages/db/prisma.config.ts",

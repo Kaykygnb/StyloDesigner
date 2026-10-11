@@ -26,7 +26,7 @@ async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-seg-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, [fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
     stdio: 'ignore',
   });
@@ -42,7 +42,7 @@ async function startServer(t) {
     req.on('error', (err) => (err.code === 'ECONNRESET' || err.code === 'EPIPE' ? resolve({ status: 0, text: '' }) : reject(err)));
     req.end(data);
   });
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 400; i++) {
     try { if ((await call('GET', '/api/status')).status === 200) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
   }
   // pasta de projetos TEMPORÁRIA: sem isso o servidor usaria ./projetos do repositório

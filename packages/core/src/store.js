@@ -351,7 +351,7 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
    * `link` = arquivo da pasta de onde o projeto veio ({ file, modified }); sem ele (novo, exemplo, importado),
    * o projeto fica só no navegador até você usar "Salvar na pasta" — assim um exemplo nunca sobrescreve seu arquivo.
    */
-  api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false, views, theme } = {}) => {
+  api.loadDoc = (doc, { keepAssets = false, link = null, pristine = false, views, theme, clean = false } = {}) => {
     // Migra projetos antigos uma única vez; o ID acompanha o documento, não o nome ou caminho.
     doc.assets = keepAssets ? { ...state.doc?.assets, ...doc.assets } : doc.assets || {};
     normalizeDoc(doc);
@@ -371,7 +371,8 @@ export function createStore({ initial = null, persist = async () => 'browser' } 
     docRevision++;
     history.stack = [snapshot()];
     history.i = 0;
-    scheduleSave();
+    // `clean`: o documento acabou de vir do servidor, não há nada a gravar (evita o laço "gravo, o outro recarrega e grava")
+    if (clean) { dirty = false; clearTimeout(saveTimer); state.ui.saveState = 'saved'; } else scheduleSave();
     emit('doc');
     emit('selection');
     emit('view');

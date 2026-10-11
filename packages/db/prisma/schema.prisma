@@ -54,8 +54,22 @@ model User {
   agents      Agent[]
   projects    Project[]       @relation("ProjectOwner")
   memberships ProjectMember[]
+  sessions    Session[]
   operations  Operation[]
   notes       Note[]
+}
+
+/// Sessão de login de uma pessoa (cookie ou token). Só o hash do token fica aqui.
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// Um agente de IA cadastrado (o "bolinha" da presença). Entra pelo MCP com um token; só o hash fica aqui.
@@ -86,6 +100,12 @@ model Project {
   doc       Json
   /// Sobe a cada gravação; serve para detectar edição concorrente.
   revision  Int      @default(0)
+  /// Tamanho do documento em bytes (a lista de projetos não precisa carregar o JSON).
+  size      Int      @default(0)
+  /// sha1 do JSON recebido na última gravação: gravar o mesmo conteúdo de novo não cria revisão nem versão.
+  docHash   String?
+  /// Miniatura em SVG para a página inicial.
+  thumb     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -115,6 +135,7 @@ model ProjectVersion {
   projectId String   @db.Uuid
   revision  Int
   label     String?
+  size      Int      @default(0)
   doc       Json
   createdAt DateTime @default(now())
 

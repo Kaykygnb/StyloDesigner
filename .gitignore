@@ -17,3 +17,6 @@ capturas/
 apps/web/dist/
 
 packages/db/src/generated/
+
+designer.db/
+*.db/
