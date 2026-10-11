@@ -30,6 +30,11 @@ export function targetsOf(args = {}) {
   const ids = [];
   for (const k of ['id', 'parent_id', 'component_id']) if (typeof args[k] === 'string' && args[k] !== 'root') ids.push(args[k]);
   if (Array.isArray(args.ids)) ids.push(...args.ids.filter((x) => typeof x === 'string'));
+  if (Array.isArray(args.updates)) {
+    for (const update of args.updates) {
+      if (update && typeof update === 'object' && !Array.isArray(update) && typeof update.id === 'string' && update.id !== 'root') ids.push(update.id);
+    }
+  }
   return [...new Set(ids)];
 }
 

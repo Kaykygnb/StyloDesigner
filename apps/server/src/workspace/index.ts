@@ -256,13 +256,16 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   });
 
   /** Camadas que a chamada mexeu (para o log): ids nos argumentos e na resposta. */
-  const layerIdsOf = (args: any, out: any): string[] => {
+  const layerIdsOf = (tool: string, args: any, out: any): string[] => {
     const ids = new Set<string>();
     const take = (v: unknown) => { if (typeof v === 'string' && v) ids.add(v); };
     take(args?.id); take(args?.parent_id);
     for (const id of args?.ids ?? []) take(id);
+    if (tool === 'update_layers' && Array.isArray(args?.updates)) {
+      for (const update of args.updates) take(update?.id);
+    }
     take(out?.created?.id);
-    return [...ids].slice(0, 50);
+    return [...ids].slice(0, tool === 'update_layers' ? 100 : 50);
   };
 
   /**
@@ -295,7 +298,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         if (doc && pdef.write) {
           doc.dirty = true;
           doc.store.commit(); // um passo no histórico; o servidor grava sozinho
-          onOperation({ projectId: doc.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error });
+          onOperation({ projectId: doc.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error });
         }
         const result = { ok: true, ...out };
         if (doc?.notices.length) result.notice = doc.notices.splice(0).join(' ');
@@ -335,7 +338,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
           const made = entry.store.get(out.created.id);
           if (made) { out.created.w = made.w; out.created.h = made.h; }
         }
-        onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error && !out?.refused });
+        onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
       return out;

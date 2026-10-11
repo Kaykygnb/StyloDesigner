@@ -12,6 +12,7 @@
  */
 
 import { z } from 'zod';
+import { MAX_LAYER_UPDATES } from './runner/batch.ts';
 
 z.config(z.locales.pt());
 
@@ -139,6 +140,18 @@ ${PROP_HELP}`,
     input: z.object({
       id: z.string().describe('id da camada'),
       props: z.record(z.string(), z.any()).describe('propriedades a mudar (veja a lista na descrição)'),
+    }),
+  }),
+  defineTool({
+    name: 'update_layers',
+    write: true,
+    description: `Altera de 1 a ${MAX_LAYER_UPDATES} camadas em UMA operação: updates:[{id,props},...], com propriedades iguais ou diferentes por camada. Cada id aparece uma única vez. Valida o lote inteiro antes de escrever: se um item falhar, nenhum é aplicado. Um passo de undo desfaz tudo. Mesma regra de propriedades de update_layer; itens são processados na ordem enviada e pai/filho podem estar no mesmo lote. Mudanças de modo de layout usam a geometria atual como referência. Não cria, move nem apaga camadas e não ajusta breakpoints/estados: use as ferramentas específicas. Ao alterar w/h ou layout.mode o MCP reserva o documento, pois filhos podem mudar.
+${PROP_HELP}`,
+    input: z.object({
+      updates: z.array(z.object({
+        id: z.string().min(1).describe('id da camada, obtido com get_document ou find_layers'),
+        props: z.record(z.string(), z.any()).describe('somente as propriedades a mudar nesta camada'),
+      }).strict()).min(1).max(MAX_LAYER_UPDATES).refine((updates) => new Set(updates.map((update) => update.id)).size === updates.length, { message: 'Cada id deve aparecer uma única vez no lote. Junte as propriedades dessa camada em um item.' }),
     }),
   }),
   defineTool({

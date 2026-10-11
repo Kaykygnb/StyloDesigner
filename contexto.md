@@ -95,9 +95,9 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `tokens.ts`, `media-runtime.ts` | tokens (CSS/JSON/Tailwind) · players de 3D/Lottie para o zip |
 | `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
 | `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
-| `tools/schema.ts` | **as 61 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
+| `tools/schema.ts` | **as 62 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
 | `tools/runner.ts`, `tools/runner.js` | executor central: validação, aprovação, cancelamento, commit e restauração sem apagar alterações concorrentes; `.js` só reexporta para compatibilidade |
-| `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `inspection`, `export`, `layout`, `layers`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
+| `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `inspection`, `export`, `layout`, `layers`, `batch`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. `batch` prepara cópias e publica uma atualização para `update_layers`. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
 | `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
 | `sample-vitrine.js`, `version.ts`, `validate.ts` | projeto de exemplo · versão · validação do JSON |
 
@@ -196,6 +196,8 @@ Testes que dependem do Chromium se **pulam** se ele não estiver instalado (`npx
 `tests/runner-seguranca.test.ts` cobre recusa/ausência de aprovação, administrador externo, cancelamento durante aprovação,
 restauração de falha parcial e preservação de edição concorrente. `tools/runner.js` permanece como import compatível usado pelos testes.
 `tests/image-operations.test.ts` confere pixels, transparência, formatos, bloqueio de rede, limites, fila, original, histórico e concorrência.
+`tests/update-layers.test.ts` confere atomicidade, aprovação, pai/filho e histórico; `update-layers-locks.test.ts` verifica a ponte de travas;
+`update-layers-workspace.test.ts` verifica log de 60 IDs e recusa por escopo/papel. O lote revalida após aprovação e publica uma atualização.
 
 ## 10. Estado e limites que pegam de surpresa
 

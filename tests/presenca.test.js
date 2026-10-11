@@ -7,6 +7,18 @@ test('targetsOf junta as camadas que a ferramenta vai alterar', () => {
   assert.deepEqual(targetsOf({ id: 'a', ids: ['b', 'a'], parent_id: 'root' }), ['a', 'b']);
   assert.deepEqual(targetsOf({ parent_id: 'p', component_id: 'c' }), ['p', 'c']);
   assert.deepEqual(targetsOf({}), []);
+  assert.deepEqual(targetsOf({ updates: [{ id: 'a' }, { id: 'b' }, { id: 'a' }, { id: 'root' }, null, ['c'], { id: 7 }, 'd'] }), ['a', 'b']);
+  assert.deepEqual(targetsOf({ updates: { id: 'a' } }), []);
+});
+
+test('lote com uma camada ocupada não reserva nenhuma das outras camadas', () => {
+  const p = createPresence({ now: () => 1000 });
+  p.touchAgent('a', 'A'); p.touchAgent('b', 'B'); p.touchAgent('c', 'C');
+  assert.equal(p.lock('call-a', ['ocupada'], 0, { agentId: 'a' }).ok, true);
+  const ids = targetsOf({ updates: [{ id: 'livre' }, { id: 'ocupada' }] });
+  assert.equal(p.lock('call-b', ids, 0, { agentId: 'b' }).ok, false);
+  assert.deepEqual(p.snapshot().agents.find((a) => a.id === 'b').locks, []);
+  assert.equal(p.lock('call-c', ['livre'], 0, { agentId: 'c' }).ok, true);
 });
 
 test('trava: outro agente espera; o dono continua; a trava vence sozinha', () => {

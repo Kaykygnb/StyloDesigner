@@ -1,7 +1,7 @@
 # Ferramentas do Stylo — capacidades e próximos passos
 
 Mapa em 2026-10-11. O foco é o **servidor e o MCP**; o editor legado está congelado.
-São **79 ferramentas anunciadas**: 61 do núcleo, 8 de identidade e 10 de assets. Uma delas,
+São **80 ferramentas anunciadas**: 62 do núcleo, 8 de identidade e 10 de assets. Uma delas,
 `generate_image_edit`, continua indisponível pelo MCP do servidor. Contagem não significa que todas
 as integrações foram verificadas com serviços reais: veja as ressalvas de `PASSAGEM.md`.
 
@@ -28,10 +28,15 @@ Uma caixa com aparência de campo ainda não é um controle funcional.
 
 ## 3. Ajustar e revisar alterações
 
-**Hoje:** `update_layer`, `set_responsive`, `get_project_css`, `set_project_css`, `undo`, `redo`.
+**Hoje:** `update_layer`, `update_layers`, `set_responsive`, `get_project_css`, `set_project_css`, `undo`, `redo`.
 
-**Melhorar:** alterações de várias camadas numa operação com validação antes da escrita e um
-passo de desfazer; facilitar ajustes repetidos sem substituir a folha CSS inteira.
+**Lote implementado:** `update_layers {updates:[{id,props},...]}` aceita de 1 a 100 itens com IDs únicos.
+Prepara alterações em cópias compartilhadas de pais/filhos e valida tudo antes da escrita; revalida
+após aguardar aprovação. Um passo de desfazer/refazer. Mantém a identidade dos nós vivos e registra
+todos os IDs no log. Lotes com tamanho/modo de layout reservam o documento; outros reservam os IDs.
+Não cria/move/apaga camadas nem altera breakpoints/estados; as ferramentas específicas continuam existindo.
+
+**Melhorar:** facilitar ajustes repetidos sem substituir a folha CSS inteira.
 Não é preciso criar uma ferramenta para cada propriedade: `update_layer` já renomeia uma camada.
 
 ## 4. Definir a identidade
@@ -110,7 +115,7 @@ as decisões da pessoa dona em `PASSAGEM.md`.
 ## Ordem de trabalho recomendada
 
 1. Edição local de fotos no servidor e correção das instruções antigas dos agentes — implementadas neste bloco.
-2. Ajustes em lote e busca por propriedades, para manter projetos maiores sem repetir chamadas.
+2. Ajustes em lote — implementados; busca por propriedades — próximo bloco sugerido, para localizar os alvos sem repetir consultas.
 3. Completar manutenção dos estilos e ações de componentes já existentes no núcleo.
 4. Melhorar controles, inspeção e testes de entrega a partir de telas reais montadas pelo MCP.
 5. Avaliar PDF/apresentações quando a pessoa dona fechar os novos formatos. Editor, licença e decisões de negócio não entram por autorização implícita.

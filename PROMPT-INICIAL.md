@@ -77,7 +77,7 @@ fica ligado**; qualquer agente (Claude Code, Codex, Cursor...) conecta pelo **MC
 **vê** o resultado (imagem), **audita** (responsivo, contraste, acessibilidade) e **exporta**: zip de HTML, projeto React (Vite) ou tokens do design (CSS/JSON/Tailwind).
 Pessoas usam um editor no navegador no mesmo projeto. Vai rodar localmente e também **hospedado e cobrado** (por isso banco Postgres, contas, tokens de agente).
 
-**Estado:** o servidor e as 79 ferramentas MCP funcionam e estão testados (442 testes). O **editor visual é legado e será refeito** — **não mexa nele**.
+**Estado:** há 80 ferramentas MCP anunciadas (62 do núcleo + 18 de plugins); `generate_image_edit` continua indisponível pelo MCP do servidor. O estado e os números da última suíte estão em `PASSAGEM.md`. O **editor visual é legado e será refeito** — **não mexa nele**.
 O foco é ter **todas as ferramentas e o MCP completos** primeiro, **o editor depois**.
 
 **Onde está tudo** (leia nesta ordem): `PASSAGEM.md` (estado, como começar, **decisões do dono**, próximos passos, pulados) → `contexto.md` (vocabulário, arquitetura,

@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-11**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **463 testes, 463 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **480 testes, 480 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** edição local de fotos ligada ao servidor/MCP, manual dos agentes corrigido e 79 ferramentas organizadas por grupo em `FERRAMENTAS.md`. Conferência real pelo cliente oficial MCP: importação, giro, recorte, filtro/ajuste, imagem, restauração, fundo transparente, projeto salvo, ZIP HTML, desfazer/refazer e reabertura. Usada uma imagem sintética de cores; saídas inspecionadas. Servidor encerrado depois. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco; PDF/slides continuam propostas. Limite de saída de 16 MiB e timeout não foram forçados em teste.
+**Último bloco:** `update_layers` permite ajustar até 100 camadas com IDs únicos numa operação, validação antes da escrita e um passo de desfazer/refazer. Agora 80 ferramentas anunciadas. Conferência real pelo cliente oficial MCP: quatro ajustes diferentes, lote inválido sem mudança parcial, desfazer/refazer, imagens desktop/celular, auditoria medida, log com quatro IDs e ZIP HTML. Imagem mobile inspecionada; servidor encerrado. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco. Lote não muda breakpoints/estados; comandos de layout usam a geometria atual como referência. Busca por propriedades e PDF/slides continuam pendentes/propostas.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -30,7 +30,7 @@ npm start                            # http://localhost:5173 — servidor + edit
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
 npm test                             # ~440 testes, 2–3 min
 ```
-Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **79 ferramentas**, e um cliente do SDK oficial cria
+Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **80 ferramentas**, e um cliente do SDK oficial cria
 projeto, monta uma tela (`build_layout`), audita (`check_design`), recebe a imagem (`get_image`) e exporta (`export_zip`).
 
 **O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
@@ -40,9 +40,10 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 
 | Área | Estado |
 |---|---|
-| Servidor, MCP (SDK oficial, sessões, 79 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
+| Servidor, MCP (SDK oficial, sessões, 80 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
 | Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
 | Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
+| Ajustar em lote: `update_layers`, até 100 IDs únicos, validação antes da escrita, um desfazer, log e travas | ✅ — `w/h/layout.mode` reservam o documento; demais lotes reservam seus IDs |
 | **Ver**: `get_image` (inclusive por breakpoint), com layout **medido de verdade** no Chromium | ✅ (precisa do Chromium) |
 | **Auditar**: `check_design` — vazamento por breakpoint, contraste, texto pequeno, alt, títulos, alvo clicável | ✅ (vazamento precisa do Chromium) |
 | Identidade: estilos de cor/texto/sombra/gradiente, modos claro/escuro, variáveis, `export_tokens` (CSS/JSON/Tailwind), pares de fontes, brief, escalas, contraste | ✅ |
@@ -108,8 +109,8 @@ tipo de arquivo. Faltam planos, limite de requisições, medição de uso e inte
 ## 4. Próximos passos técnicos — o programador pode fazer SEM esperar decisão
 
 A pessoa dona pediu para pensar as capacidades por grupo e melhorar as ferramentas, mantendo o editor congelado.
-O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos concluída; próximo bloco sugerido,
-ajustes em lote e busca por propriedades. A lista abaixo mantém as outras pendências técnicas da passagem:
+O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos e ajustes em lote concluídos;
+próximo bloco sugerido, busca por propriedades. A lista abaixo mantém as outras pendências técnicas da passagem:
 
 1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
@@ -150,6 +151,7 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 | Teste específico de `STYLO_CHROMIUM_PATH` procura o executável padrão do Playwright | **resolvido:** usa primeiro o caminho indicado em `STYLO_CHROMIUM_PATH`; continua pulando só quando nenhum navegador configurado está disponível | teste com o Chromium instalado, sem baixar outro |
 | Efeitos em fotos acima de 4 milhões de pixels; animação GIF; metadados EXIF | limite de memória dos arrays de pixels; a edição trabalha num quadro rasterizado, não preserva animação/metadados | reduzir em uma chamada antes dos efeitos; avaliar tratamento dedicado se necessário |
 | Filtros de pixels ainda rodam de forma síncrona no Node | reuso da matemática pura existente; fila e limite de pixels reduzem carga, mas o timeout do Chromium não interrompe CPU síncrona | avaliar worker de processamento caso apareça lentidão em fotos maiores |
+| Lote de breakpoints/estados e simulação de geometria intermediária no lote | `update_layers` cobre as propriedades base; comandos de layout usam a geometria atual, sem medidas entre os itens | demanda real; `set_responsive`/`set_state` continuam individuais |
 | Exposição na internet (HTTPS, limites, SSE por pessoa, login no editor) | produto ainda não hospedado | D5–D6 |
 | Cobrança, planos, cotas por plano, S3/R2 | só há pasta/memória e cota fixa | D5, D7 |
 | TypeScript no resto do núcleo (`store`, `commands`, `css`...) | converter tudo de uma vez deu ~700 erros; **executor convertido e dividido** | converter ao mexer (passo 1) |

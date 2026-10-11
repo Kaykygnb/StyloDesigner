@@ -114,8 +114,8 @@ test('ferramentas de criação grande existem e estão marcadas certo (escrita �
   assert.match(byName.build_layout.description, /UMA permissão/);
 });
 
-test('MCP completo: 61 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 61);
+test('MCP completo: 62 ferramentas (com exportação, assets, lote e edição CSS); destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 62);
   assert.equal(mcpTools().find((tool) => tool.name === 'export_site').annotations.readOnlyHint, true);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
   assert.deepEqual(destructive, ['delete_layers', 'delete_page']);

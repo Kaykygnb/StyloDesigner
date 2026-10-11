@@ -43,6 +43,11 @@ export function createToolCaller({ workspace, presence, events }: { workspace: W
     const def: any = toolByName(tool);
     const locking = def?.write && !def.noLock;
     const writeTargets = locking ? targetsOf(args) : [];
+    // Resize e mudança de modo de layout podem afetar filhos fora da lista explícita do lote.
+    if (locking && tool === 'update_layers' && Array.isArray(args?.updates) && args.updates.some((update: any) => {
+      const props = update?.props;
+      return props && typeof props === 'object' && ('w' in props || 'h' in props || (props.layout && typeof props.layout === 'object' && 'mode' in props.layout));
+    })) writeTargets.push(DOCUMENT_LOCK);
     const lockTargets = locking ? (writeTargets.length ? writeTargets : [DOCUMENT_LOCK]) : [];
     let locked = false;
     // Trava por chamada, não por sessão: uma mesma IA pode disparar ferramentas em paralelo, e chamadas

@@ -34,6 +34,7 @@ export function describeCall(tool: string, args: ToolArgs, store) {
       const keys = Object.entries(args.props || {}).map(([k, v]) => (k === 'layout' && v && typeof v === 'object' ? Object.keys(v).map((x) => `layout.${x}`).join(', ') : k));
       return `Alterar ${nm(args.id)}: ${keys.join(', ') || '(nada)'}`;
     }
+    case 'update_layers': return `Alterar ${(args.updates || []).length} camada(s) em lote: ${(args.updates || []).slice(0, 5).map((update) => nm(update.id)).join(', ')}${(args.updates || []).length > 5 ? '…' : ''}`;
     case 'create_layer': return `Criar ${args.type === 'text' ? 'um texto' : `um ${args.type}`}${args.props?.name ? ` “${args.props.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'add_asset': return `Enviar uma imagem para o projeto${args.name ? ` (“${args.name}”)` : ''}${args.insert ? ' e colocá-la no canvas' : ''}`;
     case 'insert_asset': return `Inserir a imagem do projeto${args.name ? ` “${args.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' no canvas'}`;
