@@ -7,15 +7,24 @@ import type { Db } from '@stylo/db/client.ts';
 import type { OperationRecord } from '../workspace/index.js';
 
 export function createOperations(db: Db) {
-  async function record(op: OperationRecord) {
-    await db.operation.create({
+  /** Gravações do log ainda em andamento: quem for fechar o banco espera por elas com `idle()`. */
+  const inflight = new Set<Promise<unknown>>();
+
+  function record(op: OperationRecord): Promise<void> {
+    const p = db.operation.create({
       data: {
         projectId: op.projectId, actorType: op.actor.type, userId: op.actor.type === 'USER' ? op.actor.userId : null,
         agentId: op.actor.agentId ?? null, tool: op.tool, args: (op.args ?? undefined) as any,
         summary: op.summary, layerIds: op.layerIds, ok: op.ok,
       },
-    });
+    }).then(() => undefined);
+    inflight.add(p);
+    const done = () => { inflight.delete(p); };
+    p.then(done, done);
+    return p;
   }
+
+  const idle = async () => { await Promise.allSettled([...inflight]); };
 
   /** Atividade recente do projeto (mais nova primeiro). */
   async function list(projectId: string, { limit = 50, agentId }: { limit?: number; agentId?: string } = {}) {
@@ -30,7 +39,7 @@ export function createOperations(db: Db) {
     }));
   }
 
-  return { record, list };
+  return { record, list, idle };
 }
 
 export type Operations = ReturnType<typeof createOperations>;

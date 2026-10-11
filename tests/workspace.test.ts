@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { createDb } from '@stylo/db/client.ts';
 import { createProjects } from '../apps/server/src/services/projects.ts';
 import { createOperations } from '../apps/server/src/services/operations.ts';
+import { createNotes } from '../apps/server/src/services/notes.ts';
+import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
 async function setup() {
@@ -14,12 +16,14 @@ async function setup() {
   const operations = createOperations(db);
   let workspace: ReturnType<typeof createWorkspace>;
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), onWrite: (e) => { void workspace.externalWrite(e); } });
-  workspace = createWorkspace({ projects, onOperation: (op) => { void operations.record(op); } });
+  workspace = createWorkspace({ projects, notes: createNotes(db), sharing: createSharing(db), operations, presence: () => ({ agents: [] }), onOperation: (op) => { void operations.record(op); } });
   const agentOf = async (name: string, user = owner, scopes?: string[]) => {
     const a = await db.agent.create({ data: { name, ownerId: user.id, tokenHash: `h-${name}-${Math.random()}`, scopes: scopes ?? ['read', 'write', 'export'], status: 'ACTIVE' } });
     return { type: 'AGENT', userId: user.id, agentId: a.id, name, scopes: a.scopes } satisfies Actor;
   };
-  return { db, owner, other, projects, workspace, operations, agentOf, close };
+  // fecha o banco só depois do log de operações terminar de gravar (senão o PGlite pode travar no meio)
+  const closeAll = async () => { await operations.idle(); await close(); };
+  return { db, owner, other, projects, workspace, operations, agentOf, close: closeAll };
 }
 
 test('sem projeto aberto: ferramentas de documento explicam o que fazer', async () => {
@@ -136,5 +140,79 @@ test('export_zip devolve os endereços do site .zip e do projeto, depois de grav
   assert.match(out.site_zip_url, /\/api\/projects\/zip\.json\/site\.zip$/);
   assert.ok(out.files.length >= 1);
   assert.ok(JSON.stringify((await t.projects.load({ id: t.owner.id }, 'zip.json')).doc).includes('Home'));
+  await t.close();
+});
+
+test('notas de decisão: o agente anota o porquê, outro agente lê ao abrir, responde e resolve; fica no log', async () => {
+  const t = await setup();
+  const a = await t.agentOf('Claude Code'); const b = await t.agentOf('Codex');
+  await t.workspace.call('new_project', { name: 'Notas' }, { sid: 'a', actor: a });
+  const first = await t.workspace.call('add_note', { text: 'Hero em coluna para caber no celular', kind: 'decision', layer_id: 'abc' }, { sid: 'a', actor: a });
+  assert.equal(first.error, undefined, first.error);
+  assert.equal(first.note.kind, 'DECISION');
+  assert.equal(first.note.by, 'Claude Code');
+  assert.match((await t.workspace.call('add_note', { text: '   ' }, { sid: 'a', actor: a })).error, /vazia/);
+
+  await t.workspace.call('open_project', { file: 'notas.json' }, { sid: 'b', actor: b });
+  const listed = await t.workspace.call('list_notes', {}, { sid: 'b', actor: b });
+  assert.equal(listed.count, 1);
+  assert.equal(listed.notes[0].body, 'Hero em coluna para caber no celular');
+  const reply = await t.workspace.call('add_note', { text: 'Concordo, conferi no iPhone SE', kind: 'comment', reply_to: first.note.id }, { sid: 'b', actor: b });
+  assert.equal(reply.note.parentId, first.note.id);
+  assert.match((await t.workspace.call('add_note', { text: 'x', reply_to: '00000000-0000-0000-0000-000000000000' }, { sid: 'b', actor: b })).error, /não existe/);
+  await t.workspace.call('resolve_note', { id: reply.note.id }, { sid: 'b', actor: b });
+  assert.equal((await t.workspace.call('list_notes', { include_resolved: false }, { sid: 'a', actor: a })).count, 1);
+  assert.equal((await t.workspace.call('list_notes', { kind: 'comment' }, { sid: 'a', actor: a })).count, 1);
+  assert.equal((await t.workspace.call('list_notes', { layer_id: 'abc' }, { sid: 'a', actor: a })).count, 1);
+
+  await new Promise((r) => setTimeout(r, 50));
+  const activity = await t.workspace.call('get_activity', {}, { sid: 'a', actor: a });
+  assert.ok(activity.activity.some((o: any) => o.tool === 'add_note' && o.who === 'Claude Code' && /Hero em coluna/.test(o.summary)));
+  assert.equal((await t.workspace.call('get_activity', { agent: 'codex' }, { sid: 'a', actor: a })).activity.every((o: any) => o.who === 'Codex'), true);
+  await t.close();
+});
+
+test('comentar exige o escopo "comment" (ou "write"); leitor puro só lê as notas', async () => {
+  const t = await setup();
+  const full = await t.agentOf('Completo');
+  const reader = await t.agentOf('Leitor', t.owner, ['read']);
+  const commenter = await t.agentOf('Revisor', t.owner, ['read', 'comment']);
+  await t.workspace.call('new_project', { name: 'Revisao' }, { sid: 'f', actor: full });
+  await t.workspace.call('open_project', { file: 'revisao.json' }, { sid: 'r', actor: reader });
+  await t.workspace.call('open_project', { file: 'revisao.json' }, { sid: 'c', actor: commenter });
+  assert.match((await t.workspace.call('add_note', { text: 'oi' }, { sid: 'r', actor: reader })).error, /permissão de comentar/);
+  assert.equal((await t.workspace.call('add_note', { text: 'ajustar o contraste', kind: 'comment' }, { sid: 'c', actor: commenter })).error, undefined);
+  assert.equal((await t.workspace.call('list_notes', {}, { sid: 'r', actor: reader })).count, 1);
+  assert.match((await t.workspace.call('create_layer', { type: 'rect' }, { sid: 'c', actor: commenter })).error, /permissão de escrita/);
+  await t.close();
+});
+
+test('compartilhar: só o dono; convida por e-mail com papel; lista e remove membros', async () => {
+  const t = await setup();
+  const dono = await t.agentOf('Do dono');
+  await t.workspace.call('new_project', { name: 'Equipe 2' }, { sid: 'd', actor: dono });
+  const shared = await t.workspace.call('share_project', { email: 'OUTRO@x.com', role: 'viewer' }, { sid: 'd', actor: dono });
+  assert.equal(shared.member.role, 'VIEWER');
+  assert.match((await t.workspace.call('share_project', { email: 'ninguem@x.com' }, { sid: 'd', actor: dono })).error, /Não existe conta/);
+  assert.match((await t.workspace.call('share_project', { email: 'dono@x.com' }, { sid: 'd', actor: dono })).error, /já é o dono/);
+  const members = (await t.workspace.call('list_members', {}, { sid: 'd', actor: dono })).members;
+  assert.deepEqual(members.map((m: any) => [m.email, m.role]), [['dono@x.com', 'OWNER'], ['outro@x.com', 'VIEWER']]);
+
+  // quem é só membro não compartilha
+  const visitante = await t.agentOf('Visitante', t.other);
+  await t.workspace.call('open_project', { file: 'equipe-2.json' }, { sid: 'v', actor: visitante });
+  assert.match((await t.workspace.call('share_project', { email: 'dono@x.com' }, { sid: 'v', actor: visitante })).error, /Só o dono/);
+  await t.workspace.call('unshare_project', { email: 'outro@x.com' }, { sid: 'd', actor: dono });
+  assert.equal((await t.workspace.call('list_members', {}, { sid: 'd', actor: dono })).members.length, 1);
+  const stranger = await t.agentOf('Visitante2', t.other);
+  assert.match((await t.workspace.call('open_project', { file: 'equipe-2.json' }, { sid: 'v2', actor: stranger })).error, /não encontrado/i);
+  await t.close();
+});
+
+test('who_is_here devolve o retrato da presença injetada', async () => {
+  const t = await setup();
+  const a = await t.agentOf('A');
+  await t.workspace.call('new_project', { name: 'P' }, { sid: 'a', actor: a });
+  assert.deepEqual(await t.workspace.call('who_is_here', {}, { sid: 'a', actor: a }), { agents: [] });
   await t.close();
 });

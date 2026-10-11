@@ -21,9 +21,12 @@ import { makeDoc } from '@stylo/core/model.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { createModelCanvas } from './model-canvas.js';
 import { fileNameFor, type Projects, type WriteEvent } from '../services/projects.js';
+import type { Notes } from '../services/notes.js';
+import type { Sharing } from '../services/sharing.js';
+import type { Operations } from '../services/operations.js';
 
 const IDLE_MS = 10 * 60 * 1000;
-const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip']);
+const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip', 'add_note', 'list_notes', 'resolve_note', 'get_activity', 'who_is_here', 'list_members', 'share_project', 'unshare_project']);
 
 /** Quem está pedindo: uma pessoa ou um agente. `userId` é a conta com a qual se acessa o banco. */
 export interface Actor {
@@ -56,8 +59,13 @@ interface Doc {
   runner: any;
 }
 
-export function createWorkspace({ projects, baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
+  notes: Notes;
+  sharing: Sharing;
+  operations: Operations;
+  /** Retrato de quem está no servidor (pessoas e agentes), vindo da presença. */
+  presence?: () => unknown;
   baseUrl?: () => string;
   onOperation?: (op: OperationRecord) => void;
 }) {
@@ -166,6 +174,44 @@ export function createWorkspace({ projects, baseUrl = () => 'http://localhost:51
     },
   };
 
+  /** Projeto aberto na sessão (ou erro claro) e o papel da pessoa nele. */
+  const here = (sid: string) => need(sid);
+  const kindOf = (v: unknown) => (v === 'comment' ? 'COMMENT' : 'DECISION') as 'COMMENT' | 'DECISION';
+  const iso = (n: { at: Date }) => ({ ...n, at: n.at.toISOString() });
+
+  Object.assign(PROJECT, {
+    async add_note({ text, kind, layer_id, reply_to }: any, sid: string, actor: Actor) {
+      const { entry } = here(sid);
+      const note = await notes.create(actor, entry.id, { body: text, kind: kindOf(kind), layerId: layer_id, parentId: reply_to });
+      return { ok: true, note: iso(note) };
+    },
+    async list_notes({ layer_id, kind, include_resolved, limit }: any, sid: string) {
+      const { entry } = here(sid);
+      const list = await notes.list(entry.id, { layerId: layer_id, kind: kind ? kindOf(kind) : undefined, includeResolved: include_resolved !== false, limit });
+      return { count: list.length, notes: list.map(iso) };
+    },
+    async resolve_note({ id, resolved }: any, sid: string) {
+      const { entry } = here(sid);
+      return { ok: true, note: iso(await notes.resolve(entry.id, String(id), resolved !== false)) };
+    },
+    async get_activity({ limit, agent }: any, sid: string) {
+      const { entry } = here(sid);
+      const all = await operations.list(entry.id, { limit: Math.min(Number(limit) || 30, 200) });
+      const list = agent ? all.filter((o) => o.who.toLowerCase() === String(agent).toLowerCase()) : all;
+      return { count: list.length, activity: list.map((o) => ({ ...o, at: o.at.toISOString() })) };
+    },
+    async who_is_here() { return presence() as object; },
+    async list_members(_a: any, sid: string) { return { members: await sharing.members(here(sid).entry.id) }; },
+    async share_project({ email, role }: any, sid: string, actor: Actor) {
+      const { entry } = here(sid);
+      return { ok: true, member: await sharing.share(actor.userId, entry.id, email, role === 'viewer' ? 'VIEWER' : 'EDITOR') };
+    },
+    async unshare_project({ email }: any, sid: string, actor: Actor) {
+      const { entry } = here(sid);
+      return { ok: true, ...(await sharing.unshare(actor.userId, entry.id, email)) };
+    },
+  });
+
   /** Camadas que a chamada mexeu (para o log): ids nos argumentos e na resposta. */
   const layerIdsOf = (args: any, out: any): string[] => {
     const ids = new Set<string>();
@@ -182,8 +228,25 @@ export function createWorkspace({ projects, baseUrl = () => 'http://localhost:51
    */
   async function call(tool: string, args: any, { sid, actor, signal }: { sid: string; actor: Actor; signal?: AbortSignal }): Promise<any> {
     try {
-      if (PROJECT_TOOLS.has(tool)) return { ...(await PROJECT[tool](args || {}, sid, actor)) };
       const def = toolByName(tool);
+      if (PROJECT_TOOLS.has(tool)) {
+        const needs = (def as any)?.needs;
+        if (needs === 'read' && !has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
+        if (needs === 'comment' && !has(actor, 'comment') && !has(actor, 'write')) throw new Error('Este agente não tem permissão de comentar.');
+        if (needs === 'owner') {
+          if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
+          if (need(sid).role !== 'OWNER') throw new Error('Só o dono do projeto faz isto.');
+        }
+        const result = await PROJECT[tool](args || {}, sid, actor);
+        // novo/salvar já registram sozinhos; notas e compartilhamento entram no log de atividade
+        if (def?.write && tool !== 'new_project' && tool !== 'save_project' && current.has(sid)) {
+          const a = (args || {}) as any;
+          const text = String(a.text ?? '').replace(/\s+/g, ' ').slice(0, 80);
+          const summary = tool === 'add_note' ? `anotou (${a.kind ?? 'decision'}): ${text}` : tool === 'resolve_note' ? 'resolveu uma nota' : tool === 'share_project' ? `compartilhou com ${a.email}` : tool === 'unshare_project' ? `tirou o acesso de ${a.email}` : null;
+          onOperation({ projectId: need(sid).entry.id, actor, tool, args, summary, layerIds: a.layer_id ? [a.layer_id] : [], ok: true });
+        }
+        return { ...result };
+      }
       const { entry, role } = need(sid);
       if (def?.write) {
         if (role === 'VIEWER') throw new Error('Você só pode ler este projeto.');

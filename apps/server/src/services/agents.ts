@@ -15,7 +15,7 @@ import { httpError } from '../http-error.js';
 import { newToken, sha256 } from './auth.js';
 
 export type AgentPolicy = 'open' | 'approval' | 'closed';
-export const SCOPES = ['read', 'write', 'export'] as const;
+export const SCOPES = ['read', 'comment', 'write', 'export'] as const;
 export interface AgentIdentity { id: string; name: string; ownerId: string; scopes: string[] }
 
 const clean = (name: string) => String(name || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60) || 'Agente';
@@ -24,7 +24,7 @@ const identity = (a: { id: string; name: string; ownerId: string; scopes: string
 export function createAgents(db: Db) {
   /** A conta mestre cria um agente já ativo e recebe o token (mostrado só agora). */
   async function create(ownerId: string, input: { name: string; scopes?: string[] }) {
-    const scopes = (input.scopes?.length ? input.scopes : ['read', 'write', 'export']).filter((s) => (SCOPES as readonly string[]).includes(s));
+    const scopes = (input.scopes?.length ? input.scopes : ['read', 'comment', 'write', 'export']).filter((s) => (SCOPES as readonly string[]).includes(s));
     const token = newToken('stylo_agt');
     const agent = await db.agent.create({ data: { name: clean(input.name), ownerId, tokenHash: sha256(token), scopes, status: 'ACTIVE' } });
     return { agent: identity(agent), token };
@@ -52,7 +52,7 @@ export function createAgents(db: Db) {
       return identity(found);
     }
     const status = policy === 'open' ? 'ACTIVE' : 'PENDING';
-    const agent = await db.agent.create({ data: { name, ownerId, tokenHash: sha256(newToken('stylo_agt')), scopes: ['read', 'write', 'export'], status, lastSeenAt: new Date() } });
+    const agent = await db.agent.create({ data: { name, ownerId, tokenHash: sha256(newToken('stylo_agt')), scopes: ['read', 'comment', 'write', 'export'], status, lastSeenAt: new Date() } });
     if (status === 'PENDING') throw httpError(403, 'Agente registrado: aguarde a conta mestre aprovar.');
     return identity(agent);
   }

@@ -35,11 +35,13 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { handleMcp } from './mcp.js';
 import { httpError } from './http-error.js';
-import { openDb } from './db.js';
+import { openDb, defaultDbDir } from './db.js';
 import { createProjects, checkName } from './services/projects.js';
 import { createAuth } from './services/auth.js';
 import { createAgents } from './services/agents.js';
 import { createOperations } from './services/operations.js';
+import { createNotes } from './services/notes.js';
+import { createSharing } from './services/sharing.js';
 import { createWorkspace } from './workspace/index.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { createWebHandler } from './web.js';
@@ -88,11 +90,13 @@ let config = await loadConfig();
  * BANCO (server/db.ts): DATABASE_URL = Postgres; sem ele, PGlite (Postgres embutido) numa pasta ao lado da configuração.
  * Tudo que persiste mora aqui: contas, agentes, projetos, versões, log de operações.
  */
-const dbDir = process.env.DESIGNER_DB_DIR || configFile.replace(/(\.config)?\.json$/i, '') + '.db';
+const dbDir = defaultDbDir(configFile);
 const { db, close: closeDb } = await openDb({ dir: dbDir });
 const auth = createAuth(db);
 const agents = createAgents(db);
 const operations = createOperations(db);
+const notes = createNotes(db);
+const sharing = createSharing(db);
 /** 'local' = sem login (servidor só desta máquina; tudo age como o usuário local). 'accounts' = contas e senha. */
 const AUTH_MODE = process.env.STYLO_AUTH === 'accounts' ? 'accounts' : 'local';
 const localUser = await auth.localUser();
@@ -100,7 +104,7 @@ const localUser = await auth.localUser();
 const projects = createProjects({ db, getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
 /** Projetos abertos no servidor: é aqui que o MCP trabalha, sem precisar de navegador (server/workspace). */
 const workspace = createWorkspace({
-  projects, baseUrl: () => `http://localhost:${port}`,
+  projects, notes, sharing, operations, presence: () => presence.snapshot(), baseUrl: () => `http://localhost:${port}`,
   onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },
 });
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
@@ -428,13 +432,14 @@ async function callAgentTool(sid, state, tool, args, name, signal) {
   state.lastSeen = Date.now();
   presence.touchAgent(sid, name);
   const def = toolByName(tool);
-  const writeTargets = def?.write ? targetsOf(args) : [];
-  const lockTargets = def?.write ? (writeTargets.length ? writeTargets : [DOCUMENT_LOCK]) : [];
+  const locking = def?.write && !def.noLock;
+  const writeTargets = locking ? targetsOf(args) : [];
+  const lockTargets = locking ? (writeTargets.length ? writeTargets : [DOCUMENT_LOCK]) : [];
   let locked = false;
   // Trave por chamada, não por sessão: uma mesma IA pode disparar ferramentas em paralelo.
   // Chamadas diferentes do mesmo agente não podem escrever ao mesmo tempo na mesma camada.
   const lockId = randomUUID();
-  if (def?.write) {
+  if (locking) {
     const lock = presence.lock(lockId, lockTargets, 0, { agentId: sid, name });
     if (!lock.ok) {
       presence.done(sid, tool, `esperou a camada ${lock.id} (em uso por ${lock.by})`, false);
@@ -635,7 +640,7 @@ let stopping = false;
 async function shutdown() {
   if (stopping) return;
   stopping = true;
-  try { await workspace.flushAll(); await closeDb(); } finally { process.exit(0); }
+  try { await workspace.flushAll(); await operations.idle(); await closeDb(); } finally { process.exit(0); }
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

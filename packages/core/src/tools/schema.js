@@ -408,6 +408,73 @@ ${PROP_HELP}`,
     description: 'Cria um projeto novo em branco (com o nome dado) na pasta e o abre nesta sessão. Recusa se já existir um arquivo com esse nome.',
     inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
   },
+  // ---- colaboração (banco): notas de decisão, comentários, atividade, quem está aqui e compartilhamento.
+  // `needs`: o que a ferramenta exige do agente/pessoa (read | comment | write | owner). `noLock`: não mexe nas camadas.
+  {
+    name: 'add_note',
+    write: true, noLock: true, needs: 'comment',
+    description: 'Grava uma nota no projeto (ou numa camada). kind "decision" (padrão) = POR QUE algo foi decidido ou feito assim: quem retomar o trabalho depois (outra IA ou pessoa) lê isso com list_notes. kind "comment" = conversa/revisão. reply_to responde a outra nota. Anote decisões importantes enquanto trabalha.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'o texto da nota (até 8000 caracteres)' },
+        kind: { type: 'string', enum: ['decision', 'comment'] },
+        layer_id: { type: 'string', description: 'camada a que a nota se refere (opcional)' },
+        reply_to: { type: 'string', description: 'id de uma nota a que esta responde (opcional)' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'list_notes',
+    write: false, needs: 'read',
+    description: 'Lista as notas do projeto, da mais antiga à mais nova, com autor (pessoa ou agente) e se foram resolvidas. LEIA as notas de decisão ao abrir um projeto que você não conhece.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        layer_id: { type: 'string' },
+        kind: { type: 'string', enum: ['decision', 'comment'] },
+        include_resolved: { type: 'boolean', description: 'padrão true' },
+        limit: { type: 'integer', description: 'padrão 100, máximo 500' },
+      },
+    },
+  },
+  {
+    name: 'resolve_note',
+    write: true, noLock: true, needs: 'comment',
+    description: 'Marca uma nota como resolvida (ou volta a abri-la com resolved:false).',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' }, resolved: { type: 'boolean', description: 'padrão true' } }, required: ['id'] },
+  },
+  {
+    name: 'get_activity',
+    write: false, needs: 'read',
+    description: 'O que foi feito no projeto: as últimas alterações, com quem fez (pessoa ou agente), a ferramenta e as camadas. Use para entender o estado antes de continuar o trabalho de outra pessoa/IA.',
+    inputSchema: { type: 'object', properties: { limit: { type: 'integer', description: 'padrão 30, máximo 200' }, agent: { type: 'string', description: 'filtra pelo nome do agente (opcional)' } } },
+  },
+  {
+    name: 'who_is_here',
+    write: false, needs: 'read',
+    description: 'Quem está no servidor agora: pessoas com o editor aberto, agentes conectados, o que cada agente fez por último e quais camadas estão reservadas. Veja antes de mexer numa área que outra pessoa/IA pode estar editando.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_members',
+    write: false, needs: 'read',
+    description: 'Lista quem tem acesso ao projeto aberto (dono, editores, leitores).',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'share_project',
+    write: true, noLock: true, needs: 'owner',
+    description: 'Compartilha o projeto aberto com uma pessoa que já tem conta (só o dono). role "editor" altera; "viewer" só lê e comenta.',
+    inputSchema: { type: 'object', properties: { email: { type: 'string' }, role: { type: 'string', enum: ['editor', 'viewer'] } }, required: ['email'] },
+  },
+  {
+    name: 'unshare_project',
+    write: true, noLock: true, needs: 'owner',
+    description: 'Tira o acesso de uma pessoa ao projeto aberto (só o dono).',
+    inputSchema: { type: 'object', properties: { email: { type: 'string' } }, required: ['email'] },
+  },
   {
     name: 'undo',
     write: true,

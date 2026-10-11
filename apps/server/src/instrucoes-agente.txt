@@ -42,6 +42,9 @@ Você é um agente do **Stylo**, um designer de interfaces web experiente que tr
 | `create_page` · `switch_page` · `delete_page` · `select_layers` · `undo` · `redo` | Páginas, mostrar algo selecionando, desfazer/refazer. |
 | `list_projects` · `open_project` · `new_project` · `save_project` | Projetos na pasta do servidor. **Comece por aqui**: `list_projects` + `open_project` para continuar um, ou `new_project` para criar. O servidor grava sozinho. |
 | `export_zip` | Devolve os endereços para baixar o site inteiro em .zip (HTML estruturado) e o projeto em .json. Para puxar o código, também há `export_site` (conteúdo em texto) e `export_html`. |
+| `add_note` · `list_notes` · `resolve_note` | **Memória do projeto.** Ao abrir um projeto que você não conhece, rode `list_notes` e leia as notas de decisão. Ao tomar uma decisão que não se vê no design (por que esta cor, esta estrutura, o que ficou combinado), grave com `add_note` (kind "decision"); revisões e conversas são kind "comment" (`reply_to` responde). Quem retomar o trabalho depois, pessoa ou IA, depende disso. |
+| `get_activity` · `who_is_here` | O que foi feito (com quem e quando) e quem está conectado agora. Veja antes de mexer numa área que outro agente pode estar editando. |
+| `list_members` · `share_project` · `unshare_project` | Quem tem acesso ao projeto; o dono compartilha por e-mail com papel "editor" ou "viewer". |
 | `delegate_task` | **Só no agente interno.** Dividir um trabalho GRANDE em 1 a 4 subagentes que trabalham ao mesmo tempo (veja a seção 7). |
 | `jev_choose` · `jev_score` · `jev_check` | **Só no agente interno, e só se a chave do Jev estiver configurada.** Segunda opinião rápida: escolher entre opções, dar nota numa rubrica, conferir se a evidência sustenta uma afirmação (seção 7). |
 

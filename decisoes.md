@@ -75,3 +75,15 @@ enviar **operações** ao workspace em vez do projeto inteiro. Assim várias pes
 conflitos nem CRDT.
 **Licença:** adiar. Será "source-available" (ninguém vende a ferramenta como produto próprio; usar o resultado é
 livre). Candidatas: FSL ou PolyForm Shield. O repositório continua em MIT por enquanto; precisa de revisão jurídica.
+
+## 2026-10-10 — Ferramentas de colaboração via MCP (notas, atividade, presença, compartilhar)
+**Decisão:** 8 ferramentas novas, executadas no workspace com o banco: `add_note`, `list_notes`, `resolve_note`
+(notas de DECISÃO = o porquê, e COMENTÁRIOS, no banco), `get_activity`, `who_is_here`, `list_members`,
+`share_project`, `unshare_project`. Agentes ganham o escopo `comment` (comentar sem poder editar). Cada ferramenta
+declara `needs` (read/comment/write/owner) e `noLock` no schema; notas e compartilhamento entram no log de atividade.
+**Por quê:** a memória entre sessões e entre IAs tem que viver no projeto, não só nos arquivos .md; e agentes precisam
+saber quem está trabalhando e o que já foi feito antes de mexer.
+**Pendente (decidir quando refizermos o editor):** hoje há dois sistemas de comentário — os comentários dentro do
+documento (`add_comment`, usados pelo editor atual) e as notas do banco. A intenção é unificar nas notas do banco.
+**Também:** `npm run importar -- <pasta>` importa .json antigos (idempotente, pula nomes existentes); o log de
+operações espera terminar de gravar antes de fechar o banco (achado: fechar o PGlite no meio de uma consulta trava).
