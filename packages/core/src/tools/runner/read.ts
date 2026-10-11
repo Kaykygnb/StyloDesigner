@@ -7,6 +7,7 @@ import { imageAssetCatalog } from '../../image-assets.js';
 import { modesOf } from '../../modes.js';
 import type { RunnerContext, ToolHandlers, ToolArgs } from './types.ts';
 import { summarize } from './presentation.ts';
+import { findLayers } from './search.ts';
 export function createReadTools(ctx: RunnerContext): ToolHandlers {
   const { store, need, folder } = ctx;
   return {
@@ -66,18 +67,7 @@ export function createReadTools(ctx: RunnerContext): ToolHandlers {
       const gen = generateCode([n], store.parentOf(id), doc.assets, options as Parameters<typeof generateCode>[3]);
       return { html: gen.html, css: joinCss([gen]) };
     },
-    find_layers({ query = '', type } = {}) {
-      const q = String(query).toLowerCase();
-      const found: ToolArgs[] = [];
-      for (const page of store.state.doc.pages) {
-        walk(page.children, (n) => {
-          if (type && n.type !== type) return;
-          if (q && !(n.name || '').toLowerCase().includes(q) && !(n.type === 'text' && n.text.toLowerCase().includes(q))) return;
-          if (found.length < 60) found.push({ ...summarize(n, 0), page: page.name });
-        });
-      }
-      return { count: found.length, layers: found };
-    },
+    find_layers(args = {}) { return findLayers(store.state.doc, args); },
     get_selection() {
       return { layers: store.ui.selection.map((id) => store.get(id)).filter(Boolean).map((n) => summarize(n, 1)) };
     },

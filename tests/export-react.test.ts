@@ -142,7 +142,7 @@ test('inlineFontFaces: @font-face com o arquivo embutido; sem fontes, vazio', as
 
 test('validateToolArgs: argumento desconhecido é recusado com a lista dos aceitos (antes era descartado em silêncio)', async () => {
   const { validateToolArgs } = await import('@stylo/core/tools/schema.ts');
-  assert.match(validateToolArgs('find_layers', { name: 'Card' })!, /Argumento desconhecido em find_layers: name\. Aceitos: query, type\./);
+  assert.match(validateToolArgs('find_layers', { name: 'Card' })!, /Argumento desconhecido em find_layers: name\. Aceitos: query, type, page_id, within_id, where, limit, offset, fields, maxBytes\./);
   assert.equal(validateToolArgs('find_layers', { query: 'Card' }), null);
   assert.equal(validateToolArgs('get_document', {}), null);
 });

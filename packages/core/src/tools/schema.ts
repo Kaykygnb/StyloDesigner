@@ -112,10 +112,24 @@ export const AGENT_TOOLS: ToolDef[] = [
   defineTool({
     name: 'find_layers',
     write: false,
-    description: 'Procura camadas em todas as páginas pelo nome ou texto (sem diferenciar maiúsculas) e/ou pelo tipo.',
+    description: 'Procura camadas por nome/texto, tipo e propriedades base. Filtros são combinados (AND); page_id limita a página, within_id inclui a camada e seus descendentes. Resposta compacta por padrão: 20 linhas, até 8 KiB de JSON, sem texto/notas/layout. fields:"ids" devolve só IDs para update_layers; summary pede o resumo antigo. count é o retornado; total conta todos; continue com offset:nextOffset enquanto hasMore. Recomece a paginação se alterar o projeto/filtros. where.fontFamily é nome exato sem diferenciar maiúsculas; fillColor compara preenchimento sólido em hex; assetId aceita imagem/mídia; estilos são IDs exatos. visible/locked são flags da própria camada. Não resolve CSS, modos de cor, estados nem breakpoints; não mede layout em compact/ids. Use get_layer para detalhes e get_image para conferir.',
     input: z.object({
       query: z.string().describe('parte do nome ou do texto').optional(),
-      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'group', 'line', 'path', 'section']).optional(),
+      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'group', 'line', 'path', 'section', 'html', 'media']).optional(),
+      page_id: z.string().optional(),
+      within_id: z.string().describe('id da camada que limita a busca a ela e seus descendentes').optional(),
+      where: z.object({
+        fontFamily: z.string().min(1).optional(), fontSize: z.number().nonnegative().optional(), fontWeight: z.number().optional(),
+        fillColor: z.string().regex(/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i, 'Use #RGB ou #RRGGBB para a cor sólida.').optional(),
+        colorStyleId: z.string().optional(), textStyleId: z.string().optional(), effectStyleId: z.string().optional(),
+        gradientStyleId: z.string().optional(), assetId: z.string().optional(), instanceOf: z.string().optional(),
+        component: z.boolean().optional(), visible: z.boolean().optional(), locked: z.boolean().optional(),
+        tag: z.string().optional(), layoutMode: z.enum(['none', 'row', 'column', 'grid']).optional(),
+      }).strict().optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+      offset: z.number().int().nonnegative().optional(),
+      fields: z.enum(['compact', 'ids', 'summary']).optional(),
+      maxBytes: z.number().int().min(1024).max(65536).describe('orçamento do JSON do resultado em UTF-8; padrão 8192').optional(),
     }),
   }),
   defineTool({

@@ -17,6 +17,7 @@ import { createStore } from '@stylo/core/store.js';
 import { createCommands } from '@stylo/core/commands.js';
 import { createRunner } from '@stylo/core/tools/runner.ts';
 import type { ImageOperations } from '@stylo/core/image-edit.ts';
+import { boundFindResponse } from '@stylo/core/tools/runner/search.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
@@ -328,7 +329,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
       } else if (!has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
       entry.lastUsed = Date.now();
-      if (GEOMETRY_READS.has(tool)) await ensureMeasured(entry);
+      if (GEOMETRY_READS.has(tool) && (tool !== 'find_layers' || args?.fields === 'summary')) await ensureMeasured(entry);
       const out = await entry.runner.run(tool, args, actor.name, { external: true, admin: true, signal });
       if (def?.write) {
         entry.dirty = true;
@@ -341,6 +342,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
+      if (tool === 'find_layers' && !out.error) return boundFindResponse(out, args?.maxBytes);
       return out;
     } catch (err: any) {
       return { error: err.message || String(err) };

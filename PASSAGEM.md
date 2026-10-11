@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-11**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **480 testes, 480 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **493 testes, 493 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** `update_layers` permite ajustar até 100 camadas com IDs únicos numa operação, validação antes da escrita e um passo de desfazer/refazer. Agora 80 ferramentas anunciadas. Conferência real pelo cliente oficial MCP: quatro ajustes diferentes, lote inválido sem mudança parcial, desfazer/refazer, imagens desktop/celular, auditoria medida, log com quatro IDs e ZIP HTML. Imagem mobile inspecionada; servidor encerrado. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco. Lote não muda breakpoints/estados; comandos de layout usam a geometria atual como referência. Busca por propriedades e PDF/slides continuam pendentes/propostas.
+**Último bloco:** `find_layers` busca por propriedades/vínculos, página/subárvore e devolve até 20 itens compactos/8KiB por padrão, com paginação. `fields:"ids"` evita detalhes desnecessários; `summary` mantém resumo e medida. Filtros são valores base, sem CSS/modos/estados/breakpoints. MCP real: 137 textos paginados sem perdas sob 1024 bytes, 20 ajustados em lote, buscas conferidas e undo. Continuam 80 ferramentas. Servidor encerrado. Não foi medida cobrança real de tokens; orçamento é de JSON UTF-8, sem envelope MCP. Não verificados neste bloco: editor, provedores reais, revisão visual e exportação. PDF/slides continuam propostas. Próximo grupo sugerido: manutenção dos estilos/componentes.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -109,8 +109,8 @@ tipo de arquivo. Faltam planos, limite de requisições, medição de uso e inte
 ## 4. Próximos passos técnicos — o programador pode fazer SEM esperar decisão
 
 A pessoa dona pediu para pensar as capacidades por grupo e melhorar as ferramentas, mantendo o editor congelado.
-O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos e ajustes em lote concluídos;
-próximo bloco sugerido, busca por propriedades. A lista abaixo mantém as outras pendências técnicas da passagem:
+O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos, ajustes em lote e busca por propriedades concluídos;
+próximo bloco sugerido, manutenção dos estilos/componentes. A lista abaixo mantém as outras pendências técnicas da passagem:
 
 1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.

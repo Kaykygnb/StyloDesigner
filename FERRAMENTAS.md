@@ -14,8 +14,18 @@ de discussão; não aprova novos formatos de exportação nem mudanças no edito
 **Hoje:** `list_projects`, `open_project`, `new_project`, `save_project`, `get_document`,
 `get_layer`, `find_layers`, `get_project_brief`, `set_project_brief`.
 
-**Melhorar:** buscar por propriedades e vínculos, como todos os textos de uma fonte ou todas as
-camadas ligadas a um estilo; facilitar a leitura de projetos grandes sem respostas enormes.
+**Busca por propriedades implementada:** `find_layers` combina nome/texto, tipo, página/subárvore,
+fonte/tamanho/peso, cor sólida, vínculos com estilos/imagens/componentes, tag, layout e flags.
+O padrão entrega até 20 itens compactos, com orçamento de 8 KiB de JSON UTF-8; `fields:"ids"`
+entrega só IDs para ajustes em lote. `limit` vai até 100; `maxBytes`, de 1024 a 65536.
+Use `offset: nextOffset` enquanto `hasMore`; `total` conta todos os resultados e `count` os entregues.
+Leia detalhes com `get_layer`; `fields:"summary"` pede o resumo com medidas. Compact/ids não medem.
+Nomes longos são abreviados; IDs são preservados. Se uma linha não couber, recebe erro com orientação.
+
+A busca compara propriedades base, sem resolver CSS, modos, estados ou breakpoints. Visibilidade e
+trava são flags da própria camada, sem herança dos pais. Recomece a paginação após alterar o projeto
+ou os filtros. O orçamento inclui avisos do workspace e o JSON formatado, mas não o envelope MCP;
+é um limite de bytes, não uma medição de tokens/cobrança.
 
 ## 2. Montar e organizar
 
@@ -115,7 +125,7 @@ as decisões da pessoa dona em `PASSAGEM.md`.
 ## Ordem de trabalho recomendada
 
 1. Edição local de fotos no servidor e correção das instruções antigas dos agentes — implementadas neste bloco.
-2. Ajustes em lote — implementados; busca por propriedades — próximo bloco sugerido, para localizar os alvos sem repetir consultas.
+2. Ajustes em lote e busca por propriedades com respostas limitadas — implementados.
 3. Completar manutenção dos estilos e ações de componentes já existentes no núcleo.
 4. Melhorar controles, inspeção e testes de entrega a partir de telas reais montadas pelo MCP.
 5. Avaliar PDF/apresentações quando a pessoa dona fechar os novos formatos. Editor, licença e decisões de negócio não entram por autorização implícita.

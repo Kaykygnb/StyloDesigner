@@ -419,3 +419,22 @@ test('build_layout devolve o tamanho MEDIDO da estrutura criada (não a estimati
   assert.equal(out.created.h, 777, 'a resposta já traz a altura real');
   await t.close();
 });
+
+test('find_layers compacto e ids dispensam medição; summary pede geometria atual', async () => {
+  let calls = 0;
+  const t = await setup({ measureLayout: async roots => { calls++; return new Map(roots.map(r => [r.id, { w: r.w, h: 777 }])); } });
+  try {
+    const actor = await t.agentOf('Busca');
+    const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'busca', actor }) as Promise<any>;
+    await call('new_project', { name: 'Busca pequena' });
+    const made = await call('create_layer', { type: 'frame', props: { name: 'Tela', w: 400, h: 100, sizeY: 'hug' } });
+    for (const args of [{}, { fields: 'ids' }]) {
+      const out = await call('find_layers', args);
+      assert.equal(out.error, undefined); assert.equal(out.layers[0].id, made.created.id);
+      assert.equal(calls, 0, 'busca leve não chama renderizador');
+      assert.ok(Buffer.byteLength(JSON.stringify(out, null, 2), 'utf8') <= 8192);
+    }
+    const summary = await call('find_layers', { fields: 'summary' });
+    assert.equal(summary.error, undefined); assert.equal(summary.layers[0].h, 777); assert.equal(calls, 1);
+  } finally { await t.close(); }
+});
