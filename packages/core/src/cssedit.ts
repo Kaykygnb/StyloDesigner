@@ -18,7 +18,7 @@ import { parseDeclarations, checkDecl } from './html.js';
 import { hasLayout } from './model.js';
 
 const PX = /^(-?\d+(?:\.\d+)?)px$/;
-const num = (v) => (PX.test(v) ? parseFloat(PX.exec(v)[1]) : null);
+const num = (v) => (PX.test(v) ? parseFloat(PX.exec(v)![1]) : null);
 const pxList = (v) => {
   const parts = v.trim().split(/\s+/).map(num);
   if (!parts.length || parts.length > 4 || parts.some((p) => p === null)) return null;
@@ -72,13 +72,13 @@ const MAPPERS = {
   left: (n, v, { before }) => {
     const x = num(v);
     if (x === null || before.position !== 'absolute' || !PX.test(before.left || '')) return false;
-    n.x += x - num(before.left);
+    n.x += x - num(before.left)!;
     return true;
   },
   top: (n, v, { before }) => {
     const x = num(v);
     if (x === null || before.position !== 'absolute' || !PX.test(before.top || '')) return false;
-    n.y += x - num(before.top);
+    n.y += x - num(before.top)!;
     return true;
   },
   'border-radius': (n, v) => {
@@ -147,7 +147,7 @@ export function declarationsText(text) {
  */
 export function lintLayerCss(text, supports) {
   const { body, offset, extra } = declarationsText(text);
-  const out = [];
+  const out: any[] = [];
   if (extra) out.push({ line: 1, level: 'error', msg: 'aqui vão só declarações desta camada; regras com seletor, @media e :hover vão na aba "Página"' });
   for (const d of parseDeclarations(body)) out.push(...checkDecl(d, offset + d.line + 1, supports));
   return out;
@@ -165,15 +165,15 @@ export function applyLayerCss(node, parent, assets, text) {
   const { body } = declarationsText(text);
   const wanted = new Map();
   const important = new Set();
-  const ignored = [];
+  const ignored: any[] = [];
   for (const d of parseDeclarations(body)) {
     if (checkDecl(d, 0).some((e) => e.level === 'error')) { ignored.push(d.prop); continue; }
     wanted.set(d.prop, d.value);
     if (d.important) important.add(d.prop);
   }
   const opts = { fluid: true };
-  const before = nodeStyle(node, parent, assets, opts);
-  const mapped = [];
+  const before = nodeStyle(node, parent, assets, opts as any);
+  const mapped: any[] = [];
   for (const [k, v] of wanted) {
     if (before[k] === v) continue;
     const fn = MAPPERS[k];
@@ -182,9 +182,9 @@ export function applyLayerCss(node, parent, assets, text) {
   // o que o modelo gera agora, SEM o CSS livre
   const plain = { ...node };
   delete plain.customCss;
-  const gen = nodeStyle(plain, parent, assets, opts);
+  const gen = nodeStyle(plain, parent, assets, opts as any);
   const custom = {};
-  const unset = [];
+  const unset: any[] = [];
   for (const [k, v] of wanted) if (!mapped.includes(k) && gen[k] !== v) custom[k] = important.has(k) ? `${v} !important` : v;
   for (const k of Object.keys(gen)) {
     if (wanted.has(k) || k === 'box-sizing') continue;
@@ -202,7 +202,7 @@ export function applyLayerCss(node, parent, assets, text) {
 
 /** Declarações que a camada mostra no editor (o CSS da exportação), uma por linha. */
 export function layerCssText(node, parent, assets) {
-  return Object.entries(nodeStyle(node, parent, assets, { fluid: true })).map(([k, v]) => `${k}: ${v};`).join('\n');
+  return Object.entries(nodeStyle(node, parent, assets, { fluid: true } as any)).map(([k, v]) => `${k}: ${v};`).join('\n');
 }
 
 /**

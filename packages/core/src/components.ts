@@ -142,7 +142,7 @@ function syncOne(inst, main) {
  */
 export function syncInstances(pages) {
   const mains = collectMains(pages);
-  const instances = [];
+  const instances: any[] = [];
   for (const page of pages) walk(page.children, (n) => { if (n.instanceOf) instances.push(n); });
   for (const inst of instances) syncOne(inst, mains.get(inst.instanceOf));
 }

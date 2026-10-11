@@ -6,10 +6,10 @@ import { exportHtml } from './css.js';
 import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
 
 const boardsOf = (doc) => {
-  const boards = [];
-  const warnings = [];
+  const boards: any[] = [];
+  const warnings: any[] = [];
   for (const page of doc.pages || []) {
-    const found = [];
+    const found: any[] = [];
     const visitChildren = (layers, parent, ancestorsVisible) => {
       for (const layer of layers || []) {
         const visible = ancestorsVisible && layer.visible !== false;

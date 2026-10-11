@@ -45,7 +45,7 @@ export function searchIcons(query) {
   const q = fold(query || '').replace(/\s+/g, '_');
   if (!q) return ORDERED;
   const terms = [q, PT[q]].filter(Boolean);
-  const starts = [], has = [];
+  const starts: string[] = [], has: string[] = [];
   for (const n of ORDERED) {
     if (terms.some((t) => n.startsWith(t))) starts.push(n);
     else if (terms.some((t) => n.includes(t))) has.push(n);

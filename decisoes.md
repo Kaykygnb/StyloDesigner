@@ -109,3 +109,16 @@ cabeçalho `Accept` são aceitos (completamos); o "Acesso de administrador" e a 
 `STYLO_TOKEN` na ponte stdio leva o token do agente. Achado e corrigido: `new_project`/`open_project`/`save_project`
 travavam o documento inteiro (`noLock`), o que impedia outro agente de abrir o projeto logo depois.
 **Teste:** `tests/mcp-sdk.test.js` usa o CLIENTE oficial do SDK contra o servidor real.
+
+## 2026-10-10 — Ferramentas com Zod e TypeScript no núcleo (em etapas)
+**Decisão:** as 50 ferramentas MCP passaram a ser definidas **uma vez** com Zod em `packages/core/src/tools/schema.ts`.
+Daí saem o JSON Schema do `tools/list` (gerado e limpo, igual ao antigo — conferi ferramenta por ferramenta), a **validação
+dos argumentos** antes de executar (`validateToolArgs`, mensagens em português; o `runner` devolve o erro sem rodar a
+ferramenta) e os tipos. Campos desconhecidos são ignorados. Removido: `openAiTools` (não há mais agente interno).
+**TypeScript:** `types.ts` descreve o formato do documento (LayerNode, Page, Doc...) e `model.ts` o usa. Também já são
+`.ts`: color, comments, modes, version, zip, icons, fonts, components, image-assets, validate, site-export, cssedit,
+palettes, tools/content. **Continuam `.js`** (muitos erros de tipo para corrigir sem ganho imediato): store, commands, css,
+html, svg, svgimport, geom, imagefx, codeassist, sample-vitrine, tools/runner. Converter quando forem mexidos.
+O `core` e o servidor usam `noImplicitAny: false` (gradual); `npm run typecheck` passa em db, core e server.
+**Por quê:** erros nos pontos de contato (agente ↔ servidor ↔ documento) eram descobertos só em execução; agora a
+validação e os tipos nascem da mesma definição. O editor (`apps/web`) fica em JS até ser descartado.

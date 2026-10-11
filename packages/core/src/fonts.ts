@@ -37,9 +37,9 @@ export function nearestWeight(family, weight) {
  * @param {string[]} families  só as que existem no Google entram
  * @param {{text?: string}} [opts]  text = baixa só estas letras (usado na prévia do seletor)
  */
-export function googleFontsUrl(families, { text } = {}) {
+export function googleFontsUrl(families: string[], { text }: { text?: string } = {}) {
   const parts = families.filter((f) => GOOGLE.has(f)).map((f) => {
-    const ws = GOOGLE.get(f).weights;
+    const ws = GOOGLE.get(f)!.weights;
     const fam = 'family=' + encodeURIComponent(f).replace(/%20/g, '+');
     return ws.length > 1 || ws[0] !== 400 ? `${fam}:wght@${ws.join(';')}` : fam;
   });

@@ -45,8 +45,8 @@ const normalizeFiles = (files) => {
 /** Gera um ZIP Store (sem compressão) para manter o escritor mínimo e funcionar offline. */
 export function createZip(files) {
   const entries = normalizeFiles(files);
-  const local = [];
-  const central = [];
+  const local: any[] = [];
+  const central: any[] = [];
   let localOffset = 0;
 
   for (const entry of entries) {

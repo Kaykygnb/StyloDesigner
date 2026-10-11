@@ -30,9 +30,9 @@ const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
  */
 function scrub(root) {
   let removed = 0;
-  const stack = [[root, 0]];
+  const stack: [any, number][] = [[root, 0]];
   while (stack.length) {
-    const [obj, depth] = stack.pop();
+    const [obj, depth] = stack.pop()!;
     if (!obj || typeof obj !== 'object' || depth > 30) continue;
     if (!Array.isArray(obj)) {
       for (const key of BAD_KEYS) if (Object.hasOwn(obj, key)) { delete obj[key]; removed++; }
@@ -52,7 +52,7 @@ function scrub(root) {
  * @returns {string[]} avisos em português (lista vazia = nada foi alterado)
  */
 export function sanitizeDoc(doc) {
-  const warnings = [];
+  const warnings: any[] = [];
   if (!isObj(doc)) return warnings;
 
   // versão do formato: sem versão (ou inválida) = 1; de uma versão MAIS NOVA que a deste Stylo abre com aviso e a versão não é
@@ -116,7 +116,7 @@ function cleanChildren(list, warnings, depth = 1) {
     return [];
   }
   if (!Array.isArray(list)) return [];
-  const out = [];
+  const out: any[] = [];
   for (const node of list) {
     if (!isObj(node) || typeof node.type !== 'string' || !node.type) { warnings.push('Uma camada inválida foi descartada.'); continue; }
     if (scrub(node)) warnings.push(`Camada "${String(node.name)}": chaves reservadas removidas.`);

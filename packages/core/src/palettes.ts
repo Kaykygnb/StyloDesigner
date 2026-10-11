@@ -53,7 +53,7 @@ export function removeColor(p, color) {
  * ponto e vírgula ou quebra de linha. Devolve só as válidas, sem repetir, na ordem em que aparecem.
  */
 export function parseColors(text) {
-  const out = [];
+  const out: any[] = [];
   const push = (hex) => { if (hex && !out.includes(hex)) out.push(hex); };
   const src = String(text || '');
   // rgb(r, g, b) primeiro (para as vírgulas dele não serem tratadas como separador)
@@ -92,7 +92,7 @@ export function paletteCss(p) {
 /** Limpa uma lista lida do armazenamento (formato errado, cores inválidas, excesso). Nunca lança. */
 export function sanitize(list) {
   if (!Array.isArray(list)) return [];
-  const out = [];
+  const out: any[] = [];
   for (const p of list) {
     if (!p || typeof p !== 'object') continue;
     const clean = makePalette(p.name, Array.isArray(p.colors) ? p.colors : []);
@@ -105,8 +105,8 @@ export function sanitize(list) {
 
 // ---------------------------------------------------------------- armazenamento
 const KEY = 'pd.palettes';
-let list = null; // carregado sob demanda
-const listeners = new Set();
+let list: any[] | null = null; // carregado sob demanda
+const listeners = new Set<() => void>();
 
 /** Paletas atuais (carrega do navegador na 1ª chamada). */
 export function getPalettes() {
@@ -148,7 +148,7 @@ const RECENT = 'pd.recentColors';
 /** Id da paleta ativa no seletor de cor (a escolhida por último; senão a 1ª). null se não há paletas. */
 export function getActiveId() {
   const all = getPalettes();
-  let id = null;
+  let id: string | null | undefined = null;
   try { id = globalThis.localStorage?.getItem(ACTIVE); } catch { /* idem */ }
   return all.some((p) => p.id === id) ? id : (all[0]?.id ?? null);
 }

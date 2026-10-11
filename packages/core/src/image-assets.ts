@@ -16,7 +16,7 @@ export function imageAssetCatalog(doc) {
     });
   }
 
-  return Object.entries(doc.assets || {})
+  return Object.entries((doc.assets || {}) as Record<string, string>)
     .filter(([, src]) => typeof src === 'string' && src.startsWith('data:image/'))
     .map(([id, src], i) => {
       const usedBy = refs.get(id) || [];

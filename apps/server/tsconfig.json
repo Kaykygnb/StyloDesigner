@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "../../packages/db/src/client.ts"]
+  "compilerOptions": {
+    "noImplicitAny": false
+  },
+  "include": [
+    "src",
+    "../../packages/db/src/client.ts"
+  ]
 }
