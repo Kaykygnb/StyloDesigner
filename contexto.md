@@ -75,7 +75,7 @@ Conectar um agente: `claude mcp add --transport http stylo http://localhost:5173
 (Postgres; sem ela, PGlite em `designer.db/`) · `DESIGNER_DB_DIR` (`memory` nos testes) · `STYLO_AUTH=accounts` (login com contas;
 padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_DIR` (arquivos grandes; `memory` nos testes) ·
 `STYLO_SECRET_KEY` (32 bytes base64 para criptografar chaves de provedores; sem ela cria `*.secret`, que **não vai para o git**) ·
-`STYLO_LIBRARY_QUOTA_MB` (padrão 2048) · `PEXELS_API_KEY`, `PIXABAY_API_KEY`, `POLYPIZZA_API_KEY` (chaves de provedores).
+`STYLO_CHROMIUM_PATH` (caminho de um Chromium já instalado, em vez do baixado pelo Playwright; útil na nuvem) · `STYLO_LIBRARY_QUOTA_MB` (padrão 2048) · `PEXELS_API_KEY`, `PIXABAY_API_KEY`, `POLYPIZZA_API_KEY` (chaves de provedores).
 
 ## 5. Mapa do código
 

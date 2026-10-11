@@ -83,3 +83,24 @@ test('render: uma camada "hug" sai inteira (não cortada pela altura guardada) q
   assert.equal(board.h, 300);
   assert.deepEqual(size(png(await renderer.render(board, doc, 1))), { w: 300, h: 300 });
 });
+
+test('STYLO_CHROMIUM_PATH: usa o Chromium indicado; caminho inválido dá erro claro que cita a variável', async (t) => {
+  const { chromium } = await import('playwright-core');
+  const { existsSync } = await import('node:fs');
+  const real = chromium.executablePath();
+  const antes = process.env.STYLO_CHROMIUM_PATH;
+  t.after(() => { if (antes === undefined) delete process.env.STYLO_CHROMIUM_PATH; else process.env.STYLO_CHROMIUM_PATH = antes; });
+  const doc = makeDoc();
+  const n: any = createNode('frame', { name: 'X', w: 50, h: 40 });
+
+  process.env.STYLO_CHROMIUM_PATH = '/caminho/que/nao/existe/chromium';
+  const quebrado = createRenderer();
+  await assert.rejects(() => quebrado.render(n, doc, 1), /não está disponível.*STYLO_CHROMIUM_PATH/);
+  await quebrado.close();
+
+  if (!existsSync(real)) { t.skip('Chromium do Playwright não instalado'); return; }
+  process.env.STYLO_CHROMIUM_PATH = real;
+  const bom = createRenderer();
+  t.after(() => bom.close());
+  assert.deepEqual(size(png(await bom.render(n, doc, 1))), { w: 50, h: 40 });
+});

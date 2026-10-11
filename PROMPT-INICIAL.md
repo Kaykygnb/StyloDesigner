@@ -8,18 +8,21 @@ Leia inteiro. Depois siga o protocolo da seção 8.
 
 ## 0. Onde você está (leia: muda o que é seguro fazer)
 
-- Você está rodando **no computador da própria pessoa dona do projeto** (Windows 11), com acesso real aos arquivos e ao terminal. **Nada aqui é de mentira**:
-  apagar, sobrescrever ou rodar um comando destrutivo afeta arquivos e dados reais dela.
-- O projeto está na pasta **`C:/Users/LENOVO/Desktop/Blbla/StyloDesigner`** (repositório git próprio, branch **`limpeza`**) e **também no GitHub**, branch **`limpeza`**
-  (`https://github.com/Kaykygnb/StyloDesigner`, repositório **público**). **A `main` de lá é a versão ANTIGA: nunca a use**, nunca mexa nela nem na `stylo-2.0-planning`.
-  Para clonar: `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`. Se você foi iniciado numa pasta que já tem o projeto, trabalhe nela mesmo.
-  O repositório é **da pessoa dona**: ela pode apagá-lo e criar outro (ela vai decidir a licença depois). Se um `push` ou `fetch` falhar porque o repositório sumiu ou mudou, **pare e avise**: nunca tente recriá-lo nem criar outro por conta própria.
-- A pasta acima (`Desktop/Blbla`) e o resto do computador **não são seus**: trabalhe dentro de `StyloDesigner`. Não leia, mova ou apague arquivos pessoais fora dela.
-- O agente anterior trabalhou **na mesma pasta**. Se o git mostrar mudanças não commitadas que você não fez, **pergunte antes de mexer**.
-- **Um agente por vez** nesta pasta. Se a pessoa disser que há outro agente trabalhando, peça um clone local (`git clone` da pasta, não do GitHub) para não atropelar arquivos, banco local (PGlite aceita um processo) e a porta 5173.
-- Dados locais que **não vão para o git** e **não devem ser apagados**: `designer.db/` (o banco local), `designer.secret`, `*.blobs/`, `designer.config.json`.
-- Shell: há Git Bash e PowerShell. Cuidado com aspas, crases e `$` em comandos longos (seção 4G). O Chromium do Playwright já deve estar instalado; se `get_image` avisar que não está, rode `npx playwright install chromium`.
-- Você pode subir o servidor (`npm start`) e abrir navegadores de teste, mas **encerre o que subiu** quando terminar (servidor na porta 5173, Chromium, scripts em segundo plano) para não deixar processos soltos no computador dela.
+- Você roda **na nuvem**: um ambiente **descartável** (container Linux) onde o repositório é clonado. **Você não tem acesso ao computador da pessoa dona**: nem aos arquivos, nem ao banco ou às chaves locais dela.
+  E ela **não vê o seu ambiente**: só enxerga o que você escreve no chat e o que você envia ao GitHub.
+- **O que você não enviar ao GitHub pode ser perdido** quando o ambiente for encerrado. Por isso: commits pequenos e **`git push` da branch `limpeza` ao fim de cada bloco coerente** (e antes de qualquer pausa longa).
+  A pessoa **autorizou esses pushes, só para a `limpeza`**. Antes de enviar: `git pull --rebase origin limpeza`. Se houver conflito que você não entende, **pare e conte** (outro agente pode ter enviado).
+  Se o push falhar por rede, tente de novo até 4 vezes, esperando 2, 4, 8 e 16 segundos.
+- **Repositório:** `https://github.com/Kaykygnb/StyloDesigner` (**público**). **Branch: `limpeza`.** Clone: `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`.
+  **A `main` é a versão ANTIGA: nunca a use**, nunca mexa nela nem na `stylo-2.0-planning`. **Não abra PR** a menos que a pessoa peça. Como o repositório é público, **nada secreto** pode ir em commit, log ou mensagem.
+- O repositório é **da pessoa dona**: ela pode apagá-lo e criar outro (a licença será decidida depois). Se um `push` ou `fetch` falhar porque o repositório sumiu ou mudou, **pare e avise**: nunca tente recriá-lo nem criar outro.
+- **Um agente por vez na `limpeza`.** Se a pessoa disser que há outro agente trabalhando, use uma branch sua (`agente/<tarefa>`), envie ela e deixe a pessoa decidir o merge.
+- O ambiente é Linux (bash); a pessoa usa Windows. Caminhos como `C:/Users/...` em documentos são **dela**, não seus. **Dados locais não existem aí**: o banco (PGlite, pasta `designer.db/`) e a chave (`designer.secret`) nascem novos na primeira execução e **não vão para o git**.
+- **Chromium** (para `get_image`, a medida de layout e o vazamento do `check_design`): ambientes de nuvem costumam ter um **pré-instalado** (ex.: `/opt/pw-browsers`). Se existir, **não baixe outro**; aponte para ele com `STYLO_CHROMIUM_PATH=<caminho do executável>`.
+  Só se não houver nenhum, rode `npx playwright install chromium`. Sem navegador as ferramentas avisam e a parte visual fica sem verificação: **diga isso à pessoa**.
+- A **rede** do ambiente pode ser restrita. Se `npm install` ou um download falhar, diga qual endereço falhou e pare em vez de contornar.
+- Você pode subir o servidor (`npm start`, porta 5173) **dentro do seu ambiente** e testar por MCP/HTTP, mas **a pessoa não consegue abri-lo no navegador dela**. Mostre resultados em texto, em imagens (`get_image`) e nos arquivos que você enviar ao GitHub. Encerre o que subiu ao terminar.
+- A pessoa conversa com você de outro lugar (talvez do celular): mensagens curtas e fáceis de ler.
 
 ---
 
@@ -56,7 +59,7 @@ Leia inteiro. Depois siga o protocolo da seção 8.
 - Perguntar o que você mesmo pode descobrir lendo o código ou os documentos.
 
 **Respostas curtas dela são autorizações do passo proposto, não do mundo.** "ok", "pode seguir", "segue aí" = faça **o que você acabou de propor**.
-Isso **não** cobre ações irreversíveis ou que saem do computador (push, PR, apagar dados, mexer na licença, publicar): para essas, peça um "sim" claro,
+Isso **não** cobre ações irreversíveis ou que mexem fora do projeto (push forçado, PR, apagar branch ou repositório, mexer na licença, publicar; o push comum na `limpeza` já está autorizado): para essas, peça um "sim" claro,
 dizendo exatamente o que vai acontecer.
 
 **Se ela disser "faça o que você acha correto":** faça, mas ainda separe e pergunte as **decisões de negócio** (lista em `PASSAGEM.md §3`).
@@ -106,21 +109,21 @@ Quando algo depende de um recurso real (navegador, instalar e compilar o projeto
 **E. Registrar:** decisão que muda comportamento ou arquitetura → **acrescente** uma entrada em `decisoes.md` (data, o que, por quê). Coisa vista e deixada de lado → tabela de pulados em `PASSAGEM.md §5`.
 Mudou algo que o dono precisa decidir → `PASSAGEM.md §3`. Atualize `contexto.md` se o mapa do código mudou.
 
-**F. Commitar** em pequenos blocos coerentes, na branch `limpeza`. Mensagem em português no formato `tipo(área): o que mudou` (`feat`, `fix`, `docs`, `test`, `refactor`),
-com a linha de coautoria que o ambiente indicar. Commitar localmente é normal; **enviar (push) só com pedido explícito, e só para a branch `limpeza`**.
+**F. Commitar e enviar** em pequenos blocos coerentes, na branch `limpeza`. Mensagem em português no formato `tipo(área): o que mudou` (`feat`, `fix`, `docs`, `test`, `refactor`),
+com a linha de coautoria que o ambiente indicar. **Ao fim de cada bloco: `git pull --rebase origin limpeza` e `git push`** (seção 0). Nunca `--force`.
 
-**G. Editar com segurança no Windows:** o shell estraga aspas, crases e `$` em comandos longos. Para arquivos grandes use a **ferramenta de edição de arquivos**, não `node -e` nem heredoc com texto cheio de símbolos.
+**G. Editar com segurança:** o ambiente é Linux, mas a pessoa e os documentos vêm do Windows: use `/` nos caminhos e confie no `.gitattributes` para fim de linha. Em arquivos grandes use a **ferramenta de edição de arquivos**; evite `node -e` ou heredoc com texto cheio de aspas, crases e `$`.
 
 **H. Verificar antes de afirmar:** nomes de arquivos, funções e flags citados em documentos podem estar velhos — confira que existem antes de recomendar.
 
 ## 5. O que NÃO fazer (limites firmes)
 
-- **Não fazer `git push`, abrir PR, publicar ou enviar nada para fora** sem pedido claro **a cada vez** (a pessoa autorizou UM envio da branch `limpeza` em 2026-10-11; o repositório é público, então cada envio é público). Nunca toque na `main`. Nunca reescrever o histórico do git sem pedir (decisão D2 está parcialmente aberta).
+- **Não abrir PR, não tocar na `main` nem na `stylo-2.0-planning`, não usar `--force`, não reescrever o histórico, não apagar branches nem o repositório, não publicar nada fora do repositório** sem pedido claro. (Push comum na `limpeza` é permitido: seção 0. Reescrever o histórico depende da decisão D2.)
 - **Não mexer no editor** (`apps/web`), nem nos testes e2e antigos, por enquanto.
 - **Não alterar a licença**, nem `LICENSE`, nem escolher por ela as decisões D1–D14 de `PASSAGEM.md §3`.
 - **Não reescrever nem apagar entradas antigas** de `decisoes.md`.
-- **Não apagar dados da pessoa** (projetos, banco local `designer.db/`, arquivos dela) nem rodar comandos destrutivos sem pedir e olhar o alvo antes.
-- **Não commitar segredos** (`designer.secret`, `*.blobs/`, `designer.config.json`, chaves de provedores). Não cole chaves em respostas.
+- **Não rodar comandos destrutivos** sem olhar o alvo antes (`rm -rf`, `git reset --hard`, `git clean`...). Você não tem os dados locais da pessoa, mas o repositório dela existe: cuide dele.
+- **Não commitar segredos** (`designer.secret`, `*.secret`, `*.blobs/`, `designer.config.json`, chaves de provedores, tokens de acesso). O repositório é público. Não cole chaves em respostas.
 - **Não enfraquecer a segurança:** nada de `<script>` vindo de agentes, JS no servidor, rede liberada no Chromium de desenho, downloads por endereço sem a proteção SSRF.
 - **Não criar um agente de IA embutido** nem um segundo caminho paralelo ao MCP.
 - **Não "resolver" um erro de teste enfraquecendo o teste** ou pulando-o. Se o teste está errado, explique por quê; se o código está errado, corrija o código.
@@ -134,7 +137,7 @@ com a linha de coautoria que o ambiente indicar. Commitar localmente é normal; 
 | Técnica, reversível, dentro do que foi combinado (como organizar um módulo, qual teste escrever, nome de função) | **Decida**, registre o porquê em uma linha |
 | Técnica, mas muda a arquitetura ou o comportamento percebido pelos agentes | **Decida**, explique, **acrescente em `decisoes.md`** |
 | De negócio (licença, preço, hospedagem, login, nome, idioma, privacidade, formatos de exportação, rumo do editor) | **Apresente opções + recomendação e espere** (`PASSAGEM.md §3`) |
-| Irreversível ou que sai da máquina (push, apagar, publicar, gastar dinheiro, usar chave real) | **Peça um "sim" claro**, dizendo exatamente o que vai acontecer |
+| Irreversível ou que mexe fora do projeto (push forçado, apagar branch ou repositório, abrir PR, publicar, gastar dinheiro, usar chave real) | **Peça um "sim" claro**, dizendo exatamente o que vai acontecer. (Push comum na `limpeza` já está autorizado.) |
 | Ambígua e barata de desfazer | Faça a interpretação mais provável, diga qual foi, e siga |
 | Ambígua e cara de errar | Faça **uma** pergunta curta, com sua sugestão de resposta |
 
@@ -148,7 +151,7 @@ com a linha de coautoria que o ambiente indicar. Commitar localmente é normal; 
 ## 8. Protocolo de início (faça nesta ordem)
 
 1. Leia, nesta ordem: `README.md` → `PASSAGEM.md` → `contexto.md` → o fim de `decisoes.md` (últimas ~10 entradas) → este arquivo se ainda não terminou.
-2. Confira o estado: `git status`, `git log --oneline -10`, e rode `npm run typecheck`. Se houver mudanças não commitadas que não são suas, **pergunte antes de mexer**.
+2. Confira o estado: `git fetch`, `git status`, `git log --oneline -10`, e rode `npm run typecheck`. Você deve estar na `limpeza` e atualizado com `origin/limpeza`. Se algo não bate, **pergunte antes de mexer**.
 3. Rode o ambiente (`PASSAGEM.md §1`). Se algo do passo a passo falhar, **isso é um defeito do documento**: conserte-o ou avise.
 4. **Escreva para a pessoa uma mensagem de abertura curta** (modelo abaixo) e **espere a resposta** antes de começar trabalho grande.
 5. Só então escolha a tarefa: a que a pessoa pedir; se ela disser "siga com o que for necessário", comece pelos itens de `PASSAGEM.md §4` na ordem, e pare para perguntar só nas decisões da seção 3.
@@ -163,5 +166,5 @@ com a linha de coautoria que o ambiente indicar. Commitar localmente é normal; 
 - Faz o que foi pedido, **conferido de verdade** (não só "compila").
 - `npm run typecheck` e `npm test` passam (ou você diz exatamente o que falha e por quê).
 - Docs atualizados onde o mapa/comportamento mudou; decisão registrada; pulados anotados.
-- Commit local feito, mensagem clara. **Sem push.**
+- Commit feito e **enviado à `limpeza`** (`git push`), mensagem clara. **Sem PR.**
 - Você contou à pessoa: o que fez, como conferiu, o que ficou de fora e qual o próximo passo.

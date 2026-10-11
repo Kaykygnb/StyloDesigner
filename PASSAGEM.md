@@ -13,12 +13,11 @@ pequenos. Conversa em português. As decisões de **negócio** (seção 3) são 
 
 ## 1. Comece aqui (verificado num clone limpo, 2026-10-11)
 
-**De onde vem o código:** a branch **`limpeza`** — no GitHub (`Kaykygnb/StyloDesigner`, repositório público) e na pasta local `C:/Users/LENOVO/Desktop/Blbla/StyloDesigner` (repositório git próprio).
-**A `main` do GitHub é a versão ANTIGA: nunca use a `main`.** Três jeitos de começar:
-1. **Clonar a branch do GitHub** (serve para qualquer máquina ou agente na nuvem): `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`. Não traz os dados locais (banco, chave, configuração): o servidor cria novos na primeira execução. Depois, `npm install` e o resto abaixo.
-2. **Trabalhar na pasta local** (abra a sessão do agente DENTRO de `StyloDesigner`, para o `CLAUDE.md` ser lido). Só um agente por vez nela: dois ao mesmo tempo se atropelam nos arquivos, no banco local (PGlite aceita um processo) e na porta 5173.
-3. **Clone local da pasta**: `git clone C:/Users/LENOVO/Desktop/Blbla/StyloDesigner outra-pasta` (para dois agentes em paralelo sem se atropelar).
-Quem trabalhar por um caminho e quiser levar para o outro usa `git push`/`git pull` na branch `limpeza` — **só com pedido da pessoa dona** (cada envio ao GitHub é público).
+**De onde vem o código:** a branch **`limpeza`** do GitHub (`Kaykygnb/StyloDesigner`, repositório público). **A `main` de lá é a versão ANTIGA: nunca use a `main`.**
+**Hoje o agente trabalha na NUVEM** (ambiente descartável: o que não for enviado ao GitHub se perde), então: `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`, e **`git pull --rebase origin limpeza` + `git push` ao fim de cada bloco** (pushes na `limpeza` estão autorizados; nada de `--force`, PR ou `main`).
+Se for rodar na máquina Windows da pessoa dona (pasta `C:/Users/LENOVO/Desktop/Blbla/StyloDesigner`, que é um clone da mesma branch): abra a sessão DENTRO de `StyloDesigner`, só um agente por vez (arquivos, banco PGlite e porta 5173 não aceitam dois).
+Dados locais (banco `designer.db/`, chave `designer.secret`, `designer.config.json`) **não vão para o git**; num clone novo eles são criados na primeira execução.
+Chromium na nuvem: costuma vir pré-instalado; use `STYLO_CHROMIUM_PATH=<executável>` em vez de baixar outro (veja `contexto.md §4`).
 
 ```bash
 cd StyloDesigner
@@ -156,7 +155,7 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 - Código em módulos pequenos; evitar reinventar o que um framework faz bem; dependências são bem-vindas se encolherem o código.
 - Segurança desde o começo: HTML/CSS que entra **nunca** é confiável (sem `<script>`, sem JS no servidor, Chromium sem rede, proteção SSRF).
 - Só uso comercial livre nos assets de terceiros; sempre registrar licença e crédito.
-- **Não fazer push nem PR e não apagar dados da pessoa sem pedir.** Não mexer no editor (`apps/web`) por enquanto.
+- **Pushes só na branch `limpeza`**, sem `--force`, sem PR e sem tocar na `main`. Não apagar dados da pessoa. Não mexer no editor (`apps/web`) por enquanto.
 - Antes de afirmar que algo funciona: testar de verdade (suíte + uma checagem real) e dizer com franqueza o que **não** foi verificado.
 
 ## 7. Armadilhas conhecidas

@@ -25,10 +25,12 @@ export function createRenderer() {
     browserPromise ??= (async () => {
       try {
         const { chromium } = await import('playwright-core');
-        return await chromium.launch({ headless: true });
+        // STYLO_CHROMIUM_PATH: usar um Chromium que já existe (ex.: o pré-instalado em ambientes de nuvem), sem baixar outro
+        const executablePath = process.env.STYLO_CHROMIUM_PATH || undefined;
+        return await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
       } catch (err: any) {
         browserPromise = null;
-        throw new Error(`O renderizador de imagens não está disponível neste servidor (${String(err.message || err).split('\n')[0]}). Instale com: npx playwright install chromium`);
+        throw new Error(`O renderizador de imagens não está disponível neste servidor (${String(err.message || err).split('\n')[0]}). Instale com: npx playwright install chromium — ou aponte um Chromium já instalado com a variável STYLO_CHROMIUM_PATH)`);
       }
     })();
     return browserPromise;

@@ -303,3 +303,9 @@ público, agora inútil. Em aberto: reescrever o histórico, o destino da `main`
 A pessoa dona confirmou que o repositório é dela e que a decisão de licença (D1) fica para depois: se o resultado não ficar bom, ela **apaga o repositório e cria outro**.
 Consequência para quem programa: não decidir nada de licença; não depender de o remoto existir para sempre (histórico local é a fonte); se `push`/`fetch` falhar porque o
 repositório sumiu, parar e avisar. Apagar o repositório não desfaz cópias que terceiros já tenham feito da versão enviada em MIT.
+
+## 2026-10-11 — O agente passa a trabalhar na nuvem: push na `limpeza` autorizado, Chromium configurável
+A pessoa dona avisou que o próximo agente roda **na nuvem** (ambiente descartável) e não no computador dela. Consequências: (1) o que não for enviado ao GitHub se perde, então
+**`git push` na branch `limpeza` ao fim de cada bloco passa a ser permitido** (continua proibido: `--force`, PR, `main`, `stylo-2.0-planning`, reescrever histórico); (2) o prompt inicial
+foi reescrito para esse ambiente (Linux, sem acesso ao PC dela, sem dados locais, rede possivelmente restrita, a pessoa não vê o ambiente); (3) novo `STYLO_CHROMIUM_PATH` para o
+renderizador usar um Chromium já instalado (comum em nuvem) em vez de baixar outro; erro claro cita a variável; teste novo. Dois agentes em paralelo: o segundo usa uma branch `agente/<tarefa>`.
