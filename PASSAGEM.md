@@ -4,7 +4,7 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-11**. Código em `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner`, branch **`limpeza`**, 233 commits locais.
-**Nada foi enviado ao GitHub** (sem push, sem PR; veja a decisão D2). Suíte: 442 testes passando; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Suíte: 442 testes passando; `npm run typecheck` limpo.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -13,11 +13,12 @@ pequenos. Conversa em português. As decisões de **negócio** (seção 3) são 
 
 ## 1. Comece aqui (verificado num clone limpo, 2026-10-11)
 
-**De onde vem o código:** o trabalho está **só nesta máquina**, na pasta `C:/Users/LENOVO/Desktop/Blbla/StyloDesigner` (é um repositório git próprio, branch `limpeza`).
-**O GitHub (`Kaykygnb/StyloDesigner`) tem a versão ANTIGA e não tem nada deste trabalho — não clone nem puxe de lá.** Opções, da mais simples à mais segura:
-1. **Trabalhar na própria pasta** (recomendado; abra a sessão do agente DENTRO de `StyloDesigner`, para o `CLAUDE.md` ser lido). Só um agente por vez nela: dois ao mesmo tempo se atropelam nos arquivos, no banco local (PGlite aceita um processo) e na porta 5173.
-2. **Trabalhar num clone local**: `git clone C:/Users/LENOVO/Desktop/Blbla/StyloDesigner outra-pasta` (traz a branch `limpeza` com todo o histórico; **não** traz os dados locais ignorados pelo git, como `designer.db/` e `designer.secret`, e isso é bom). Depois, para devolver o trabalho, `git pull` ou `git fetch` a partir do clone na pasta original.
-3. **Enviar ao GitHub** e trabalhar de lá: só depois da decisão **D2** (o que fazer com o histórico).
+**De onde vem o código:** a branch **`limpeza`** — no GitHub (`Kaykygnb/StyloDesigner`, repositório público) e na pasta local `C:/Users/LENOVO/Desktop/Blbla/StyloDesigner` (repositório git próprio).
+**A `main` do GitHub é a versão ANTIGA: nunca use a `main`.** Três jeitos de começar:
+1. **Clonar a branch do GitHub** (serve para qualquer máquina ou agente na nuvem): `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`. Não traz os dados locais (banco, chave, configuração): o servidor cria novos na primeira execução. Depois, `npm install` e o resto abaixo.
+2. **Trabalhar na pasta local** (abra a sessão do agente DENTRO de `StyloDesigner`, para o `CLAUDE.md` ser lido). Só um agente por vez nela: dois ao mesmo tempo se atropelam nos arquivos, no banco local (PGlite aceita um processo) e na porta 5173.
+3. **Clone local da pasta**: `git clone C:/Users/LENOVO/Desktop/Blbla/StyloDesigner outra-pasta` (para dois agentes em paralelo sem se atropelar).
+Quem trabalhar por um caminho e quiser levar para o outro usa `git push`/`git pull` na branch `limpeza` — **só com pedido da pessoa dona** (cada envio ao GitHub é público).
 
 ```bash
 cd StyloDesigner
@@ -60,8 +61,8 @@ Cada uma traz minha recomendação e o que fica travado enquanto não houver res
 
 | # | Decisão | Minha recomendação | Enquanto isso |
 |---|---|---|---|
-| **D1** | **Licença e modelo de negócio** | FSL ou PolyForm Shield (veja abaixo) | não publicar o repositório nem lançar o serviço |
-| **D2** | **O que fazer com o git** (232 commits locais, `designer.secret` no histórico antigo) | reescrever o histórico sem o segredo e manter o antigo numa branch `legado` | nada de push |
+| **D1** | **Licença e modelo de negócio** | FSL ou PolyForm Shield (veja abaixo) | **o código da `limpeza` já está público em MIT** (decisão da pessoa dona); falta a licença das versões futuras e o serviço |
+| **D2** | **O que fazer com o git** (232 commits locais, `designer.secret` no histórico antigo) | reescrever o histórico sem o segredo e manter o antigo numa branch `legado` | `limpeza` enviada (pública); `main` antiga intocada |
 | **D3** | Nome do produto, nome do servidor MCP nos exemplos, domínio | "Stylo" + servidor MCP `stylo` | docs usam `stylo` |
 | **D4** | Idioma do produto (hoje: instruções e mensagens em português) | manter pt-BR agora, isolar os textos para permitir inglês | tudo em pt-BR |
 | **D5** | Onde hospedar (servidor, Postgres, arquivos, HTTPS) | VPS pequeno + Postgres gerenciado + Cloudflare R2 + Caddy (HTTPS) | só local |
@@ -83,11 +84,13 @@ agentes que a usam para prototipar são bem-vindos. Hoje o repositório está em
 direto sem prazo; *AGPL* — copyleft (um SaaS concorrente teria de abrir o código dele); *fechar o código*. Não chame de "open source"
 (a definição oficial não permite restringir uso comercial). Se aceitar contribuições de terceiros, precisa de um **CLA**. **Precisa de revisão
 jurídica** antes de valer. O `NOTICE` já lista as licenças das dependências (todas MIT/ISC/Apache, compatíveis).
+**Já aconteceu (2026-10-11):** a pessoa dona mandou enviar a branch `limpeza` ao GitHub **público, em MIT**. Esse código passou a poder ser copiado e reutilizado por qualquer um, inclusive para vender, e **isso não se desfaz** para quem já copiou. Uma licença nova (FSL/Shield) só vale para versões futuras. Se a intenção de "source-available" continua, decidir D1 **antes** de enviar mais código importante.
 
-**D2 — Git.** O repositório do GitHub (`Kaykygnb/StyloDesigner`) tem a versão antiga. A branch `limpeza` é uma reorganização completa. O arquivo
-`designer.secret` (chave de criptografia **local de desenvolvimento**) foi commitado por engano no começo e removido depois, mas continua no
-histórico. Como nada foi enviado, dá para: (a) reescrever o histórico removendo o segredo (`git filter-repo`) e enviar; (b) juntar tudo em poucos
-commits; (c) enviar como está (a chave só protegia dados locais). Recomendo (a) e guardar o `main` antigo como branch `legado`.
+**D2 — Git (parcialmente resolvida em 2026-10-11).** A pessoa dona mandou enviar a branch `limpeza` ao GitHub, sem tocar na `main`. Antes do envio, o histórico foi varrido: só a
+`designer.secret` (chave de criptografia **local de desenvolvimento**, commitada por engano no começo e removida depois) era sensível; nenhuma chave de API. Como o repositório é público, a chave
+ficou visível no histórico; o banco local guardava **0 chaves criptografadas** com ela e **a chave foi trocada** (a antiga virou inútil). Nunca reutilize uma chave que tenha estado no git.
+**Ainda aberto:** (a) reescrever o histórico para apagar o arquivo de vez (opcional; mudaria os códigos dos commits); (b) o que fazer com a `main` antiga — recomendo arquivar como branch `legado` e
+fazer o merge da `limpeza` na `main` só quando a licença (D1) estiver decidida; (c) se o repositório segue público até lá.
 
 **D7 — Cobrança.** Já existem como base: cota de biblioteca por conta (`STYLO_LIBRARY_QUOTA_MB`), log de operações por agente, limites de tamanho por
 tipo de arquivo. Faltam planos, limite de requisições, medição de uso e integração de pagamento. Decidir **o que é a unidade cobrada** antes de implementar.

@@ -290,3 +290,11 @@ do SDK do MCP). Agora está declarado em `packages/core` e `packages/plugins`.
 "nunca definido" é aviso); `build_layout` devolve a altura medida; ferramentas de assets fora do servidor explicam o que falta em vez de um erro técnico.
 **Decisão de método:** o que é decisão de negócio (licença, cobrança, hospedagem, nome, idioma, privacidade, formatos, editor) NÃO é decidido por quem programa: fica em
 `PASSAGEM.md §3` com opções e recomendação.
+
+## 2026-10-11 — Branch `limpeza` enviada ao GitHub (público, MIT) por decisão da pessoa dona
+O agente que ia assumir o projeto não conseguia trabalhar só na pasta local, então a pessoa dona mandou **enviar o trabalho numa branch nova**. Foi enviada a `limpeza`
+(sem forçar nada; `main` e `stylo-2.0-planning` do GitHub intocadas). **Avisos feitos antes, e a escolha dela:** o repositório é **público** e a licença é **MIT**, então o código
+passa a poder ser copiado e vendido por qualquer um, sem volta (a intenção declarada era "source-available" e a decisão D1 está aberta). Foi oferecido tornar o repositório privado
+primeiro; a pessoa escolheu **manter público**. **Segurança:** varredura do histórico (só `designer.secret` era sensível, nenhuma chave de API); o banco local tinha 0 chaves
+criptografadas com ela; **chave local trocada** antes do envio (a antiga ficou em `designer.antiga.secret`, ignorada pelo git, e pode ser apagada). A chave antiga continua no histórico
+público, agora inútil. Em aberto: reescrever o histórico, o destino da `main` antiga e a licença (PASSAGEM.md D1/D2).

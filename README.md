@@ -4,6 +4,8 @@ Um "Figma" para **agentes de IA e pessoas** prototiparem e construírem sites e 
 fica ligado e qualquer agente (Claude Code, Codex, Cursor...) trabalha nele pelo **MCP**: cria o projeto, monta as telas, **vê** o resultado,
 **audita** (responsivo, contraste, acessibilidade) e **exporta** — zip de HTML, projeto React (Vite) ou tokens do design (CSS/JSON/Tailwind).
 
+Código na branch **`limpeza`** (a `main` é a versão antiga): `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`
+
 ```bash
 npm install
 npx playwright install chromium     # para o agente "ver" e auditar o design
