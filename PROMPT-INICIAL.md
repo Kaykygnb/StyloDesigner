@@ -13,6 +13,7 @@ Leia inteiro. Depois siga o protocolo da seção 8.
 - O projeto está na pasta **`C:/Users/LENOVO/Desktop/Blbla/StyloDesigner`** (repositório git próprio, branch **`limpeza`**) e **também no GitHub**, branch **`limpeza`**
   (`https://github.com/Kaykygnb/StyloDesigner`, repositório **público**). **A `main` de lá é a versão ANTIGA: nunca a use**, nunca mexa nela nem na `stylo-2.0-planning`.
   Para clonar: `git clone -b limpeza https://github.com/Kaykygnb/StyloDesigner.git`. Se você foi iniciado numa pasta que já tem o projeto, trabalhe nela mesmo.
+  O repositório é **da pessoa dona**: ela pode apagá-lo e criar outro (ela vai decidir a licença depois). Se um `push` ou `fetch` falhar porque o repositório sumiu ou mudou, **pare e avise**: nunca tente recriá-lo nem criar outro por conta própria.
 - A pasta acima (`Desktop/Blbla`) e o resto do computador **não são seus**: trabalhe dentro de `StyloDesigner`. Não leia, mova ou apague arquivos pessoais fora dela.
 - O agente anterior trabalhou **na mesma pasta**. Se o git mostrar mudanças não commitadas que você não fez, **pergunte antes de mexer**.
 - **Um agente por vez** nesta pasta. Se a pessoa disser que há outro agente trabalhando, peça um clone local (`git clone` da pasta, não do GitHub) para não atropelar arquivos, banco local (PGlite aceita um processo) e a porta 5173.

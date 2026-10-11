@@ -298,3 +298,8 @@ passa a poder ser copiado e vendido por qualquer um, sem volta (a intenção dec
 primeiro; a pessoa escolheu **manter público**. **Segurança:** varredura do histórico (só `designer.secret` era sensível, nenhuma chave de API); o banco local tinha 0 chaves
 criptografadas com ela; **chave local trocada** antes do envio (a antiga ficou em `designer.antiga.secret`, ignorada pelo git, e pode ser apagada). A chave antiga continua no histórico
 público, agora inútil. Em aberto: reescrever o histórico, o destino da `main` antiga e a licença (PASSAGEM.md D1/D2).
+
+## 2026-10-11 — Licença: fica para depois; o repositório pode ser apagado e recriado
+A pessoa dona confirmou que o repositório é dela e que a decisão de licença (D1) fica para depois: se o resultado não ficar bom, ela **apaga o repositório e cria outro**.
+Consequência para quem programa: não decidir nada de licença; não depender de o remoto existir para sempre (histórico local é a fonte); se `push`/`fetch` falhar porque o
+repositório sumiu, parar e avisar. Apagar o repositório não desfaz cópias que terceiros já tenham feito da versão enviada em MIT.
