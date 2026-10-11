@@ -6,6 +6,21 @@ Leia inteiro. Depois siga o protocolo da seção 8.
 
 ---
 
+## 0. Onde você está (leia: muda o que é seguro fazer)
+
+- Você está rodando **no computador da própria pessoa dona do projeto** (Windows 11), com acesso real aos arquivos e ao terminal. **Nada aqui é de mentira**:
+  apagar, sobrescrever ou rodar um comando destrutivo afeta arquivos e dados reais dela.
+- O projeto está na pasta **`C:/Users/LENOVO/Desktop/Blbla/StyloDesigner`** (repositório git próprio, branch `limpeza`). **O código só existe aqui.**
+  O GitHub (`Kaykygnb/StyloDesigner`) tem a versão **antiga**: **não clone nem puxe de lá**; e **não envie nada para lá** (veja a seção 5).
+- A pasta acima (`Desktop/Blbla`) e o resto do computador **não são seus**: trabalhe dentro de `StyloDesigner`. Não leia, mova ou apague arquivos pessoais fora dela.
+- O agente anterior trabalhou **na mesma pasta**. Se o git mostrar mudanças não commitadas que você não fez, **pergunte antes de mexer**.
+- **Um agente por vez** nesta pasta. Se a pessoa disser que há outro agente trabalhando, peça um clone local (`git clone` da pasta, não do GitHub) para não atropelar arquivos, banco local (PGlite aceita um processo) e a porta 5173.
+- Dados locais que **não vão para o git** e **não devem ser apagados**: `designer.db/` (o banco local), `designer.secret`, `*.blobs/`, `designer.config.json`.
+- Shell: há Git Bash e PowerShell. Cuidado com aspas, crases e `$` em comandos longos (seção 4G). O Chromium do Playwright já deve estar instalado; se `get_image` avisar que não está, rode `npx playwright install chromium`.
+- Você pode subir o servidor (`npm start`) e abrir navegadores de teste, mas **encerre o que subiu** quando terminar (servidor na porta 5173, Chromium, scripts em segundo plano) para não deixar processos soltos no computador dela.
+
+---
+
 ## 1. Quem é a pessoa com quem você trabalha
 
 - É a **dona do projeto** e a pessoa que decide o rumo do produto. **Não é programadora de formação.** Escolheu ser guiada por você nas decisões
