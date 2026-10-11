@@ -259,6 +259,77 @@ ${PROP_HELP}`,
     }),
   }),
   defineTool({
+    name: 'create_text_styles',
+    write: true,
+    description: 'Cria ESTILOS DE TEXTO do projeto (ex.: Título, Corpo, Legenda): fonte, tamanho, peso, altura de linha, espaçamento. Depois aplique com apply_text_style; mudar o estilo atualiza todos os textos ligados. Veja os existentes em get_document (textStyles).',
+    input: z.object({
+      styles: z.array(z.object({
+        name: z.string(),
+        fontFamily: z.string().optional(),
+        fontSize: z.number().positive().describe('px').optional(),
+        fontWeight: z.number().int().min(100).max(900).optional(),
+        fontStyle: z.enum(['normal', 'italic']).optional(),
+        lineHeight: z.number().positive().describe('multiplicador, ex.: 1.4').optional(),
+        letterSpacing: z.number().describe('px').optional(),
+        wordSpacing: z.number().describe('px').optional(),
+      })),
+    }),
+  }),
+  defineTool({
+    name: 'apply_text_style',
+    write: true,
+    description: 'Liga camadas de TEXTO a um estilo de texto (create_text_styles): elas passam a seguir o estilo. style_id vazio/null desliga (o texto mantém os valores atuais).',
+    input: z.object({
+      ids: z.array(z.string()),
+      style_id: z.string().nullable().optional(),
+    }),
+  }),
+  defineTool({
+    name: 'add_color_mode',
+    write: true,
+    description: 'Cria um MODO de cor (ex.: "Escuro"). Com auto:true, gera os valores de todos os estilos de cor invertendo a luminosidade (ajuste depois com set_style_color). scheme "dark"/"light" faz o site exportado escolher o modo pela preferência do sistema; sem scheme, só vale com <html data-theme="nome">. Devolve o id do modo.',
+    input: z.object({
+      name: z.string(),
+      scheme: z.enum(['dark', 'light']).optional(),
+      auto: z.boolean().optional(),
+    }),
+  }),
+  defineTool({
+    name: 'set_style_color',
+    write: true,
+    description: 'Muda a cor de um ESTILO de cor, no valor padrão ou num modo (mode_id de add_color_mode / get_document colorModes). Todas as camadas ligadas ao estilo seguem.',
+    input: z.object({
+      style_id: z.string(),
+      color: z.string().describe('#RRGGBB'),
+      mode_id: z.string().describe('omita para o valor padrão').optional(),
+      opacity: z.number().min(0).max(1).optional(),
+    }),
+  }),
+  defineTool({
+    name: 'create_size_variables',
+    write: true,
+    description: 'Cria VARIÁVEIS DE TAMANHO (px) reutilizáveis: espaçamentos, raios, tamanhos de fonte (viram --nome no CSS). Ligue camadas com bind_variable; mudar o valor da variável atualiza todas. Se o nome já existe, o valor é atualizado.',
+    input: z.object({
+      variables: z.array(z.object({ name: z.string(), value: z.number().min(0) })),
+    }),
+  }),
+  defineTool({
+    name: 'bind_variable',
+    write: true,
+    description: 'Liga um campo de camadas a uma variável de tamanho: gap e padding (frames com layout), radius, fontSize (texto). variable_id vazio/null desliga. A camada recebe o valor da variável na hora.',
+    input: z.object({
+      ids: z.array(z.string()),
+      prop: z.enum(['gap', 'padding', 'radius', 'fontSize']),
+      variable_id: z.string().nullable().optional(),
+    }),
+  }),
+  defineTool({
+    name: 'export_tokens',
+    write: false,
+    description: 'Exporta os TOKENS do design (cores com modos, estilos de texto, variáveis de tamanho) para quem vai programar: "css" (variáveis :root, modos por data-theme/prefers-color-scheme e classes .texto-*), "json" (tokens neutros) ou "tailwind" (tailwind.config.js + tokens.css; as cores usam as variáveis, então os modos funcionam). Devolve os arquivos com o conteúdo.',
+    input: z.object({ format: z.enum(['css', 'json', 'tailwind']) }),
+  }),
+  defineTool({
     name: 'create_page',
     write: true,
     description: 'Cria uma página nova no projeto (as abas de página do painel esquerdo) e abre ela.',

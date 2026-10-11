@@ -231,3 +231,12 @@ iniciador de 10 linhas) — **só** nas páginas que usam, e offline funciona. L
 `<div data-lottie-src>`. O core continua puro: `exportSite(doc, { vendor })` recebe uma função; quem lê `node_modules` é o servidor. Mídia
 dentro do projeto ≤ 25 MB (a biblioteca aceita até 200 MB): limite provisório porque o projeto ainda carrega a mídia como data URL na memória;
 a solução definitiva é guardar só a referência no documento e os bytes no armazenamento de blobs.
+
+## 2026-10-11 — Identidade visual no MCP: estilos de texto, modos, variáveis e exportação de tokens
+O núcleo já sabia fazer estilos de texto, modos de cor (claro/escuro) e variáveis de tamanho, mas só o editor antigo os alcançava. Agora há 7
+ferramentas MCP (58 no núcleo): `create_text_styles`, `apply_text_style`, `add_color_mode`, `set_style_color`, `create_size_variables`,
+`bind_variable`, `export_tokens`. Os valores ficam NO PROJETO (nada em arquivo à parte) e `get_document` lista estilos, modos e variáveis.
+`export_tokens` é função pura (`core/tokens.ts`) e gera: **css** (variáveis `:root`, modos por `data-theme` e por `prefers-color-scheme`, classes
+`.texto-*`), **json** (parecido com o padrão W3C Design Tokens) e **tailwind** (config + tokens.css; as cores apontam para as variáveis para os
+modos funcionarem). Razão: o agente que vai construir em React/RN/o que for precisa dos mesmos valores que o desenho usa, sem copiar à mão.
+Escolha deliberada: criar poucas ferramentas "de gravação" claras, em vez de uma ferramenta única cheia de ações.

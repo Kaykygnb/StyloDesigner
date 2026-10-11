@@ -24,6 +24,9 @@ import { iconUrl, iconExists, searchIcons } from '../icons.js';
 import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName, validateToolArgs } from './schema.js';
 import { exportSite } from '../site-export.js';
+import { exportTokens } from '../tokens.ts';
+import { addMode, addVar, bindVar, unbindVar, modesOf, varsOf, setStyleColor, syncVars } from '../modes.js';
+import { textStyleFrom } from '../components.js';
 import { agentContentLimit, boundedUtf8Chunk, DEFAULT_AGENT_CONTENT_BYTES } from './content.js';
 import { imageInfo as sniffImage, parseImageDataUrl, fromBase64, toDataUrl } from '../image-size.js';
 
@@ -275,6 +278,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
         selection: store.ui.selection,
         colorStyles: (doc.styles?.colors || []).map((c) => ({ id: c.id, name: c.name, color: c.color })),
         textStyles: (doc.styles?.texts || []).map((t) => ({ id: t.id, name: t.name })),
+        colorModes: modesOf(doc.styles).map((m) => ({ id: m.id, name: m.name, scheme: m.scheme })),
         sizeVars: (doc.styles?.vars || []).map((v) => ({ id: v.id, name: v.name, value: v.value })),
         breakpoints: BREAKPOINTS.map((b) => ({ id: b.id, name: b.name, maxWidth: b.max })),
         activeBreakpoint: store.ui.bp,
@@ -368,6 +372,11 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const html = exportHtml(n, doc.assets, n.name, doc.styles);
       const { content, ...chunk } = boundedUtf8Chunk(html, { offset, maxBytes });
       return { file: `${slugify(n.name || 'pagina')}.html`, html: content, ...chunk };
+    },
+    export_tokens({ format }) {
+      const files = exportTokens(store.state.doc, format);
+      if (files.every((f) => !f.content.trim() || f.content.trim() === '{}')) throw new Error('O projeto ainda não tem estilos de cor, de texto ou variáveis. Crie com create_color_styles, create_text_styles ou create_size_variables.');
+      return { format, files };
     },
     export_site({ includeContent = false, path, maxBytes = DEFAULT_AGENT_CONTENT_BYTES, offset = 0 } = {}) {
       const site = exportSite(store.state.doc, { vendor });
@@ -651,6 +660,58 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       store.update(() => insertAt(list, node, index));
       store.setSelection([node.id]);
       return { created: summarize(node, 0) };
+    },
+    create_text_styles({ styles = [] }) {
+      if (!Array.isArray(styles) || !styles.length) throw new Error('Mande a lista: styles: [{name, fontFamily, fontSize, ...}].');
+      const made = styles.map(({ name, ...rest }) => ({ id: uid(), name: String(name || 'Texto').trim().slice(0, 40), ...textStyleFrom(rest) }));
+      store.update(() => { store.state.doc.styles.texts.push(...made); }, { commit: true });
+      return { created: made.map((m) => ({ id: m.id, name: m.name })), hint: 'Ligue textos com apply_text_style.' };
+    },
+    apply_text_style({ ids = [], style_id = null }) {
+      const nodes = ids.map(need);
+      const st = style_id ? (store.state.doc.styles.texts || []).find((t) => t.id === style_id) : null;
+      if (style_id && !st) throw new Error(`Estilo de texto "${style_id}" não existe. Veja textStyles em get_document ou crie com create_text_styles.`);
+      for (const n of nodes) if (n.type !== 'text') throw new Error(`“${n.name}” não é um texto.`);
+      store.update(() => { for (const n of nodes) { if (st) n.textStyleId = st.id; else delete n.textStyleId; } }, { commit: true });
+      return { ok: true, linked: nodes.length };
+    },
+    add_color_mode({ name, scheme, auto = false }) {
+      if (!String(name || '').trim()) throw new Error('Dê um nome ao modo, ex.: "Escuro".');
+      let mode;
+      store.update(() => { mode = addMode(store.state.doc.styles, { name, scheme: scheme || null, auto }); }, { commit: true });
+      return { mode: { id: mode.id, name: mode.name, scheme: mode.scheme }, hint: auto ? 'Valores gerados por inversão de luminosidade: ajuste com set_style_color(mode_id).' : 'Os estilos começam iguais ao padrão: defina o valor deste modo com set_style_color(mode_id).' };
+    },
+    set_style_color({ style_id, color, mode_id, opacity }) {
+      const st = (store.state.doc.styles.colors || []).find((c) => c.id === style_id);
+      if (!st) throw new Error(`Estilo de cor "${style_id}" não existe. Veja colorStyles em get_document.`);
+      const c = hex(color);
+      if (!c) throw new Error('Cor inválida: use "#RRGGBB".');
+      if (mode_id && !modesOf(store.state.doc.styles).some((m) => m.id === mode_id)) throw new Error(`Modo "${mode_id}" não existe. Veja colorModes em get_document ou crie com add_color_mode.`);
+      store.update(() => { setStyleColor(st, mode_id || null, c, opacity); }, { commit: true });
+      return { ok: true, style: st.name, mode_id: mode_id || null, color: c };
+    },
+    create_size_variables({ variables = [] }) {
+      if (!Array.isArray(variables) || !variables.length) throw new Error('Mande a lista: variables: [{name, value}].');
+      const out = [];
+      store.update(() => {
+        for (const { name, value } of variables) {
+          const existing = varsOf(store.state.doc.styles).find((v) => v.name.toLowerCase() === String(name).trim().toLowerCase());
+          if (existing) { existing.value = Math.max(0, Number(value) || 0); out.push({ id: existing.id, name: existing.name, value: existing.value, updated: true }); }
+          else { const v = addVar(store.state.doc.styles, name, value); out.push({ id: v.id, name: v.name, value: v.value }); }
+        }
+        syncVars(store.state.doc, true);
+      }, { commit: true });
+      return { variables: out, hint: 'Ligue camadas com bind_variable.' };
+    },
+    bind_variable({ ids = [], prop, variable_id = null }) {
+      const nodes = ids.map(need);
+      const v = variable_id ? varsOf(store.state.doc.styles).find((x) => x.id === variable_id) : null;
+      if (variable_id && !v) throw new Error(`Variável "${variable_id}" não existe. Veja sizeVars em get_document ou crie com create_size_variables.`);
+      const fits = (n) => (prop === 'fontSize' ? n.type === 'text' : prop === 'radius' ? true : !!n.layout && n.layout.mode !== 'none');
+      const bad = nodes.find((n) => !fits(n));
+      if (bad) throw new Error(`“${bad.name}” não tem ${prop}${prop === 'gap' || prop === 'padding' ? ' (só frames com layout flex/grid)' : prop === 'fontSize' ? ' (só texto)' : ''}.`);
+      store.update(() => { for (const n of nodes) (v ? bindVar(n, prop, v) : unbindVar(n, prop)); }, { commit: true });
+      return { ok: true, linked: nodes.length, prop, value: v?.value ?? null };
     },
     create_color_styles({ colors = [] }) {
       if (!Array.isArray(colors) || !colors.length) throw new Error('Mande a lista: colors: [{name, color: "#RRGGBB"}].');
