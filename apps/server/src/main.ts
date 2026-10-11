@@ -80,7 +80,9 @@ const assetServices = createAssetServices({ library, secrets, sources: createAss
 const plugins = createPlugins({ plugins: builtinPlugins, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
 workspace = createWorkspace({
   projects, notes, sharing, operations, plugins, presence: () => presence.snapshot(),
-  renderImage: (node, doc, scale) => renderer.render(node, doc, scale),
+  renderImage: (node, doc, scale, opts) => renderer.render(node, doc, scale, opts),
+  measureLayout: (roots, doc) => renderer.measure(roots, doc),
+  auditLayout: (roots, doc, widths) => renderer.overflow(roots, doc, widths),
   fetchImage: (url) => fetchRemoteImage(url),
   baseUrl: () => `http://localhost:${port}`,
   onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },

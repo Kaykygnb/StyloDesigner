@@ -114,3 +114,35 @@ test('exportReact: sem Lottie/3D as dependências não aparecem; sem tela dá er
   assert.ok(jsx.includes("import './Home.css';"));
   assert.ok(bruto.files.some((f) => f.path === 'src/pages/Home.css'));
 });
+
+test('applyMeasured: grava só onde o tamanho não é fixo (hug/fill, auto layout ou limites) e conta o que mudou', async () => {
+  const { applyMeasured, rootsOf } = await import('../apps/server/src/workspace/measure.ts');
+  const board: any = createNode('frame', { name: 'T', w: 500, h: 10 }); board.sizeY = 'hug'; board.layout.mode = 'column';
+  const fixo: any = createNode('rect', { name: 'fixo', w: 100, h: 40 });
+  const oculto: any = createNode('rect', { name: 'oculto', w: 1, h: 1 }); oculto.visible = false;
+  board.children.push(fixo, oculto);
+  const sizes = new Map([[board.id, { w: 500, h: 321.456 }], [fixo.id, { w: 100, h: 99 }], [oculto.id, { w: 9, h: 9 }]]);
+  const changed = applyMeasured([board], null, sizes);
+  assert.equal(board.h, 321.46, 'hug recebe a altura medida (2 casas)');
+  assert.equal(board.w, 500);
+  assert.equal(fixo.h, 99, 'dentro de auto layout o tamanho medido vale (como no editor)');
+  assert.equal(oculto.h, 1, 'camada oculta não é tocada');
+  assert.equal(changed, 2);
+  const section: any = createNode('section', { name: 'S' }); section.children = [board];
+  assert.deepEqual(rootsOf([section, fixo]).map((n: any) => n.name), ['T', 'fixo'], 'telas dentro de seção contam como raiz');
+});
+
+test('inlineFontFaces: @font-face com o arquivo embutido; sem fontes, vazio', async () => {
+  const { inlineFontFaces } = await import('@stylo/core/site-export.ts');
+  assert.equal(inlineFontFaces({}), '');
+  const css = inlineFontFaces({ assets: { f1: 'data:font/woff2;base64,AAAA' }, fonts: [{ family: "Fra'unces", files: [{ assetId: 'f1', weight: 600, style: 'normal', subset: 'latin', ext: 'woff2', unicodeRange: 'U+0000-00FF' }, { assetId: 'sumiu', weight: 400, style: 'normal' }] }] });
+  assert.ok(css.includes("font-family: 'Fraunces'; font-style: normal; font-weight: 600; src: url(data:font/woff2;base64,AAAA) format('woff2'); unicode-range: U+0000-00FF;"));
+  assert.equal(css.split('@font-face').length - 1, 1, 'arquivo que não existe é ignorado');
+});
+
+test('validateToolArgs: argumento desconhecido é recusado com a lista dos aceitos (antes era descartado em silêncio)', async () => {
+  const { validateToolArgs } = await import('@stylo/core/tools/schema.ts');
+  assert.match(validateToolArgs('find_layers', { name: 'Card' })!, /Argumento desconhecido em find_layers: name\. Aceitos: query, type\./);
+  assert.equal(validateToolArgs('find_layers', { query: 'Card' }), null);
+  assert.equal(validateToolArgs('get_document', {}), null);
+});

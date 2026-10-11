@@ -25,6 +25,7 @@ import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName, validateToolArgs } from './schema.js';
 import { exportSite } from '../site-export.js';
 import { exportReact } from '../export-react.ts';
+import { auditStatic, overflowIssues, auditReport } from '../audit.ts';
 import { exportTokens } from '../tokens.ts';
 import { addMode, addVar, bindVar, unbindVar, modesOf, varsOf, setStyleColor, syncVars } from '../modes.js';
 import { textStyleFrom } from '../components.js';
@@ -96,6 +97,9 @@ export function applyProps(node, props, ctx = {}) {
     if (!(w > 0) || !(h > 0)) throw new Error('w e h precisam ser números maiores que zero.');
     if ('w' in props) resizeNode(node, w, node.h, 'w');
     if ('h' in props) resizeNode(node, node.w, h, 'h');
+    // w/h mandam o tamanho "fixo" por padrão; se o pedido também diz sizeX/sizeY ("hug", "fill"), isso vale (o w/h fica como tamanho inicial)
+    if ('sizeX' in props) node.sizeX = props.sizeX;
+    if ('sizeY' in props) node.sizeY = props.sizeY;
   }
   if ('fill' in props) {
     const f = props.fill;
@@ -271,10 +275,11 @@ export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
  * @param {object} [deps.folder]  pasta de projetos do editor (navegador)
  * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização (o navegador ou um renderizador injeta)
  * @param {((url: string) => Promise<{ bytes: Uint8Array }>)|null} [deps.fetchImage]  baixa uma imagem por endereço (o servidor injeta uma versão protegida contra SSRF)
+ * @param {((roots: object[], doc: object, widths: {rootId: string, label: string, width: number}[]) => Promise<object[]>)|null} [deps.auditLayout]  mede o vazamento em cada largura (o servidor injeta; sem ele, check_design só faz as regras estáticas)
  * @param {((name: string) => Uint8Array|null)|null} [deps.vendor]  entrega os players de mídia (model-viewer, lottie) para o zip
  * @param {object|null} [deps.imageOps]  edição de imagem por pixel ({ editImageLocal, generativeEdit, restoreOriginal, applyImageToNode }); só existe no navegador
  */
-export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, fetchImage = null, imageOps = null, vendor = null }) {
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, auditLayout = null, fetchImage = null, imageOps = null, vendor = null }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -375,14 +380,49 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const system = SYSTEM_FONTS.filter((f) => !q || f.toLowerCase().includes(q));
       return { google: out, system, hint: 'Use o nome exato em fontFamily e um peso da lista em fontWeight.' };
     },
-    async get_image({ id, scale = 1 } = {}) {
+    async check_design({ id, breakpoints } = {}) {
+      const doc = store.state.doc;
+      const boards = id ? [need(id)] : store.page().children.flatMap((n) => (n.type === 'section' ? n.children : [n])).filter((n) => n.type === 'frame' && n.visible !== false);
+      if (!boards.length) throw new Error('Não há telas para conferir nesta página (crie um frame na raiz).');
+      const all = doc.breakpoints?.length ? doc.breakpoints : BREAKPOINTS;
+      const chosen = breakpoints?.length ? breakpoints.map((b) => all.find((x) => x.id === b) || (() => { throw new Error(`Breakpoint "${b}" não existe. Disponíveis: ${all.map((x) => x.id).join(', ')}.`); })()) : all;
+      const issues = auditStatic(boards);
+      const widths = boards.flatMap((b) => [{ rootId: b.id, label: `desktop (${Math.round(b.w)}px)`, width: b.w }, ...chosen.map((bp) => ({ rootId: b.id, label: `${bp.name.toLowerCase()} (${bp.preview}px)`, width: bp.preview }))]);
+      let overflowChecked = false;
+      if (auditLayout) {
+        try {
+          const found = await auditLayout(boards, doc, widths);
+          issues.push(...overflowIssues(found, (nid) => store.get(nid)));
+          overflowChecked = true;
+        } catch { /* sem navegador: segue só com as regras estáticas */ }
+      }
+      const report = auditReport(issues);
+      return {
+        screens: boards.map((b) => b.name), widths: [...new Set(widths.map((w) => w.label))], ...report,
+        ...(overflowChecked ? {} : { note: 'Vazamento horizontal NÃO foi conferido (o servidor não tem o navegador de desenho). Use get_image com breakpoint para ver.' }),
+        ...(report.issues.length ? {} : { ok: 'Nenhum problema encontrado nas regras conferidas.' }),
+      };
+    },
+    async get_image({ id, scale = 1, breakpoint } = {}) {
       if (!renderImage) throw new Error('get_image precisa de um navegador para desenhar o design: não está disponível neste servidor. Use get_code / export_html para ler o resultado.');
       const sel = store.ui.selection.map((s) => store.get(s)).filter(Boolean);
       const node = id ? need(id) : sel[0] || store.page().children.find((n) => n.type === 'frame');
       if (!node) throw new Error('Nada para mostrar: a página está vazia.');
       const s = Math.max(0.5, Math.min(2, Number(scale) || 1));
       const doc = store.state.doc;
-      const data = await renderImage(node, doc, s);
+      let bp = null;
+      if (breakpoint) {
+        const list = doc.breakpoints?.length ? doc.breakpoints : BREAKPOINTS;
+        bp = list.find((b) => b.id === breakpoint);
+        if (!bp) throw new Error(`Breakpoint "${breakpoint}" não existe. Disponíveis: ${list.map((b) => b.id).join(', ')}.`);
+      }
+      const data = await renderImage(node, doc, s, bp ? { width: bp.preview } : undefined);
+      if (bp) {
+        // nesse modo a altura é a que o navegador calculou naquela largura: lê do cabeçalho do PNG
+        const head = fromBase64(data.slice(0, 48));
+        const view = new DataView(head.buffer, head.byteOffset, head.byteLength);
+        return { id: node.id, name: node.name, breakpoint: bp.id, width: bp.preview, w: view.getUint32(16), h: view.getUint32(20), _image: { data, mimeType: 'image/png' }, note: `Desenhado na largura do breakpoint "${bp.name}" (${bp.preview}px), com as regras responsivas aplicadas.` };
+      }
       // _image: o servidor MCP transforma em conteúdo de imagem; o Assistente interno descarta (o modelo de chat não recebe imagem)
       return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes da web aparecem com a fonte do sistema e o efeito vidro pode não aparecer na imagem (o editor e o HTML estão certos).' };
     },

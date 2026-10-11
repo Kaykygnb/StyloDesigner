@@ -263,3 +263,17 @@ outra: o gerador repete nomes como `.titulo` em páginas diferentes); `class` �
 (classes escritas à mão) fica literal. Imagens/fontes em `public/`; 3D e Lottie viram dependências do npm (não os arquivos vendor/). Navegação por `#`
 para não impor uma biblioteca de rotas. O conversor de HTML→JSX é próprio e pequeno porque só precisa entender o HTML que NÓS geramos; se achar algo
 fora disso, a página entra como HTML bruto com aviso, nunca quebra a exportação. Fica de fora (registrado em PASSAGEM §5b): React Native e TypeScript.
+
+## 2026-10-11 — "Uso a ferramenta como um agente": o que o atrito mostrou e o que foi feito
+Em vez de adivinhar melhorias, montei uma landing page inteira SÓ pelas ferramentas MCP (roteiro descartável) e anotei onde doeu. Achados e correções:
+1. **`get_image` cortava telas "hug"** (altura automática): o servidor usava o `h` guardado, que para "hug" era só uma estimativa; o agente via só a ponta de cima.
+   → O renderizador agora **mede o layout real** (`renderer.measure`, via `page.evaluate` com o JavaScript DA PÁGINA desligado) e grava em `node.w/h` com a mesma
+   regra da "medida de volta" do editor (`workspace/measure.ts`). É preguiçoso: o projeto fica "sujo" após escrita e a medida roda só antes de leituras que mostram
+   tamanhos (get_document, get_layer, find_layers, get_selection, get_image, check_design); se o Chromium falhar, segue com os tamanhos guardados (e espera 60 s para tentar de novo).
+2. **O agente não conseguia ver o celular**: `set_responsive` existia, mas `get_image` só desenhava no desktop. → `get_image {breakpoint}` desenha na largura do breakpoint.
+3. **Argumentos desconhecidos eram descartados em silêncio** (`find_layers {name}` devolvia tudo e o agente achava que filtrou). → agora é erro, listando os nomes aceitos.
+4. **`w/h` junto com `sizeY:"hug"` descartava o hug** (o tamanho fixo vencia). → sizeX/sizeY explícitos prevalecem.
+5. **Fontes do projeto não apareciam nas imagens**: `add_font` hospeda, mas o renderizador (sem rede) ignorava. → as fontes hospedadas entram embutidas no desenho.
+6. **O agente não sabia que errou** (texto que não quebra linha vazando no celular). → ferramenta nova `check_design` (`core/audit.ts`): vazamento por breakpoint (medido no
+   Chromium), contraste WCAG, texto < 12px e imagem sem alt, cada um com o conserto. Fica em "core" (conhece o modelo do documento), não em plugin.
+Resultado no roteiro: a auditoria achou 6 problemas reais; depois do `set_responsive` caiu para 3 (os textos que não quebram linha).

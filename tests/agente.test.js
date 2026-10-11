@@ -114,8 +114,8 @@ test('ferramentas de criação grande existem e estão marcadas certo (escrita �
   assert.match(byName.build_layout.description, /UMA permissão/);
 });
 
-test('MCP completo: 60 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 60);
+test('MCP completo: 61 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {
+  assert.equal(AGENT_TOOLS.length, 61);
   assert.equal(mcpTools().find((tool) => tool.name === 'export_site').annotations.readOnlyHint, true);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
   assert.deepEqual(destructive, ['delete_layers', 'delete_page']);
@@ -162,7 +162,8 @@ test('validateToolArgs: o Zod da ferramenta recusa o que está errado com mensag
   assert.match(validateToolArgs('get_document', { depth: 'muito' }), /depth:/);
   assert.match(validateToolArgs('edit_image', { id: 'a', rotate: 45 }), /rotate: .*90/);
   assert.equal(validateToolArgs('edit_image', { id: 'a', rotate: 90 }), null);
-  assert.equal(validateToolArgs('create_layer', { type: 'frame', props: { qualquer: 1 }, campo_que_nao_existe: true }), null, 'campos desconhecidos são ignorados');
+  assert.equal(validateToolArgs('create_layer', { type: 'frame', props: { qualquer: 1 } }), null, 'o conteúdo livre de props continua livre (quem confere é applyProps)');
+  assert.match(validateToolArgs('create_layer', { type: 'frame', campo_que_nao_existe: true }), /Argumento desconhecido em create_layer: campo_que_nao_existe. Aceitos: type, parent_id, index, props./, 'campos desconhecidos são recusados, listando os aceitos');
   assert.equal(validateToolArgs('ferramenta_inexistente', {}), null, 'quem não conhece a ferramenta reclama em outro lugar');
 });
 

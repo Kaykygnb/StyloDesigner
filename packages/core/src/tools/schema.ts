@@ -382,12 +382,22 @@ ${PROP_HELP}`,
     }),
   }),
   defineTool({
+    name: 'check_design',
+    write: false,
+    description: 'AUDITA o design e diz o que consertar: conteúdo que VAZA da tela em cada breakpoint (texto que não quebra linha, largura fixa grande no celular), contraste de texto abaixo do WCAG, texto menor que 12px e imagens sem alt. Cada problema traz a camada, onde acontece e como corrigir. Rode ao terminar uma tela e depois de set_responsive. Sem id, confere todas as telas da página atual. O vazamento exige o navegador do servidor (o resto funciona sem).',
+    input: z.object({
+      id: z.string().describe('id de uma tela (opcional)').optional(),
+      breakpoints: z.array(z.string()).describe('ids de breakpoints a conferir além do desktop (padrão: todos do projeto)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_image',
     write: false,
     description: 'VÊ o design: devolve um PNG da camada (ou da tela inteira). Use para conferir o resultado depois de montar ou alterar algo. Sem id, usa a seleção ou a primeira tela da página. (No Assistente interno a imagem não chega ao modelo; no MCP, sim.)',
     input: z.object({
       id: z.string().optional(),
       scale: z.number().describe('0.5 a 2 (padrão 1)').optional(),
+      breakpoint: z.string().describe('id de um breakpoint (tablet, mobile...; veja get_document → breakpoints): desenha a tela nessa largura, com as regras de set_responsive aplicadas. Use para CONFERIR o responsivo.').optional(),
     }),
   }),
   defineTool({
@@ -701,6 +711,13 @@ export const mcpTools = () => allTools().map((t) => ({
 export function validateToolArgs(name: string, args: unknown): string | null {
   const tool = toolByName(name);
   if (!tool) return null;
+  // Argumento que a ferramenta não conhece (erro de digitação, nome trocado): o Zod o descartaria em silêncio e o agente
+  // acharia que filtrou/alterou algo que não valeu. Recusamos dizendo quais nomes existem.
+  const accepted = Object.keys((tool.input as any).shape ?? {});
+  if (args && typeof args === 'object' && !Array.isArray(args) && accepted.length) {
+    const unknown = Object.keys(args).filter((k) => !accepted.includes(k));
+    if (unknown.length) return `Argumento desconhecido em ${name}: ${unknown.join(', ')}. Aceitos: ${accepted.join(', ')}.`;
+  }
   const parsed = tool.input.safeParse(args ?? {});
   if (parsed.success) return null;
   const problems = parsed.error.issues.map((i) => {

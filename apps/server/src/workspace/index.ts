@@ -22,6 +22,7 @@ import { makeDoc } from '@stylo/core/model.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { exportReact } from '@stylo/core/export-react.ts';
 import { vendorFiles } from '../services/vendor.ts';
+import { applyMeasured, rootsOf } from './measure.ts';
 import { createModelCanvas } from './model-canvas.js';
 import { fileNameFor, type Projects, type WriteEvent } from '../services/projects.js';
 import type { Notes } from '../services/notes.js';
@@ -61,9 +62,12 @@ interface Doc {
   store: any;
   commands: any;
   runner: any;
+  /** O desenho mudou desde a última medida de layout (altura "hug", "fill"...). */
+  dirty: boolean;
+  measuring: Promise<void> | null;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, fetchImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, fetchImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
@@ -71,7 +75,11 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   /** Plugins ligados (ferramentas extras); sem ele só valem as ferramentas do núcleo. */
   plugins?: Plugins | null;
   /** Desenha uma camada como PNG base64 (services/renderer.ts). Sem ele, `get_image` explica que não há renderizador. */
-  renderImage?: ((node: any, doc: any, scale: number) => Promise<string>) | null;
+  renderImage?: ((node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string>) | null;
+  /** Descobre o que vaza da tela em cada largura (services/renderer.ts → overflow). */
+  auditLayout?: ((roots: any[], doc: any, widths: Array<{ rootId: string; label: string; width: number }>) => Promise<any[]>) | null;
+  /** Mede o layout real das pranchetas (services/renderer.ts → measure). Sem ele, alturas "hug" ficam como guardadas. */
+  measureLayout?: ((roots: any[], doc: any) => Promise<Map<string, { w: number; h: number }>>) | null;
   /** Baixa uma imagem por endereço (services/remote-image.ts, protegido contra SSRF). */
   fetchImage?: ((url: string) => Promise<{ bytes: Uint8Array }>) | null;
   /** Retrato de quem está no servidor (pessoas e agentes), vindo da presença. */
@@ -85,7 +93,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   const current = new Map<string, { id: string; role: string }>();
 
   function mount(id: string, file: string, ownerId: string, doc: unknown, base: { hash: string }): Doc {
-    const entry: Doc = { id, file, ownerId, base, notices: [], lastUsed: Date.now(), store: null, commands: null, runner: null };
+    const entry: Doc = { id, file, ownerId, base, notices: [], lastUsed: Date.now(), store: null, commands: null, runner: null, dirty: true, measuring: null };
     const persist = async (record: { doc: unknown }) => {
       // grava como o dono do projeto: o controle de quem pode escrever é feito em `call`, antes de executar a ferramenta
       const saved = await projects.write({ id: ownerId }, entry.file, record.doc, { base: entry.base, by: 'workspace' });
@@ -96,7 +104,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
     entry.commands = commands;
-    entry.runner = createRunner({ store: entry.store, commands, renderImage, fetchImage, vendor: vendorFiles });
+    entry.runner = createRunner({ store: entry.store, commands, renderImage, auditLayout, fetchImage, vendor: vendorFiles });
     docs.set(id, entry);
     return entry;
   }
@@ -117,6 +125,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       const loaded = await projects.load({ id: entry.ownerId }, entry.file);
       entry.base = { hash: loaded.contentHash };
       entry.store.loadDoc(loaded.doc, { link: { file: entry.file, synced: true }, clean: true });
+      entry.dirty = true;
       entry.notices.push(`O projeto "${entry.file}" foi alterado por outra pessoa e foi recarregado do banco. Releia com get_document antes de continuar.`);
     } catch { /* projeto apagado ou ilegível: o próximo save mostra o erro */ }
   }
@@ -130,6 +139,26 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   };
 
   const has = (actor: Actor, scope: string) => !actor.scopes || actor.scopes.includes(scope);
+
+  /** Leituras que mostram tamanhos: antes delas, o layout real é medido (se mudou algo desde a última vez). */
+  const GEOMETRY_READS = new Set(['get_document', 'get_layer', 'find_layers', 'get_selection', 'get_image', 'check_design']);
+  let measureFailedAt = 0;
+  async function ensureMeasured(entry: Doc) {
+    if (!measureLayout || !entry.dirty) return;
+    if (Date.now() - measureFailedAt < 60_000) return; // sem navegador: não insiste a cada leitura
+    entry.measuring ??= (async () => {
+      entry.dirty = false;
+      try {
+        const sizes = await measureLayout(rootsOf(entry.store.page().children), entry.store.state.doc);
+        applyMeasured(entry.store.page().children, null, sizes);
+      } catch {
+        measureFailedAt = Date.now(); // renderizador indisponível: segue com os tamanhos guardados
+      } finally {
+        entry.measuring = null;
+      }
+    })();
+    await entry.measuring;
+  }
 
   /** Ferramentas de projeto: escolhem o arquivo atual da sessão (não passam pelo executor do documento). */
   const PROJECT: Record<string, (args: any, sid: string, actor: Actor) => Promise<object>> = {
@@ -261,6 +290,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         }
         const out: any = await plug.run(args || {}, { actor, project, services: plugins!.services, signal });
         if (doc && pdef.write) {
+          doc.dirty = true;
           doc.store.commit(); // um passo no histórico; o servidor grava sozinho
           onOperation({ projectId: doc.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error });
         }
@@ -292,8 +322,10 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
       } else if (!has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
       entry.lastUsed = Date.now();
+      if (GEOMETRY_READS.has(tool)) await ensureMeasured(entry);
       const out = await entry.runner.run(tool, args, actor.name, { external: true, admin: true, signal });
       if (def?.write) {
+        entry.dirty = true;
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');

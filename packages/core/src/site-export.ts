@@ -131,6 +131,23 @@ export function addFonts(files: SiteFile[], doc: any): SiteFile[] {
   return [...withFaces, ...[...out].map(([path, content]) => ({ path, content }))];
 }
 
+/**
+ * @font-face das fontes hospedadas no projeto com os arquivos EMBUTIDOS (data URL), para quem desenha uma camada sozinha
+ * (o renderizador do servidor, que não tem rede): o resultado usa a mesma fonte do site exportado. Vazio sem fontes.
+ */
+export function inlineFontFaces(doc: any): string {
+  const faces: string[] = [];
+  for (const font of Array.isArray(doc?.fonts) ? doc.fonts : []) {
+    for (const f of font.files || []) {
+      const src = doc.assets?.[f.assetId];
+      if (typeof src !== 'string' || !src.startsWith('data:')) continue;
+      const format = f.ext === 'woff' ? 'woff' : f.ext === 'otf' ? 'opentype' : f.ext === 'ttf' ? 'truetype' : 'woff2';
+      faces.push(`@font-face { font-family: '${String(font.family).replace(/'/g, '')}'; font-style: ${f.style}; font-weight: ${f.weight}; src: url(${src}) format('${format}');${f.unicodeRange ? ` unicode-range: ${f.unicodeRange};` : ''} }`);
+    }
+  }
+  return faces.join('\n');
+}
+
 /** Créditos dos assets usados (doc.credits): um arquivo de texto no pacote, para cumprir as licenças. */
 export function addCredits(files: SiteFile[], doc: any): SiteFile[] {
   const credits: { text: string; license?: string }[] = Array.isArray(doc.credits) ? doc.credits : [];

@@ -45,3 +45,41 @@ test('rede e scripts ficam bloqueados: HTML com imagem externa não trava nem va
     throw err;
   }
 });
+
+test('measure: devolve o tamanho REAL de camadas "hug" e "fill" (o que o editor lê do navegador) e não executa scripts da página', async (t) => {
+  const renderer = createRenderer();
+  t.after(() => renderer.close());
+  const doc = makeDoc();
+  const board: any = createNode('frame', { name: 'Tela', w: 600, h: 10 });
+  board.sizeY = 'hug'; board.layout.mode = 'column'; board.layout.gap = 10; board.layout.padding = [20, 20, 20, 20];
+  const a: any = createNode('frame', { name: 'A', w: 100, h: 50 });
+  const b: any = createNode('frame', { name: 'B', w: 100, h: 70 });
+  board.children.push(a, b);
+  let sizes: Map<string, { w: number; h: number }>;
+  try { sizes = await renderer.measure([board], doc); } catch (err: any) {
+    if (/n[ãa]o est[áa] dispon[íi]vel/.test(err.message)) { t.skip('Chromium do Playwright não instalado'); return; }
+    throw err;
+  }
+  assert.equal(sizes.get(board.id)!.h, 20 + 50 + 10 + 70 + 20, 'altura = padding + filhos + gap');
+  assert.equal(sizes.get(board.id)!.w, 600);
+  assert.deepEqual(sizes.get(a.id), { w: 100, h: 50 });
+  assert.equal((await renderer.measure([], doc)).size, 0);
+});
+
+test('render: uma camada "hug" sai inteira (não cortada pela altura guardada) quando o tamanho foi medido', async (t) => {
+  const renderer = createRenderer();
+  t.after(() => renderer.close());
+  const doc = makeDoc();
+  const board: any = createNode('frame', { name: 'Tela', w: 300, h: 10 });
+  board.sizeY = 'hug'; board.layout.mode = 'column';
+  board.children.push(createNode('frame', { name: 'A', w: 100, h: 300 }));
+  let sizes: Map<string, { w: number; h: number }>;
+  try { sizes = await renderer.measure([board], doc); } catch (err: any) {
+    if (/n[ãa]o est[áa] dispon[íi]vel/.test(err.message)) { t.skip('Chromium do Playwright não instalado'); return; }
+    throw err;
+  }
+  const { applyMeasured } = await import('../apps/server/src/workspace/measure.ts');
+  applyMeasured([board], null, sizes);
+  assert.equal(board.h, 300);
+  assert.deepEqual(size(png(await renderer.render(board, doc, 1))), { w: 300, h: 300 });
+});

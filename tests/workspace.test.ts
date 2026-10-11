@@ -9,7 +9,7 @@ import { createNotes } from '../apps/server/src/services/notes.ts';
 import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
-async function setup(extra: { fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }> } = {}) {
+async function setup(extra: { fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
   const { db, close } = await createDb({ pglite: {} });
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
@@ -321,4 +321,89 @@ test('export_site com format "react" pelo MCP lista o projeto Vite/React; export
   const zip = await call('export_zip');
   assert.match(zip.react_zip_url, /\/api\/projects\/app-react\.json\/react\.zip$/);
   await t.close();
+});
+
+test('medida de layout: lê o tamanho real antes de get_layer/get_document, só quando algo mudou, e segue sem erro se o renderizador falhar', async () => {
+  let calls = 0;
+  let broken = false;
+  const measureLayout = async (roots: any[]) => {
+    calls++;
+    if (broken) throw new Error('sem navegador');
+    const sizes = new Map<string, { w: number; h: number }>();
+    for (const r of roots) sizes.set(r.id, { w: r.w, h: 777 }); // "o navegador mediu 777 de altura"
+    return sizes;
+  };
+  const t = await setup({ measureLayout });
+  const a = await t.agentOf('Medidor');
+  const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'm', actor: a }) as Promise<any>;
+  await call('new_project', { name: 'Medida' });
+  const made = (await call('create_layer', { type: 'frame', props: { name: 'Tela', w: 400, h: 100, sizeY: 'hug' } })).created;
+  assert.equal(calls, 0, 'escrever não mede');
+  const layer = await call('get_layer', { id: made.id });
+  assert.equal(layer.layer?.h ?? layer.h, 777, 'a leitura vê o tamanho medido');
+  const before = calls;
+  await call('get_document');
+  await call('find_layers', { query: 'Tela' });
+  assert.equal(calls, before, 'sem escrita nova, não mede de novo');
+  await call('update_layer', { id: made.id, props: { name: 'Tela 2' } });
+  await call('get_document');
+  assert.equal(calls, before + 1, 'depois de escrever, mede uma vez');
+  broken = true;
+  await call('update_layer', { id: made.id, props: { name: 'Tela 3' } });
+  const doc = await call('get_document');
+  assert.equal(doc.error, undefined, 'falha do renderizador não quebra a leitura');
+  const afterFail = calls;
+  await call('update_layer', { id: made.id, props: { name: 'Tela 4' } });
+  await call('get_document');
+  assert.equal(calls, afterFail, 'depois de uma falha, espera antes de tentar de novo');
+  await t.close();
+});
+
+test('check_design e get_image por breakpoint pelo MCP: junta regras estáticas e vazamento; sem navegador avisa; breakpoint e argumento inválidos explicam', async () => {
+  const widthsSeen: any[] = [];
+  const png = (h: number) => { const b = Buffer.alloc(24); b.writeUInt32BE(390, 16); b.writeUInt32BE(h, 20); return b.toString('base64'); };
+  const optsSeen: any[] = [];
+  let textId = '';
+  const t = await setup({
+    auditLayout: async (_roots, _doc, widths) => { widthsSeen.push(...widths); return [{ nodeId: textId, label: 'celular (390px)', width: 390, right: 520, left: 8 }]; },
+    renderImage: async (_n, _d, _s, opts) => { optsSeen.push(opts); return png(900); },
+  });
+  const a = await t.agentOf('Auditor');
+  const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'c', actor: a }) as Promise<any>;
+  await call('new_project', { name: 'Auditoria' });
+  const tela = (await call('create_layer', { type: 'frame', props: { name: 'Tela', w: 800, h: 400, fill: '#111111' } })).created;
+  const texto = (await call('create_layer', { type: 'text', parent_id: tela.id, props: { name: 'Frase', text: 'oi', fontSize: 10, fill: '#222222' } })).created;
+  textId = texto.id;
+  const rep = await call('check_design', {});
+  assert.equal(rep.error, undefined, rep.error);
+  assert.deepEqual(rep.issues.map((i: any) => i.type).sort(), ['contraste', 'texto-pequeno', 'vazamento']);
+  assert.equal(rep.errors, 2);
+  assert.equal(rep.issues[0].severity, 'erro', 'erros primeiro');
+  assert.ok(widthsSeen.some((w) => w.label === 'desktop (800px)') && widthsSeen.some((w) => w.label === 'celular (390px)'), 'confere desktop e cada breakpoint');
+  assert.equal(rep.note, undefined, 'o navegador respondeu: sem aviso de que faltou');
+  const so = await call('check_design', { id: tela.id, breakpoints: ['mobile'] });
+  assert.deepEqual(so.widths, ['desktop (800px)', 'celular (390px)']);
+  assert.match((await call('check_design', { breakpoints: ['nada'] })).error, /Breakpoint "nada" não existe/);
+  assert.match((await call('check_design', { bp: 'mobile' })).error, /Argumento desconhecido em check_design: bp. Aceitos: id, breakpoints/);
+
+  const img = await call('get_image', { id: tela.id, breakpoint: 'mobile' });
+  assert.equal(img.error, undefined, img.error);
+  assert.deepEqual(optsSeen.at(-1), { width: 390 });
+  assert.deepEqual([img.breakpoint, img.width, img.w, img.h], ['mobile', 390, 390, 900], 'altura lida do PNG desenhado');
+  assert.match((await call('get_image', { id: tela.id, breakpoint: 'watch' })).error, /Breakpoint "watch" não existe/);
+  await call('get_image', { id: tela.id });
+  assert.equal(optsSeen.at(-1), undefined, 'sem breakpoint: desenho normal');
+  await t.close();
+
+  // sem navegador de auditoria: só as regras estáticas e um aviso claro
+  const t2 = await setup();
+  const b = await t2.agentOf('Sem navegador');
+  const call2 = (tool: string, args: any = {}) => t2.workspace.call(tool, args, { sid: 'd', actor: b }) as Promise<any>;
+  await call2('new_project', { name: 'Sem Nav' });
+  const f2 = (await call2('create_layer', { type: 'frame', props: { name: 'Tela', w: 300, h: 100 } })).created;
+  await call2('create_layer', { type: 'text', parent_id: f2.id, props: { text: 'x', fontSize: 9 } });
+  const r2 = await call2('check_design', {});
+  assert.deepEqual(r2.issues.map((i: any) => i.type), ['texto-pequeno']);
+  assert.match(r2.note, /Vazamento horizontal NÃO foi conferido/);
+  await t2.close();
 });

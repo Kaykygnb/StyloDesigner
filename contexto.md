@@ -55,10 +55,11 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `svg.js`, `svgimport.js` | exportar e importar SVG |
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
 | `export-react.ts`, `html-to-jsx.ts` | exportação para **React** (projeto Vite): reaproveita o site exportado e converte cada tela em componente + CSS Module |
+| `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, vazamento) |
 | `tokens.ts`, `media-runtime.ts` | tokens do design (CSS/JSON/Tailwind) · players de 3D/Lottie que vão dentro do zip |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 60 ferramentas MCP do núcleo (mais 18 dos plugins: 8 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
+| `tools/schema.js` | as 61 ferramentas MCP do núcleo (mais 18 dos plugins: 8 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 

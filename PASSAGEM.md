@@ -159,6 +159,8 @@ Lista viva: tudo que foi visto e deixado de lado, com o motivo e o que destrava.
 | Interface para estilos de sombra/gradiente no editor antigo | o editor será refeito | editor novo |
 | Camada `media` visível em `get_image` (renderizador sem JS) | vídeo/3D/Lottie não desenham sem JavaScript | prévia estática (poster) |
 | Exportador **React Native** e variante TypeScript do React | o React veio primeiro; RN exige outro modelo (View/Text/StyleSheet, só flex, sem grid) | P5 |
+| Auditoria: regras de acessibilidade além de contraste/alt/tamanho (ordem de foco, área de toque ≥44px, hierarquia de títulos), lint de consistência (cores fora dos estilos) | o essencial primeiro; `check_design` é fácil de estender (`packages/core/src/audit.ts`) | quando um agente precisar |
+| Medida de layout só no desktop e no breakpoint pedido (`get_image`/`check_design`); `get_layer` mostra o tamanho do desktop | a medida de volta do editor também ignora breakpoints | medir por breakpoint se um agente precisar dos tamanhos do celular |
 | Rota HTTP `react.zip` sem teste próprio | usa o mesmo caminho do `site.zip` (que também não tem teste HTTP dedicado) | teste de integração das rotas de zip |
 | Estilos de interação (hover/estado) e animações no React | saem como o CSS atual gera; sem revisão específica | conferir com um projeto que use estados |
 | Exposição na internet (HTTPS, limites, SSE por pessoa, login) | produto ainda não hospedado | P7 |
