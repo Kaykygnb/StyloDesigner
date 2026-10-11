@@ -11,15 +11,90 @@ import { definePlugin } from '@stylo/core/plugin.ts';
 import { defineTool } from '@stylo/core/tools/schema.ts';
 import { colorScale, contrastRatio, harmony, hexToOklch, parseHex, textOn, toHex, wcag, type Scheme } from './cor.ts';
 import { RATIOS, radiusScale, shadowScale, spacingScale, typeScale } from './tipografia.ts';
+import { pickPairs } from './fontes.ts';
 
 const bad = (name: string, value: string) => { throw new Error(`${name}: "${value}" não é uma cor hexadecimal (#RGB ou #RRGGBB).`); };
 const rgbOf = (name: string, value: string) => parseHex(value) ?? bad(name, value);
+
+/** O brief do projeto: um lugar fixo para quem é o público, o tom, os valores. Fica no documento e viaja com ele. */
+const BRIEF_TEXT = ['summary', 'audience', 'goals', 'avoid', 'notes'] as const;
+const BRIEF_LIST = ['tone', 'values'] as const;
+const briefOf = (doc: any) => doc.brief ?? {};
 
 export const identidade = definePlugin({
   id: 'identidade',
   name: 'Identidade visual',
   description: 'Auxiliares que calculam paletas, contraste, harmonias e escalas. Não criam nada sozinhos.',
   tools: [
+    {
+      def: defineTool({
+        name: 'font_pairs',
+        write: false, needs: 'read',
+        description: 'PARES DE FONTES do Google Fonts (título + texto corrido) que combinam, com o clima de cada um. Passe mood em palavras (ex.: "elegante restaurante", "tecnologia", "infantil") para filtrar; sem mood devolve todos. Cada par traz os ids para add_font e os pesos sugeridos. É um ponto de partida: escolha e use add_font para hospedar no projeto.',
+        input: z.object({
+          mood: z.string().describe('clima/assunto em palavras, ex.: "luxo", "esportivo", "startup de tecnologia"').optional(),
+          limit: z.number().int().min(1).max(20).optional(),
+        }),
+      }),
+      run: ({ mood, limit }) => {
+        const pairs = pickPairs(mood).slice(0, limit ?? 6);
+        return {
+          mood: mood ?? null,
+          count: pairs.length,
+          pairs: pairs.map((p) => ({
+            id: p.id, heading: p.heading, body: p.body, moods: p.moods, suits: p.suits,
+            add_font: [{ id: p.headingId, weights: p.headingWeights }, { id: p.bodyId, weights: p.bodyWeights }],
+          })),
+          hint: pairs.length ? 'Hospede com add_font (um por família) e use os nomes em fontFamily; ou crie estilos com create_text_styles.' : 'Nada com esse clima: tente outra palavra ou chame sem mood para ver todos.',
+        };
+      },
+    },
+    {
+      def: defineTool({
+        name: 'get_project_brief',
+        write: false, needs: 'read',
+        description: 'Lê o BRIEF do projeto aberto: o que ele é, para quem, o tom, os valores, o que evitar. Leia antes de decidir cores, fontes e textos, para manter a identidade coerente entre agentes e pessoas.',
+        input: z.object({}),
+      }),
+      needsProject: true,
+      run: (_args, ctx) => {
+        const brief = briefOf(ctx.project!.store.state.doc);
+        return { brief, empty: !Object.keys(brief).length, hint: Object.keys(brief).length ? undefined : 'Ainda não há brief. Se você já sabe (ou perguntou à pessoa) para quem é o projeto, grave com set_project_brief.' };
+      },
+    },
+    {
+      def: defineTool({
+        name: 'set_project_brief',
+        write: true, needs: 'write',
+        description: 'Grava o BRIEF do projeto (fica no documento). Só o que você mandar muda; texto vazio ou lista vazia apaga o campo. summary: o que é o projeto; audience: para quem; tone: palavras de tom (["calmo","direto"]); values: valores da marca; goals: o que o site precisa conseguir; avoid: o que evitar; notes: o resto.',
+        input: z.object({
+          summary: z.string().optional(),
+          audience: z.string().optional(),
+          tone: z.array(z.string()).optional(),
+          values: z.array(z.string()).optional(),
+          goals: z.string().optional(),
+          avoid: z.string().optional(),
+          notes: z.string().optional(),
+        }),
+      }),
+      needsProject: true,
+      run: (args, ctx) => {
+        const store = ctx.project!.store;
+        const next: Record<string, unknown> = { ...briefOf(store.state.doc) };
+        for (const k of BRIEF_TEXT) {
+          if (!(k in args)) continue;
+          const v = String(args[k] ?? '').trim().slice(0, 2000);
+          if (v) next[k] = v; else delete next[k];
+        }
+        for (const k of BRIEF_LIST) {
+          if (!(k in args)) continue;
+          const list = (args[k] as string[]).map((x) => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 20);
+          if (list.length) next[k] = list; else delete next[k];
+        }
+        store.update(() => { if (Object.keys(next).length) store.state.doc.brief = next; else delete store.state.doc.brief; }, { commit: true });
+        return { brief: next, _summary: 'Atualizou o brief do projeto' };
+      },
+    },
     {
       def: defineTool({
         name: 'color_scale',

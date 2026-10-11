@@ -138,3 +138,41 @@ test('plugins: argumentos inválidos voltam como erro de validação; cor invál
   assert.match((await t.workspace.call('color_scale', { color: '#fff' }, { sid: 's', actor: nobody })).error, /permissão de leitura/);
   await t.close();
 });
+
+test('font_pairs: filtra por clima (sem acento), traz ids para add_font; todos os pares são consistentes', async () => {
+  const { FONT_PAIRS } = await import('@stylo/plugins/identidade/fontes.ts');
+  assert.equal(new Set(FONT_PAIRS.map((p) => p.id)).size, FONT_PAIRS.length, 'ids únicos');
+  for (const p of FONT_PAIRS) {
+    assert.match(p.headingId, /^[a-z0-9-]+$/); assert.match(p.bodyId, /^[a-z0-9-]+$/);
+    assert.ok(p.headingWeights.length && p.bodyWeights.length && p.moods.length, p.id);
+  }
+  const t = await setup();
+  const a = await t.agent(['read']);
+  const luxo = await t.workspace.call('font_pairs', { mood: 'Clássico elegante' }, { sid: 's', actor: a });
+  assert.ok(luxo.count > 0);
+  assert.ok(luxo.pairs.every((p: any) => p.add_font.length === 2 && p.add_font[0].id && p.add_font[0].weights.length));
+  assert.ok(luxo.pairs.some((p: any) => p.heading === 'Playfair Display'), 'acento e caixa não atrapalham');
+  assert.equal((await t.workspace.call('font_pairs', { mood: 'esportivo', limit: 1 }, { sid: 's', actor: a })).pairs[0].heading, 'Oswald');
+  assert.equal((await t.workspace.call('font_pairs', { mood: 'zzzz' }, { sid: 's', actor: a })).count, 0);
+  assert.equal((await t.workspace.call('font_pairs', {}, { sid: 's', actor: a })).count, 6, 'sem mood: os primeiros (limit padrão 6)');
+  await t.close();
+});
+
+test('project_brief: grava no documento, mescla, apaga com vazio e exige escrita', async () => {
+  const t = await setup();
+  const w = await t.agent(['read', 'write']);
+  const r = await t.agent(['read']);
+  const call = (tool: string, args: any, actor = w) => t.workspace.call(tool, args, { sid: 's', actor }) as Promise<any>;
+  assert.match((await call('get_project_brief', {})).error, /Nenhum projeto aberto|new_project|open_project/);
+  await call('new_project', { name: 'Brief' });
+  const empty = await call('get_project_brief', {});
+  assert.equal(empty.empty, true);
+  await call('set_project_brief', { summary: 'Loja de plantas', audience: 'Jovens urbanos', tone: ['calmo', 'direto'], values: ['natureza'] });
+  const got = await call('get_project_brief', {});
+  assert.deepEqual(got.brief, { summary: 'Loja de plantas', audience: 'Jovens urbanos', tone: ['calmo', 'direto'], values: ['natureza'] });
+  await call('set_project_brief', { audience: '', tone: ['leve'] });
+  assert.deepEqual((await call('get_project_brief', {})).brief, { summary: 'Loja de plantas', tone: ['leve'], values: ['natureza'] });
+  assert.match((await call('set_project_brief', { notes: 'x' }, r)).error, /permissão/);
+  await t.workspace.flushAll();
+  await t.close();
+});

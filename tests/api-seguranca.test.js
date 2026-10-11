@@ -42,8 +42,11 @@ async function startServer(t) {
     req.on('error', (err) => (err.code === 'ECONNRESET' || err.code === 'EPIPE' ? resolve({ status: 0, text: '' }) : reject(err)));
     req.end(data);
   });
-  for (let i = 0; i < 400; i++) {
-    try { if ((await call('GET', '/api/status')).status === 200) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
+  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  for (let i = 0, up = false; !up; i++) {
+    if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
+    try { up = (await call('GET', '/api/status')).status === 200; } catch { /* ainda subindo */ }
+    if (!up) await new Promise((r) => setTimeout(r, 25));
   }
   return { port, call };
 }

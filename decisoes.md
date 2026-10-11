@@ -247,3 +247,10 @@ Sombras e gradientes não eram estilos compartilhados: cada camada tinha a sua c
 texto (`syncStyles`), e escritos no CSS como `var(--sombra-x)` / `var(--gradiente-x)` com o bloco `:root`. Mexer à mão no fill ou nas sombras solta o
 estilo. Ferramentas: `create_effect_styles`, `create_gradient_styles` (60 no núcleo); ligação por `update_layer`, como já era com `fill:{styleId}`.
 Sombra de texto (`text-shadow`) não usa variável. O editor antigo não ganhou interface para isso (fica para o editor novo).
+
+## 2026-10-11 — Brief do projeto e pares de fontes (plugin identidade)
+**Brief:** `get_project_brief` / `set_project_brief` guardam em `doc.brief` (resumo, público, tom, valores, metas, o que evitar, notas). Razão: vários
+agentes e pessoas mexem no mesmo projeto e precisam de UM lugar que diga para quem é e em que tom, para a identidade não derivar. Mesclado campo a
+campo; vazio apaga. **Pares de fontes:** `font_pairs` sugere pares curados (16) por clima, com os ids do Fontsource para `add_font`; só sugere,
+não cria nada (regra das ferramentas de identidade: calculam, quem decide é o agente/pessoa). **Ficou para depois:** paleta a partir de imagem (exige
+ler pixels no servidor). Também reforcei a espera de subida do servidor nos testes HTTP (60 s, com erro claro), que falhavam de vez em quando sob carga.

@@ -20,8 +20,11 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
-  for (let i = 0; i < 400; i++) {
-    try { if ((await fetch(base + '/api/auth/state')).ok) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
+  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  for (let i = 0, up = false; !up; i++) {
+    if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
+    try { up = (await fetch(base + '/api/auth/state')).ok; } catch { /* ainda subindo */ }
+    if (!up) await new Promise((r) => setTimeout(r, 25));
   }
   const json = { 'Content-Type': 'application/json' };
   const call = (method, path, body, token) => fetch(base + path, { method, headers: { ...json, ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });

@@ -22,8 +22,11 @@ test('projeto com imagem: ler devolve data URL e a imagem sai por /assets/<sha25
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
-  for (let i = 0; i < 400; i++) {
-    try { if ((await fetch(base + '/api/status')).ok) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
+  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  for (let i = 0, up = false; !up; i++) {
+    if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
+    try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
+    if (!up) await new Promise((r) => setTimeout(r, 25));
   }
   const dataUrl = `data:image/png;base64,${PNG_B64}`;
   const doc = { name: 'Com foto', pages: [{ id: 'p1', name: 'P', children: [] }], assets: { foto: dataUrl }, styles: { colors: [], texts: [] } };

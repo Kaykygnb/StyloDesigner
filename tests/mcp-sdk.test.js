@@ -22,8 +22,11 @@ async function startServer(t) {
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
-  for (let i = 0; i < 400; i++) {
-    try { if ((await fetch(base + '/api/status')).ok) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
+  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  for (let i = 0, up = false; !up; i++) {
+    if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
+    try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
+    if (!up) await new Promise((r) => setTimeout(r, 25));
   }
   return base;
 }
@@ -35,7 +38,7 @@ async function connect(base, name = 'Claude Code') {
 }
 const text = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 
-test('cliente oficial: initialize traz as instruções, tools/list as 75 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
+test('cliente oficial: initialize traz as instruções, tools/list as 78 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
   const base = await startServer(t);
   const client = await connect(base);
   t.after(() => client.close());
@@ -43,7 +46,7 @@ test('cliente oficial: initialize traz as instruções, tools/list as 75 ferrame
   assert.equal(client.getServerVersion().name, 'projeto-designer');
   assert.match(client.getInstructions(), /new_project/);
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 75, "60 do núcleo + 5 de identidade + 10 de assets");
+  assert.equal(tools.length, 78, "60 do núcleo + 8 de identidade + 10 de assets");
   assert.ok(tools.find((x) => x.name === 'get_document').annotations.readOnlyHint);
   assert.ok(tools.find((x) => x.name === 'delete_layers').annotations.destructiveHint);
 
