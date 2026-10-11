@@ -139,7 +139,7 @@ export function addCredits(files: SiteFile[], doc: any): SiteFile[] {
   return [...files, { path: 'CREDITS.txt', content: `Créditos dos assets usados neste site\n\n${lines.join('\n')}\n` }];
 }
 
-export function exportSite(doc, { assets = 'files', vendor = null }: { assets?: 'files' | 'inline'; vendor?: VendorProvider | null } = {}): { files: SiteFile[]; warnings: string[] } {
+export function exportSite(doc, { assets = 'files', vendor = null, mediaRuntime = true }: { assets?: 'files' | 'inline'; vendor?: VendorProvider | null; mediaRuntime?: boolean } = {}): { files: SiteFile[]; warnings: string[] } {
   if (!doc || !Array.isArray(doc.pages)) throw new Error('Projeto inválido: páginas não encontradas.');
   const { boards, warnings } = boardsOf(doc);
   const used = new Set();
@@ -150,7 +150,7 @@ export function exportSite(doc, { assets = 'files', vendor = null }: { assets?: 
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
   if (assets === 'files') files = externalizeAssets(files, doc.assets || {});
   files = addFonts(files, doc);
-  files = addMediaRuntime(files, vendor, warnings);
+  if (mediaRuntime) files = addMediaRuntime(files, vendor, warnings);
   files = addCredits(files, doc);
 
   // Tela de largura FIXA maior que o menor aparelho do projeto vira rolagem horizontal no celular. Não mudamos o

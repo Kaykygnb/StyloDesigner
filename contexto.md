@@ -54,6 +54,8 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `css.js`, `html.js`, `cssedit.js`, `codeassist.js` | camada → CSS, HTML/CSS gerado, edição de CSS livre |
 | `svg.js`, `svgimport.js` | exportar e importar SVG |
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
+| `export-react.ts`, `html-to-jsx.ts` | exportação para **React** (projeto Vite): reaproveita o site exportado e converte cada tela em componente + CSS Module |
+| `tokens.ts`, `media-runtime.ts` | tokens do design (CSS/JSON/Tailwind) · players de 3D/Lottie que vão dentro do zip |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
 | `tools/schema.js` | as 60 ferramentas MCP do núcleo (mais 18 dos plugins: 8 de identidade e 10 de assets) (nome, descrição, JSON Schema) |

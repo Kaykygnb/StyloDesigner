@@ -20,6 +20,7 @@ import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
 import { exportSite } from '@stylo/core/site-export.js';
+import { exportReact } from '@stylo/core/export-react.ts';
 import { vendorFiles } from '../services/vendor.ts';
 import { createModelCanvas } from './model-canvas.js';
 import { fileNameFor, type Projects, type WriteEvent } from '../services/projects.js';
@@ -178,7 +179,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       const base = `${baseUrl()}/api/projects/${encodeURIComponent(entry.file)}`;
       return {
         ok: true, file: entry.file,
-        site_zip_url: `${base}/site.zip`, project_json_url: base,
+        site_zip_url: `${base}/site.zip`, react_zip_url: `${base}/react.zip`, project_json_url: base,
         files: site.files.map((f: { path: string; content: string | Uint8Array }) => ({ path: f.path, bytes: typeof f.content === 'string' ? Buffer.byteLength(f.content) : f.content.length })), warnings: site.warnings,
       };
     },

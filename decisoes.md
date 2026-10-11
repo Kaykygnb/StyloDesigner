@@ -254,3 +254,12 @@ agentes e pessoas mexem no mesmo projeto e precisam de UM lugar que diga para qu
 campo; vazio apaga. **Pares de fontes:** `font_pairs` sugere pares curados (16) por clima, com os ids do Fontsource para `add_font`; só sugere,
 não cria nada (regra das ferramentas de identidade: calculam, quem decide é o agente/pessoa). **Ficou para depois:** paleta a partir de imagem (exige
 ler pixels no servidor). Também reforcei a espera de subida do servidor nos testes HTTP (60 s, com erro claro), que falhavam de vez em quando sob carga.
+
+## 2026-10-11 — Exportador React (projeto Vite) a partir do mesmo site exportado
+Para o agente que vai construir em React: `export_site {format:"react"}` (e `react.zip`). **Decisão de arquitetura:** o exportador React NÃO gera
+código por conta própria; parte do site que `exportSite` já produz (HTML, CSS, imagens, fontes, créditos, avisos) e o reorganiza. Assim HTML e React
+nunca divergem e uma correção no gerador vale nos dois. Cada tela vira um componente com **CSS Module** (as classes de uma página não colidem com as de
+outra: o gerador repete nomes como `.titulo` em páginas diferentes); `class` → `styles["x"]` só para as classes que existem no CSS da página, o resto
+(classes escritas à mão) fica literal. Imagens/fontes em `public/`; 3D e Lottie viram dependências do npm (não os arquivos vendor/). Navegação por `#`
+para não impor uma biblioteca de rotas. O conversor de HTML→JSX é próprio e pequeno porque só precisa entender o HTML que NÓS geramos; se achar algo
+fora disso, a página entra como HTML bruto com aviso, nunca quebra a exportação. Fica de fora (registrado em PASSAGEM §5b): React Native e TypeScript.

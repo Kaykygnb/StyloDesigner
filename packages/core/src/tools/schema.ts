@@ -409,6 +409,7 @@ ${PROP_HELP}`,
       path: z.string().describe('Retorna somente este caminho do pacote, por exemplo index.html.').optional(),
       maxBytes: z.number().int().describe('Limite do conteúdo por chamada: 256 KiB por padrão, máximo 1 MiB.').optional(),
       offset: z.number().int().describe('Posição em bytes da resposta anterior (nextOffset); requer path e includeContent:true.').optional(),
+      format: z.enum(['html', 'react']).describe('html (padrão): site estático. react: projeto Vite + React (um componente por tela, CSS Modules, tokens, imagens em public/), pronto para npm install && npm run dev.').optional(),
     }),
   }),
   defineTool({

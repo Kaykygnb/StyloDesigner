@@ -302,3 +302,23 @@ test('insert_icon funciona no servidor (SVG lido com o DOM do linkedom, sem nave
   assert.equal(out.created.fill, '#2255CC');
   await tt.close();
 });
+
+test('export_site com format "react" pelo MCP lista o projeto Vite/React; export_zip devolve o endereço do zip React; format inválido é recusado', async () => {
+  const t = await setup();
+  const a = await t.agentOf('Exportador');
+  const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'r', actor: a }) as Promise<any>;
+  await call('new_project', { name: 'App React' });
+  const frame = (await call('create_layer', { type: 'frame', props: { name: 'Home', w: 400, h: 300 } })).created;
+  await call('create_layer', { type: 'text', parent_id: frame.id, props: { text: 'Olá React', tag: 'h1' } });
+  const list = await call('export_site', { format: 'react' });
+  assert.equal(list.error, undefined, list.error);
+  const paths = list.files.map((f: any) => f.path);
+  for (const p of ['package.json', 'src/App.jsx', 'src/pages/Home.jsx', 'src/pages/Home.module.css', 'index.html']) assert.ok(paths.includes(p), p);
+  const jsx = await call('export_site', { format: 'react', includeContent: true, path: 'src/pages/Home.jsx' });
+  assert.match(jsx.files[0].content, /Olá React/);
+  assert.match(jsx.files[0].content, /export default function Home\(\)/);
+  assert.match((await call('export_site', { format: 'vue' })).error, /Argumentos inválidos|format/);
+  const zip = await call('export_zip');
+  assert.match(zip.react_zip_url, /\/api\/projects\/app-react\.json\/react\.zip$/);
+  await t.close();
+});

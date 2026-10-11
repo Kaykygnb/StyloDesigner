@@ -13,6 +13,7 @@
 
 import { Hono } from 'hono';
 import { exportSite } from '@stylo/core/site-export.js';
+import { exportReact } from '@stylo/core/export-react.ts';
 import { vendorFiles } from '../services/vendor.ts';
 import { createZip } from '@stylo/core/zip.js';
 import { httpError } from '../http-error.js';
@@ -53,6 +54,17 @@ export function projectRoutes(s: Services, id: Identity) {
       if (err.status === 409) return c.json({ error: err.message, ...err.body }, 409);
       throw err;
     }
+  });
+
+  r.get('/projects/:file/react.zip', async (c) => {
+    const name = checkName(c.req.param('file'));
+    const { doc } = await s.projects.load(await id.userOf(c), name);
+    const site = exportReact(doc);
+    const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
+    return c.body(zip, 200, {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${name.replace(/\.json$/i, '')}-react.zip"`,
+    });
   });
 
   r.get('/projects/:file/site.zip', async (c) => {

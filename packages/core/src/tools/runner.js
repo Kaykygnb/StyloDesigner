@@ -24,6 +24,7 @@ import { iconUrl, iconExists, searchIcons } from '../icons.js';
 import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName, validateToolArgs } from './schema.js';
 import { exportSite } from '../site-export.js';
+import { exportReact } from '../export-react.ts';
 import { exportTokens } from '../tokens.ts';
 import { addMode, addVar, bindVar, unbindVar, modesOf, varsOf, setStyleColor, syncVars } from '../modes.js';
 import { textStyleFrom } from '../components.js';
@@ -397,8 +398,9 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (files.every((f) => !f.content.trim() || f.content.trim() === '{}')) throw new Error('O projeto ainda não tem estilos de cor, de texto ou variáveis. Crie com create_color_styles, create_text_styles ou create_size_variables.');
       return { format, files };
     },
-    export_site({ includeContent = false, path, maxBytes = DEFAULT_AGENT_CONTENT_BYTES, offset = 0 } = {}) {
-      const site = exportSite(store.state.doc, { vendor });
+    export_site({ includeContent = false, path, maxBytes = DEFAULT_AGENT_CONTENT_BYTES, offset = 0, format = 'html' } = {}) {
+      if (!['html', 'react'].includes(format)) throw new Error('format precisa ser "html" ou "react".');
+      const site = format === 'react' ? exportReact(store.state.doc) : exportSite(store.state.doc, { vendor });
       const files = path ? site.files.filter((file) => file.path === path) : site.files;
       if (path && !files.length) throw new Error(`O arquivo “${path}” não existe no pacote de site.`);
       // imagens são arquivos binários em assets/: aparecem na lista (com binary:true), mas o conteúdo vai pelo zip

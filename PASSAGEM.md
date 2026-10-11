@@ -108,8 +108,9 @@ Faltam no MCP: **estilos de texto** e **variáveis/modos (claro/escuro)** — o 
 (variáveis CSS, JSON, Tailwind); **paleta a partir de imagem**; pares de fontes; **brief** do projeto (um lugar fixo para público/tom/valores, que viaja com o projeto); tabela de cores CSS nomeadas
 (hoje "red" dentro de SVG depende do navegador; `svgimport.js` linha ~268).
 
-### P5. Exportadores de framework
-React (componentes) e React Native (StyleSheet; só flex — **grid não existe no RN**, avisar). Plugins de exportação seguindo o contrato de `plugin.ts`. Também **bibliotecas CSS** prontas (animate.css etc.)
+### P5. Exportadores de framework — **React feito (2026-10-11); React Native pendente**
+**React:** `export_site {format:"react"}` e `GET /api/projects/<arq>/react.zip` (`export_zip` devolve `react_zip_url`). Código: `packages/core/src/export-react.ts` (monta o projeto Vite) e `html-to-jsx.ts` (conversor do HTML que o próprio Stylo gera; recusa o que não entende e a página cai em `dangerouslySetInnerHTML` com aviso). Conferido de verdade: `npm install` + `vite build` + navegação no Chromium (texto com quebra de linha, tokens, CSS Modules, link entre páginas, Lottie, model-viewer). Limites conhecidos: navegação por `#` (sem React Router), JavaScript puro (sem TypeScript), pastas do `public/` na raiz do site (não funciona com `base` diferente de `/`), e os estilos de interação (hover/estados) saem como o CSS gera hoje. **Pendente:** React Native e uma variante TypeScript.
+**Original (React Native ainda vale):** React (componentes) e React Native (StyleSheet; só flex — **grid não existe no RN**, avisar). Plugins de exportação seguindo o contrato de `plugin.ts`. Também **bibliotecas CSS** prontas (animate.css etc.)
 como catálogo que entra no projeto e no zip.
 
 ### P6. JavaScript de DOM para prototipar
@@ -137,6 +138,35 @@ Aproveitar para unificar os dois sistemas de comentário (comentários dentro do
 ### P11. Licença (adiada pela pessoa)
 Quer **source-available**: ninguém pode vender a ferramenta como produto próprio; **usar o resultado** (os sites que os agentes criam) é livre. Candidatas: **FSL** ou **PolyForm Shield**. O repositório está em MIT
 e as versões já publicadas continuam MIT. Conferir a compatibilidade com as licenças das dependências e fazer **revisão jurídica** antes de lançar/cobrar. Não chamar de "open source" (a definição oficial proíbe restringir uso comercial).
+
+## 5b. Registro do que estamos PULANDO de propósito
+
+Lista viva: tudo que foi visto e deixado de lado, com o motivo e o que destrava. Quem pular algo novo, acrescente aqui (não apague; marque como feito).
+
+| O que | Por que foi pulado | O que destrava |
+|---|---|---|
+| Paleta a partir de imagem | exige ler pixels no servidor; não há biblioteca de imagem | decidir entre `sharp` ou usar o Chromium do renderizador |
+| Mídia grande dentro do projeto (limite 25 MB) | hoje a mídia vira data URL na memória | guardar só a referência no documento e os bytes nos blobs |
+| `poster` do vídeo / prévia da mídia no canvas | depende de decodificar vídeo e do editor novo | editor novo; ou extrair um quadro no renderizador |
+| Tela para cadastrar chaves de provedores | o editor será refeito | editor novo (a API `PUT /api/providers/<id>/key` existe) |
+| Pexels, Pixabay, Poly Pizza com chave real | não temos as chaves | alguém cadastrar as chaves e rodar uma busca de verdade; **Poly Pizza** ainda precisa conferir a API oficial |
+| Lottie e ilustrações como fonte de assets | falta escolher APIs e conferir licenças | pesquisa de fontes abertas (LottieFiles tem termos próprios) |
+| `edit_image` e `generate_image_edit` no servidor | usam pixels e canvas do navegador | mesma decisão da paleta (biblioteca de imagem) |
+| Remover/renomear modo, variável, estilo (texto, sombra, gradiente) por MCP | só criar e ligar foi priorizado | acrescentar ferramentas de remoção/edição quando o agente precisar |
+| Tabela de cores CSS nomeadas (ex.: "red" dentro de SVG importado) | `svgimport.js` depende do canvas do navegador | tabela fixa de ~150 nomes |
+| `tokens.css` dentro do zip do site | o HTML exportado já leva as variáveis de que precisa | incluir se um agente pedir tokens no pacote |
+| Sombra de texto como variável; opacidade do Tailwind nas cores | sintaxe de `text-shadow` difere; limite do `var()` no Tailwind v3 | usar cores com canais separados (RGB) nos tokens |
+| Interface para estilos de sombra/gradiente no editor antigo | o editor será refeito | editor novo |
+| Camada `media` visível em `get_image` (renderizador sem JS) | vídeo/3D/Lottie não desenham sem JavaScript | prévia estática (poster) |
+| Exportador **React Native** e variante TypeScript do React | o React veio primeiro; RN exige outro modelo (View/Text/StyleSheet, só flex, sem grid) | P5 |
+| Rota HTTP `react.zip` sem teste próprio | usa o mesmo caminho do `site.zip` (que também não tem teste HTTP dedicado) | teste de integração das rotas de zip |
+| Estilos de interação (hover/estado) e animações no React | saem como o CSS atual gera; sem revisão específica | conferir com um projeto que use estados |
+| Exposição na internet (HTTPS, limites, SSE por pessoa, login) | produto ainda não hospedado | P7 |
+| Licença (FSL / PolyForm Shield) | adiada por decisão da pessoa; falta revisão jurídica | P11 |
+| TypeScript no resto do núcleo (store, commands, css, runner...) | converter tudo de uma vez gerou ~700 erros | converter junto com quando cada arquivo for mexido |
+| Testes e2e antigos (`tests/e2e`) | dependem do chat/agente removido e do editor antigo | refazer com o editor novo |
+| Armazenamento S3/R2 e cotas por plano | só há pasta/memória | P7 |
+| Importador dos `.json` antigos | é só uma ponte; os arquivos não ficam para sempre | `npm run importar` existe; apagar quando não houver mais .json |
 
 ## 6. Regras de trabalho que a pessoa pediu
 
