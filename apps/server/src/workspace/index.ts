@@ -87,7 +87,7 @@ export function createWorkspace({ projects, notes, sharing, operations, renderIm
     entry.store = createStore({ initial: { doc, views: {}, theme: 'dark', link: { file, synced: true } }, persist });
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
-    entry.runner = createRunner({ store: entry.store, commands, approve: null, renderImage });
+    entry.runner = createRunner({ store: entry.store, commands, renderImage });
     docs.set(id, entry);
     return entry;
   }

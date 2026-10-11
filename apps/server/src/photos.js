@@ -93,7 +93,7 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-export function createPhotosHandler({ getKey = () => '', fetchImpl = fetch, now = Date.now } = {}) {
+export function createPhotosHandler({ getKey = (_config) => '', fetchImpl = fetch, now = Date.now } = {}) {
   return async function photos(req, res, config = {}) {
     const url = new URL(req.url, 'http://localhost');
     if (req.method !== 'GET') return json(res, 405, { error: 'Use GET nesta rota.' });

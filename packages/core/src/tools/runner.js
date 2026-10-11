@@ -2,7 +2,7 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  agent/runner.js — EXECUTA AS FERRAMENTAS DO AGENTE NO EDITOR ABERTO
  * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Recebe "use a ferramenta X com estes argumentos" (do agente interno ou do MCP, ver agent/schema.js) e faz
+ *  Recebe "use a ferramenta X com estes argumentos" (do MCP, ver tools/schema.ts) e faz
  *  com o store e os comandos do editor, como se você tivesse clicado. Regras de segurança:
  *    - ferramentas de LEITURA rodam direto;
  *    - ferramentas que ALTERAM o projeto chamam `approve(...)` antes: a pessoa vê o que vai mudar e decide
@@ -22,7 +22,7 @@ import { importSvg } from '../svgimport.js';
 import { GOOGLE, SYSTEM_FONTS } from '../fonts.js';
 import { iconUrl, iconExists, searchIcons } from '../icons.js';
 import { imageAssetCatalog } from '../image-assets.js';
-import { toolByName } from './schema.js';
+import { toolByName, validateToolArgs } from './schema.js';
 import { exportSite } from '../site-export.js';
 import { agentContentLimit, boundedUtf8Chunk, DEFAULT_AGENT_CONTENT_BYTES } from './content.js';
 
@@ -765,6 +765,9 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   async function run(tool, args = {}, client = 'Assistente', { external = false, admin = false, signal } = {}) {
     const def = toolByName(tool);
     if (!def) return { error: `Ferramenta desconhecida: ${tool}.` };
+    // confere os argumentos contra o Zod da ferramenta: a IA recebe uma mensagem clara e corrige
+    const invalid = validateToolArgs(tool, args);
+    if (invalid) return { error: invalid };
     try {
       if (signal?.aborted) throw new Error('A operação foi cancelada pelo cliente MCP.');
       // arquivos de projeto: programas externos (MCP) só com o "Acesso de administrador" ligado

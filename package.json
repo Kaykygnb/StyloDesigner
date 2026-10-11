@@ -19,7 +19,7 @@
     "start": "node --import tsx apps/server/src/main.ts",
     "test": "node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/*.test.js tests/*.test.ts",
     "test:e2e": "node tests/e2e/rodar-todos.mjs",
-    "typecheck": "tsc -p packages/db",
+    "typecheck": "tsc -p packages/db && tsc -p packages/core && tsc -p apps/server",
     "db:generate": "prisma generate --config packages/db/prisma.config.ts",
     "postinstall": "npm run db:generate",
     "benchmark:site-load": "node scripts/benchmark-site-load.mjs",

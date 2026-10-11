@@ -1,8 +1,8 @@
-// Ferramentas MCP: a lista (packages/core/src/tools/schema.js) e as regras de alteração do executor (runner.js → applyProps).
+// Ferramentas MCP: a lista (packages/core/src/tools/schema.ts) e as regras de alteração do executor (runner.js → applyProps).
 // O protocolo (cliente oficial do SDK) está em tests/mcp-sdk.test.js e o fluxo completo em tests/workspace.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AGENT_TOOLS, openAiTools, mcpTools } from '@stylo/core/tools/schema.js';
+import { AGENT_TOOLS, mcpTools, validateToolArgs } from '@stylo/core/tools/schema.js';
 import { applyProps, summarize, describeCall, PROPS, createRunner } from '@stylo/core/tools/runner.js';
 import { createNode } from '@stylo/core/model.js';
 
@@ -16,13 +16,14 @@ test('toolResult: imagem vira conteúdo de imagem do MCP, o resto texto; erro e 
   assert.equal(toolResult({ refused: true }).isError, true);
 });
 
-test('lista de ferramentas: mesma para MCP e OpenAI, com esquemas válidos e "somente leitura" marcado', () => {
+test('lista de ferramentas: esquemas JSON válidos (gerados do Zod) e "somente leitura" marcado', () => {
   assert.equal(mcpTools().length, AGENT_TOOLS.length);
-  assert.equal(openAiTools().length, AGENT_TOOLS.length);
-  for (const t of openAiTools()) {
-    assert.equal(t.type, 'function');
-    assert.equal(t.function.parameters.type, 'object');
+  for (const t of mcpTools()) {
+    assert.equal(t.inputSchema.type, 'object', t.name);
+    assert.ok(!('$schema' in t.inputSchema), `${t.name}: sem ruído do Zod`);
+    assert.ok(t.description.length > 20, t.name);
   }
+  assert.deepEqual(new Set(AGENT_TOOLS.map((t) => t.name)).size, AGENT_TOOLS.length, 'nomes únicos');
   const ro = Object.fromEntries(mcpTools().map((t) => [t.name, t.annotations.readOnlyHint]));
   assert.equal(ro.get_document, true);
   assert.equal(ro.update_layer, false);
@@ -152,4 +153,21 @@ test('export_site lista metadados e entrega conteúdo grande em trechos UTF-8', 
   const htmlSecond = await runner.run('export_html', { id: frame.id, maxBytes: 1024, offset: htmlFirst.nextOffset });
   assert.equal(htmlSecond.offset, htmlFirst.nextOffset);
   assert.match((await runner.run('export_site', { path: '../index.html' })).error, /não existe/);
+});
+
+test('validateToolArgs: o Zod da ferramenta recusa o que está errado com mensagem em português e aceita o resto', () => {
+  assert.equal(validateToolArgs('get_layer', { id: 'abc' }), null);
+  assert.match(validateToolArgs('get_layer', {}), /Argumentos inválidos para get_layer — id:/);
+  assert.match(validateToolArgs('create_layer', { type: 'triangulo' }), /type: .*frame/);
+  assert.match(validateToolArgs('get_document', { depth: 'muito' }), /depth:/);
+  assert.match(validateToolArgs('edit_image', { id: 'a', rotate: 45 }), /rotate: .*90/);
+  assert.equal(validateToolArgs('edit_image', { id: 'a', rotate: 90 }), null);
+  assert.equal(validateToolArgs('create_layer', { type: 'frame', props: { qualquer: 1 }, campo_que_nao_existe: true }), null, 'campos desconhecidos são ignorados');
+  assert.equal(validateToolArgs('ferramenta_inexistente', {}), null, 'quem não conhece a ferramenta reclama em outro lugar');
+});
+
+test('o executor devolve o erro de validação sem rodar a ferramenta', async () => {
+  const runner = createRunner({ store: {}, commands: {} });
+  const out = await runner.run('get_layer', {});
+  assert.match(out.error, /Argumentos inválidos para get_layer/);
 });

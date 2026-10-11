@@ -1,18 +1,19 @@
 /**
- * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  agent/schema.js — AS FERRAMENTAS QUE UMA IA PODE USAR NO EDITOR (lista única, sem DOM)
- * ════════════════════════════════════════════════════════════════════════════════════════════════
- *  Uma IA (o agente interno, com a sua chave da OpenAI, ou um programa externo via MCP, como o Claude Code)
- *  não mexe no projeto "por fora": ela pede para usar uma destas ferramentas, e quem executa é o EDITOR aberto
- *  (agent/runner.js), com os mesmos comandos que você usa clicando. Assim:
- *    - o canvas e os painéis atualizam na hora, e cada alteração é UM passo do Ctrl+Z;
- *    - toda alteração passa pela sua permissão antes (veja runner.js → approve);
- *    - o servidor MCP (server.js) e o agente interno usam EXATAMENTE a mesma lista: o que um faz, o outro faz.
+ * tools/schema.ts — AS FERRAMENTAS MCP, DEFINIDAS UMA VEZ COM ZOD
  *
- *  Este arquivo é só dados (nome, descrição e parâmetros em JSON Schema, o formato que a OpenAI e o MCP usam),
- *  por isso o servidor (Node) e o navegador importam o mesmo arquivo.
- * ════════════════════════════════════════════════════════════════════════════════════════════════
+ * Cada ferramenta tem nome, descrição e os parâmetros em Zod (`input`). Daí saem, sem repetir nada:
+ *   - o JSON Schema que o MCP anuncia em tools/list (`inputSchema`);
+ *   - a validação dos argumentos antes de executar (`validateToolArgs`), com mensagens em português que a IA entende;
+ *   - os tipos TypeScript dos argumentos (`z.infer<typeof tool.input>`).
+ * Sem DOM: o servidor (Node) e o navegador importam o mesmo arquivo.
+ *
+ * Marcas de uma ferramenta: `write` altera o projeto (vira um passo do desfazer); `noLock` não mexe nas camadas (não
+ * reserva o documento); `needs` o que exige de quem chama: read | comment | write | owner (ferramentas de colaboração).
  */
+
+import { z } from 'zod';
+
+z.config(z.locales.pt());
 
 /** Propriedades que as ferramentas de criar/alterar aceitam (o resto é recusado com uma mensagem clara). */
 export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS gerado está entre parênteses):
@@ -25,474 +26,529 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
 - HTML: tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
 
-/**
- * As ferramentas. `write: true` = altera o projeto (vira um passo do Ctrl+Z).
- * `inputSchema` segue JSON Schema (MCP chama assim; a OpenAI chama de `parameters`).
- */
-export const AGENT_TOOLS = [
-  {
+type Shape = z.ZodObject<any, any>;
+export interface ToolDef<S extends Shape = Shape> {
+  name: string;
+  write: boolean;
+  noLock?: boolean;
+  needs?: 'read' | 'comment' | 'write' | 'owner';
+  description: string;
+  /** Parâmetros em Zod (fonte da verdade). */
+  input: S;
+  /** O mesmo em JSON Schema, no formato que o MCP anuncia. */
+  inputSchema: Record<string, any>;
+}
+
+/** JSON Schema do Zod sem o ruído que ele acrescenta (limites de inteiro seguro, propertyNames, $schema). */
+function cleanJsonSchema(node: any): any {
+  if (Array.isArray(node)) return node.map(cleanJsonSchema);
+  if (!node || typeof node !== 'object') return node;
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k === '$schema' || k === 'propertyNames') continue;
+    if ((k === 'minimum' && v === -9007199254740991) || (k === 'maximum' && v === 9007199254740991)) continue;
+    out[k] = cleanJsonSchema(v);
+  }
+  return out;
+}
+
+function defineTool<S extends Shape>(def: Omit<ToolDef<S>, 'inputSchema'>): ToolDef<S> {
+  return { ...def, inputSchema: cleanJsonSchema(z.toJSONSchema(def.input, { io: 'input' })) };
+}
+
+/** As ferramentas. */
+export const AGENT_TOOLS: ToolDef[] = [
+  defineTool({
     name: 'get_document',
     write: false,
     description: 'Resumo do projeto aberto no editor: páginas, árvore de camadas da página atual (id, nome, tipo, etiqueta HTML, tamanho, layout e notas curtas), seleção, estilos de cor/texto e variáveis. Comece por aqui; para notas completas, leia a camada com get_layer.',
-    inputSchema: {
-      type: 'object',
-      properties: { depth: { type: 'integer', description: 'Quantos níveis da árvore mostrar (padrão 3, máximo 8).' } },
-    },
-  },
-  {
+    input: z.object({
+      depth: z.number().int().describe('Quantos níveis da árvore mostrar (padrão 3, máximo 8).').optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_comments',
     write: false,
     description: 'Lê as anotações do projeto, incluindo respostas, autor, estado e camada/página associadas. Use antes de revisar ou alterar uma camada comentada. Pode filtrar por camada, página ou somente comentários em aberto.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'id opcional da camada' },
-        page_id: { type: 'string', description: 'id opcional da página' },
-        unresolved_only: { type: 'boolean', description: 'se true, devolve somente comentários não resolvidos' },
-      },
-    },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id opcional da camada').optional(),
+      page_id: z.string().describe('id opcional da página').optional(),
+      unresolved_only: z.boolean().describe('se true, devolve somente comentários não resolvidos').optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_project_css',
     write: false,
     description: 'Lê a folha CSS global do projeto antes de revisá-la ou substituí-la com set_project_css.',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'list_assets',
     write: false,
     description: 'Lista as imagens já importadas neste projeto, com id, nome derivado da camada, formato, tamanho aproximado e camadas que as usam. Não envia o conteúdo binário. Use insert_asset para reutilizar uma imagem.',
-    inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'filtra por nome, id, formato ou página' } } },
-  },
-  {
+    input: z.object({
+      query: z.string().describe('filtra por nome, id, formato ou página').optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_layer',
     write: false,
     description: 'Todos os dados de UMA camada (posição, tamanho, preenchimento, layout, texto, etiqueta...) e a lista dos filhos diretos.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'id da camada' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id da camada'),
+    }),
+  }),
+  defineTool({
     name: 'get_code',
     write: false,
     description: 'O HTML e o CSS que a camada gera (o mesmo da aba Código e da exportação). Use para revisar o código.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'id da camada' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id da camada'),
+    }),
+  }),
+  defineTool({
     name: 'find_layers',
     write: false,
     description: 'Procura camadas em todas as páginas pelo nome ou texto (sem diferenciar maiúsculas) e/ou pelo tipo.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'parte do nome ou do texto' },
-        type: { type: 'string', enum: ['frame', 'rect', 'ellipse', 'text', 'group', 'line', 'path', 'section'] },
-      },
-    },
-  },
-  {
+    input: z.object({
+      query: z.string().describe('parte do nome ou do texto').optional(),
+      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'group', 'line', 'path', 'section']).optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_selection',
     write: false,
     description: 'As camadas que a pessoa selecionou agora no editor (resumo de cada uma). Útil quando ela diz "isto aqui".',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'select_layers',
     write: false,
     description: 'Seleciona camadas no editor (para mostrar à pessoa do que você está falando). Não altera o projeto.',
-    inputSchema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' } } }, required: ['ids'] },
-  },
-  {
+    input: z.object({
+      ids: z.array(z.string()),
+    }),
+  }),
+  defineTool({
     name: 'update_layer',
     write: true,
-    description: `Altera propriedades de uma camada. Mande só o que muda. Objetos (fill, stroke, layout) são mesclados com o valor atual.\n${PROP_HELP}`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'id da camada' },
-        props: { type: 'object', description: 'propriedades a mudar (veja a lista na descrição)', additionalProperties: true },
-      },
-      required: ['id', 'props'],
-    },
-  },
-  {
+    description: `Altera propriedades de uma camada. Mande só o que muda. Objetos (fill, stroke, layout) são mesclados com o valor atual.
+${PROP_HELP}`,
+    input: z.object({
+      id: z.string().describe('id da camada'),
+      props: z.record(z.string(), z.any()).describe('propriedades a mudar (veja a lista na descrição)'),
+    }),
+  }),
+  defineTool({
     name: 'create_layer',
     write: true,
-    description: `Cria uma camada nova. Sem parent_id, vai para a raiz da página (vira uma tela, se for frame). Dentro de um frame com layout, entra na posição "index" (padrão: no fim).\n${PROP_HELP}`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        type: { type: 'string', enum: ['frame', 'rect', 'ellipse', 'text', 'line', 'path'] },
-        parent_id: { type: 'string', description: 'id do frame/grupo pai (opcional)' },
-        index: { type: 'integer', description: 'posição entre os irmãos (0 = primeiro / mais ao fundo)' },
-        props: { type: 'object', additionalProperties: true },
-      },
-      required: ['type'],
-    },
-  },
-  {
+    description: `Cria uma camada nova. Sem parent_id, vai para a raiz da página (vira uma tela, se for frame). Dentro de um frame com layout, entra na posição "index" (padrão: no fim).
+${PROP_HELP}`,
+    input: z.object({
+      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'line', 'path']),
+      parent_id: z.string().describe('id do frame/grupo pai (opcional)').optional(),
+      index: z.number().int().describe('posição entre os irmãos (0 = primeiro / mais ao fundo)').optional(),
+      props: z.record(z.string(), z.any()).optional(),
+    }),
+  }),
+  defineTool({
     name: 'insert_asset',
     write: true,
     description: 'Insere no canvas uma imagem já existente no projeto, reutilizando o asset sem duplicar o arquivo. Descubra os ids com list_assets. Pode inserir dentro de um frame com parent_id; at usa coordenadas do canvas.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'id devolvido por list_assets' },
-        name: { type: 'string', description: 'nome opcional da nova camada' },
-        parent_id: { type: 'string', description: 'id opcional de frame/grupo que recebe a imagem' },
-        index: { type: 'integer', description: 'posição opcional dentro do pai' },
-        at: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], description: 'ponto opcional do canvas (centro da imagem)' },
-      },
-      required: ['id'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id devolvido por list_assets'),
+      name: z.string().describe('nome opcional da nova camada').optional(),
+      parent_id: z.string().describe('id opcional de frame/grupo que recebe a imagem').optional(),
+      index: z.number().int().describe('posição opcional dentro do pai').optional(),
+      at: z.object({
+        x: z.number(),
+        y: z.number(),
+      }).describe('ponto opcional do canvas (centro da imagem)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'delete_layers',
     write: true,
     description: 'Apaga camadas (e o que estiver dentro delas).',
-    inputSchema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' } } }, required: ['ids'] },
-  },
-  {
+    input: z.object({
+      ids: z.array(z.string()),
+    }),
+  }),
+  defineTool({
     name: 'move_layer',
     write: true,
     description: 'Muda a camada de lugar na árvore: para dentro de outro frame/grupo (parent_id) e/ou para outra posição entre os irmãos (index). parent_id "root" = raiz da página.',
-    inputSchema: {
-      type: 'object',
-      properties: { id: { type: 'string' }, parent_id: { type: 'string' }, index: { type: 'integer' } },
-      required: ['id'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      parent_id: z.string().optional(),
+      index: z.number().int().optional(),
+    }),
+  }),
+  defineTool({
     name: 'build_layout',
     write: true,
     description: `Cria uma ESTRUTURA INTEIRA de uma vez (uma tela, uma seção, um card com tudo dentro): uma árvore de camadas aninhadas, com UMA permissão e UM passo do Ctrl+Z. Use para "faça uma página/seção/cabeçalho...". Sem parent_id, a árvore vira uma tela nova na página, posicionada ao lado das que já existem (não precisa selecionar nada).
 Cada nó: {"type": "frame"|"rect"|"ellipse"|"text"|"line"|"icon"|"path", "props": {...}, "children": [...]}. Para "path" (VETOR, a caneta: ícones e formas próprios), props = {"points": [{"x": 3, "y": 4}, {"x": 21, "y": 4, "hout": {"x": 23, "y": 4}}, ...], "closed": true|false, "vw": 24, "vh": 24, "w": 48, "h": 48, "fill": "none"|"#RRGGBB", "stroke": {"color": "#RRGGBB", "width": 1.75, "cap": "round", "join": "round"}}. Os pontos ficam em coordenadas do viewBox vw × vh (omitidos, vêm do tamanho dos pontos); w e h esticam esse espaço. "hin" (alça de entrada) e "hout" (alça de saída) são pontos {x, y} absolutos no mesmo espaço: ponto sem alças é canto; com alças, o trecho vira curva de Bézier. Máximo de 500 pontos; path não tem filhos. Para "icon", props = {"name": "nome do Material Symbol (use search_icons)", "color": "#RRGGBB", "size": 24, "style": "outlined"|"rounded"|"sharp", "filled": false}.
 Dica: tela de site = frame com props {"name":"Início","w":1440,"fluid":true,"sizeY":"hug","layout":{"mode":"column"}} e seções dentro com sizeX "fill".
 ${PROP_HELP}`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        parent_id: { type: 'string', description: 'id do frame onde a árvore entra (opcional; sem ele, vira uma tela nova)' },
-        index: { type: 'integer', description: 'posição entre os irmãos (padrão: no fim)' },
-        tree: { type: 'object', description: 'o nó raiz: {type, props, children}', additionalProperties: true },
-      },
-      required: ['tree'],
-    },
-  },
-  {
+    input: z.object({
+      parent_id: z.string().describe('id do frame onde a árvore entra (opcional; sem ele, vira uma tela nova)').optional(),
+      index: z.number().int().describe('posição entre os irmãos (padrão: no fim)').optional(),
+      tree: z.record(z.string(), z.any()).describe('o nó raiz: {type, props, children}'),
+    }),
+  }),
+  defineTool({
     name: 'search_icons',
     write: false,
     description: 'Procura ícones do Google (Material Symbols, mais de 4 mil) pelo nome em inglês ou por um sinônimo em português (casa, carrinho, seta, sino...). Devolve os nomes para usar em insert_icon ou em build_layout.',
-    inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'integer', description: 'máximo de resultados (padrão 20)' } }, required: ['query'] },
-  },
-  {
+    input: z.object({
+      query: z.string(),
+      limit: z.number().int().describe('máximo de resultados (padrão 20)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'insert_icon',
     write: true,
     description: 'Insere um ícone do Google (Material Symbols) como vetor editável, dentro de um frame (na posição index) ou na página.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'nome exato do ícone (use search_icons)' },
-        parent_id: { type: 'string' }, index: { type: 'integer' },
-        color: { type: 'string', description: '#RRGGBB' }, size: { type: 'integer', description: 'px (padrão 24)' },
-        style: { type: 'string', enum: ['outlined', 'rounded', 'sharp'] }, filled: { type: 'boolean' },
-      },
-      required: ['name'],
-    },
-  },
-  {
+    input: z.object({
+      name: z.string().describe('nome exato do ícone (use search_icons)'),
+      parent_id: z.string().optional(),
+      index: z.number().int().optional(),
+      color: z.string().describe('#RRGGBB').optional(),
+      size: z.number().int().describe('px (padrão 24)').optional(),
+      style: z.enum(['outlined', 'rounded', 'sharp']).optional(),
+      filled: z.boolean().optional(),
+    }),
+  }),
+  defineTool({
     name: 'list_fonts',
     write: false,
     description: 'Lista fontes disponíveis (Google Fonts, carregadas sozinhas, e as do sistema) com os pesos de cada uma. Use antes de mudar fontFamily/fontWeight: o nome precisa ser exato.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'parte do nome (vazio = as mais usadas)' },
-        category: { type: 'string', enum: ['sans', 'serif', 'display', 'handwriting', 'mono'] },
-      },
-    },
-  },
-  {
+    input: z.object({
+      query: z.string().describe('parte do nome (vazio = as mais usadas)').optional(),
+      category: z.enum(['sans', 'serif', 'display', 'handwriting', 'mono']).optional(),
+    }),
+  }),
+  defineTool({
     name: 'create_color_styles',
     write: true,
     description: 'Cria estilos de cor do projeto (a paleta: viram variáveis de CSS, ex.: --cor-primaria). Devolve os ids para ligar as camadas com fill: {"styleId": id}. Antes, veja os que já existem em get_document (colorStyles) para não repetir.',
-    inputSchema: {
-      type: 'object',
-      properties: { colors: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, color: { type: 'string', description: '#RRGGBB' } }, required: ['name', 'color'] } } },
-      required: ['colors'],
-    },
-  },
-  {
+    input: z.object({
+      colors: z.array(z.object({
+        name: z.string(),
+        color: z.string().describe('#RRGGBB'),
+      })),
+    }),
+  }),
+  defineTool({
     name: 'create_page',
     write: true,
     description: 'Cria uma página nova no projeto (as abas de página do painel esquerdo) e abre ela.',
-    inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
-  },
-  {
+    input: z.object({
+      name: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'set_project_css',
     write: true,
     description: 'Substitui o CSS global do projeto, incluindo seletores, @media, estados, @keyframes e efeitos CSS 3D. Leia get_project_css antes de editar uma folha existente. Envie a folha completa em css; string vazia limpa o CSS global. Confira o resultado com get_image e get_code.',
-    inputSchema: { type: 'object', properties: { css: { type: 'string', description: 'Folha CSS completa do projeto; substitui o conteúdo atual.' } }, required: ['css'] },
-  },
-  {
+    input: z.object({
+      css: z.string().describe('Folha CSS completa do projeto; substitui o conteúdo atual.'),
+    }),
+  }),
+  defineTool({
     name: 'switch_page',
     write: false,
     description: 'Abre outra página do projeto (ids em get_document → pages). Não altera nada.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'get_image',
     write: false,
     description: 'VÊ o design: devolve um PNG da camada (ou da tela inteira). Use para conferir o resultado depois de montar ou alterar algo. Sem id, usa a seleção ou a primeira tela da página. (No Assistente interno a imagem não chega ao modelo; no MCP, sim.)',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' }, scale: { type: 'number', description: '0.5 a 2 (padrão 1)' } } },
-  },
-  {
+    input: z.object({
+      id: z.string().optional(),
+      scale: z.number().describe('0.5 a 2 (padrão 1)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'export_html',
     write: false,
     description: 'HTML de uma tela independente. O conteúdo vem em trechos UTF-8 de 256 KiB por padrão; continue com offset=nextOffset até complete=true. maxBytes pode chegar a 1 MiB.',
-    inputSchema: { type: 'object', properties: {
-      id: { type: 'string', description: 'id da tela (frame)' },
-      offset: { type: 'integer', description: 'Posição em bytes da resposta anterior (nextOffset).' },
-      maxBytes: { type: 'integer', description: 'Tamanho máximo do trecho: 256 KiB por padrão, máximo 1 MiB.' },
-    }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id da tela (frame)'),
+      offset: z.number().int().describe('Posição em bytes da resposta anterior (nextOffset).').optional(),
+      maxBytes: z.number().int().describe('Tamanho máximo do trecho: 256 KiB por padrão, máximo 1 MiB.').optional(),
+    }),
+  }),
+  defineTool({
     name: 'export_site',
     write: false,
     description: 'Lista os arquivos HTML estáticos de todas as pranchetas visíveis. Inclua includeContent:true para receber conteúdo; use path para buscar uma página por vez. O conteúdo incluído tem limite de 256 KiB por chamada (máximo configurável de 1 MiB). CSS e imagens ficam embutidos; fontes Google carregam pela rede. Interações de protótipo e JavaScript arbitrário não são executados.',
-    inputSchema: { type: 'object', properties: {
-      includeContent: { type: 'boolean', description: 'Padrão false: retorna caminhos/tamanhos. true inclui o HTML, respeitando maxBytes.' },
-      path: { type: 'string', description: 'Retorna somente este caminho do pacote, por exemplo index.html.' },
-      maxBytes: { type: 'integer', description: 'Limite do conteúdo por chamada: 256 KiB por padrão, máximo 1 MiB.' },
-      offset: { type: 'integer', description: 'Posição em bytes da resposta anterior (nextOffset); requer path e includeContent:true.' },
-    } },
-  },
-  {
+    input: z.object({
+      includeContent: z.boolean().describe('Padrão false: retorna caminhos/tamanhos. true inclui o HTML, respeitando maxBytes.').optional(),
+      path: z.string().describe('Retorna somente este caminho do pacote, por exemplo index.html.').optional(),
+      maxBytes: z.number().int().describe('Limite do conteúdo por chamada: 256 KiB por padrão, máximo 1 MiB.').optional(),
+      offset: z.number().int().describe('Posição em bytes da resposta anterior (nextOffset); requer path e includeContent:true.').optional(),
+    }),
+  }),
+  defineTool({
     name: 'export_zip',
     write: false,
     description: 'Grava o projeto e devolve o endereço para baixar o SITE inteiro em .zip (HTML estruturado, uma página por prancheta visível, pronto para publicar) e o do projeto em .json (para importar em outro Stylo). Faça o download desses endereços com HTTP GET.',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'set_responsive',
     write: true,
     description: 'Ajusta uma camada SÓ num breakpoint do projeto (padrão: "tablet" ≤1024px e "mobile" ≤640px; o projeto pode ter outros, veja get_document → breakpoints): vira @media no CSS. O Desktop continua igual. Ex.: grid de 3 colunas vira 1 no celular: props {"layout": {"cols": 1}}; esconder no celular: {"visible": false}; texto menor: {"fontSize": 36}. Aceita: x, y, w, h, sizeX, sizeY, minW, maxW, minH, maxH, aspect, margin, grow, absolute, visible, alignSelf, justifySelf, colSpan, rowSpan, layout, rotation, overflow, fluid, fontSize, lineHeight, letterSpacing, wordSpacing, textAlign, fontWeight, textTransform, truncate, lines, radius, opacity, blend, clip, fill, stroke, shadows, blur, bgBlur.',
-    inputSchema: {
-      type: 'object',
-      properties: { id: { type: 'string' }, breakpoint: { type: 'string', description: 'id do breakpoint (ex.: "tablet", "mobile" ou um personalizado listado em get_document)' }, props: { type: 'object', additionalProperties: true } },
-      required: ['id', 'breakpoint', 'props'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      breakpoint: z.string().describe('id do breakpoint (ex.: "tablet", "mobile" ou um personalizado listado em get_document)'),
+      props: z.record(z.string(), z.any()),
+    }),
+  }),
+  defineTool({
     name: 'set_state',
     write: true,
     description: 'Define como a camada fica no :hover, :active (pressionado) ou :focus-visible (foco do teclado) — vira .classe:hover no CSS, com a transição da camada. Aceita: fill, stroke, radius, shadows, blur, bgBlur, opacity, blend, scale (ex.: 1.03). Ex.: botão escurece no hover: {"state": "hover", "props": {"fill": "#991B1B"}}.',
-    inputSchema: {
-      type: 'object',
-      properties: { id: { type: 'string' }, state: { type: 'string', enum: ['hover', 'active', 'focus'] }, props: { type: 'object', additionalProperties: true } },
-      required: ['id', 'state', 'props'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      state: z.enum(['hover', 'active', 'focus']),
+      props: z.record(z.string(), z.any()),
+    }),
+  }),
+  defineTool({
     name: 'create_component',
     write: true,
     description: 'Transforma uma camada em COMPONENTE principal (as cópias, criadas com create_instance, mudam junto quando o principal muda).',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'create_instance',
     write: true,
     description: 'Cria uma cópia ligada (instância) de um componente, dentro de um frame (na posição index) ou na página. props sobrescreve só nesta cópia (ex.: name). Para mudar o texto de dentro, use update_layer nos filhos da instância.',
-    inputSchema: {
-      type: 'object',
-      properties: { component_id: { type: 'string' }, parent_id: { type: 'string' }, index: { type: 'integer' }, props: { type: 'object', additionalProperties: true } },
-      required: ['component_id'],
-    },
-  },
-  {
+    input: z.object({
+      component_id: z.string(),
+      parent_id: z.string().optional(),
+      index: z.number().int().optional(),
+      props: z.record(z.string(), z.any()).optional(),
+    }),
+  }),
+  defineTool({
     name: 'duplicate_layers',
     write: true,
     description: 'Duplica camadas (com tudo dentro). Em flex/grid, a cópia entra logo depois do original.',
-    inputSchema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' } } }, required: ['ids'] },
-  },
-  {
+    input: z.object({
+      ids: z.array(z.string()),
+    }),
+  }),
+  defineTool({
     name: 'add_interaction',
     write: true,
     description: 'Protótipo: ao clicar na camada, "navigate" vai para outra tela (target_id), "back" volta, "url" abre um site. Aparece no modo Apresentar.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' }, action: { type: 'string', enum: ['navigate', 'back', 'url'] }, target_id: { type: 'string' }, url: { type: 'string' },
-        transition: { type: 'string', enum: ['instant', 'dissolve', 'slide-left', 'slide-right', 'slide-up', 'slide-down'] },
-      },
-      required: ['id', 'action'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      action: z.enum(['navigate', 'back', 'url']),
+      target_id: z.string().optional(),
+      url: z.string().optional(),
+      transition: z.enum(['instant', 'dissolve', 'slide-left', 'slide-right', 'slide-up', 'slide-down']).optional(),
+    }),
+  }),
+  defineTool({
     name: 'add_comment',
     write: true,
     description: 'Deixa um comentário numa camada (aparece como pino no canvas e na aba Comentários). Bom para revisões: aponte o problema sem mudar nada.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' }, text: { type: 'string' } }, required: ['id', 'text'] },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      text: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'delete_page',
     write: true,
     description: 'Apaga uma página do projeto (não dá para apagar a última).',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'redo',
     write: true,
     description: 'Refaz o que foi desfeito (Ctrl+Shift+Z).',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'edit_image',
     write: true,
     description: 'EDITA A FOTO de uma camada com imagem (preenchimento de imagem), no navegador, sem IA externa e sem chave: girar/espelhar, recortar (crop em px da imagem ou ratio), remover o fundo (automático: tira a cor das bordas; melhor com fundo liso), filtro pronto, ajustes (-100..100; sharpen 0..100; blur 0..40 px) e largura máxima/formato/qualidade. Ordem: girar → recortar → remover fundo → filtro → ajustes → tamanho. Grava uma imagem NOVA (a original fica guardada) e é um passo do Ctrl+Z. restore_original: true volta para a imagem de antes das edições.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'id da camada com preenchimento de imagem' },
-        rotate: { type: 'integer', enum: [90, 180, 270, -90], description: 'graus, sentido horário' },
-        flip_h: { type: 'boolean' }, flip_v: { type: 'boolean' },
-        crop: { type: 'object', description: 'recorte em px da imagem (depois de girar)', properties: { x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' } } },
-        ratio: { type: 'string', enum: ['1:1', '4:3', '16:9', '3:2'], description: 'recorte centralizado nesta proporção (no lugar de crop)' },
-        remove_background: { type: 'boolean', description: 'remove o fundo (fica transparente; o formato vira PNG)' },
-        background_tolerance: { type: 'integer', description: '1..80 (padrão 28): maior = tira cores mais diferentes do fundo' },
-        filter: { type: 'string', enum: ['none', 'vivo', 'quente', 'frio', 'suave', 'drama', 'pb', 'noir', 'sepia', 'vintage'] },
-        adjust: { type: 'object', properties: { brightness: { type: 'number' }, contrast: { type: 'number' }, saturation: { type: 'number' }, exposure: { type: 'number' }, temperature: { type: 'number' }, sharpen: { type: 'number' }, blur: { type: 'number' } } },
-        max_width: { type: 'integer', description: 'largura máxima em px (nunca aumenta)' },
-        format: { type: 'string', enum: ['webp', 'png', 'jpeg'] },
-        quality: { type: 'number', description: '0.3..1 (WebP/JPEG, padrão 0.9)' },
-        restore_original: { type: 'boolean', description: 'volta para a imagem original (ignora o resto)' },
-      },
-      required: ['id'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id da camada com preenchimento de imagem'),
+      rotate: z.literal([90, 180, 270, -90]).describe('graus, sentido horário').optional(),
+      flip_h: z.boolean().optional(),
+      flip_v: z.boolean().optional(),
+      crop: z.object({
+        x: z.number().optional(),
+        y: z.number().optional(),
+        w: z.number().optional(),
+        h: z.number().optional(),
+      }).describe('recorte em px da imagem (depois de girar)').optional(),
+      ratio: z.enum(['1:1', '4:3', '16:9', '3:2']).describe('recorte centralizado nesta proporção (no lugar de crop)').optional(),
+      remove_background: z.boolean().describe('remove o fundo (fica transparente; o formato vira PNG)').optional(),
+      background_tolerance: z.number().int().describe('1..80 (padrão 28): maior = tira cores mais diferentes do fundo').optional(),
+      filter: z.enum(['none', 'vivo', 'quente', 'frio', 'suave', 'drama', 'pb', 'noir', 'sepia', 'vintage']).optional(),
+      adjust: z.object({
+        brightness: z.number().optional(),
+        contrast: z.number().optional(),
+        saturation: z.number().optional(),
+        exposure: z.number().optional(),
+        temperature: z.number().optional(),
+        sharpen: z.number().optional(),
+        blur: z.number().optional(),
+      }).optional(),
+      max_width: z.number().int().describe('largura máxima em px (nunca aumenta)').optional(),
+      format: z.enum(['webp', 'png', 'jpeg']).optional(),
+      quality: z.number().describe('0.3..1 (WebP/JPEG, padrão 0.9)').optional(),
+      restore_original: z.boolean().describe('volta para a imagem original (ignora o resto)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'generate_image_edit',
     write: true,
     description: 'Edição GENERATIVA da foto de uma camada com imagem, pelo modelo de imagem configurado no servidor (Configurações → Agente de IA e modelos → Modelo de imagem). mode: "fill" = preenche a área com o que o prompt pedir (ex.: tirar uma pessoa); "replace" = troca o objeto da área (sem área = variação da foto toda); "expand" = aumenta a foto para os lados (expand em px) inventando o resto; "generate" = imagem nova só pelo prompt, no lugar da atual. area em % da imagem (0..100). Se não houver modelo de imagem, devolve erro: avise a pessoa. Demora alguns segundos; um Ctrl+Z desfaz.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'id da camada com preenchimento de imagem' },
-        mode: { type: 'string', enum: ['fill', 'replace', 'expand', 'generate'] },
-        prompt: { type: 'string', description: 'o que a IA deve fazer/desenhar (português ou inglês)' },
-        area: { type: 'object', description: 'retângulo em % da imagem (fill/replace)', properties: { x: { type: 'number' }, y: { type: 'number' }, w: { type: 'number' }, h: { type: 'number' } } },
-        expand: { type: 'object', description: 'px a acrescentar de cada lado (expand)', properties: { top: { type: 'number' }, right: { type: 'number' }, bottom: { type: 'number' }, left: { type: 'number' } } },
-      },
-      required: ['id', 'mode', 'prompt'],
-    },
-  },
-  {
+    input: z.object({
+      id: z.string().describe('id da camada com preenchimento de imagem'),
+      mode: z.enum(['fill', 'replace', 'expand', 'generate']),
+      prompt: z.string().describe('o que a IA deve fazer/desenhar (português ou inglês)'),
+      area: z.object({
+        x: z.number().optional(),
+        y: z.number().optional(),
+        w: z.number().optional(),
+        h: z.number().optional(),
+      }).describe('retângulo em % da imagem (fill/replace)').optional(),
+      expand: z.object({
+        top: z.number().optional(),
+        right: z.number().optional(),
+        bottom: z.number().optional(),
+        left: z.number().optional(),
+      }).describe('px a acrescentar de cada lado (expand)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'list_projects',
     write: false,
     description: 'Lista os projetos salvos na pasta do servidor (arquivo, data, tamanho) e diz qual está aberto nesta sessão.',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'open_project',
     write: true, noLock: true,
     description: 'Abre um projeto da pasta como o projeto desta sessão (use list_projects). Quem mais abrir o mesmo arquivo trabalha no mesmo projeto.',
-    inputSchema: { type: 'object', properties: { file: { type: 'string', description: 'ex.: meu-site.json' } }, required: ['file'] },
-  },
-  {
+    input: z.object({
+      file: z.string().describe('ex.: meu-site.json'),
+    }),
+  }),
+  defineTool({
     name: 'save_project',
     write: true, noLock: true,
     description: 'Grava o projeto aberto na pasta (o servidor também grava sozinho depois de cada alteração). Com name, salva uma cópia com esse nome e passa a trabalhar nela.',
-    inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'nome do arquivo (sem .json)' } } },
-  },
-  {
+    input: z.object({
+      name: z.string().describe('nome do arquivo (sem .json)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'new_project',
     write: true, noLock: true,
     description: 'Cria um projeto novo em branco (com o nome dado) na pasta e o abre nesta sessão. Recusa se já existir um arquivo com esse nome.',
-    inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
-  },
-  // ---- colaboração (banco): notas de decisão, comentários, atividade, quem está aqui e compartilhamento.
-  // `needs`: o que a ferramenta exige do agente/pessoa (read | comment | write | owner). `noLock`: não mexe nas camadas.
-  {
+    input: z.object({
+      name: z.string().optional(),
+    }),
+  }),
+  defineTool({
     name: 'add_note',
     write: true, noLock: true, needs: 'comment',
     description: 'Grava uma nota no projeto (ou numa camada). kind "decision" (padrão) = POR QUE algo foi decidido ou feito assim: quem retomar o trabalho depois (outra IA ou pessoa) lê isso com list_notes. kind "comment" = conversa/revisão. reply_to responde a outra nota. Anote decisões importantes enquanto trabalha.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        text: { type: 'string', description: 'o texto da nota (até 8000 caracteres)' },
-        kind: { type: 'string', enum: ['decision', 'comment'] },
-        layer_id: { type: 'string', description: 'camada a que a nota se refere (opcional)' },
-        reply_to: { type: 'string', description: 'id de uma nota a que esta responde (opcional)' },
-      },
-      required: ['text'],
-    },
-  },
-  {
+    input: z.object({
+      text: z.string().describe('o texto da nota (até 8000 caracteres)'),
+      kind: z.enum(['decision', 'comment']).optional(),
+      layer_id: z.string().describe('camada a que a nota se refere (opcional)').optional(),
+      reply_to: z.string().describe('id de uma nota a que esta responde (opcional)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'list_notes',
     write: false, needs: 'read',
     description: 'Lista as notas do projeto, da mais antiga à mais nova, com autor (pessoa ou agente) e se foram resolvidas. LEIA as notas de decisão ao abrir um projeto que você não conhece.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        layer_id: { type: 'string' },
-        kind: { type: 'string', enum: ['decision', 'comment'] },
-        include_resolved: { type: 'boolean', description: 'padrão true' },
-        limit: { type: 'integer', description: 'padrão 100, máximo 500' },
-      },
-    },
-  },
-  {
+    input: z.object({
+      layer_id: z.string().optional(),
+      kind: z.enum(['decision', 'comment']).optional(),
+      include_resolved: z.boolean().describe('padrão true').optional(),
+      limit: z.number().int().describe('padrão 100, máximo 500').optional(),
+    }),
+  }),
+  defineTool({
     name: 'resolve_note',
     write: true, noLock: true, needs: 'comment',
     description: 'Marca uma nota como resolvida (ou volta a abri-la com resolved:false).',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' }, resolved: { type: 'boolean', description: 'padrão true' } }, required: ['id'] },
-  },
-  {
+    input: z.object({
+      id: z.string(),
+      resolved: z.boolean().describe('padrão true').optional(),
+    }),
+  }),
+  defineTool({
     name: 'get_activity',
     write: false, needs: 'read',
     description: 'O que foi feito no projeto: as últimas alterações, com quem fez (pessoa ou agente), a ferramenta e as camadas. Use para entender o estado antes de continuar o trabalho de outra pessoa/IA.',
-    inputSchema: { type: 'object', properties: { limit: { type: 'integer', description: 'padrão 30, máximo 200' }, agent: { type: 'string', description: 'filtra pelo nome do agente (opcional)' } } },
-  },
-  {
+    input: z.object({
+      limit: z.number().int().describe('padrão 30, máximo 200').optional(),
+      agent: z.string().describe('filtra pelo nome do agente (opcional)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'who_is_here',
     write: false, needs: 'read',
     description: 'Quem está no servidor agora: pessoas com o editor aberto, agentes conectados, o que cada agente fez por último e quais camadas estão reservadas. Veja antes de mexer numa área que outra pessoa/IA pode estar editando.',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'list_members',
     write: false, needs: 'read',
     description: 'Lista quem tem acesso ao projeto aberto (dono, editores, leitores).',
-    inputSchema: { type: 'object', properties: {} },
-  },
-  {
+    input: z.object({}),
+  }),
+  defineTool({
     name: 'share_project',
     write: true, noLock: true, needs: 'owner',
     description: 'Compartilha o projeto aberto com uma pessoa que já tem conta (só o dono). role "editor" altera; "viewer" só lê e comenta.',
-    inputSchema: { type: 'object', properties: { email: { type: 'string' }, role: { type: 'string', enum: ['editor', 'viewer'] } }, required: ['email'] },
-  },
-  {
+    input: z.object({
+      email: z.string(),
+      role: z.enum(['editor', 'viewer']).optional(),
+    }),
+  }),
+  defineTool({
     name: 'unshare_project',
     write: true, noLock: true, needs: 'owner',
     description: 'Tira o acesso de uma pessoa ao projeto aberto (só o dono).',
-    inputSchema: { type: 'object', properties: { email: { type: 'string' } }, required: ['email'] },
-  },
-  {
+    input: z.object({
+      email: z.string(),
+    }),
+  }),
+  defineTool({
     name: 'undo',
     write: true,
     description: 'Desfaz a última alteração do projeto (o mesmo que Ctrl+Z).',
-    inputSchema: { type: 'object', properties: {} },
-  },
+    input: z.object({}),
+  }),
 ];
 
 /** Procura uma ferramenta pelo nome. */
-export const toolByName = (name) => AGENT_TOOLS.find((t) => t.name === name) || null;
+export const toolByName = (name: string): ToolDef | null => AGENT_TOOLS.find((t) => t.name === name) || null;
 
-export const mcpToolByName = (name) => toolByName(name);
-
-/** As ferramentas no formato da API da OpenAI (Chat Completions: `tools: [{ type: 'function', function }]`). */
-export const openAiTools = () => AGENT_TOOLS.map((t) => ({
-  type: 'function',
-  function: { name: t.name, description: t.description, parameters: t.inputSchema },
-}));
+export const mcpToolByName = (name: string) => toolByName(name);
 
 /** As ferramentas no formato do MCP (`tools/list`). */
 export const mcpTools = () => AGENT_TOOLS.map((t) => ({
@@ -501,6 +557,22 @@ export const mcpTools = () => AGENT_TOOLS.map((t) => ({
   inputSchema: t.inputSchema,
   annotations: { readOnlyHint: !t.write, destructiveHint: ['delete_layers', 'delete_page'].includes(t.name) },
 }));
+
+/**
+ * Confere os argumentos de uma chamada contra o Zod da ferramenta. Devolve uma mensagem em português (para a IA corrigir
+ * e tentar de novo) ou null se está tudo certo. Campos que a ferramenta não conhece são ignorados.
+ */
+export function validateToolArgs(name: string, args: unknown): string | null {
+  const tool = toolByName(name);
+  if (!tool) return null;
+  const parsed = tool.input.safeParse(args ?? {});
+  if (parsed.success) return null;
+  const problems = parsed.error.issues.map((i) => {
+    const where = i.path.length ? i.path.join('.') : 'argumentos';
+    return `${where}: ${i.message}`;
+  });
+  return `Argumentos inválidos para ${name} — ${problems.join('; ')}.`;
+}
 
 /**
  * Instruções para a IA (o "prompt de sistema" do agente interno e as `instructions` do servidor MCP). Explicam o
