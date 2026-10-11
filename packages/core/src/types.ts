@@ -21,6 +21,8 @@ export interface Fill {
   fit: string;
   /** Liga a um estilo de cor do projeto (vira `var(--cor)` no CSS). */
   styleId?: string;
+  /** Liga a um estilo de gradiente do projeto (vira `var(--gradiente-x)` no CSS). */
+  gradientId?: string;
   [extra: string]: any;
 }
 

@@ -59,6 +59,10 @@ export function rgba(hex, a = 1) {
   return `rgba(${r}, ${g}, ${b}, ${round(a, 3)})`;
 }
 
+/** Valor de box-shadow de uma lista de sombras: "0px 4px 16px 0px rgba(0, 0, 0, 0.25), inset ...". */
+export const boxShadowCss = (shadows) =>
+  shadows.map((sh) => `${sh.inset ? 'inset ' : ''}${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${px(sh.spread)} ${rgba(sh.color, sh.opacity)}`).join(', ');
+
 /** Lista de paradas de gradiente em CSS, ordenada por posição: "#7c5cff 0%, #2dd4ff 100%". */
 const stopsCss = (stops) =>
   [...stops]
@@ -351,12 +355,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if (isPath) {
       for (const sh of node.shadows) filters.push(`drop-shadow(${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${rgba(sh.color, sh.opacity)})`);
     } else {
-      const list = node.shadows.map((sh) =>
-        isText
-          ? `${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${rgba(sh.color, sh.opacity)}`
-          : `${sh.inset ? 'inset ' : ''}${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${px(sh.spread)} ${rgba(sh.color, sh.opacity)}`,
-      );
-      s[isText ? 'text-shadow' : 'box-shadow'] = list.join(', ');
+      s[isText ? 'text-shadow' : 'box-shadow'] = isText
+        ? node.shadows.map((sh) => `${px(sh.x)} ${px(sh.y)} ${px(sh.blur)} ${rgba(sh.color, sh.opacity)}`).join(', ')
+        : boxShadowCss(node.shadows);
     }
   }
   if (node.blur > 0) filters.push(`blur(${px(node.blur)})`);
@@ -890,6 +891,20 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     const literal = rgba(f.color, f.opacity);
     if (name && st[key] === literal) { st[key] = `var(${name})`; tokens.set(name, literal); tokenStyle.set(name, f.styleId); }
   };
+  // ESTILOS DE SOMBRA e de GRADIENTE: camadas ligadas escrevem var(--sombra-x) / var(--gradiente-x)
+  const effectNames = namedVars(styles?.effects, 'sombra');
+  const gradientNames = namedVars(styles?.gradients, 'gradiente');
+  const useStyleTokens = (node, st) => {
+    if (node.effectStyleId && st['box-shadow'] && node.type !== 'text' && node.type !== 'path') {
+      const name = effectNames.get(node.effectStyleId);
+      if (name) { tokens.set(name, st['box-shadow']); st['box-shadow'] = `var(${name})`; }
+    }
+    const f = node.fill;
+    if (f?.gradientId && st['background-image'] && node.type !== 'path' && /gradient\(/.test(st['background-image'])) {
+      const name = gradientNames.get(f.gradientId);
+      if (name) { tokens.set(name, st['background-image']); st['background-image'] = `var(${name})`; }
+    }
+  };
   // VARIÁVEIS de tamanho (gap, padding, border-radius, font-size): camadas ligadas escrevem var(--espaco-md)
   const sizeNames = varCssNames(styles, slugify);
   const sizeVars = varsOf(styles);
@@ -916,6 +931,7 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     const cls = className(node);
     const base = nodeStyle(node, par, assets, { root: isRoot, fluid: true });
     useTokens(node, base);
+    useStyleTokens(node, base);
     useSizeVars(node, base);
     // a NOTA da camada vira comentário no HTML e no CSS (a menos que a pessoa tenha desligado)
     const note = noteComment(node);
@@ -1019,6 +1035,19 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     }).filter(Boolean),
   })).filter((m) => m.tokens.length);
   return { html, css: rules.join('\n\n'), tokens: [...tokens], modes };
+}
+
+/** Nomes de variável de CSS de uma lista de estilos nomeados: id → "--sombra-card" (sem acento, minúsculo; repetidos ganham -2). */
+export function namedVars(list, prefix) {
+  const out = new Map();
+  const used = new Map();
+  for (const st of list || []) {
+    const base = `--${prefix}-${slugify(st.name || 'estilo')}`;
+    const n = (used.get(base) || 0) + 1;
+    used.set(base, n);
+    out.set(st.id, n === 1 ? base : `${base}-${n}`);
+  }
+  return out;
 }
 
 /**

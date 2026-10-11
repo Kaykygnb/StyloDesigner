@@ -76,3 +76,42 @@ test('tokens: modos claro/escuro, estilos de texto e variáveis saem como CSS, J
   assert.match(cfg, /"titulo": \[\s*"48px"/);
   await t.close();
 });
+
+test('estilos de sombra e de gradiente: viram variáveis, as camadas ligadas usam var(), e mexer à mão solta o estilo', async () => {
+  const t = await setup();
+  await t.call('new_project', { name: 'Efeitos' });
+  const fx = (await t.call('create_effect_styles', { styles: [{ name: 'Card', shadows: [{ y: 8, blur: 24, color: '#000000', opacity: 0.2 }, { y: 1, blur: 2, opacity: 0.1 }] }] })).created[0];
+  const gr = (await t.call('create_gradient_styles', { styles: [{ name: 'Marca', angle: 135, stops: [{ color: '#6D28D9' }, { color: '#2DD4FF' }] }] })).created[0];
+  assert.match((await t.call('create_gradient_styles', { styles: [{ name: 'X', stops: [{ color: '#000000' }] }] })).error, /stops/);
+  assert.match((await t.call('create_effect_styles', { styles: [{ name: 'Vazio', shadows: [] }] })).error, /pelo menos uma sombra/);
+
+  const frame = (await t.call('create_layer', { type: 'frame', props: { w: 300, h: 200 } })).created;
+  const up = await t.call('update_layer', { id: frame.id, props: { effectStyleId: fx.id, fill: { gradientId: gr.id } } });
+  assert.equal(up.error, undefined, up.error);
+  assert.match((await t.call('update_layer', { id: frame.id, props: { effectStyleId: 'nada' } })).error, /não existe/);
+  assert.match((await t.call('update_layer', { id: frame.id, props: { fill: { gradientId: 'nada' } } })).error, /não existe/);
+  const doc = await t.call('get_document', {});
+  assert.equal(doc.effectStyles[0].name, 'Card');
+  assert.equal(doc.gradientStyles[0].type, 'linear');
+
+  const code = await t.call('get_code', { id: frame.id });
+  const text = JSON.stringify(code);
+  assert.match(text, /box-shadow: var\(--sombra-card\)/);
+  assert.match(text, /background-image: var\(--gradiente-marca\)/);
+  assert.match(text, /--sombra-card: 0px 8px 24px 0px rgba\(0, 0, 0, 0\.2\), 0px 1px 2px 0px rgba\(0, 0, 0, 0\.1\)/);
+  assert.match(text, /--gradiente-marca: linear-gradient\(135deg, #6d28d9 0%, #2dd4ff 100%\)/);
+
+  const css = (await t.call('export_tokens', { format: 'css' })).files[0].content as string;
+  assert.match(css, /--sombra-card: 0px 8px 24px/);
+  assert.match(css, /--gradiente-marca: linear-gradient\(135deg/);
+  const cfg = (await t.call('export_tokens', { format: 'tailwind' })).files.find((f: any) => f.path === 'tailwind.config.js').content as string;
+  assert.match(cfg, /"card": "var\(--sombra-card\)"/);
+  assert.match(cfg, /"marca": "var\(--gradiente-marca\)"/);
+  assert.equal(JSON.parse((await t.call('export_tokens', { format: 'json' })).files[0].content).gradient.Marca.$type, 'gradient');
+
+  // à mão: solta
+  await t.call('update_layer', { id: frame.id, props: { shadows: [{ y: 2, blur: 4 }], fill: '#FF0000' } });
+  const after = JSON.stringify(await t.call('get_code', { id: frame.id }));
+  assert.doesNotMatch(after, /var\(--sombra-card\)|var\(--gradiente-marca\)/);
+  await t.close();
+});

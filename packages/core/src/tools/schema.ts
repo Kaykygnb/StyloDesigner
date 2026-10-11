@@ -22,6 +22,7 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - aparência: fill: "#RRGGBB" | "none" | {styleId: "id de um estilo de cor"} (liga ao estilo: vira var(--cor) no CSS) | objeto {type:"solid"|"linear"|"radial", color, opacity, angle, stops:[{color, opacity, pos}]}; stroke: null | "#RRGGBB" | {color, width, style, position}; radius: número ou [tl,tr,br,bl] (border-radius); shadows: [{x,y,blur,spread,color,opacity,inset}] (box-shadow); blur, bgBlur (filter/backdrop-filter, px); clip (overflow: hidden, só frame)
 - layout de um FRAME: layout: {mode:"none"|"row"|"column"|"grid", gap, padding: número ou [t,r,b,l], justify:"flex-start"|"center"|"flex-end"|"space-between"|"space-around"|"space-evenly"|"stretch", align:"flex-start"|"center"|"flex-end"|"stretch"|"baseline", wrap, cols, rows, colGap, rowGap}
 - item dentro de flex/grid: absolute (sai do fluxo: position absolute), alignSelf, justifySelf, grow (flex-grow), margin: número ou [t,r,b,l], colSpan, rowSpan
+- estilos compartilhados: effectStyleId (sombra, de create_effect_styles), fill: {gradientId} (gradiente, de create_gradient_styles)
 - mídia (vídeo/áudio/3D/Lottie, criada por library_use): mediaAutoplay, mediaControls, mediaLoop, mediaMuted (true/false). Navegadores só tocam sozinho com mediaMuted:true
 - texto: text, fontFamily, fontSize, fontWeight, fontStyle, lineHeight (multiplicador, ex.: 1.4), letterSpacing (px), textAlign, textDecoration, textTransform, truncate ("ellipsis"|"clamp"), lines
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
@@ -255,6 +256,33 @@ ${PROP_HELP}`,
       colors: z.array(z.object({
         name: z.string(),
         color: z.string().describe('#RRGGBB'),
+      })),
+    }),
+  }),
+  defineTool({
+    name: 'create_effect_styles',
+    write: true,
+    description: 'Cria ESTILOS DE SOMBRA do projeto (ex.: "Card", "Elevado"): uma ou mais sombras cada. Viram variáveis de CSS (--sombra-card). Ligue camadas com update_layer: {"effectStyleId": id}; mudar o estilo atualiza todas. Fazer shadows à mão numa camada solta o estilo.',
+    input: z.object({
+      styles: z.array(z.object({
+        name: z.string(),
+        shadows: z.array(z.object({
+          x: z.number().optional(), y: z.number().optional(), blur: z.number().min(0).optional(), spread: z.number().optional(),
+          color: z.string().describe('#RRGGBB').optional(), opacity: z.number().min(0).max(1).optional(), inset: z.boolean().optional(),
+        })),
+      })),
+    }),
+  }),
+  defineTool({
+    name: 'create_gradient_styles',
+    write: true,
+    description: 'Cria ESTILOS DE GRADIENTE do projeto (ex.: "Marca"): type linear/radial/conic, angle em graus (linear/conic) e stops [{color, pos 0..100, opacity}]. Viram variáveis de CSS (--gradiente-marca). Ligue camadas com update_layer: {"fill": {"gradientId": id}}.',
+    input: z.object({
+      styles: z.array(z.object({
+        name: z.string(),
+        type: z.enum(['linear', 'radial', 'conic']).optional(),
+        angle: z.number().optional(),
+        stops: z.array(z.object({ color: z.string().describe('#RRGGBB'), pos: z.number().min(0).max(100).optional(), opacity: z.number().min(0).max(1).optional() })).min(2),
       })),
     }),
   }),

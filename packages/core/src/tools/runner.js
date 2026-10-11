@@ -44,7 +44,7 @@ const SIMPLE = [
 ];
 const MEDIA_FLAGS = ['mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted'];
 /** Campos com tratamento próprio (ver applyProps). */
-const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'layout', 'tag'];
+const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag'];
 /** Tudo que update_layer / create_layer aceitam. */
 export const PROPS = [...SIMPLE, ...SPECIAL];
 /** Valores válidos de alguns campos (o resto é conferido pelo tipo). */
@@ -104,6 +104,12 @@ export function applyProps(node, props, ctx = {}) {
       if (!c) throw new Error('fill: use uma cor "#RRGGBB", "none" ou um objeto de preenchimento.');
       node.fill = { ...(node.fill || defaultFill()), type: 'solid', color: c, opacity: node.fill?.opacity ?? 1 };
       delete node.fill.styleId; // cor escolhida à mão desliga o estilo de cor
+    } else if (typeof f === 'object' && f.gradientId) {
+      // ligar a um ESTILO de gradiente (vira var(--gradiente-x) no CSS): tipo, ângulo e paradas vêm do estilo
+      const g = ctx.gradientStyle?.(f.gradientId);
+      if (!g) throw new Error(`Estilo de gradiente "${f.gradientId}" não existe. Veja gradientStyles em get_document ou crie com create_gradient_styles.`);
+      node.fill = { ...(node.fill || defaultFill()), type: g.type, angle: g.angle, stops: JSON.parse(JSON.stringify(g.stops)), gradientId: g.id };
+      delete node.fill.styleId;
     } else if (typeof f === 'object' && f.styleId) {
       // ligar a um ESTILO de cor do projeto (vira var(--cor-...) no CSS): a cor vem do estilo
       const st = ctx.colorStyle?.(f.styleId);
@@ -115,6 +121,7 @@ export function applyProps(node, props, ctx = {}) {
       node.fill = next;
     }
   }
+  if ('fill' in props && node.fill?.gradientId && !(props.fill && typeof props.fill === 'object' && props.fill.gradientId)) delete node.fill.gradientId; // mexeu no fill à mão: solta o estilo
   if ('stroke' in props) {
     const s = props.stroke;
     if (s === null || s === 'none') node.stroke = null;
@@ -129,6 +136,16 @@ export function applyProps(node, props, ctx = {}) {
   if ('shadows' in props) {
     if (!Array.isArray(props.shadows)) throw new Error('shadows precisa ser uma lista de sombras.');
     node.shadows = props.shadows.map((s) => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false, ...s, color: hex(s.color) || '#000000' }));
+    delete node.effectStyleId; // sombra feita à mão solta o estilo
+  }
+  if ('effectStyleId' in props) {
+    if (!props.effectStyleId) delete node.effectStyleId;
+    else {
+      const e = ctx.effectStyle?.(props.effectStyleId);
+      if (!e) throw new Error(`Estilo de sombra "${props.effectStyleId}" não existe. Veja effectStyles em get_document ou crie com create_effect_styles.`);
+      node.effectStyleId = e.id;
+      node.shadows = JSON.parse(JSON.stringify(e.shadows || []));
+    }
   }
   if ('layout' in props) {
     if (node.type !== 'frame') throw new Error('layout só vale para frames (o que vira flex/grid). Para uma forma, crie um frame.');
@@ -278,6 +295,8 @@ export function createRunner({ store, commands, approve, saving = null, folder =
         selection: store.ui.selection,
         colorStyles: (doc.styles?.colors || []).map((c) => ({ id: c.id, name: c.name, color: c.color })),
         textStyles: (doc.styles?.texts || []).map((t) => ({ id: t.id, name: t.name })),
+        effectStyles: (doc.styles?.effects || []).map((e) => ({ id: e.id, name: e.name })),
+        gradientStyles: (doc.styles?.gradients || []).map((g) => ({ id: g.id, name: g.name, type: g.type })),
         colorModes: modesOf(doc.styles).map((m) => ({ id: m.id, name: m.name, scheme: m.scheme })),
         sizeVars: (doc.styles?.vars || []).map((v) => ({ id: v.id, name: v.name, value: v.value })),
         breakpoints: BREAKPOINTS.map((b) => ({ id: b.id, name: b.name, maxWidth: b.max })),
@@ -437,6 +456,8 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   }
   /** Cor e opacidade de um estilo de cor do projeto (ou null). */
   const colorStyle = (id) => (store.state.doc.styles?.colors || []).find((c) => c.id === id) || null;
+  const effectStyle = (id) => (store.state.doc.styles?.effects || []).find((e) => e.id === id) || null;
+  const gradientStyle = (id) => (store.state.doc.styles?.gradients || []).find((g) => g.id === id) || null;
   /** Lista onde uma camada nova entra (filhos do pai ou a raiz da página), conferindo se o pai aceita filhos. */
   const targetList = (parent_id) => {
     const parent = parent_id ? need(parent_id) : null;
@@ -508,19 +529,19 @@ export function createRunner({ store, commands, approve, saving = null, folder =
     if (spec.type === 'icon') {
       const { name, color, size, style, filled, ...rest } = props;
       const node = iconNode(svgs.get(`${name}|${style || 'outlined'}|${!!filled}`), { name, color, size });
-      if (Object.keys(rest).length) applyProps(node, rest, { colorStyle });
+      if (Object.keys(rest).length) applyProps(node, rest, { colorStyle, effectStyle, gradientStyle });
       return node;
     }
     if (spec.type === 'path') {
       const { node, rest } = pathNode(props);
-      applyProps(node, rest, { colorStyle });
+      applyProps(node, rest, { colorStyle, effectStyle, gradientStyle });
       return node;
     }
     // caixas de estrutura DENTRO da árvore nascem transparentes e sem cortar (sombras e foco aparecem); a raiz fica branca
     const base = spec.type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' }
       : spec.type === 'frame' && nested ? { fill: { ...defaultFill(), type: 'none' }, clip: false } : {};
     const node = createNode(spec.type, base);
-    applyProps(node, props, { colorStyle }); // layout.mode direto: camadas novas ainda não estão no canvas
+    applyProps(node, props, { colorStyle, effectStyle, gradientStyle }); // layout.mode direto: camadas novas ainda não estão no canvas
     if (spec.type === 'frame') {
       // frame com layout e sem tamanho informado: do tamanho do conteúdo ("hug"), como no CSS (width/height: auto).
       // A tela raiz sem altura informada também cresce com o conteúdo.
@@ -570,7 +591,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   const WRITE = {
     update_layer({ id, props }) {
       const n = need(id);
-      store.update(() => applyProps(n, props, { setLayoutMode, colorStyle }));
+      store.update(() => applyProps(n, props, { setLayoutMode, colorStyle, effectStyle, gradientStyle }));
       return { updated: summarize(n, 0) };
     },
     create_layer({ type, parent_id, index, props = {} }) {
@@ -580,7 +601,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const made = type === 'path' ? pathNode(props) : { node: createNode(type, type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' } : {}), rest: props };
       const node = made.node;
       store.update((page) => {
-        applyProps(node, made.rest, { colorStyle });
+        applyProps(node, made.rest, { colorStyle, effectStyle, gradientStyle });
         const list = parent ? parent.children : page.children;
         const at = Number.isInteger(index) ? Math.max(0, Math.min(index, list.length)) : list.length;
         list.splice(at, 0, node);
@@ -660,6 +681,27 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       store.update(() => insertAt(list, node, index));
       store.setSelection([node.id]);
       return { created: summarize(node, 0) };
+    },
+    create_effect_styles({ styles = [] }) {
+      if (!Array.isArray(styles) || !styles.length) throw new Error('Mande a lista: styles: [{name, shadows: [{x, y, blur, spread, color, opacity}]}].');
+      const made = styles.map(({ name, shadows = [] }) => {
+        if (!Array.isArray(shadows) || !shadows.length) throw new Error(`O estilo "${name}" precisa de pelo menos uma sombra.`);
+        return { id: uid(), name: String(name || 'Sombra').trim().slice(0, 40), shadows: shadows.map((s) => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false, ...s, color: hex(s.color ?? '#000000') || '#000000' })) };
+      });
+      store.update(() => { (store.state.doc.styles.effects ||= []).push(...made); }, { commit: true });
+      return { created: made.map((m) => ({ id: m.id, name: m.name })), hint: 'Ligue camadas com update_layer: {"effectStyleId": id}.' };
+    },
+    create_gradient_styles({ styles = [] }) {
+      if (!Array.isArray(styles) || !styles.length) throw new Error('Mande a lista: styles: [{name, type, angle, stops: [{color, pos}]}].');
+      const made = styles.map(({ name, type = 'linear', angle = 90, stops = [] }) => {
+        if (!Array.isArray(stops) || stops.length < 2) throw new Error(`O gradiente "${name}" precisa de pelo menos 2 cores (stops).`);
+        return {
+          id: uid(), name: String(name || 'Gradiente').trim().slice(0, 40), type, angle: Number(angle) || 0,
+          stops: stops.map((s, i) => ({ color: hex(s.color) || (() => { throw new Error(`Cor inválida em "${name}": use "#RRGGBB".`); })(), opacity: s.opacity ?? 1, pos: s.pos ?? Math.round((i / (stops.length - 1)) * 100) })),
+        };
+      });
+      store.update(() => { (store.state.doc.styles.gradients ||= []).push(...made); }, { commit: true });
+      return { created: made.map((m) => ({ id: m.id, name: m.name })), hint: 'Ligue camadas com update_layer: {"fill": {"gradientId": id}}.' };
     },
     create_text_styles({ styles = [] }) {
       if (!Array.isArray(styles) || !styles.length) throw new Error('Mande a lista: styles: [{name, fontFamily, fontSize, ...}].');
@@ -744,7 +786,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (!BREAKPOINTS.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${BREAKPOINTS.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
       const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
       if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
-      store.update(() => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle })));
+      store.update(() => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle })));
       return { updated: n.id, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
     },
     set_state({ id, state, props = {} }) {
@@ -754,7 +796,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const bad = Object.keys(props).filter((k) => !STATE_KEYS.includes(k));
       if (bad.length) throw new Error(`Estados aceitam só: ${STATE_KEYS.join(', ')}.`);
       const { scale, ...rest } = props;
-      store.update(() => editState(n, state, (d) => { applyProps(d, rest, { colorStyle }); if (scale !== undefined) d.scale = Math.max(0.5, Math.min(2, Number(scale) || 1)); }));
+      store.update(() => editState(n, state, (d) => { applyProps(d, rest, { colorStyle, effectStyle, gradientStyle }); if (scale !== undefined) d.scale = Math.max(0.5, Math.min(2, Number(scale) || 1)); }));
       return { updated: n.id, state };
     },
     create_component({ id }) {
@@ -769,7 +811,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const list = targetList(parent_id);
       const inst = createInstance(main, store.state.doc.pages);
       if (!parent_id) placeBeside(inst);
-      store.update(() => { applyProps(inst, props, { colorStyle }); insertAt(list, inst, index); });
+      store.update(() => { applyProps(inst, props, { colorStyle, effectStyle, gradientStyle }); insertAt(list, inst, index); });
       store.setSelection([inst.id]);
       return { created: summarize(inst, 1) };
     },

@@ -205,6 +205,18 @@ export function syncStyles(doc) {
         if (!st) delete n.fill.styleId;
         else if (n.fill.type === 'solid') { n.fill.color = st.color; n.fill.opacity = st.opacity; }
       }
+      if (n.effectStyleId) {
+        const st = styles?.effects?.find((e) => e.id === n.effectStyleId);
+        if (!st) delete n.effectStyleId;
+        else n.shadows = JSON.parse(JSON.stringify(st.shadows || []));
+      }
+      if (n.fill?.gradientId) {
+        const st = styles?.gradients?.find((g) => g.id === n.fill.gradientId);
+        if (!st) delete n.fill.gradientId;
+        else if (['linear', 'radial', 'conic'].includes(n.fill.type)) {
+          n.fill.type = st.type; n.fill.angle = st.angle; n.fill.stops = JSON.parse(JSON.stringify(st.stops));
+        }
+      }
       if (n.textStyleId) {
         const st = styles?.texts?.find((t) => t.id === n.textStyleId);
         if (!st) delete n.textStyleId;

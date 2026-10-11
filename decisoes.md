@@ -240,3 +240,10 @@ ferramentas MCP (58 no núcleo): `create_text_styles`, `apply_text_style`, `add_
 `.texto-*`), **json** (parecido com o padrão W3C Design Tokens) e **tailwind** (config + tokens.css; as cores apontam para as variáveis para os
 modos funcionarem). Razão: o agente que vai construir em React/RN/o que for precisa dos mesmos valores que o desenho usa, sem copiar à mão.
 Escolha deliberada: criar poucas ferramentas "de gravação" claras, em vez de uma ferramenta única cheia de ações.
+
+## 2026-10-11 — Estilos de sombra e de gradiente (como os de cor)
+Sombras e gradientes não eram estilos compartilhados: cada camada tinha a sua cópia, sem token e sem atualização em conjunto. Agora existem
+`styles.effects` (sombras) e `styles.gradients`, ligados por `node.effectStyleId` e `fill.gradientId`, sincronizados a cada commit junto com cor e
+texto (`syncStyles`), e escritos no CSS como `var(--sombra-x)` / `var(--gradiente-x)` com o bloco `:root`. Mexer à mão no fill ou nas sombras solta o
+estilo. Ferramentas: `create_effect_styles`, `create_gradient_styles` (60 no núcleo); ligação por `update_layer`, como já era com `fill:{styleId}`.
+Sombra de texto (`text-shadow`) não usa variável. O editor antigo não ganhou interface para isso (fica para o editor novo).

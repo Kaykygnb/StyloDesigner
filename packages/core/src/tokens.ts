@@ -1,7 +1,7 @@
 // TOKENS DO DESIGN: os estilos de cor (com modos claro/escuro), os estilos de texto e as variáveis de tamanho do
 // projeto, exportados para quem vai construir o código (CSS, JSON ou Tailwind). Função pura: não altera nada.
 import { slugify } from './model.js';
-import { colorVarNames, rgba } from './css.js';
+import { boxShadowCss, colorVarNames, fillCss, namedVars, rgba } from './css.js';
 import { modesOf, styleValue, varCssNames, varsOf } from './modes.js';
 
 export type TokenFormat = 'css' | 'json' | 'tailwind';
@@ -43,6 +43,8 @@ export function collectTokens(doc: any) {
   const cNames = colorVarNames(styles);
   const sNames = varCssNames(styles, slugify);
   const tNames = textNames(styles.texts || []);
+  const effectNames = namedVars(styles.effects, 'sombra');
+  const gradientNames = namedVars(styles.gradients, 'gradiente');
   return {
     modes: modes.map((m: any) => ({ id: m.id, name: m.name, slug: slugify(m.name), scheme: m.scheme || null })),
     colors: (styles.colors || []).map((c: any) => ({
@@ -50,6 +52,8 @@ export function collectTokens(doc: any) {
       modes: Object.fromEntries(modes.filter((m: any) => c.modes?.[m.id]).map((m: any) => [slugify(m.name), colorOf(styleValue(c, m.id))])),
     })),
     sizes: varsOf(styles).map((v: any) => ({ id: v.id, name: v.name, cssVar: sNames.get(v.id)!, value: v.value })),
+    shadows: (styles.effects || []).map((e: any) => ({ id: e.id, name: e.name, cssVar: effectNames.get(e.id)!, value: boxShadowCss(e.shadows || []) })),
+    gradients: (styles.gradients || []).map((g: any) => ({ id: g.id, name: g.name, cssVar: gradientNames.get(g.id)!, value: (fillCss(g, {}) as any)['background-image'] || '' })),
     texts: (styles.texts || []).map((t: any) => ({ id: t.id, name: t.name, className: `texto-${tNames.get(t.id)}`, slug: tNames.get(t.id)!, decls: textDecls(t), raw: t })),
   };
 }
@@ -57,7 +61,8 @@ export function collectTokens(doc: any) {
 function css(doc: any): string {
   const t = collectTokens(doc);
   const out: string[] = [];
-  const root = [...t.colors.map((c) => `  ${c.cssVar}: ${c.value};`), ...t.sizes.map((s) => `  ${s.cssVar}: ${s.value}px;`)];
+  const root = [...t.colors.map((c) => `  ${c.cssVar}: ${c.value};`), ...t.sizes.map((s) => `  ${s.cssVar}: ${s.value}px;`),
+    ...t.shadows.map((s) => `  ${s.cssVar}: ${s.value};`), ...t.gradients.map((g) => `  ${g.cssVar}: ${g.value};`)];
   if (root.length) out.push(`:root {\n${root.join('\n')}\n}`);
   for (const m of t.modes) {
     const list = t.colors.filter((c) => c.modes[m.slug]).map((c) => `${c.cssVar}: ${c.modes[m.slug]};`);
@@ -75,6 +80,8 @@ function json(doc: any): string {
     $description: 'Tokens do design (formato próximo ao W3C Design Tokens).',
     color: Object.fromEntries(t.colors.map((c) => [c.name, { $type: 'color', $value: c.value, ...(Object.keys(c.modes).length ? { $modes: c.modes } : {}), $cssVar: c.cssVar }])),
     size: Object.fromEntries(t.sizes.map((s) => [s.name, { $type: 'dimension', $value: `${s.value}px`, $cssVar: s.cssVar }])),
+    shadow: Object.fromEntries(t.shadows.map((s) => [s.name, { $type: 'shadow', $value: s.value, $cssVar: s.cssVar }])),
+    gradient: Object.fromEntries(t.gradients.map((g) => [g.name, { $type: 'gradient', $value: g.value, $cssVar: g.cssVar }])),
     typography: Object.fromEntries(t.texts.map((x) => [x.name, {
       $type: 'typography',
       $value: Object.fromEntries(Object.entries({
@@ -100,7 +107,9 @@ function tailwind(doc: any): TokenFile[] {
   }]]));
   const families = [...new Set(t.texts.map((x) => x.raw.fontFamily).filter(Boolean))] as string[];
   const fontFamily = Object.fromEntries(families.map((f) => [slugify(f), [f, 'sans-serif']]));
-  const theme = { extend: { colors, spacing, fontSize, fontFamily } };
+  const boxShadow = Object.fromEntries(t.shadows.map((s) => [slugify(s.name), `var(${s.cssVar})`]));
+  const backgroundImage = Object.fromEntries(t.gradients.map((g) => [slugify(g.name), `var(${g.cssVar})`]));
+  const theme = { extend: { colors, spacing, fontSize, fontFamily, boxShadow, backgroundImage } };
   return [
     { path: 'tailwind.config.js', content: `/** @type {import('tailwindcss').Config} */\nmodule.exports = {\n  content: ['./**/*.html'],\n  theme: ${JSON.stringify(theme, null, 2).replace(/\n/g, '\n  ')},\n};\n` },
     { path: 'tokens.css', content: css(doc) },

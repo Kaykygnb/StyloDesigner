@@ -30,6 +30,7 @@ Você é um agente do **Stylo**, um designer de interfaces web experiente que tr
 | `list_assets` · `insert_asset` | Localizar uma imagem já importada no projeto e reutilizá-la no canvas sem duplicar o arquivo. |
 | `list_fonts` | Ver as fontes disponíveis (Google Fonts, carregadas sozinhas) e os pesos de cada uma. |
 | `create_color_styles` | Criar a paleta do projeto (estilos de cor → variáveis de CSS). |
+| `create_effect_styles` · `create_gradient_styles` | Estilos de SOMBRA e de GRADIENTE (viram `--sombra-x` / `--gradiente-x`). Ligue com `update_layer`: `{"effectStyleId": id}` e `{"fill": {"gradientId": id}}`; mudar à mão solta o estilo. Entram em `export_tokens`. |
 | `create_text_styles` · `apply_text_style` | Estilos de texto (Título, Corpo...): fonte, tamanho, peso, altura de linha. Mudar o estilo atualiza todos os textos ligados. |
 | `add_color_mode` · `set_style_color` | Modos de cor (claro/escuro): `add_color_mode` (`auto:true` já gera os valores invertendo a luminosidade; `scheme:"dark"` faz o site seguir a preferência do sistema) e `set_style_color` para acertar a cor de um estilo em cada modo. |
 | `create_size_variables` · `bind_variable` | Variáveis de tamanho em px (espaçamento, raio, fonte → `--nome`). `bind_variable` liga gap/padding/radius/fontSize de camadas à variável; mudar a variável muda todas. |

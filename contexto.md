@@ -56,7 +56,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 58 ferramentas MCP do núcleo (mais 15 dos plugins: 5 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
+| `tools/schema.js` | as 60 ferramentas MCP do núcleo (mais 15 dos plugins: 5 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
