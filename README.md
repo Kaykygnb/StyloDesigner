@@ -12,6 +12,7 @@ claude mcp add --transport http stylo http://localhost:5173/mcp
 ```
 
 ## Documentação (leia nesta ordem)
+0. **Agente de IA assumindo o projeto?** Comece por [`PROMPT-INICIAL.md`](PROMPT-INICIAL.md) (quem é a pessoa dona, como falar com ela, o que fazer e o que nunca fazer).
 1. [`PASSAGEM.md`](PASSAGEM.md) — estado atual, como começar, **decisões que dependem do dono**, próximos passos e o que foi pulado.
 2. [`contexto.md`](contexto.md) — o que a ferramenta é, vocabulário, arquitetura, mapa do código e receitas (nova ferramenta, plugin, provedor, exportação, migração).
 3. [`decisoes.md`](decisoes.md) — diário de decisões: o que se decidiu e por quê (só se acrescenta no fim).
