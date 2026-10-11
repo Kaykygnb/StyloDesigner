@@ -1,0 +1,169 @@
+// Modelo de dados do Stylo (Postgres). Ver contexto.md → "Decisões".
+// O documento do design (a árvore de páginas e camadas) fica numa coluna JSONB em Project.doc.
+// Tudo que é "quem fez o quê" (contas, agentes, operações, notas) é relacional.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Papel na plataforma. OWNER = conta mestre: aprova pessoas e agentes.
+enum Role {
+  OWNER
+  MEMBER
+}
+
+/// Papel dentro de um projeto.
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+/// Quem agiu: uma pessoa, um agente (MCP) ou o próprio sistema.
+enum ActorType {
+  USER
+  AGENT
+  SYSTEM
+}
+
+enum AgentStatus {
+  PENDING // cadastrado, esperando a conta mestre aprovar
+  ACTIVE
+  REVOKED
+}
+
+enum NoteKind {
+  COMMENT // conversa sobre o design
+  DECISION // por que algo foi decidido
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(MEMBER)
+  color        String?
+  createdAt    DateTime @default(now())
+
+  agents      Agent[]
+  projects    Project[]       @relation("ProjectOwner")
+  memberships ProjectMember[]
+  operations  Operation[]
+  notes       Note[]
+}
+
+/// Um agente de IA cadastrado (o "bolinha" da presença). Entra pelo MCP com um token; só o hash fica aqui.
+model Agent {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String
+  ownerId    String      @db.Uuid
+  tokenHash  String      @unique
+  scopes     String[] // ex.: ["read", "write", "export"]
+  status     AgentStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  lastSeenAt DateTime?
+
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  operations Operation[]
+  notes      Note[]
+
+  @@index([ownerId])
+}
+
+model Project {
+  id        String   @id @default(uuid()) @db.Uuid
+  /// Nome do arquivo na exportação/compatibilidade ("meu-site.json"); único por dono.
+  slug      String
+  name      String
+  ownerId   String   @db.Uuid
+  /// A árvore do design (páginas, camadas, estilos). As imagens vão para uma tabela própria no futuro.
+  doc       Json
+  /// Sobe a cada gravação; serve para detectar edição concorrente.
+  revision  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner      User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members    ProjectMember[]
+  versions   ProjectVersion[]
+  operations Operation[]
+  notes      Note[]
+
+  @@unique([ownerId, slug])
+}
+
+model ProjectMember {
+  projectId String      @db.Uuid
+  userId    String      @db.Uuid
+  role      ProjectRole @default(EDITOR)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+/// Foto do projeto num momento (histórico).
+model ProjectVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @db.Uuid
+  revision  Int
+  label     String?
+  doc       Json
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+/// Registro de tudo que foi feito (log de atividade): alimenta a presença, o histórico e o "o que o agente fez".
+model Operation {
+  id        BigInt    @id @default(autoincrement())
+  projectId String    @db.Uuid
+  actorType ActorType
+  userId    String?   @db.Uuid
+  agentId   String?   @db.Uuid
+  tool      String
+  args      Json?
+  summary   String?
+  layerIds  String[]
+  ok        Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([agentId, createdAt])
+}
+
+/// Comentários e notas de decisão ("por que fizemos assim"), no projeto ou numa camada.
+model Note {
+  id         String    @id @default(uuid()) @db.Uuid
+  projectId  String    @db.Uuid
+  layerId    String?
+  kind       NoteKind
+  body       String
+  authorType ActorType
+  userId     String?   @db.Uuid
+  agentId    String?   @db.Uuid
+  parentId   String?   @db.Uuid
+  resolved   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  parent  Note?   @relation("NoteReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Note[]  @relation("NoteReplies")
+
+  @@index([projectId, layerId])
+}

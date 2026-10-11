@@ -17,6 +17,7 @@ foi removido (está no histórico do GitHub). Este é o único `.md`.
 ## Organização do repositório (monorepo, npm workspaces)
 ```
 packages/core/   @stylo/core    documento puro (sem DOM): model, store, commands, css/html/svg, exportação, zip, ferramentas MCP (src/tools)
+packages/db/     @stylo/db      Postgres + Prisma: esquema (prisma/schema.prisma), migrações SQL e cliente (src/client.ts). PGlite = Postgres embutido para uso local e testes
 apps/server/     @stylo/server  servidor Node: API, MCP, workspace, presença, contas (src/), ponte stdio (bin/mcp.mjs)
 apps/web/        @stylo/web     editor no navegador (JS legado; a interface será refeita). Vite
 tests/                          testes unitários e de API (importam os pacotes por @stylo/*) e e2e (desatualizados)
@@ -28,6 +29,8 @@ Imports entre pacotes usam o nome (`@stylo/core/model.js`); dentro do pacote, ca
 ## Rodar
 ```
 npm start        # http://localhost:5173 (sem build: o servidor sobe o Vite junto, na mesma porta; PORT e DESIGNER_CONFIG mudam porta e config)
+npm run db:generate  # gera o cliente Prisma (roda sozinho no npm install)
+npm run typecheck    # tsc nos pacotes já em TypeScript (hoje: packages/db)
 npm run build    # gera apps/web/dist; com ele presente o servidor entrega os arquivos de lá (STYLO_DEV=1 força o Vite)
 npm test         # testes unitários e de API (node --test, ~3 s)
 npm run test:e2e # testes de navegador (precisa de playwright)
@@ -109,10 +112,10 @@ editor (navegador) ◀──── SSE "project" (recarrega se não tem alteraç
 2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
 3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
 4. TypeScript (por módulo, começando pelo `core`), Hono + SDK oficial do MCP, fatiar `server.js`.
-5. Postgres + Prisma: contas, agentes/tokens, projetos, operações (log), comentários/notas. JSON só para exportar/importar.
+5. Postgres + Prisma. ✅ esquema e migração `0001_init` (User, Agent, Project, ProjectMember, ProjectVersion, Operation, Note) com teste em PGlite. Falta: ligar o servidor ao banco (projetos, contas, login, tokens de agente, log de operações) no lugar dos arquivos; JSON só para exportar/importar.
 6. Plugins do núcleo (documento, exportação, MCP, fotos, imagem, identidade visual).
 7. Edição simultânea de verdade (operações ou CRDT) e renderizador para `get_image`.
 
 ## Testes
-`tests/*.test.js` (unitários e API, `node --test`, incluindo `workspace.test.js`) e `tests/e2e/*.mjs` (Playwright).
-Estado: 352 unitários passam. Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.
+`tests/*.test.js|ts` (unitários e API, `node --import tsx --test`, incluindo `workspace.test.js` e `db.test.ts`) e `tests/e2e/*.mjs` (Playwright).
+Estado: 353 unitários passam. Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.

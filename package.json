@@ -17,8 +17,11 @@
     "dev": "node apps/server/src/server.js",
     "build": "vite build apps/web",
     "start": "node apps/server/src/server.js",
-    "test": "node --test tests/*.test.js",
+    "test": "node --import tsx --test tests/*.test.js tests/*.test.ts",
     "test:e2e": "node tests/e2e/rodar-todos.mjs",
+    "typecheck": "tsc -p packages/db",
+    "db:generate": "prisma generate --config packages/db/prisma.config.ts",
+    "postinstall": "npm run db:generate",
     "benchmark:site-load": "node scripts/benchmark-site-load.mjs"
   },
   "engines": {

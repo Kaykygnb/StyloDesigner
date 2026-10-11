@@ -15,3 +15,5 @@ capturas-fase1/
 capturas/
 
 apps/web/dist/
+
+packages/db/src/generated/
