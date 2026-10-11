@@ -161,3 +161,22 @@ a rodar sem navegador. Corrigido com `apps/server/src/dom-polyfill.ts` (linkedom
 **Pendente (detalhar com a pessoa):** política de licença dos assets de terceiros (só uso comercial livre; registrar créditos);
 quais provedores primeiro; JS do projeto roda **só em sandbox** (iframe sem mesma origem / Chromium isolado) e vira arquivo `.js`
 no zip exportado — nunca dentro do editor/servidor.
+
+## 2026-10-11 — Plugins, biblioteca de assets da conta, provedores e fontes (aprovado em linhas gerais pela pessoa)
+**Plugins:** aprovado. Provedores de assets, bibliotecas, exportadores e auxiliares são plugins do núcleo. Plugins de terceiros com
+código só entram por configuração de quem opera o servidor (código de plugin tem acesso total); **o usuário comum adiciona fontes de
+assets de forma declarativa** (sem código): nome, tipos, endereço de busca com `{consulta}`, mapeamento dos campos da resposta,
+chave/cabeçalho.
+**Biblioteca da conta:** cada pessoa tem a sua biblioteca de assets (imagens, vídeos, 3D, Lottie, fontes próprias, áudio); **os
+agentes dessa pessoa, ao usar o MCP, enxergam e usam todos os assets dela** (listar, buscar, trazer para o projeto). Os assets de
+um projeto continuam por projeto; a biblioteca é por conta. Arquivos grandes (vídeo, 3D) ficam num armazenamento de blobs
+(disco local; S3 no serviço hospedado), não no banco.
+**Assets gratuitos:** imagem, vídeo, ícone, 3D e **fontes**, sempre seguindo a licença de cada fonte: cada resultado traz licença
+e autor; só uso comercial livre por padrão; créditos registrados no projeto e exportados num arquivo. **Google Fonts entram "de
+verdade"**: catálogo rico (categorias, pesos, prévia) e **hospedadas no zip exportado** (woff2 local), não por CDN do Google.
+**JavaScript de DOM:** roda **só na hora de apresentar** (como o Figma), em ambiente isolado (iframe sem mesma origem); nunca no
+editor nem no servidor. Por ser ferramenta principalmente local, o risco prático é baixo, mas o isolamento continua porque a versão
+hospedada executaria código de outras pessoas.
+**Provedores a verificar (APIs e licenças ainda não confirmadas na fonte oficial):** Pexels (fotos e vídeos, chave grátis),
+Pixabay (baixar e hospedar; cache de 24 h; limite de uso), Poly Pizza (3D .glb, CC0/CC-BY, chave grátis), Openverse (imagens e
+áudio, sem chave), Fontsource/Google Fonts (woff2, OFL).
