@@ -41,7 +41,7 @@ test('fetchRemoteImage: devolve os bytes; segue redirecionamento conferindo cada
   const evil = async () => respond(302, null, { location: 'https://169.254.169.254/latest/meta-data/' });
   await assert.rejects(fetchRemoteImage('https://a.exemplo.com/x', { fetchImpl: evil as any, agent: undefined }), /rede interna/);
   const loop = async () => respond(302, null, { location: 'https://a.exemplo.com/outra' });
-  await assert.rejects(fetchRemoteImage('https://a.exemplo.com/x', { fetchImpl: loop as any, agent: undefined }), /redirecionada vezes demais/);
+  await assert.rejects(fetchRemoteImage('https://a.exemplo.com/x', { fetchImpl: loop as any, agent: undefined }), /redirecionado vezes demais/);
 });
 
 test('fetchRemoteImage: erro HTTP e imagem enorme viram mensagens claras', async () => {

@@ -15,7 +15,7 @@ import { isIP } from 'node:net';
 import { Agent, fetch as undiciFetch } from 'undici';
 import { MAX_ASSET_BYTES } from './assets.js';
 
-const TIMEOUT_MS = 12_000;
+const TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 3;
 
 /** O IP é de uso interno/reservado (nunca deve ser alcançado por um pedido de agente)? */
@@ -69,28 +69,32 @@ const guardedAgent = new Agent({
   },
 });
 
-export interface RemoteImage { bytes: Uint8Array; contentType: string }
+export interface RemoteFile { bytes: Uint8Array; contentType: string }
+export type RemoteImage = RemoteFile;
 
-/** Baixa a imagem (https público). Lança Error com mensagem em português. */
-export async function fetchRemoteImage(value: string, { fetchImpl = undiciFetch as any, agent = guardedAgent as any } = {}): Promise<RemoteImage> {
+/** Baixa a imagem (https público, até 16 MB). Lança Error com mensagem em português. */
+export const fetchRemoteImage = (value: string, opts: { fetchImpl?: any; agent?: any } = {}) => fetchRemoteFile(value, { ...opts, maxBytes: MAX_ASSET_BYTES, accept: 'image/*' });
+
+/** Baixa um arquivo qualquer (https público) até `maxBytes`. Mesmas proteções contra SSRF. */
+export async function fetchRemoteFile(value: string, { fetchImpl = undiciFetch as any, agent = guardedAgent as any, maxBytes = MAX_ASSET_BYTES, accept = '*/*', headers = {} }: { fetchImpl?: any; agent?: any; maxBytes?: number; accept?: string; headers?: Record<string, string> } = {}): Promise<RemoteFile> {
   let url = checkRemoteUrl(value);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: any;
     try {
-      res = await fetchImpl(url, { dispatcher: agent, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS), headers: { Accept: 'image/*' } });
+      res = await fetchImpl(url, { dispatcher: agent, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS), headers: { ...headers, Accept: accept } });
     } catch (err: any) {
       const cause = err?.cause?.message || err?.message || String(err);
       throw new Error(err?.name === 'TimeoutError' ? 'O servidor da imagem demorou demais.' : `Não consegui baixar a imagem (${cause}).`);
     }
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const location = res.headers.get('location');
-      if (!location || hop === MAX_REDIRECTS) throw new Error('A imagem foi redirecionada vezes demais.');
+      if (!location || hop === MAX_REDIRECTS) throw new Error('O arquivo foi redirecionado vezes demais.');
       url = checkRemoteUrl(new URL(location, url).href);
       continue;
     }
     if (!res.ok) throw new Error(`O servidor da imagem respondeu ${res.status}.`);
     const declared = Number(res.headers.get('content-length'));
-    if (declared > MAX_ASSET_BYTES) throw new Error('A imagem é grande demais (limite 16 MB).');
+    if (declared > maxBytes) throw new Error(`O arquivo é grande demais (limite ${Math.round(maxBytes / 1048576)} MB).`);
     const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -98,7 +102,7 @@ export async function fetchRemoteImage(value: string, { fetchImpl = undiciFetch 
       const { done, value: chunk } = await reader.read();
       if (done) break;
       size += chunk.byteLength;
-      if (size > MAX_ASSET_BYTES) { await reader.cancel(); throw new Error('A imagem é grande demais (limite 16 MB).'); }
+      if (size > maxBytes) { await reader.cancel(); throw new Error(`O arquivo é grande demais (limite ${Math.round(maxBytes / 1048576)} MB).`); }
       chunks.push(chunk);
     }
     const bytes = new Uint8Array(size);
@@ -106,5 +110,5 @@ export async function fetchRemoteImage(value: string, { fetchImpl = undiciFetch 
     for (const c of chunks) { bytes.set(c, at); at += c.byteLength; }
     return { bytes, contentType: String(res.headers.get('content-type') || '').split(';')[0] };
   }
-  throw new Error('A imagem foi redirecionada vezes demais.');
+  throw new Error('O arquivo foi redirecionado vezes demais.');
 }

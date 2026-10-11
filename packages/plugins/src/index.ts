@@ -2,5 +2,6 @@
 
 import type { StyloPlugin } from '@stylo/core/plugin.ts';
 import { identidade } from './identidade/index.ts';
+import { assets } from './assets/index.ts';
 
-export const builtinPlugins: StyloPlugin[] = [identidade];
+export const builtinPlugins: StyloPlugin[] = [identidade, assets];

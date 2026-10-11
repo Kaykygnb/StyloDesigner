@@ -29,6 +29,10 @@ import { createRenderer } from './services/renderer.js';
 import { fetchRemoteImage } from './services/remote-image.js';
 import { createWorkspace } from './workspace/index.js';
 import { createPlugins } from './plugins.js';
+import { createBlobStore } from './services/blobs.js';
+import { createLibrary } from './services/library.js';
+import { createSecrets, loadSecretKey } from './services/secrets.js';
+import { createAssetServices, createAssetSources } from './services/asset-services.js';
 import { builtinPlugins } from '@stylo/plugins/index.ts';
 import { createPresence } from './presence.js';
 import { createEvents } from './events.js';
@@ -68,7 +72,12 @@ const projects = createProjects({
 const notes = createNotes(db);
 const sharing = createSharing(db);
 /** Plugins embutidos: acrescentam ferramentas MCP (identidade visual...). Os serviços são o que eles podem usar do servidor. */
-const plugins = createPlugins({ plugins: builtinPlugins, services: { fetchImage: (url: string) => fetchRemoteImage(url) } });
+// biblioteca da conta: fichas no banco, bytes no armazenamento de blobs (pasta ao lado do banco; STYLO_BLOB_DIR muda)
+const blobs = createBlobStore(process.env.STYLO_BLOB_DIR || dbDir.replace(/\.db$/i, '') + '.blobs');
+const library = createLibrary({ db, blobs });
+const secrets = createSecrets(db, await loadSecretKey(configFile.replace(/(\.config)?\.json$/i, '') + '.secret'));
+const assetServices = createAssetServices({ library, secrets, sources: createAssetSources(db), config });
+const plugins = createPlugins({ plugins: builtinPlugins, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
 workspace = createWorkspace({
   projects, notes, sharing, operations, plugins, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale) => renderer.render(node, doc, scale),
@@ -79,14 +88,14 @@ workspace = createWorkspace({
 
 const services: Services = {
   port, root, here, config, accountFile, db, auth, agents: createAgents(db), operations, notes, sharing, projects, renderer,
-  workspace, events, authMode, localUser, presence,
+  workspace, events, authMode, localUser, presence, library, secrets,
 };
 const identity = createIdentity(services);
 const caller = createToolCaller({ workspace, presence, events });
 /** Instruções entregues aos agentes (o arquivo é lido a cada sessão nova: editar muda o comportamento sem reiniciar). */
 const instructions = () => readFile(join(here, 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
 const mcp = createMcpGateway({ s: services, identity, caller, instructions, version: VERSION });
-const app = createApp(services, identity, mcp);
+const app = createApp(services, identity, mcp, assetServices);
 const api = getRequestListener(app.fetch);
 
 // ---------------------------------------------------------------- servidor

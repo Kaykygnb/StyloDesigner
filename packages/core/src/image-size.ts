@@ -68,6 +68,16 @@ export function imageInfo(bytes: Uint8Array): ImageInfo | null {
   return null;
 }
 
+/** Qualquer data URL ("data:<tipo>;base64,..." ou texto) → bytes e o tipo declarado. Null se não for um data URL válido. */
+export function parseDataUrl(dataUrl: string): { bytes: Uint8Array; declared: string } | null {
+  const m = /^data:([^;,]*)((?:;[^;,]+)*?),(.*)$/s.exec(dataUrl);
+  if (!m) return null;
+  const isBase64 = /;base64/i.test(m[2]);
+  try {
+    return { bytes: isBase64 ? fromBase64(m[3]) : new TextEncoder().encode(decodeURIComponent(m[3])), declared: m[1] };
+  } catch { return null; }
+}
+
 /** Imagem de um data URL ("data:image/png;base64,...") → bytes, tipo e dimensões. O tipo declarado é ignorado: vale o conteúdo. */
 export function parseImageDataUrl(dataUrl: string): { bytes: Uint8Array; info: ImageInfo } | null {
   const m = /^data:([^;,]+)((?:;[^;,]+)*?),(.*)$/s.exec(dataUrl);

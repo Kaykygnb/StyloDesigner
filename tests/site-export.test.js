@@ -134,3 +134,34 @@ test('projeto sem imagens continua com um arquivo por prancheta', () => {
   const site = exportSite(docOf(frame('Home')));
   assert.deepEqual(site.files.map((f) => f.path), ['index.html']);
 });
+
+const woff2Url = (n) => `data:font/woff2;base64,${Buffer.from(Uint8Array.from([0x77, 0x4f, 0x46, 0x32, n, ...new Array(60).fill(n)])).toString('base64')}`;
+const textLayer = (family) => createNode('text', { name: 'Título', text: 'Olá', fontFamily: family });
+
+test('fontes do projeto saem como arquivos em fonts/ com @font-face; só famílias que NÃO são do projeto vão para o CDN do Google', () => {
+  const doc = docOf(frame('Home', [textLayer('Inter'), textLayer('Lobster')]));
+  doc.assets = { f1: woff2Url(1), f2: woff2Url(2) };
+  doc.fonts = [{ family: 'Inter', files: [
+    { weight: 400, style: 'normal', subset: 'latin', assetId: 'f1', unicodeRange: 'U+0000-00FF', ext: 'woff2' },
+    { weight: 700, style: 'normal', subset: 'latin', assetId: 'f2', ext: 'woff2' },
+  ] }];
+  const site = exportSite(doc);
+  const html = site.files.find((f) => f.path === 'index.html').content;
+  const fonts = site.files.filter((f) => f.path.startsWith('fonts/')).map((f) => f.path).sort();
+  assert.deepEqual(fonts, ['fonts/inter-400-normal-latin.woff2', 'fonts/inter-700-normal-latin.woff2']);
+  assert.ok(site.files.filter((f) => f.path.startsWith('fonts/')).every((f) => f.content instanceof Uint8Array));
+  assert.match(html, /@font-face \{ font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url\(fonts\/inter-400-normal-latin\.woff2\) format\('woff2'\); unicode-range: U\+0000-00FF;/);
+  assert.equal(html.includes('base64'), false, 'a fonte não fica embutida no HTML');
+  assert.ok(html.includes('fonts.googleapis.com') && /family=Lobster/.test(html), 'Lobster (que não é do projeto) continua pelo CDN');
+  assert.equal(/family=Inter/.test(html), false, 'Inter é hospedada: fora do CDN do Google');
+});
+
+test('créditos do projeto viram CREDITS.txt no pacote; sem créditos, nenhum arquivo extra', () => {
+  const doc = docOf(frame('Home'));
+  doc.credits = [{ text: 'Foto de Bia no Pexels (https://pexels/7)', license: 'Licença Pexels' }, { text: 'Inter — SIL Open Font License 1.1 (Google Fonts)' }];
+  const credits = exportSite(doc).files.find((f) => f.path === 'CREDITS.txt');
+  assert.match(credits.content, /Créditos dos assets/);
+  assert.match(credits.content, /- Foto de Bia no Pexels \(https:\/\/pexels\/7\) — Licença Pexels/);
+  assert.match(credits.content, /- Inter — SIL Open Font License 1\.1/);
+  assert.equal(exportSite(docOf(frame('Home'))).files.some((f) => f.path === 'CREDITS.txt'), false);
+});

@@ -19,7 +19,7 @@ foi removido (está no histórico do GitHub). Este é o único `.md`.
 ## Organização do repositório (monorepo, npm workspaces)
 ```
 packages/core/   @stylo/core    documento puro (sem DOM): model, store, commands, css/html/svg, exportação, zip, ferramentas MCP (src/tools)
-packages/plugins/ @stylo/plugins  plugins embutidos (hoje: identidade visual). Cada plugin = ferramentas MCP com Zod + `run`; contrato em `core/src/plugin.ts`
+packages/plugins/ @stylo/plugins  plugins embutidos: **identidade** (auxiliares de cor/escalas) e **assets** (provedores gratuitos, biblioteca, fontes). Cada plugin = ferramentas MCP com Zod + `run`; contrato em `core/src/plugin.ts`
 packages/db/     @stylo/db      Postgres + Prisma: esquema (prisma/schema.prisma), migrações SQL e cliente (src/client.ts). PGlite = Postgres embutido para uso local e testes
 apps/server/     @stylo/server  servidor Node: API, MCP, workspace, presença, contas (src/), ponte stdio (bin/mcp.mjs)
 apps/web/        @stylo/web     editor no navegador (JS legado; a interface será refeita). Vite
@@ -56,7 +56,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 51 ferramentas MCP do núcleo (mais as dos plugins) (nome, descrição, JSON Schema) |
+| `tools/schema.js` | as 51 ferramentas MCP do núcleo (mais 15 dos plugins: 5 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
@@ -69,11 +69,13 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `config.ts` | arquivo de configuração (versões guardadas, chaves do Pexels/imagem, política de agentes) |
 | `http/guards.ts` | Host/Origin locais, JSON obrigatório, limites de corpo por rota, tratamento de erros |
 | `http/identity.ts` | quem fez o pedido (sessão ou usuário local), conta mestre, política de agentes |
+| `routes/library.ts` | biblioteca da conta (envio de arquivo, lista, download, remoção) e chaves dos provedores por HTTP |
 | `routes/auth.ts` · `projects.ts` · `system.ts` · `legacy.ts` | contas/agentes · projetos · status/perfil/presença/avisos ao vivo · fotos e IA de imagem (ainda em req/res) |
 | `plugins.ts` | liga os plugins: registra as ferramentas no núcleo (tools/list e validação) e guarda o `run` de cada uma |
 | `mcp/gateway.ts` | servidor MCP: protocolo do **SDK oficial**, sessões (máx. 64), identidade do agente (Bearer ou nome do programa), lista de ferramentas |
 | `mcp/agent-calls.ts` | executa uma chamada: presença, travas por camada, chamadas em voo |
 | `events.ts` | avisos ao vivo aos editores (SSE: `presence`, `project`) |
+| `services/blobs.ts` · `library.ts` · `secrets.ts` · `asset-services.ts` | arquivos grandes por sha256 (pasta/memória; S3 depois) · **biblioteca de assets da conta** (ficha no banco, bytes nos blobs) · chaves de provedores criptografadas (AES-GCM) · o que o plugin de assets usa do servidor |
 | `services/assets.ts` · `remote-image.ts` | imagens fora do JSON (tabela `Asset`, uma por conteúdo/sha256; o JSON leva `asset:<hash>`; volta como data URL ao ler) · baixar imagem por endereço com proteção contra SSRF |
 | `services/projects.ts` · `auth.ts` · `agents.ts` · `operations.ts` · `notes.ts` · `sharing.ts` | projetos com revisão e versões · contas e sessões · cadastro de agentes · log de atividade · notas · compartilhamento |
 | `services/renderer.ts` | PNG do design num Chromium isolado (`get_image`) |
@@ -135,4 +137,4 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 
 ## Testes
 `tests/*.test.js|ts` (unitários e API, `node --import tsx --test`, incluindo `workspace.test.js` e `db.test.ts`) e `tests/e2e/*.mjs` (Playwright).
-Estado: 397 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~40 s). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.
+Estado: 411 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~2 min). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.

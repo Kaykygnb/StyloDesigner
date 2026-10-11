@@ -4,7 +4,8 @@
  */
 import { exportHtml } from './css.js';
 import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
-import { parseImageDataUrl } from './image-size.js';
+import { parseDataUrl, parseImageDataUrl } from './image-size.js';
+import { extensionFor } from './asset-kinds.js';
 
 /** Um arquivo do pacote: texto (HTML) ou bytes (imagens). */
 export interface SiteFile { path: string; content: string | Uint8Array }
@@ -97,16 +98,54 @@ const visit = (node, fn) => {
  * @param {{ assets?: 'files' | 'inline' }} [options]  `files` (padrão): imagens como arquivos em assets/; `inline`: embutidas no HTML
  * @returns {{files: SiteFile[], warnings: string[]}}
  */
+/** Nome de arquivo seguro para uma família de fonte ("Playfair Display" → "playfair-display"). */
+const fontSlug = (family: string) => slugify(family || 'fonte').slice(0, 60) || 'fonte';
+
+/**
+ * FONTES HOSPEDADAS NO PROJETO (doc.fonts, via add_font): cada arquivo vira `fonts/<família>-<peso>-<estilo>-<alfabeto>.woff2`
+ * e cada HTML ganha o @font-face correspondente (com unicode-range). Nada de CDN do Google no site exportado.
+ */
+export function addFonts(files: SiteFile[], doc: any): SiteFile[] {
+  const fonts: any[] = Array.isArray(doc.fonts) ? doc.fonts : [];
+  const out = new Map<string, Uint8Array>();
+  const faces: string[] = [];
+  for (const font of fonts) {
+    for (const f of font.files || []) {
+      const src = doc.assets?.[f.assetId];
+      const parsed = typeof src === 'string' ? parseDataUrl(src) : null;
+      if (!parsed) continue;
+      const path = `fonts/${fontSlug(font.family)}-${f.weight}-${f.style}-${f.subset}.${f.ext || extensionFor('font/woff2')}`;
+      out.set(path, parsed.bytes);
+      const format = path.endsWith('.woff2') ? 'woff2' : path.endsWith('.woff') ? 'woff' : path.endsWith('.otf') ? 'opentype' : 'truetype';
+      faces.push(`@font-face { font-family: '${String(font.family).replace(/'/g, '')}'; font-style: ${f.style}; font-weight: ${f.weight}; font-display: swap; src: url(${path}) format('${format}');${f.unicodeRange ? ` unicode-range: ${f.unicodeRange};` : ''} }`);
+    }
+  }
+  if (!faces.length) return files;
+  const style = `<style id="fontes-do-projeto">\n${faces.join('\n')}\n</style>\n`;
+  const withFaces = files.map((f) => (typeof f.content === 'string' && f.content.includes('</head>') ? { ...f, content: f.content.replace('</head>', style + '</head>') } : f));
+  return [...withFaces, ...[...out].map(([path, content]) => ({ path, content }))];
+}
+
+/** Créditos dos assets usados (doc.credits): um arquivo de texto no pacote, para cumprir as licenças. */
+export function addCredits(files: SiteFile[], doc: any): SiteFile[] {
+  const credits: { text: string; license?: string }[] = Array.isArray(doc.credits) ? doc.credits : [];
+  if (!credits.length) return files;
+  const lines = credits.map((c) => `- ${c.text}${c.license && !c.text.includes(c.license) ? ` — ${c.license}` : ''}`);
+  return [...files, { path: 'CREDITS.txt', content: `Créditos dos assets usados neste site\n\n${lines.join('\n')}\n` }];
+}
+
 export function exportSite(doc, { assets = 'files' }: { assets?: 'files' | 'inline' } = {}): { files: SiteFile[]; warnings: string[] } {
   if (!doc || !Array.isArray(doc.pages)) throw new Error('Projeto inválido: páginas não encontradas.');
   const { boards, warnings } = boardsOf(doc);
   const used = new Set();
   let files: SiteFile[] = boards.map((board, index) => ({
     path: index === 0 ? (used.add('index.html'), 'index.html') : uniqueHtmlPath(board.name, used),
-    content: exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null),
+    content: exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null, { selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any),
   }));
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
   if (assets === 'files') files = externalizeAssets(files, doc.assets || {});
+  files = addFonts(files, doc);
+  files = addCredits(files, doc);
 
   // Tela de largura FIXA maior que o menor aparelho do projeto vira rolagem horizontal no celular. Não mudamos o
   // padrão (alteraria exportações existentes): avisamos e dizemos onde ligar a largura fluida.

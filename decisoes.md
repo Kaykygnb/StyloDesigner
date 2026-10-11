@@ -195,3 +195,25 @@ Plugins com código só são carregados pelo operador do servidor (nunca por upl
 usa a cor exata), `color_contrast` (WCAG 2.x), `color_harmony` (complementar, análogas, tríade, split, tétrade, monocromática),
 `color_text_on` (melhor texto sobre um fundo) e `design_scale` (tipográfica modular, espaçamento, raios, sombras).
 **Falta (identidade):** estilos de texto e variáveis/modos no MCP, exportação de tokens, cores a partir de imagem, pares de fontes, brief.
+
+## 2026-10-11 — Assets: biblioteca da conta, provedores gratuitos, fontes hospedadas, créditos (plugin "assets")
+**Biblioteca da conta:** tabela `LibraryAsset` (ficha: tipo, origem, licença, crédito) + armazenamento de blobs por sha256 (pasta
+`<config>.blobs` ou `STYLO_BLOB_DIR`; `memory` nos testes; S3 depois, mesma interface). Tipo e MIME vêm dos **bytes**
+(`core/asset-kinds.ts`), nunca do que o remetente declara. Limites por tipo (imagem 16 MB, fonte 4, Lottie 10, áudio 50, 3D 100,
+vídeo 200) e cota por conta (padrão 2 GB, `STYLO_LIBRARY_QUOTA_MB`). Usar um asset num projeto **copia** o conteúdo (`library_use`).
+**Provedores (cada um é uma peça pequena em `packages/plugins/src/assets/providers`):** Openverse (imagens e áudio, sem chave —
+testado ao vivo), Fontsource/Google Fonts (catálogo de ~2.000 famílias e arquivos .woff2 por peso, sem chave — testado ao vivo, o
+`add_font` baixou Playfair Display de verdade), Material Symbols (ícones, já havia), **Pexels** e **Pixabay** (fotos e vídeos, chave
+grátis; APIs conferidas na documentação oficial: Pexels `Authorization`, 200 pedidos/h; Pixabay chave na URL, 100/60 s, cache de 24 h
+exigido — implementado — e proibição de ligar permanente às URLs, por isso baixamos) e **Poly Pizza** (3D .glb; **API NÃO conferida
+na documentação oficial**, só em descrições de terceiros — marcado `unverified`, leitura defensiva; precisa ser testado com uma chave real).
+**Chaves por conta, criptografadas:** AES-256-GCM; a chave de cifragem é do servidor (`STYLO_SECRET_KEY` ou arquivo `*.secret`
+0600). A chave nunca volta por API nem por MCP. Ordem de busca da chave: conta → configuração do servidor → variável de ambiente.
+**Resultados autênticos:** `library_save` salva pela `ref` de uma busca recente (1 h), com a licença e o crédito que o **provedor**
+informou; nunca um endereço/licença inventado pelo agente. Só licenças de uso comercial. **Fontes cadastradas pela pessoa** (sem
+código): endereço https com `{consulta}`, caminho da lista e dos campos; a busca passa pelo download protegido contra SSRF.
+**Fontes tipográficas:** `add_font` hospeda os .woff2 dentro do projeto (`doc.fonts`, arquivos como assets) e a exportação gera
+`fonts/*.woff2` + `@font-face` com `unicode-range`; famílias do projeto saem do `<link>` do Google. **Créditos:** `doc.credits`
+(preenchido por `library_use` e `add_font`) vira `CREDITS.txt` no pacote exportado.
+**Ainda falta:** camada de mídia no projeto (vídeo, áudio, 3D, Lottie só ficam na biblioteca); busca de Lottie e ilustrações;
+interface para cadastrar chaves (hoje por `PUT /api/providers/<id>/key`); testar Pexels, Pixabay e Poly Pizza com chaves reais.

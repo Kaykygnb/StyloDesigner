@@ -1093,13 +1093,14 @@ fieldset { border: 0; min-width: 0; }`;
  * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
  * Abre direto no navegador; o CSS fica num <style> no <head>.
  */
-export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false } = {}) {
+export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false, selfHosted = null } = {}) {
   const gen = generateCode([node], null, assets, { root: true, styles, ids });
   const html = gen.html;
   // CSS DA PÁGINA (escrito à mão na aba Código → Página): vem depois das regras das camadas, então vence na cascata
   const css = withPageCss(joinCss([gen]), styles);
   // fontes do Google usadas nos textos: o HTML exportado já leva o <link> (sem ele, cairia na fonte padrão)
-  const fontsUrl = googleFontsUrl(usedFonts([node]));
+  // (famílias hospedadas no próprio projeto — doc.fonts — NÃO vão para o CDN do Google: o site exportado leva os arquivos)
+  const fontsUrl = googleFontsUrl(usedFonts([node]).filter((family) => !selfHosted?.has(family)));
   const fontLink = fontsUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fontsUrl}">\n` : '';
   return `<!doctype html>
 <html lang="pt-BR">

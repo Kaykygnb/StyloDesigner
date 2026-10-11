@@ -10,29 +10,37 @@ import type { Identity } from './http/identity.js';
 import type { McpGateway } from './mcp/gateway.js';
 import { errorHandler, limit, localOnly, MAX_JSON, MAX_MEDIUM, MAX_PROJECT } from './http/guards.js';
 import { authRoutes } from './routes/auth.js';
+import { MAX_UPLOAD } from './routes/library.js';
 import { projectRoutes } from './routes/projects.js';
 import { systemRoutes } from './routes/system.js';
 import { legacyRoutes } from './routes/legacy.js';
+import { libraryRoutes } from './routes/library.js';
+import type { AssetServices } from '@stylo/plugins/assets/types.ts';
 
 /** Tamanho máximo do corpo por rota: um projeto aceita muito (imagens embutidas); miniaturas e MCP, médio; o resto, pouco. */
 function bodyLimitFor(method: string, path: string): number {
   if (method === 'GET' || method === 'HEAD') return MAX_PROJECT;
   if (/^\/api\/projects\/[^/]+$/.test(path) && method === 'PUT') return MAX_PROJECT;
+  if (method === 'POST' && path === '/api/library') return MAX_UPLOAD;
   if (/\/thumb$/.test(path) || path.startsWith('/api/imageai/')) return MAX_MEDIUM;
   return MAX_JSON;
 }
 
-export function createApp(s: Services, identity: Identity, mcp: McpGateway) {
+export function createApp(s: Services, identity: Identity, mcp: McpGateway, assetServices: AssetServices) {
   const app = new Hono<{ Bindings: HttpBindings }>();
   app.onError(errorHandler);
   app.notFound((c) => c.json({ error: 'Rota não encontrada.' }, 404));
 
-  app.use('/api/*', localOnly(s.port, { requireJson: true }));
+  // escritas na API exigem JSON, exceto o envio de arquivo da biblioteca (os bytes do arquivo são o corpo)
+  const jsonOnly = localOnly(s.port, { requireJson: true });
+  const binaryOk = localOnly(s.port, { requireJson: false });
+  app.use('/api/*', (c, next) => (c.req.method === 'POST' && c.req.path === '/api/library' ? binaryOk(c, next) : jsonOnly(c, next)));
   app.use('/api/*', (c, next) => limit(bodyLimitFor(c.req.method, c.req.path))(c, next));
   app.route('/api', authRoutes(s, identity));
   app.route('/api', projectRoutes(s, identity));
   app.route('/api', systemRoutes(s));
   app.route('/api', legacyRoutes(s));
+  app.route('/api', libraryRoutes(s, identity, assetServices));
 
   app.use('/mcp', localOnly(s.port, { originAlways: true }), limit(MAX_MEDIUM));
   app.all('/mcp', (c) => mcp.handle(c));

@@ -52,9 +52,12 @@ model User {
   createdAt    DateTime @default(now())
 
   agents      Agent[]
-  projects    Project[]       @relation("ProjectOwner")
+  projects    Project[]        @relation("ProjectOwner")
   memberships ProjectMember[]
   sessions    Session[]
+  library     LibraryAsset[]
+  secrets     ProviderSecret[]
+  sources     AssetSource[]
   operations  Operation[]
   notes       Note[]
 }
@@ -203,4 +206,72 @@ model Note {
   replies Note[]  @relation("NoteReplies")
 
   @@index([projectId, layerId])
+}
+
+/// Tipo de um asset da biblioteca.
+enum AssetKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  MODEL3D
+  LOTTIE
+  FONT
+  OTHER
+}
+
+/// Biblioteca de assets da CONTA (pessoal). Os bytes ficam no armazenamento de blobs (disco/S3), pelo hash; aqui só a ficha:
+/// o que é, de onde veio, a licença e o crédito. Usar num projeto COPIA o asset para dentro dele.
+model LibraryAsset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  kind      AssetKind
+  name      String
+  mime      String
+  size      Int
+  /// sha256 do conteúdo = chave no armazenamento de blobs.
+  hash      String
+  width     Int?
+  height    Int?
+  /// segundos (vídeo/áudio)
+  duration  Float?
+  tags      String[]
+  /// de onde veio: "upload" ou o id do provedor (pexels, openverse...)
+  source    String    @default("upload")
+  sourceUrl String?
+  /// { name, url, commercial, attribution }
+  license   Json?
+  /// texto de crédito pronto (autor + link), vai para o arquivo de créditos do site exportado
+  credit    String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hash])
+  @@index([userId, kind])
+}
+
+/// Chave de API de um provedor de assets, POR CONTA, criptografada (AES-256-GCM) com a chave do servidor.
+model ProviderSecret {
+  userId     String   @db.Uuid
+  providerId String
+  /// nonce.etiqueta.texto-cifrado em base64
+  secret     String
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, providerId])
+}
+
+/// Fonte de assets cadastrada pela pessoa, sem programar: endereço de busca com {consulta} e mapeamento da resposta.
+model AssetSource {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  config    Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
 }

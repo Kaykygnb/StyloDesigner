@@ -11,7 +11,8 @@
  */
 
 import { createHash } from 'node:crypto';
-import { parseImageDataUrl, toDataUrl } from '@stylo/core/image-size.ts';
+import { parseDataUrl, toDataUrl } from '@stylo/core/image-size.ts';
+import { MAX_BYTES, sniffAsset } from '@stylo/core/asset-kinds.ts';
 
 export const REF_PREFIX = 'asset:';
 /** Teto de uma imagem (depois de decodificar). */
@@ -29,10 +30,12 @@ export function splitAssets(doc: any): { light: any; blobs: Map<string, Blob> } 
   const assets: Record<string, unknown> = {};
   for (const [id, value] of Object.entries(src)) {
     if (typeof value !== 'string' || value.startsWith(REF_PREFIX)) { assets[id] = value; continue; }
-    const parsed = parseImageDataUrl(value);
-    if (!parsed || parsed.bytes.length > MAX_ASSET_BYTES) { assets[id] = value; continue; }
+    // imagens, fontes e áudio embutidos viram referências; o que não reconhecemos fica no JSON como está
+    const parsed = parseDataUrl(value);
+    const sniffed = parsed ? sniffAsset(parsed.bytes, parsed.declared) : null;
+    if (!parsed || !sniffed || sniffed.kind === 'OTHER' || parsed.bytes.length > Math.min(MAX_ASSET_BYTES, MAX_BYTES[sniffed.kind])) { assets[id] = value; continue; }
     const hash = sha256(parsed.bytes);
-    blobs.set(hash, { mime: parsed.info.mime, bytes: parsed.bytes });
+    blobs.set(hash, { mime: sniffed.mime, bytes: parsed.bytes });
     assets[id] = REF_PREFIX + hash;
   }
   return { light: { ...doc, assets }, blobs };

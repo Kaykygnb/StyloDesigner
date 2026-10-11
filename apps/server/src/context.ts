@@ -12,6 +12,8 @@ import type { Notes } from './services/notes.js';
 import type { Sharing } from './services/sharing.js';
 import type { Projects } from './services/projects.js';
 import type { Renderer } from './services/renderer.js';
+import type { Library } from './services/library.js';
+import type { Secrets } from './services/secrets.js';
 import type { Workspace } from './workspace/index.js';
 import type { Events } from './events.js';
 
@@ -33,6 +35,8 @@ export interface Services {
   sharing: Sharing;
   projects: Projects;
   renderer: Renderer;
+  library: Library;
+  secrets: Secrets;
   workspace: Workspace;
   events: Events;
   /** 'local' = sem login (só esta máquina); 'accounts' = contas e senha. */
