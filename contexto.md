@@ -32,7 +32,7 @@ Vai rodar localmente e também **hospedado e cobrado** — por isso Postgres, co
 | **ferramenta (tool)** | operação MCP com nome, entrada validada por Zod e um `run` |
 | **core tool / plugin tool** | ferramenta do núcleo (`core/tools`) ou de um plugin (`packages/plugins`) |
 | **workspace** | no servidor, os projetos abertos em memória, com executor e papel por sessão (`apps/server/src/workspace`) |
-| **runner** | o executor das ferramentas sobre o `store` (`core/tools/runner.js`) |
+| **runner** | o executor das ferramentas sobre o `store` (`core/tools/runner.ts` e módulos em `core/tools/runner/`) |
 | **ator** | quem chama: pessoa ou agente (com **escopos** `read`/`comment`/`write`/`export`) |
 | **conta mestre** | o dono do servidor (primeira conta): aprova pessoas e agentes |
 | **biblioteca** | assets pessoais da conta (arquivos por sha256); usar num projeto **copia** o conteúdo |
@@ -95,7 +95,8 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
 | `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
 | `tools/schema.ts` | **as 61 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
-| `tools/runner.js` | **executa** cada ferramenta (`READ` = leituras; `WRITE` = escritas). Recebe por injeção `renderImage`, `auditLayout`, `fetchImage`, `imageOps`, `vendor` |
+| `tools/runner.ts`, `tools/runner.js` | executor central: validação, aprovação, cancelamento, commit e restauração sem apagar alterações concorrentes; `.js` só reexporta para compatibilidade |
+| `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `inspection`, `export`, `layout`, `layers`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
 | `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
 | `sample-vitrine.js`, `version.ts`, `validate.ts` | projeto de exemplo · versão · validação do JSON |
 
@@ -153,7 +154,7 @@ isolado sem rede, downloads por endereço só com a proteção SSRF de `services
 
 **Nova ferramenta do núcleo**
 1. `tools/schema.ts`: `defineTool({ name, write, description, input: z.object({...}) })`. Descrição em português, com o que fazer em caso comum e o que a ferramenta NÃO faz.
-2. `tools/runner.js`: um método com o mesmo nome — em `READ` se só lê; senão em `WRITE`. Erros: `throw new Error('mensagem com o conserto')`.
+2. `tools/runner/<área>.ts`: um método com o mesmo nome no módulo responsável. `tools/runner.ts` junta os módulos em `READ` (leitura) e `WRITE` (escrita). Erros: `throw new Error('mensagem com o conserto')`. A validação e o commit ficam no executor central.
 3. `apps/server/src/instrucoes-agente.txt`: uma linha na tabela de ferramentas.
 4. Testes: contar ferramentas em `tests/agente.test.js` e `tests/mcp-sdk.test.js`; teste da ferramenta (padrão: `tests/tokens.test.ts` usa o workspace como um agente).
 5. Se mudou o comportamento percebido: entrada em `decisoes.md`.
@@ -171,7 +172,7 @@ isolado sem rede, downloads por endereço só com a proteção SSRF de `services
 ## 8. Convenções
 
 - **Mensagens para o agente em português, dizendo o conserto** ("Use sizeX:\"fill\" no texto..."), nunca só o sintoma. Erro técnico cru ("Cannot read properties of undefined") é bug.
-- **Módulos pequenos, uma responsabilidade por arquivo.** Hoje há exceções a corrigir (`runner.js` ~1000 linhas, `css.js` ~1150, `commands.js` ~1250): divida **sob a cobertura dos testes**, sem mudar comportamento.
+- **Módulos pequenos, uma responsabilidade por arquivo.** O executor já foi dividido em TypeScript. Restam `css.js` (~1150 linhas) e `commands.js` (~1250): divida **sob a cobertura dos testes**, sem mudar comportamento.
 - **TypeScript gradual:** arquivo novo em `.ts`; converta um `.js` só quando for mexer nele. `noImplicitAny` está desligado de propósito.
 - **Core puro:** sem DOM, sem disco, sem rede; o que vier de fora entra por injeção.
 - **Argumentos das ferramentas são estritos** (desconhecido = erro); o conteúdo livre (`props`) é conferido pelo executor (`applyProps`).
@@ -184,6 +185,8 @@ isolado sem rede, downloads por endereço só com a proteção SSRF de `services
 `tests/*.test.js|ts` rodam com `node --test` (+`tsx`); `tests/_setup.mjs` põe o banco e os blobs em memória. Servidores de teste esperam até 60 s subir (carga).
 Testes que dependem do Chromium se **pulam** se ele não estiver instalado (`npx playwright install chromium`). Há CI em `.github/workflows/ci.yml` (Node 22 e 24, sem Chromium).
 `tests/e2e/*.mjs` são do editor antigo (usam o chat removido): **não rodam**; serão refeitos com o editor novo.
+`tests/runner-seguranca.test.ts` cobre recusa/ausência de aprovação, administrador externo, cancelamento durante aprovação,
+restauração de falha parcial e preservação de edição concorrente. `tools/runner.js` permanece como import compatível usado pelos testes.
 
 ## 10. Estado e limites que pegam de surpresa
 

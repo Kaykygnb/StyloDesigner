@@ -15,7 +15,7 @@
 
 import { createStore } from '@stylo/core/store.js';
 import { createCommands } from '@stylo/core/commands.js';
-import { createRunner } from '@stylo/core/tools/runner.js';
+import { createRunner } from '@stylo/core/tools/runner.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';

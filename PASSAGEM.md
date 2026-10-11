@@ -3,8 +3,10 @@
 **Quem assume o projeto: leia nesta ordem.** (1) este arquivo; (2) `contexto.md` — o que a ferramenta é, vocabulário, mapa do código e receitas;
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
-Estado em **2026-10-11**. Código em `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner`, branch **`limpeza`**, 233 commits locais.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Suíte: 442 testes passando; `npm run typecheck` limpo.
+Estado em **2026-10-11**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **449 testes, 448 passando, 0 falhas, 1 pulado** (teste específico que procura o Chromium do Playwright; os demais testes visuais usaram `/usr/bin/chromium`); `npm run typecheck` limpo.
+
+**Último bloco:** executor das ferramentas dividido em módulos TypeScript, sem mudar o contrato. Conferência real pelo cliente oficial MCP: 79 ferramentas, criação de tela, estilo de cor, ajuste e imagem no celular, auditoria medida, tokens, exportação HTML/React, download dos dois ZIPs, desfazer/refazer. Servidor encerrado depois. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -106,7 +108,7 @@ tipo de arquivo. Faltam planos, limite de requisições, medição de uso e inte
 
 Ordem sugerida (do que mais destrava para o que mais agrega):
 
-1. **Dividir os arquivos grandes** (`tools/runner.js` ~1000 linhas, `css.js` ~1150, `commands.js` ~1250) em módulos por responsabilidade, **sem mudar comportamento**, sob a suíte atual. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
+1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
 3. **Paleta a partir de imagem** sem dependência nova: o Chromium já está no servidor e `page.evaluate` funciona com o JavaScript da página desligado — decodificar a imagem com `createImageBitmap`/canvas em `renderer.ts` e agrupar as cores (k-means simples) em `plugins/identidade`. O mesmo caminho destrava `edit_image` no servidor.
 4. **Ferramentas de remover/renomear** estilos, modos e variáveis (hoje só se cria e se liga).
@@ -141,10 +143,11 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 | React Native; variante TypeScript do React | o React veio primeiro; RN usa outro modelo (só flex, sem grid) | D9 |
 | Auditoria além de contraste/alt/tamanho/títulos/alvo/vazamento | o essencial primeiro | passo 5 |
 | Medida de layout só no desktop e no breakpoint pedido | a "medida de volta" do editor também ignora breakpoints | se um agente precisar |
-| Rota HTTP `react.zip`/`site.zip` sem teste dedicado | mesmo caminho nas duas | passo 8 |
+| Rota HTTP `react.zip`/`site.zip` sem teste automatizado dedicado | mesmo caminho nas duas; download real das duas rotas conferido em 2026-10-11 após dividir o executor | passo 8 |
+| Teste específico de `STYLO_CHROMIUM_PATH` procura o executável padrão do Playwright | na nuvem há `/usr/bin/chromium`; o teste específico se pula, embora renderização, medida e auditoria funcionem com ele | adaptar o teste para aceitar o navegador já instalado, sem baixar outro |
 | Exposição na internet (HTTPS, limites, SSE por pessoa, login no editor) | produto ainda não hospedado | D5–D6 |
 | Cobrança, planos, cotas por plano, S3/R2 | só há pasta/memória e cota fixa | D5, D7 |
-| TypeScript no resto do núcleo (`store`, `commands`, `css`, `runner`...) | converter tudo de uma vez deu ~700 erros | converter ao mexer (passo 1) |
+| TypeScript no resto do núcleo (`store`, `commands`, `css`...) | converter tudo de uma vez deu ~700 erros; **executor convertido e dividido** | converter ao mexer (passo 1) |
 | `tests/e2e` antigos | dependem do chat/agente removido e do editor antigo | editor novo (D10) |
 | Importador de `.json` antigos | é só uma ponte | `npm run importar`; apagar quando não houver mais `.json` |
 | Arquivo de licenças dentro dos zips exportados | pendência do `NOTICE` | passo 7 |
@@ -161,11 +164,11 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 ## 7. Armadilhas conhecidas
 
 - **Windows:** o shell mastiga aspas, crases e `$` em comandos longos. Para editar arquivos grandes use a ferramenta de edição, não `node -e`/heredoc com template literals.
-- **O typecheck não cobre os `.js`.** Um conflito de nome em `runner.js` só aparece ao rodar (já aconteceu com `summarize`). Rode ao menos `node --import tsx --import ./tests/_setup.mjs --test tests/agente.test.js` depois de mexer nele.
+- **O typecheck não cobre os `.js` legados**, como `css.js` e `commands.js`. O executor agora está em TypeScript e é checado; `runner.js` só reexporta. Ao mexer no executor, rode os testes de agente e `tests/runner-seguranca.test.ts`, além da suíte inteira.
 - **PGlite** aceita um processo por vez e travou uma vez ao fechar com consulta em andamento: sempre `await operations.idle()` antes de fechar o banco (já feito em `main.ts` e nos testes).
 - **Testes de servidor** sobem um PGlite cada; sob carga o primeiro pedido demora (a espera é de até 60 s, de propósito).
 - `designer.secret`, `*.blobs/`, `designer.config.json` e `designer.db/` são dados locais: **não vão para o git** (`.gitignore`).
-- `tools/runner.js` tem um auxiliar local `imageInfo`; o import de `image-size.ts` entra como `sniffImage` por causa disso.
+- `tools/runner/images.ts` tem um auxiliar local `imageInfo`; o import de `image-size.ts` entra como `sniffImage` por causa disso.
 - Migrações Prisma: `prisma migrate diff --from-schema <antigo> --to-schema packages/db/prisma/schema.prisma --script` (não há Postgres de verdade aqui para `migrate dev`).
 - **Argumentos das ferramentas são estritos:** se um cliente MCP mandar campo extra, recebe erro listando os aceitos (de propósito; veja `decisoes.md`).
 - O Chromium é opcional para o resto, mas sem ele `get_image`, o vazamento do `check_design` e a medida de layout ficam de fora (as ferramentas avisam).
