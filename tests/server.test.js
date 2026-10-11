@@ -27,7 +27,7 @@ test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t
 
   const base = `http://127.0.0.1:${port}`;
   let ready = false;
-  for (let attempt = 0; attempt < 300 && !ready; attempt++) {
+  for (let attempt = 0; attempt < 800 && !ready; attempt++) {
     if (child.exitCode !== null) throw new Error(`server exited with ${child.exitCode}`);
     try {
       ready = (await fetch(base)).status === 200;

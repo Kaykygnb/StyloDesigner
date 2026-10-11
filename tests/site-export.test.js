@@ -93,3 +93,44 @@ test('createZip escreve cabeçalhos ZIP Store UTF-8 e o conteúdo integral de ca
   assert.equal(view.getUint32(endOffset, true), 0x06054b50, 'registro EOCD encerra o arquivo');
   assert.equal(view.getUint16(endOffset + 10, true), 2);
 });
+
+const PNG_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const GIF_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+const imageLayer = (name, assetId) => createNode('rect', { name, w: 100, h: 60, fill: { type: 'image', color: '#ffffff', opacity: 1, stops: [], angle: 0, assetId, fit: 'cover' } });
+
+test('imagens saem como ARQUIVOS em assets/ e o HTML aponta para eles (sem base64); a mesma imagem vira um arquivo só', () => {
+  const doc = docOf(frame('Home', [imageLayer('Foto A', 'a'), imageLayer('Foto B', 'b'), imageLayer('Outra', 'c')]));
+  doc.assets = { a: PNG_URL, b: PNG_URL, c: GIF_URL, sobra: 'data:image/png;base64,AAAA' };
+  const site = exportSite(doc);
+  const html = site.files.find((f) => f.path === 'index.html').content;
+  assert.equal(html.includes('base64'), false, 'nenhum base64 no HTML');
+  const images = site.files.filter((f) => f.path.startsWith('assets/'));
+  assert.equal(images.length, 2, 'duas imagens distintas (PNG repetido vira um arquivo só); a que ninguém usa não vai');
+  for (const image of images) {
+    assert.ok(image.content instanceof Uint8Array && image.content.length > 10, image.path);
+    assert.ok(html.includes(`url("${image.path}")`) || html.includes(image.path), `o HTML referencia ${image.path}`);
+  }
+  assert.ok(images.some((i) => i.path.endsWith('.png')) && images.some((i) => i.path.endsWith('.gif')));
+  assert.deepEqual(images.map((i) => i.path), [...new Set(images.map((i) => i.path))], 'nomes únicos');
+  // o mesmo conteúdo sempre dá o mesmo nome (estável entre exportações)
+  assert.deepEqual(exportSite(doc).files.map((f) => f.path), site.files.map((f) => f.path));
+});
+
+test('o ZIP leva os arquivos de imagem como bytes; modo inline mantém tudo dentro do HTML', () => {
+  const doc = docOf(frame('Home', [imageLayer('Foto', 'a')]));
+  doc.assets = { a: PNG_URL };
+  const site = exportSite(doc);
+  const zip = createZip(site.files);
+  const text = new TextDecoder('latin1').decode(zip);
+  assert.ok(text.includes('assets/img-') && text.includes('index.html'));
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+  assert.equal(view.getUint16(zip.length - 22 + 10, true), site.files.length);
+  const inline = exportSite(doc, { assets: 'inline' });
+  assert.equal(inline.files.length, 1);
+  assert.ok(inline.files[0].content.includes('data:image/png;base64'));
+});
+
+test('projeto sem imagens continua com um arquivo por prancheta', () => {
+  const site = exportSite(docOf(frame('Home')));
+  assert.deepEqual(site.files.map((f) => f.path), ['index.html']);
+});

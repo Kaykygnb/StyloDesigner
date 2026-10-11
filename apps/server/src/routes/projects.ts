@@ -58,7 +58,7 @@ export function projectRoutes(s: Services, id: Identity) {
     const name = checkName(c.req.param('file'));
     const { doc } = await s.projects.load(await id.userOf(c), name);
     const site = exportSite(doc);
-    const zip = Buffer.from(createZip(site.files.map(({ path, content }: { path: string; content: string }) => ({ path, content }))));
+    const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
     return c.body(zip, 200, {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${name.replace(/\.json$/i, '')}-site.zip"`,

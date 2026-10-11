@@ -173,7 +173,7 @@ export function createWorkspace({ projects, notes, sharing, operations, renderIm
       return {
         ok: true, file: entry.file,
         site_zip_url: `${base}/site.zip`, project_json_url: base,
-        files: site.files.map((f: { path: string; content: string }) => ({ path: f.path, bytes: Buffer.byteLength(f.content) })), warnings: site.warnings,
+        files: site.files.map((f: { path: string; content: string | Uint8Array }) => ({ path: f.path, bytes: typeof f.content === 'string' ? Buffer.byteLength(f.content) : f.content.length })), warnings: site.warnings,
       };
     },
   };

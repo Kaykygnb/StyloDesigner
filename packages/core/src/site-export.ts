@@ -4,6 +4,51 @@
  */
 import { exportHtml } from './css.js';
 import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
+import { parseImageDataUrl } from './image-size.js';
+
+/** Um arquivo do pacote: texto (HTML) ou bytes (imagens). */
+export interface SiteFile { path: string; content: string | Uint8Array }
+
+const IMAGE_EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
+
+/** Hash curto e estável (FNV-1a de 32 bits) do conteúdo: o mesmo arquivo sempre ganha o mesmo nome. */
+const fnv = (bytes: Uint8Array) => {
+  let h = 0x811c9dc5;
+  for (const b of bytes) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+};
+const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/**
+ * Troca cada imagem embutida (data URL) por um ARQUIVO em `assets/` e o caminho relativo no HTML. Site de verdade não
+ * deve levar megabytes de base64 dentro do CSS: arquivos têm cache, nome estável e funcionam com qualquer empacotador.
+ * Só entram as imagens que as páginas usam; a mesma imagem vira um arquivo só.
+ */
+export function externalizeAssets(files: SiteFile[], assets: Record<string, unknown> = {}): SiteFile[] {
+  const replacements: [string, string][] = [];
+  const out = new Map<string, Uint8Array>();
+  for (const src of Object.values(assets)) {
+    if (typeof src !== 'string' || !src.startsWith('data:image/')) continue;
+    const escaped = escapeHtml(src);
+    if (!files.some((f) => typeof f.content === 'string' && (f.content.includes(src) || f.content.includes(escaped)))) continue;
+    const parsed = parseImageDataUrl(src);
+    if (!parsed) continue;
+    const ext = IMAGE_EXT[parsed.info.mime] || 'bin';
+    let path = `assets/img-${fnv(parsed.bytes)}.${ext}`;
+    // nome igual com conteúdo diferente (colisão do hash curto, raríssimo): acrescenta o tamanho
+    if (out.has(path) && out.get(path)!.length !== parsed.bytes.length) path = `assets/img-${fnv(parsed.bytes)}-${parsed.bytes.length}.${ext}`;
+    out.set(path, parsed.bytes);
+    replacements.push([src, path], [escaped, path]);
+  }
+  if (!out.size) return files;
+  const rewritten = files.map((f) => {
+    if (typeof f.content !== 'string') return f;
+    let content = f.content;
+    for (const [from, to] of replacements) if (content.includes(from)) content = content.split(from).join(to);
+    return { ...f, content };
+  });
+  return [...rewritten, ...[...out].map(([path, content]) => ({ path, content }))];
+}
 
 const boardsOf = (doc) => {
   const boards: any[] = [];
@@ -48,17 +93,20 @@ const visit = (node, fn) => {
 };
 
 /**
- * @returns {{files: {path: string, content: string}[], warnings: string[]}}
+ * @param {object} doc
+ * @param {{ assets?: 'files' | 'inline' }} [options]  `files` (padrão): imagens como arquivos em assets/; `inline`: embutidas no HTML
+ * @returns {{files: SiteFile[], warnings: string[]}}
  */
-export function exportSite(doc) {
+export function exportSite(doc, { assets = 'files' }: { assets?: 'files' | 'inline' } = {}): { files: SiteFile[]; warnings: string[] } {
   if (!doc || !Array.isArray(doc.pages)) throw new Error('Projeto inválido: páginas não encontradas.');
   const { boards, warnings } = boardsOf(doc);
   const used = new Set();
-  const files = boards.map((board, index) => ({
+  let files: SiteFile[] = boards.map((board, index) => ({
     path: index === 0 ? (used.add('index.html'), 'index.html') : uniqueHtmlPath(board.name, used),
     content: exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null),
   }));
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
+  if (assets === 'files') files = externalizeAssets(files, doc.assets || {});
 
   // Tela de largura FIXA maior que o menor aparelho do projeto vira rolagem horizontal no celular. Não mudamos o
   // padrão (alteraria exportações existentes): avisamos e dizemos onde ligar a largura fluida.

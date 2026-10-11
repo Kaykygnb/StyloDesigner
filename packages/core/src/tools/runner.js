@@ -366,17 +366,21 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       const site = exportSite(store.state.doc);
       const files = path ? site.files.filter((file) => file.path === path) : site.files;
       if (path && !files.length) throw new Error(`O arquivo “${path}” não existe no pacote de site.`);
-      const metadata = files.map(({ path: filePath, content }) => ({ path: filePath, bytes: new TextEncoder().encode(content).byteLength }));
+      // imagens são arquivos binários em assets/: aparecem na lista (com binary:true), mas o conteúdo vai pelo zip
+      const isText = (item) => typeof item.content === 'string';
+      const metadata = files.map((item) => ({ path: item.path, bytes: isText(item) ? new TextEncoder().encode(item.content).byteLength : item.content.length, ...(isText(item) ? {} : { binary: true }) }));
       const totalBytes = metadata.reduce((sum, file) => sum + file.bytes, 0);
+      const textBytes = metadata.filter((file) => !file.binary).reduce((sum, file) => sum + file.bytes, 0);
       if (includeContent) {
         if (!path && offset) throw new Error('Informe path para continuar o conteúdo de uma página específica.');
-        if (!path && totalBytes > agentContentLimit(maxBytes)) throw new Error(`O conteúdo total tem ${totalBytes} bytes. Consulte os caminhos e solicite uma página por vez com path; use offset e nextOffset para páginas maiores.`);
+        if (!path && textBytes > agentContentLimit(maxBytes)) throw new Error(`O conteúdo total tem ${textBytes} bytes. Consulte os caminhos e solicite uma página por vez com path; use offset e nextOffset para páginas maiores.`);
         for (const file of metadata) {
+          if (file.binary) continue; // imagem: baixe pelo export_zip
           const source = files.find((item) => item.path === file.path).content;
           Object.assign(file, boundedUtf8Chunk(source, { offset: path ? offset : 0, maxBytes }));
         }
       }
-      return { files: metadata, totalBytes, warnings: site.warnings };
+      return { files: metadata, totalBytes, warnings: site.warnings, ...(metadata.some((file) => file.binary) ? { hint: 'As imagens saem como arquivos em assets/ (binary: true); o conteúdo delas vem no .zip (export_zip).' } : {}) };
     },
     async list_projects() {
       if (!folder) throw new Error('Sem servidor (npm start): não há pasta de projetos.');

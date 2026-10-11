@@ -36,7 +36,7 @@ const normalizeFiles = (files) => {
     if (seen.has(path.toLowerCase())) throw new Error(`Caminho duplicado no pacote ZIP: ${path}.`);
     seen.add(path.toLowerCase());
     const name = encoder.encode(path);
-    const data = encoder.encode(String(content ?? ''));
+    const data = content instanceof Uint8Array ? content : encoder.encode(String(content ?? ''));
     if (name.length > 0xffff || data.length > 0xffffffff) throw new Error(`Arquivo grande demais para ZIP clássico: ${path}.`);
     return { name, data, crc: crc32(data) };
   });
