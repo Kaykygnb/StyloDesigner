@@ -59,24 +59,27 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
-### `apps/server/src` — Node, sem framework (por enquanto; começou a ir para TypeScript)
+### `apps/server/src` — Hono + SDK oficial do MCP (em TypeScript, exceto arquivos antigos em .js)
 | Arquivo | Faz |
 |---|---|
-| `server.js` (~700 linhas, **a fatiar**) | HTTP cru: API `/api` (auth, usuários, agentes, projetos, atividade), rota `/mcp` (identidade do agente), sessões MCP, presença. Roda com `node --import tsx` |
-| `web.js` | entrega o editor: `apps/web/dist` em produção, Vite (middleware, mesma porta) em desenvolvimento |
-| `services/projects.ts` | projetos no **banco**: listar/ler/gravar com revisão (conflito 409), versões, miniatura, renomear, papéis (dono/editor/leitor). Gravar o mesmo conteúdo não cria revisão |
-| `services/auth.ts` | contas, senha (scrypt), sessões; a primeira conta é a conta mestre; usuário técnico "local" para o modo sem login |
-| `services/agents.ts` | cadastro de agentes: token (só o hash fica), escopos, estados PENDING/ACTIVE/REVOKED, política open/approval/closed |
-| `services/operations.ts` | log de atividade (quem fez o quê, em qual projeto e camadas) |
-| `db.ts` | abre o banco: `DATABASE_URL` = Postgres; senão PGlite embutido ao lado da configuração |
-| `workspace/index.ts` | **onde o MCP trabalha**: projetos abertos em memória (store + comandos + executor), "projeto atual" e papel por sessão, escopos do agente, grava sozinho, recarrega se outro autor gravar, registra as operações |
-| `workspace/model-canvas.js` | geometria calculada do modelo (substitui o DOM nos comandos) |
-| `mcp.js` | protocolo MCP (JSON-RPC: initialize, tools/list, tools/call, ping) |
-| `presence.js` | quem está no projeto (pessoas/agentes) e travas por camada, em memória |
-| `account.js`, `atomic.js`, `http-error.js` | conta local, gravação atômica de JSON, erro HTTP |
-| `photos.js`, `imageai.js`, `providers.js` | busca de fotos, edição generativa de imagem, provedores de imagem |
-| `instrucoes-agente.txt` | instruções que o MCP entrega a cada agente |
-| `../bin/mcp.mjs` | ponte stdio → `/mcp` |
+| `main.ts` | liga tudo: configuração, banco, serviços, app HTTP, MCP, editor; desligamento limpo. Roda com `node --import tsx` |
+| `app.ts` | a aplicação Hono: proteções, rotas `/api/*` e `/mcp` |
+| `context.ts` | o objeto `Services` (serviços juntos, sem framework de injeção) |
+| `config.ts` | arquivo de configuração (versões guardadas, chaves do Pexels/imagem, política de agentes) |
+| `http/guards.ts` | Host/Origin locais, JSON obrigatório, limites de corpo por rota, tratamento de erros |
+| `http/identity.ts` | quem fez o pedido (sessão ou usuário local), conta mestre, política de agentes |
+| `routes/auth.ts` · `projects.ts` · `system.ts` · `legacy.ts` | contas/agentes · projetos · status/perfil/presença/avisos ao vivo · fotos e IA de imagem (ainda em req/res) |
+| `mcp/gateway.ts` | servidor MCP: protocolo do **SDK oficial**, sessões (máx. 64), identidade do agente (Bearer ou nome do programa), lista de ferramentas |
+| `mcp/agent-calls.ts` | executa uma chamada: presença, travas por camada, chamadas em voo |
+| `events.ts` | avisos ao vivo aos editores (SSE: `presence`, `project`) |
+| `services/projects.ts` · `auth.ts` · `agents.ts` · `operations.ts` · `notes.ts` · `sharing.ts` | projetos com revisão e versões · contas e sessões · cadastro de agentes · log de atividade · notas · compartilhamento |
+| `services/renderer.ts` | PNG do design num Chromium isolado (`get_image`) |
+| `workspace/index.ts` · `model-canvas.ts`(.js) | **onde o MCP trabalha**: projetos abertos em memória, papel e escopos por sessão, grava sozinho, recarrega se outro autor gravar; geometria sem DOM |
+| `db.ts` | abre o banco: `DATABASE_URL` = Postgres; senão PGlite embutido |
+| `presence.js` · `account.js` · `atomic.js` · `http-error.js` | presença e travas · perfil local · gravação atômica · erro HTTP |
+| `photos.js` · `imageai.js` · `providers.js` · `web.js` | fotos livres · edição generativa de imagem · provedores · entrega do editor (dist ou Vite) |
+| `instrucoes-agente.txt` | instruções entregues a cada agente no `initialize` |
+| `../bin/mcp.mjs` | ponte stdio → `/mcp` (aceita `STYLO_TOKEN` e `--agente`) |
 
 ### `apps/web` — editor visual (interface será refeita; só o essencial aqui)
 `src/main.js` monta tudo; `canvas.js`, `overlay.js`, `tools.js`, `pen.js`, `rulers.js`, `present.js` desenham e editam;
@@ -120,11 +123,11 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
 2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
 3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
-4. TypeScript (por módulo, começando pelo `core`), Hono + SDK oficial do MCP, fatiar `server.js`.
+4. ✅ Hono + SDK oficial do MCP; `server.js` fatiado em módulos. Falta: Zod nas ferramentas e TypeScript no `core`.
 5. ✅ Postgres + Prisma ligados: projetos, versões, contas/sessões, agentes com token e escopos, log de operações, papéis por projeto (migrações 0001 e 0002). Falta: tabela de notas/comentários via MCP, imagens fora do JSON, importar projetos .json antigos.
 6. Plugins do núcleo (documento, exportação, MCP, fotos, imagem, identidade visual).
 7. Edição simultânea de verdade (operações ou CRDT) e renderizador para `get_image`.
 
 ## Testes
 `tests/*.test.js|ts` (unitários e API, `node --import tsx --test`, incluindo `workspace.test.js` e `db.test.ts`) e `tests/e2e/*.mjs` (Playwright).
-Estado: 359 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~40 s). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.
+Estado: 366 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~40 s). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.

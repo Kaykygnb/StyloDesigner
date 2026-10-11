@@ -26,8 +26,8 @@ async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-seg-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory' },
     stdio: 'ignore',
   });
   t.after(() => child.kill());
@@ -45,8 +45,6 @@ async function startServer(t) {
   for (let i = 0; i < 400; i++) {
     try { if ((await call('GET', '/api/status')).status === 200) break; } catch { await new Promise((r) => setTimeout(r, 25)); }
   }
-  // pasta de projetos TEMPORÁRIA: sem isso o servidor usaria ./projetos do repositório
-  assert.equal((await call('PUT', '/api/config', { folder: join(tmp, 'projetos') })).status, 200);
   return { port, call };
 }
 
@@ -63,20 +61,17 @@ test('origem: só a página do próprio servidor (mesma porta) escreve; outra po
   assert.equal((await call('PUT', '/api/config', cfg)).status, 200, 'sem Origin (curl, MCP stdio, testes) continua aceito');
 });
 
-test('origem: /mcp e o modo administrador do MCP recusam página de outra porta', async (t) => {
+test('origem: /mcp recusa página de outra porta', async (t) => {
   const { port, call } = await startServer(t);
   const other = `http://localhost:${port + 1}`;
-  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} };
+  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'teste-seguranca', version: '1' } } };
   assert.equal((await call('POST', '/mcp', init, { Origin: other })).status, 403);
   assert.equal((await call('POST', '/mcp', init, { Origin: `http://localhost:${port}` })).status, 200);
-  assert.equal((await call('PUT', '/api/agent/mcp', { admin: true }, { Origin: other })).status, 403, 'outra página não liga o acesso de administrador');
-  const state = JSON.parse((await call('GET', '/api/agent/mcp')).text);
-  assert.equal(Boolean(state.admin), false);
 });
 
 test('limite de corpo por rota: configuração aceita pouco; projeto aceita muito', async (t) => {
   const { call } = await startServer(t);
-  const big = (n) => ({ folder: '', pad: 'x'.repeat(n) });
+  const big = (n) => ({ keepVersions: 5, pad: 'x'.repeat(n) });
   const refused = (await call('PUT', '/api/config', big(2 * 1024 * 1024))).status;
   assert.ok(refused === 413 || refused === 0, `2 MB em /api/config é abuso e deve ser recusado (status ${refused})`);
   const doc = { name: 'Grande', pages: [{ id: 'p1', name: 'P', children: [] }], assets: { a: 'x'.repeat(3 * 1024 * 1024) }, styles: { colors: [], texts: [] } };
@@ -90,15 +85,13 @@ test('DNS rebinding: Host que não é desta máquina é recusado, com ou sem Ori
   assert.equal((await call('GET', '/api/status')).status, 200);
 });
 
-test('nomes de projeto reservados do Windows e pastas de sistema são recusados', async (t) => {
+test('nomes de projeto reservados do Windows são recusados', async (t) => {
   const { call } = await startServer(t);
   const doc = { name: 'x', pages: [{ id: 'p1', name: 'P', children: [] }], assets: {}, styles: { colors: [], texts: [] } };
   for (const name of ['con.json', 'NUL.json', 'aux.json', 'com1.json', 'lpt9.json', 'prn.json']) {
     assert.equal((await call('PUT', `/api/projects/${name}`, doc)).status, 400, `${name} é nome reservado`);
   }
   assert.equal((await call('PUT', '/api/projects/consulta.json', doc)).status, 200, 'consulta.json não é reservado');
-  const bad = process.platform === 'win32' ? ['C:\\Windows\\System32', 'C:\\', 'C:\\Program Files'] : ['/etc', '/', '/usr/bin'];
-  for (const folder of bad) assert.equal((await call('PUT', '/api/config', { folder })).status, 400, `${folder} não pode ser pasta de projetos`);
 });
 
 test('erros internos não vazam detalhes e JSON que não é objeto vira 400', async (t) => {
@@ -112,7 +105,7 @@ test('erros internos não vazam detalhes e JSON que não é objeto vira 400', as
 
 test('limites de sessões MCP e de editores conectados (sem crescimento ilimitado)', async (t) => {
   const { port, call } = await startServer(t);
-  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} };
+  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'teste-seguranca', version: '1' } } };
   const statuses = [];
   for (let i = 0; i < 70; i++) statuses.push((await call('POST', '/mcp', init)).status);
   assert.equal(statuses.filter((s) => s === 200).length, 64, 'até 64 sessões simultâneas');

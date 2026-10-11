@@ -18,7 +18,7 @@ async function unusedPort() {
 test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t) => {
   // codex: escolhe uma porta livre e espera o servidor ficar pronto para evitar colisões entre execuções.
   const port = await unusedPort();
-  const serverPath = fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url));
+  const serverPath = fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url));
   const child = spawn(process.execPath, ['--import', 'tsx', serverPath], {
     env: { ...process.env, PORT: String(port), STYLO_DEV: '1' },
     stdio: 'ignore',

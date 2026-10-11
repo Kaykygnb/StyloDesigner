@@ -27,7 +27,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   const tmp = await mkdtemp(join(tmpdir(), 'designer-api-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
-  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
     stdio: 'ignore',
   });

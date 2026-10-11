@@ -96,3 +96,16 @@ ao mesmo tempo. Fontes da web ficam com a fonte do sistema. O Chromium é carreg
 tem de ser tratado como não confiável.
 **Requisito de instalação:** `npx playwright install chromium` no servidor. Sem ele, só `get_image` falha, com mensagem clara.
 **Continuam indisponíveis sem navegador:** `edit_image` e `generate_image_edit` (mexem nos pixels no editor).
+
+## 2026-10-10 — Servidor em Hono + SDK oficial do MCP; server.js desaparece
+**Decisão:** o `server.js` (HTTP cru, ~700 linhas) foi dividido em módulos: `main.ts` (liga tudo), `app.ts` (Hono),
+`http/*` (proteções e identidade), `routes/*`, `mcp/*`, `events.ts`, `config.ts`, `context.ts`. O protocolo MCP passou a ser
+o do **SDK oficial** (`@modelcontextprotocol/sdk`, transporte Streamable HTTP, uma instância de `Server` por sessão); o
+`server/mcp.js` escrito à mão foi apagado. Sessões, identidade do agente, travas e presença continuam nossas (`mcp/gateway.ts`
+e `mcp/agent-calls.ts`). Fotos e IA de imagem seguem em req/res do Node, montadas pelo Hono (`routes/legacy.ts`), até virarem plugins MCP.
+**Por quê:** servidor mais curto e padronizado; conformidade com a especificação sem manutenção própria; cada arquivo faz uma coisa.
+**Consequências aceitas:** `initialize` agora precisa ser válido (protocolVersion, capabilities, clientInfo); clientes sem o
+cabeçalho `Accept` são aceitos (completamos); o "Acesso de administrador" e a pasta de projetos deixaram de existir de vez;
+`STYLO_TOKEN` na ponte stdio leva o token do agente. Achado e corrigido: `new_project`/`open_project`/`save_project`
+travavam o documento inteiro (`noLock`), o que impedia outro agente de abrir o projeto logo depois.
+**Teste:** `tests/mcp-sdk.test.js` usa o CLIENTE oficial do SDK contra o servidor real.

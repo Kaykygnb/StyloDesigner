@@ -14,7 +14,7 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-contas-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
-  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], {
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
     env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'accounts', DESIGNER_DB_DIR: 'memory' },
     stdio: 'ignore',
   });
@@ -46,7 +46,7 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
 
   // MCP: sem token não entra; com token entra e trabalha
   const mcp = (body, headers = {}) => fetch(base + '/mcp', { method: 'POST', headers: { ...json, ...headers }, body: JSON.stringify(body) });
-  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'Claude Code' } } };
+  const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'Claude Code', version: '1' } } };
   assert.equal((await mcp(init)).status, 401);
   assert.equal((await mcp(init, { Authorization: 'Bearer stylo_agt_falso' })).status, 401);
   const auth = { Authorization: `Bearer ${created.token}` };

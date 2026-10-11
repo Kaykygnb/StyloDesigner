@@ -14,9 +14,9 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "node --import tsx apps/server/src/server.js",
+    "dev": "node --import tsx apps/server/src/main.ts",
     "build": "vite build apps/web",
-    "start": "node --import tsx apps/server/src/server.js",
+    "start": "node --import tsx apps/server/src/main.ts",
     "test": "node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/*.test.js tests/*.test.ts",
     "test:e2e": "node tests/e2e/rodar-todos.mjs",
     "typecheck": "tsc -p packages/db",

@@ -46,7 +46,7 @@ test('servidor: configuração corrompida vira cópia .corrompido e o servidor s
   const { port } = probe.address();
   probe.close();
   await once(probe, 'close');
-  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/server.js', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
   t.after(() => child.kill());
   let ok = false;
   for (let i = 0; i < 400 && !ok; i++) {

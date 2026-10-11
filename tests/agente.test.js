@@ -1,54 +1,19 @@
-// IA no editor, sem navegador: o protocolo MCP (server/mcp.js), a lista de ferramentas (src/agent/schema.js) e as
-// regras de alteração (src/agent/runner.js → applyProps). O fluxo completo, com editor aberto, permissão e o
-// Assistente, fica em tests/e2e/agente-mcp.mjs.
+// Ferramentas MCP: a lista (packages/core/src/tools/schema.js) e as regras de alteração do executor (runner.js → applyProps).
+// O protocolo (cliente oficial do SDK) está em tests/mcp-sdk.test.js e o fluxo completo em tests/workspace.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleMcp, PROTOCOL_VERSIONS } from '@stylo/server/mcp.js';
 import { AGENT_TOOLS, openAiTools, mcpTools } from '@stylo/core/tools/schema.js';
 import { applyProps, summarize, describeCall, PROPS, createRunner } from '@stylo/core/tools/runner.js';
 import { createNode } from '@stylo/core/model.js';
 
-const rpc = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
-
-test('MCP initialize: devolve a versão pedida (se conhecida) e guarda o nome do programa', async () => {
-  const session = {};
-  const r = await handleMcp(rpc('initialize', { protocolVersion: '2024-11-05', clientInfo: { name: 'Claude Code' } }), { callTool: null, version: '9.9.9', session });
-  assert.equal(r.result.protocolVersion, '2024-11-05');
-  assert.equal(r.result.serverInfo.version, '9.9.9');
-  assert.ok(r.result.capabilities.tools);
-  assert.match(r.result.instructions, /canvas É CSS/);
-  assert.equal(session.name, 'Claude Code');
-  const unknown = await handleMcp(rpc('initialize', { protocolVersion: '1999-01-01' }), { callTool: null });
-  assert.equal(unknown.result.protocolVersion, PROTOCOL_VERSIONS[0]);
-});
-
-test('MCP explica durante initialize que o servidor trabalha sem navegador', async () => {
-  const r = await handleMcp(rpc('initialize', {}), { callTool: null });
-  assert.match(r.result.instructions, /não é preciso ter o editor aberto/);
-  assert.match(r.result.instructions, /new_project/);
-});
-
-test('MCP: aviso sem id não tem resposta; método desconhecido e pedido inválido dão erro JSON-RPC', async () => {
-  assert.equal(await handleMcp({ jsonrpc: '2.0', method: 'notifications/initialized' }, { callTool: null }), null);
-  assert.equal((await handleMcp(rpc('resources/list'), { callTool: null })).error.code, -32601);
-  assert.equal((await handleMcp({ hello: 1 }, { callTool: null })).error.code, -32600);
-  assert.deepEqual((await handleMcp(rpc('ping'), { callTool: null })).result, {});
-});
-
-test('MCP tools/call: repassa ao editor; erro e recusa voltam como isError (a IA lê e explica)', async () => {
-  const calls = [];
-  const callTool = async (name, args, client) => { calls.push([name, args, client]); return name === 'get_layer' ? { error: 'Camada "x" não existe.' } : { ok: true }; };
-  const session = { name: 'Codex' };
-  const ok = await handleMcp(rpc('tools/call', { name: 'get_document', arguments: { depth: 2 } }), { callTool, session });
-  assert.equal(ok.result.isError, false);
-  assert.deepEqual(JSON.parse(ok.result.content[0].text), { ok: true });
-  assert.deepEqual(calls[0], ['get_document', { depth: 2 }, 'Codex']);
-  const err = await handleMcp(rpc('tools/call', { name: 'get_layer', arguments: { id: 'x' } }), { callTool, session });
-  assert.equal(err.result.isError, true);
-  const offline = await handleMcp(rpc('tools/call', { name: 'get_document' }), { callTool: async () => { throw new Error('O editor não está aberto.'); } });
-  assert.equal(offline.result.isError, true);
-  assert.match(offline.result.content[0].text, /editor não está aberto/);
-  assert.equal((await handleMcp(rpc('tools/call', { name: 'rm_rf' }), { callTool })).error.code, -32602);
+test('toolResult: imagem vira conteúdo de imagem do MCP, o resto texto; erro e recusa marcam isError', async () => {
+  const { toolResult } = await import('../apps/server/src/mcp/gateway.ts');
+  const ok = toolResult({ ok: true, _image: { data: 'QUJD', mimeType: 'image/png' }, _summary: 'x', id: 'a' });
+  assert.equal(ok.isError, false);
+  assert.deepEqual(ok.content[0], { type: 'image', data: 'QUJD', mimeType: 'image/png' });
+  assert.deepEqual(JSON.parse(ok.content[1].text), { ok: true, id: 'a' }, '_image e _summary não vão no texto');
+  assert.equal(toolResult({ error: 'x' }).isError, true);
+  assert.equal(toolResult({ refused: true }).isError, true);
 });
 
 test('lista de ferramentas: mesma para MCP e OpenAI, com esquemas válidos e "somente leitura" marcado', () => {
@@ -121,11 +86,6 @@ test('provedores: OpenAI, NVIDIA NIM e Ollama reconhecidos pelo endereço; locai
   assert.equal(isLocalUrl('https://localhost.evil.com/v1'), false);
 });
 
-test('MCP usa as instruções recebidas (o servidor lê de server/instrucoes-agente.txt)', async () => {
-  const r = await handleMcp(rpc('initialize', {}), { callTool: null, instructions: 'Você é um teste.' });
-  assert.match(r.result.instructions, /^Você é um teste\./);
-});
-
 test('applyProps: fill ligado a um estilo de cor do projeto; estilo inexistente é recusado', () => {
   const r = createNode('rect');
   const styles = { c1: { id: 'c1', color: '#B91C1C', opacity: 1 } };
@@ -151,14 +111,6 @@ test('ferramentas de criação grande existem e estão marcadas certo (escrita �
   for (const n of ['build_layout', 'insert_icon', 'create_color_styles', 'create_page']) assert.equal(byName[n].write, true, n);
   for (const n of ['search_icons', 'list_fonts', 'switch_page']) assert.equal(byName[n].write, false, n);
   assert.match(byName.build_layout.description, /UMA permissão/);
-});
-
-test('MCP: get_image vira conteúdo de IMAGEM (a IA vê o design); campos internos não vazam', async () => {
-  const callTool = async () => ({ id: 'a', _image: { data: 'iVBORw0KGgo=', mimeType: 'image/png' }, _summary: 'x' });
-  const r = await handleMcp(rpc('tools/call', { name: 'get_image', arguments: {} }), { callTool });
-  assert.deepEqual(r.result.content[0], { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' });
-  assert.equal(r.result.content[1].type, 'text');
-  assert.ok(!r.result.content[1].text.includes('iVBOR') && !r.result.content[1].text.includes('_summary'));
 });
 
 test('MCP completo: 50 ferramentas (com exportação, assets e edição CSS); destrutivas marcadas', () => {

@@ -20,6 +20,9 @@
 import { createInterface } from 'node:readline';
 
 const BASE = (process.env.DESIGNER_URL || 'http://localhost:5173').replace(/\/+$/, '');
+/** Token do agente (servidor com contas: a conta mestre cria em POST /api/agents). Sem ele, vale o modo local. */
+const TOKEN = String(process.env.STYLO_TOKEN || '').trim();
+const auth = TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
 /**
  * Nome deste agente na presença e na janela de permissão (vários agentes no mesmo projeto): --agente "Nome" ou
  * a variável STYLO_AGENT. Sem isso, vale o nome que o programa manda no initialize (ex.: "claude-code").
@@ -35,7 +38,7 @@ const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
 /** Libera a presença e as travas do agente quando o cliente fecha o processo normalmente. */
 async function disconnect() {
   if (!session) return;
-  const headers = { Accept: 'application/json', 'Mcp-Session-Id': session, ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
+  const headers = { Accept: 'application/json', 'Mcp-Session-Id': session, ...auth, ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
   try { await fetch(`${BASE}/mcp`, { method: 'DELETE', headers }); } catch { /* o servidor pode já ter encerrado */ }
   session = '';
 }
@@ -66,7 +69,7 @@ async function handleLine(line) {
   let msg;
   try { msg = JSON.parse(line); } catch { return send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'JSON inválido.' } }); }
   try {
-    const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...(session ? { 'Mcp-Session-Id': session } : {}), ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
+    const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...auth, ...(session ? { 'Mcp-Session-Id': session } : {}), ...(AGENT ? { 'X-Stylo-Agent': AGENT } : {}) };
     const r = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: line });
     session = r.headers.get('mcp-session-id') || session;
     if (r.status === 202) return; // aviso (notification): sem resposta
