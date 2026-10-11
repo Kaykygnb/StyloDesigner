@@ -24,6 +24,8 @@
  * Usa `crypto.randomUUID` quando existe (todo navegador moderno e Node 19+) e, se não, um
  * fallback com Math.random + data. Colisão é praticamente impossível para o tamanho de um documento.
  */
+import type { Doc, Fill, Layout, LayerNode, LayerType, Page, Shadow, Stroke } from './types.ts';
+
 export const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 8);
 
@@ -94,7 +96,7 @@ export function tagOf(node) {
 }
 
 /** Etiquetas que não podem ficar uma dentro da outra (link/botão dentro de link/botão). */
-const INTERACTIVE_TAGS = ['a', 'button'];
+const INTERACTIVE_TAGS: string[] = ['a', 'button'];
 /**
  * Etiqueta que a camada usa NO HTML EXPORTADO, conferindo onde ela está. O editor desenha tudo com <div> (montado pelo
  * JavaScript), mas o arquivo exportado é LIDO pelo navegador, e a leitura do HTML tem regras: um <li> dentro de outro
@@ -104,7 +106,7 @@ const INTERACTIVE_TAGS = ['a', 'button'];
  * @param {string[]} ancestors  etiquetas dos pais, do mais externo ao pai direto
  * @returns {{ tag: string, wanted: string, reason: string }}  `reason` vazio = a escolhida vale
  */
-export function htmlTagIn(node, ancestors = []) {
+export function htmlTagIn(node: LayerNode, ancestors: string[] = []) {
   const wanted = tagOf(node);
   const fallback = node.type === 'text' ? 'p' : node.type === 'section' ? 'section' : 'div';
   const parent = ancestors[ancestors.length - 1];
@@ -140,7 +142,7 @@ export const TYPE_LABEL = {
  *  - styleId (opcional): liga a um estilo de cor compartilhado (ver components.js → syncStyles)
  * @param {string} [color='#D9D9D9']  cor sólida inicial
  */
-export const defaultFill = (color = '#D9D9D9') => ({
+export const defaultFill = (color = '#D9D9D9'): Fill => ({
   type: 'solid',
   color,
   opacity: 1,
@@ -158,10 +160,10 @@ export const defaultFill = (color = '#D9D9D9') => ({
  * tamanho da caixa — por isso trocar a espessura não "empurra" os vizinhos num auto layout.
  * `position`: 'inside' | 'center' | 'outside' controla o `outline-offset`.
  */
-export const defaultStroke = () => ({ color: '#000000', opacity: 1, width: 1, style: 'solid', position: 'inside' });
+export const defaultStroke = (): Stroke => ({ color: '#000000', opacity: 1, width: 1, style: 'solid', position: 'inside' });
 
 /** Sombra (vira `box-shadow`; em textos vira `text-shadow`). `inset` = sombra interna. */
-export const defaultShadow = () => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false });
+export const defaultShadow = (): Shadow => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false });
 
 /**
  * Configuração de auto layout de um FRAME. É literalmente CSS:
@@ -175,7 +177,7 @@ export const defaultShadow = () => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#
  *  - align:   align-items
  *  - wrap:    flex-wrap: wrap
  */
-export const defaultLayout = () => ({
+export const defaultLayout = (): Layout => ({
   mode: 'none', // none | row | column (display:flex) | grid (display:grid)
   gap: 8,
   cols: 2, // só no modo grid
@@ -198,8 +200,8 @@ export const defaultLayout = () => ({
  * @param {object} [props]  campos que sobrescrevem os padrões (ex.: { x: 10, name: 'Botão' })
  * @returns {object} o nó, já pronto para entrar em `page.children` ou `node.children`
  */
-export function createNode(type, props = {}) {
-  const node = {
+export function createNode(type: LayerType, props: Partial<LayerNode> = {}): LayerNode {
+  const node: LayerNode = {
     // --- identidade ---
     // id único (nunca muda; é a chave do índice, da seleção e do histórico)
     id: uid(),
@@ -566,7 +568,7 @@ export function walk(list, fn, parent = null) {
 }
 
 /** Cria uma página vazia. `guides` guarda as guias de régua (posições em px do mundo). */
-export function makePage(name = 'Página 1') {
+export function makePage(name = 'Página 1'): Page {
   return { id: uid(), name, children: [], guides: [] };
 }
 
@@ -581,7 +583,7 @@ export function makePage(name = 'Página 1') {
 /** Versão do formato do arquivo de projeto (.json). Suba quando uma mudança NÃO for compatível com versões anteriores e escreva a migração em validate.js. */
 export const FORMAT_VERSION = 1;
 
-export function makeDoc() {
+export function makeDoc(): Doc {
   return { version: FORMAT_VERSION, projectId: createProjectId(), name: 'Sem título', pages: [makePage()], assets: {}, styles: { colors: [], texts: [] }, comments: [] };
 }
 
