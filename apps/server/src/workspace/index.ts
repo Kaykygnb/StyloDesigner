@@ -16,7 +16,8 @@
 import { createStore } from '@stylo/core/store.js';
 import { createCommands } from '@stylo/core/commands.js';
 import { createRunner } from '@stylo/core/tools/runner.js';
-import { toolByName } from '@stylo/core/tools/schema.js';
+import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
+import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { createModelCanvas } from './model-canvas.js';
@@ -56,14 +57,17 @@ interface Doc {
   notices: string[];
   lastUsed: number;
   store: any;
+  commands: any;
   runner: any;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, renderImage = null, fetchImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, fetchImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
   operations: Operations;
+  /** Plugins ligados (ferramentas extras); sem ele só valem as ferramentas do núcleo. */
+  plugins?: Plugins | null;
   /** Desenha uma camada como PNG base64 (services/renderer.ts). Sem ele, `get_image` explica que não há renderizador. */
   renderImage?: ((node: any, doc: any, scale: number) => Promise<string>) | null;
   /** Baixa uma imagem por endereço (services/remote-image.ts, protegido contra SSRF). */
@@ -79,7 +83,7 @@ export function createWorkspace({ projects, notes, sharing, operations, renderIm
   const current = new Map<string, { id: string; role: string }>();
 
   function mount(id: string, file: string, ownerId: string, doc: unknown, base: { hash: string }): Doc {
-    const entry: Doc = { id, file, ownerId, base, notices: [], lastUsed: Date.now(), store: null, runner: null };
+    const entry: Doc = { id, file, ownerId, base, notices: [], lastUsed: Date.now(), store: null, commands: null, runner: null };
     const persist = async (record: { doc: unknown }) => {
       // grava como o dono do projeto: o controle de quem pode escrever é feito em `call`, antes de executar a ferramenta
       const saved = await projects.write({ id: ownerId }, entry.file, record.doc, { base: entry.base, by: 'workspace' });
@@ -89,6 +93,7 @@ export function createWorkspace({ projects, notes, sharing, operations, renderIm
     entry.store = createStore({ initial: { doc, views: {}, theme: 'dark', link: { file, synced: true } }, persist });
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
+    entry.commands = commands;
     entry.runner = createRunner({ store: entry.store, commands, renderImage, fetchImage });
     docs.set(id, entry);
     return entry;
@@ -233,6 +238,34 @@ export function createWorkspace({ projects, notes, sharing, operations, renderIm
   async function call(tool: string, args: any, { sid, actor, signal }: { sid: string; actor: Actor; signal?: AbortSignal }): Promise<any> {
     try {
       const def = toolByName(tool);
+      // ferramenta de PLUGIN: mesmas permissões, validação e registro de atividade das do núcleo
+      const plug = plugins?.get(tool);
+      if (plug) {
+        const pdef = plug.def as any;
+        const needs = pdef.needs ?? (pdef.write ? 'write' : 'read');
+        if (needs === 'read' && !has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
+        if ((needs === 'write' || needs === 'owner') && !has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
+        if (needs === 'comment' && !has(actor, 'comment') && !has(actor, 'write')) throw new Error('Este agente não tem permissão de comentar.');
+        const invalid = validateToolArgs(tool, args);
+        if (invalid) throw new Error(invalid);
+        let project = null as any, doc: Doc | null = null;
+        if (plug.needsProject) {
+          const cur = need(sid);
+          if (pdef.write && cur.role === 'VIEWER') throw new Error('Você só pode ler este projeto.');
+          if (needs === 'owner' && cur.role !== 'OWNER') throw new Error('Só o dono do projeto faz isto.');
+          doc = cur.entry;
+          doc.lastUsed = Date.now();
+          project = { id: doc.id, file: doc.file, role: cur.role, store: doc.store, commands: doc.commands };
+        }
+        const out: any = await plug.run(args || {}, { actor, project, services: plugins!.services, signal });
+        if (doc && pdef.write) {
+          doc.store.commit(); // um passo no histórico; o servidor grava sozinho
+          onOperation({ projectId: doc.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(args, out), ok: !out?.error });
+        }
+        const result = { ok: true, ...out };
+        if (doc?.notices.length) result.notice = doc.notices.splice(0).join(' ');
+        return result;
+      }
       if (PROJECT_TOOLS.has(tool)) {
         const needs = (def as any)?.needs;
         if (needs === 'read' && !has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');

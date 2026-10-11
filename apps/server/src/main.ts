@@ -28,6 +28,8 @@ import { createProjects } from './services/projects.js';
 import { createRenderer } from './services/renderer.js';
 import { fetchRemoteImage } from './services/remote-image.js';
 import { createWorkspace } from './workspace/index.js';
+import { createPlugins } from './plugins.js';
+import { builtinPlugins } from '@stylo/plugins/index.ts';
 import { createPresence } from './presence.js';
 import { createEvents } from './events.js';
 import { createIdentity } from './http/identity.js';
@@ -65,8 +67,10 @@ const projects = createProjects({
 });
 const notes = createNotes(db);
 const sharing = createSharing(db);
+/** Plugins embutidos: acrescentam ferramentas MCP (identidade visual...). Os serviços são o que eles podem usar do servidor. */
+const plugins = createPlugins({ plugins: builtinPlugins, services: { fetchImage: (url: string) => fetchRemoteImage(url) } });
 workspace = createWorkspace({
-  projects, notes, sharing, operations, presence: () => presence.snapshot(),
+  projects, notes, sharing, operations, plugins, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale) => renderer.render(node, doc, scale),
   fetchImage: (url) => fetchRemoteImage(url),
   baseUrl: () => `http://localhost:${port}`,

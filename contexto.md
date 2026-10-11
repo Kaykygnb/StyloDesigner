@@ -19,6 +19,7 @@ foi removido (está no histórico do GitHub). Este é o único `.md`.
 ## Organização do repositório (monorepo, npm workspaces)
 ```
 packages/core/   @stylo/core    documento puro (sem DOM): model, store, commands, css/html/svg, exportação, zip, ferramentas MCP (src/tools)
+packages/plugins/ @stylo/plugins  plugins embutidos (hoje: identidade visual). Cada plugin = ferramentas MCP com Zod + `run`; contrato em `core/src/plugin.ts`
 packages/db/     @stylo/db      Postgres + Prisma: esquema (prisma/schema.prisma), migrações SQL e cliente (src/client.ts). PGlite = Postgres embutido para uso local e testes
 apps/server/     @stylo/server  servidor Node: API, MCP, workspace, presença, contas (src/), ponte stdio (bin/mcp.mjs)
 apps/web/        @stylo/web     editor no navegador (JS legado; a interface será refeita). Vite
@@ -55,7 +56,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 51 ferramentas MCP (nome, descrição, JSON Schema) |
+| `tools/schema.js` | as 51 ferramentas MCP do núcleo (mais as dos plugins) (nome, descrição, JSON Schema) |
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
@@ -69,6 +70,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `http/guards.ts` | Host/Origin locais, JSON obrigatório, limites de corpo por rota, tratamento de erros |
 | `http/identity.ts` | quem fez o pedido (sessão ou usuário local), conta mestre, política de agentes |
 | `routes/auth.ts` · `projects.ts` · `system.ts` · `legacy.ts` | contas/agentes · projetos · status/perfil/presença/avisos ao vivo · fotos e IA de imagem (ainda em req/res) |
+| `plugins.ts` | liga os plugins: registra as ferramentas no núcleo (tools/list e validação) e guarda o `run` de cada uma |
 | `mcp/gateway.ts` | servidor MCP: protocolo do **SDK oficial**, sessões (máx. 64), identidade do agente (Bearer ou nome do programa), lista de ferramentas |
 | `mcp/agent-calls.ts` | executa uma chamada: presença, travas por camada, chamadas em voo |
 | `events.ts` | avisos ao vivo aos editores (SSE: `presence`, `project`) |
@@ -124,6 +126,7 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 ## Ordem de trabalho
 1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
 2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
+3. ✅ Contrato de plugins + plugin de identidade visual (cores OKLCH, contraste WCAG, harmonias, escalas); exportação com imagens como arquivos. Próximo: provedores de assets, biblioteca da conta, fontes.
 3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
 4. ✅ Hono + SDK oficial do MCP; `server.js` fatiado em módulos. Falta: Zod nas ferramentas e TypeScript no `core`.
 5. ✅ Postgres + Prisma ligados (migrações 0001–0003, inclusive imagens): projetos, versões, contas/sessões, agentes com token e escopos, log de operações, papéis por projeto (migrações 0001 e 0002). Importar .json antigos: `npm run importar`.
@@ -132,4 +135,4 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 
 ## Testes
 `tests/*.test.js|ts` (unitários e API, `node --import tsx --test`, incluindo `workspace.test.js` e `db.test.ts`) e `tests/e2e/*.mjs` (Playwright).
-Estado: 366 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~40 s). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.
+Estado: 397 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~40 s). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.

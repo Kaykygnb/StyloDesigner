@@ -180,3 +180,18 @@ hospedada executaria código de outras pessoas.
 **Provedores a verificar (APIs e licenças ainda não confirmadas na fonte oficial):** Pexels (fotos e vídeos, chave grátis),
 Pixabay (baixar e hospedar; cache de 24 h; limite de uso), Poly Pizza (3D .glb, CC0/CC-BY, chave grátis), Openverse (imagens e
 áudio, sem chave), Fontsource/Google Fonts (woff2, OFL).
+
+## 2026-10-11 — Contrato de plugins; plugin "identidade" (auxiliares de cor e escalas); imagens como arquivos na exportação
+**Biblioteca da conta (esclarecido):** é só da pessoa, e quando algo da biblioteca é usado num projeto ele passa a **estar no
+projeto** (cópia embutida): o projeto fica autossuficiente. Decisão da pessoa: fazer o que eu julgar certo, sem precisar concordar 100%.
+**Exportação:** `exportSite` agora grava cada imagem como arquivo em `assets/img-<hash>.<ext>` e o HTML aponta para ele (sem
+base64 no HTML; mesma imagem = um arquivo; nome estável pelo conteúdo). `assets: 'inline'` mantém o modo antigo. O zip aceita bytes.
+**Plugins (`packages/core/src/plugin.ts`, `packages/plugins`, `apps/server/src/plugins.ts`):** um plugin tem `id` e ferramentas;
+cada ferramenta = definição em Zod (`defineTool`) + `run(args, ctx)`, com `ctx` = ator, projeto aberto (se `needsProject`) e
+serviços do servidor. As ferramentas entram no tools/list e passam pela mesma validação, escopos (`needs`), travas e registro de
+atividade das do núcleo; ferramenta que altera o documento tem o `commit` feito pelo servidor. `definePlugin` valida ids e nomes.
+Plugins com código só são carregados pelo operador do servidor (nunca por upload de usuário).
+**Plugin "identidade" (5 ferramentas, só calculam; não criam nada):** `color_scale` (escala 50–950 em OKLCH; o degrau da cor dada
+usa a cor exata), `color_contrast` (WCAG 2.x), `color_harmony` (complementar, análogas, tríade, split, tétrade, monocromática),
+`color_text_on` (melhor texto sobre um fundo) e `design_scale` (tipográfica modular, espaçamento, raios, sombras).
+**Falta (identidade):** estilos de texto e variáveis/modos no MCP, exportação de tokens, cores a partir de imagem, pares de fontes, brief.

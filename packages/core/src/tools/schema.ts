@@ -52,7 +52,7 @@ function cleanJsonSchema(node: any): any {
   return out;
 }
 
-function defineTool<S extends Shape>(def: Omit<ToolDef<S>, 'inputSchema'>): ToolDef<S> {
+export function defineTool<S extends Shape>(def: Omit<ToolDef<S>, 'inputSchema'>): ToolDef<S> {
   return { ...def, inputSchema: cleanJsonSchema(z.toJSONSchema(def.input, { io: 'input' })) };
 }
 
@@ -562,13 +562,31 @@ ${PROP_HELP}`,
   }),
 ];
 
-/** Procura uma ferramenta pelo nome. */
-export const toolByName = (name: string): ToolDef | null => AGENT_TOOLS.find((t) => t.name === name) || null;
+/**
+ * Ferramentas que vêm de PLUGINS (ver plugin.ts). O servidor as registra ao ligar; daí em diante aparecem no tools/list e
+ * passam pela mesma validação e pelas mesmas travas das ferramentas do núcleo.
+ */
+const PLUGIN_TOOLS: ToolDef[] = [];
+
+/** Registra as ferramentas de um plugin. Nome repetido (com o núcleo ou com outro plugin) é erro. */
+export function registerPluginTools(defs: ToolDef[]) {
+  for (const def of defs) {
+    if (PLUGIN_TOOLS.includes(def)) continue; // o mesmo plugin ligado de novo (testes, reinício a quente): sem efeito
+    if (AGENT_TOOLS.some((t) => t.name === def.name) || PLUGIN_TOOLS.some((t) => t.name === def.name)) throw new Error(`Ferramenta repetida: ${def.name}.`);
+    PLUGIN_TOOLS.push(def);
+  }
+}
+
+/** Todas as ferramentas disponíveis: as do núcleo e as dos plugins. */
+export const allTools = (): ToolDef[] => [...AGENT_TOOLS, ...PLUGIN_TOOLS];
+
+/** Procura uma ferramenta pelo nome (núcleo ou plugin). */
+export const toolByName = (name: string): ToolDef | null => AGENT_TOOLS.find((t) => t.name === name) || PLUGIN_TOOLS.find((t) => t.name === name) || null;
 
 export const mcpToolByName = (name: string) => toolByName(name);
 
 /** As ferramentas no formato do MCP (`tools/list`). */
-export const mcpTools = () => AGENT_TOOLS.map((t) => ({
+export const mcpTools = () => allTools().map((t) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.inputSchema,
