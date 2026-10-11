@@ -4,5 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Plugins embutidos do Stylo: identidade visual, (em breve) provedores de assets, exportadores.",
-  "exports": { "./*": "./src/*" }
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "zod": "^4.6.6"
+  }
 }

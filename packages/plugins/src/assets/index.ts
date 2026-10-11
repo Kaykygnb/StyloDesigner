@@ -18,7 +18,10 @@ import { providerStatuses, recallRef, searchAssets } from './registry.ts';
 import type { AssetServices, CustomSource } from './types.ts';
 
 const KINDS = ['image', 'video', 'audio', 'model3d', 'lottie', 'font', 'icon'] as const;
-const svc = (ctx: { services: Record<string, any> }) => ctx.services.assets as AssetServices & { sources?: any };
+const svc = (ctx: { services: Record<string, any> }) => {
+  if (!ctx.services?.assets) throw new Error('O serviço de assets não está ligado neste ambiente (ele existe no servidor Stylo: npm start).');
+  return ctx.services.assets as AssetServices & { sources?: any };
+};
 
 /** Resumo curto de um asset da biblioteca para devolver ao agente. */
 const brief = (a: any) => ({

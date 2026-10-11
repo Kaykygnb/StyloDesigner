@@ -1,28 +1,37 @@
 Stylo
-Copyright (c) 2026 Kaykygnb. Licença MIT (arquivo LICENSE).
+Copyright (c) 2026 Kaykygnb. Licença atual do código: MIT (arquivo LICENSE). A licença definitiva ainda será decidida
+(veja PASSAGEM.md, "Decisões que dependem do dono"); este arquivo NÃO é parecer jurídico.
 
-Este arquivo lista o que o Stylo usa de terceiros e sob quais licenças. Nada abaixo é redistribuído no repositório
-como arquivo binário de fonte ou de ícone: tudo é carregado da rede na hora do uso, exceto o que está dito.
+Este arquivo lista o que o Stylo usa de terceiros e sob quais licenças. Revisado em 2026-10-11.
 
-Fontes (Google Fonts)
-  A interface e os exemplos carregam fontes do Google Fonts (https://fonts.google.com) em fonts.googleapis.com. A maioria
-  das famílias usa a SIL Open Font License 1.1 (por exemplo IBM Plex Sans, JetBrains Mono, Inter, DM Sans); algumas usam
-  a Apache License 2.0. Cada família traz a licença na sua página do Google Fonts. Quando você exporta um site, o HTML
-  referencia as famílias escolhidas, e a licença de cada uma continua valendo para o seu site.
+DEPENDÊNCIAS DE EXECUÇÃO (versões em package-lock.json)
+  hono, @hono/node-server, @modelcontextprotocol/sdk, zod, undici, pglite-prisma-adapter, lottie-web ... MIT
+  linkedom ......................................... ISC
+  prisma, @prisma/client, @prisma/adapter-pg, @electric-sql/pglite, playwright-core, @google/model-viewer ... Apache License 2.0
+  Desenvolvimento apenas: typescript (Apache-2.0), tsx, vite (MIT), playwright (Apache-2.0).
 
-Ícones (Material Symbols)
-  A lista de nomes em src/data/material-icons.js vem do repositório google/material-design-icons
-  (https://github.com/google/material-design-icons), licença Apache License 2.0. O desenho de cada ícone é baixado na hora
-  de fonts.gstatic.com e fica embutido no seu projeto como vetor.
+PLAYERS QUE VÃO DENTRO DOS SITES EXPORTADOS
+  lottie-web (MIT) e @google/model-viewer (Apache-2.0) são copiados para vendor/ no zip HTML e viram dependências do npm no
+  projeto React. Quem publica o site precisa manter os avisos de licença desses arquivos (os próprios .js trazem o cabeçalho).
+  PENDENTE: acrescentar um arquivo de licenças ao zip exportado.
 
-Fotos (Openverse e Pexels)
-  A busca de fotos usa o Openverse (https://openverse.org; apenas licenças que permitem uso comercial e derivação, com o
-  crédito do autor guardado na camada e escrito no HTML exportado) e o Pexels (https://www.pexels.com/license/; chave
-  sua, guardada só no servidor). Cada foto mantém a licença do autor: respeite a atribuição quando a licença a exigir.
+FONTES (Google Fonts, via Fontsource)
+  `add_font` baixa os arquivos .woff2 do Fontsource (https://fontsource.org) e os HOSPEDA dentro do projeto e do site exportado.
+  A maioria das famílias usa a SIL Open Font License 1.1; algumas, Apache License 2.0 ou Ubuntu Font License. A licença de
+  cada família continua valendo para o site de quem exporta. Famílias não hospedadas continuam referenciadas pelo Google
+  Fonts (fonts.googleapis.com) no HTML exportado.
 
-Modelos de IA (opcional)
-  O assistente fala com o provedor que você configurar (OpenAI, NVIDIA NIM, Ollama ou um endereço compatível) usando a
-  SUA chave. O Jev (https://typesafe.ai) é um serviço externo opcional; consulte os termos dele antes de usar.
+ÍCONES (Material Symbols)
+  A lista de nomes (packages/core/src/data/material-icons.js) vem de google/material-design-icons, Apache License 2.0.
+  O desenho de cada ícone é baixado na hora de fonts.gstatic.com e fica embutido no projeto como vetor.
 
-Dependências de desenvolvimento
-  playwright (Apache License 2.0), usado só nos testes de navegador. O Stylo não tem dependências de execução.
+ASSETS GRATUITOS (plugin "assets")
+  Cada resultado de busca traz a licença e o crédito que o PROVEDOR informou, e o crédito vai para o CREDITS.txt do site.
+  Só entram licenças que permitem uso comercial.
+  - Openverse (https://openverse.org): imagens e áudio sob Creative Commons / domínio público; atribuição quando exigida.
+  - Pexels (https://www.pexels.com/license/) e Pixabay (https://pixabay.com/service/license-summary/): licenças próprias dos
+    serviços; chave de API de quem usa, guardada criptografada. O Pixabay exige cache de 24 h e proíbe ligar permanente às
+    URLs deles (por isso baixamos o arquivo).
+  - Poly Pizza (https://poly.pizza): modelos 3D CC0 / CC-BY por modelo. A integração NÃO foi conferida na documentação oficial.
+  - Fontes de assets cadastradas por quem usa: a licença é de responsabilidade de quem as cadastra.
+  Respeite sempre a licença de cada arquivo.

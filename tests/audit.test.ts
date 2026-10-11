@@ -91,3 +91,28 @@ test('renderer.render com width (breakpoint): usa as regras @media e a altura qu
   assert.equal(dims.w, 400, 'a tela fluida ocupa a largura da janela do breakpoint');
   assert.equal(dims.h, 120, 'altura = a do conteúdo');
 });
+
+test('auditStatic: um h1 por tela, sem pular nível de título; alvos clicáveis < 24px; alt "" é decorativo (não é aviso)', () => {
+  const board: any = createNode('frame', { name: 'Tela' });
+  const h = (name: string, tag: string) => { const n: any = text(name, '#111111', 32, { tag }); return n; };
+  board.children.push(h('Principal', 'h1'), h('Seção', 'h3'), h('Outro principal', 'h1'));
+  const link: any = createNode('frame', { name: 'Link miúdo', tag: 'a', w: 20, h: 18 });
+  const botao: any = createNode('frame', { name: 'Botão ok', tag: 'button', w: 120, h: 40 });
+  const deco: any = createNode('rect', { name: 'Enfeite', alt: '' }); deco.fill = { ...defaultFill(), type: 'image', assetId: 'a' };
+  board.children.push(link, botao, deco);
+  const issues = auditStatic([board]);
+  const by = (type: string) => issues.filter((i) => i.type === type);
+  assert.equal(by('titulos').length, 2, 'um aviso de 2º h1 e um de nível pulado');
+  assert.ok(by('titulos').some((i) => /2 títulos h1/.test(i.message)));
+  assert.ok(by('titulos').some((i) => /é h3 logo depois de h1/.test(i.message)));
+  assert.deepEqual(by('alvo-pequeno').map((i) => i.layerName), ['Link miúdo']);
+  assert.deepEqual(by('sem-alt'), [], 'alt vazio = imagem decorativa declarada');
+});
+
+test('serviço de assets ausente: a ferramenta explica em vez de "Cannot read properties of undefined"', async () => {
+  const { createPlugins } = await import('../apps/server/src/plugins.ts');
+  const { builtinPlugins } = await import('@stylo/plugins/index.ts');
+  const plugins = createPlugins({ plugins: builtinPlugins });
+  const lib = plugins.get('library_list')!;
+  await assert.rejects(async () => lib.run({}, { actor: { userId: 'u' } as any, project: null, services: plugins.services } as any), /serviço de assets não está ligado/);
+});

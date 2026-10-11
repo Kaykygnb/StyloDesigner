@@ -1,143 +1,195 @@
 # Stylo — contexto
 
-**O que é:** um "Figma" local, em JavaScript puro (módulos ES, sem build, sem dependências de runtime), em que o
-canvas é DOM + CSS de verdade. A ideia central: **um servidor ligado, onde humanos e agentes de IA (via MCP)
-trabalham no mesmo projeto**, criando, editando e exportando sites.
+Este é o documento que explica **o que a ferramenta é e como o código está organizado**. Para saber **o que fazer a seguir**
+e **o que depende de decisão do dono do projeto**, leia `PASSAGEM.md`. O **porquê** de cada escolha está em `decisoes.md`
+(diário: só se acrescenta no fim, nunca se reescreve uma entrada antiga).
 
-**Objetivo do produto**
-- O servidor fica ligado; qualquer agente (Claude Code, Codex, Cursor...) conecta em `http://localhost:5173/mcp`.
-- O agente cria um arquivo (projeto), trabalha nele e: exporta um **zip de HTML estruturado** (`export_site`), ou
-  **puxa o código** (`export_html`, `get_css`...) para construir o resto por conta própria.
-- Humanos usam o editor visual no navegador; humanos e agentes podem estar no mesmo projeto ao mesmo tempo
-  (presença, travas por camada, comentários). Isso pede contas e banco de dados (hoje: arquivos JSON numa pasta).
+## 1. O que é
 
-**Leia também `decisoes.md`** — o diário do que foi decidido e por quê (só se acrescenta no fim; nunca reescrever entradas antigas).
+Um "Figma" para **agentes de IA e pessoas** prototiparem e construírem sites e aplicativos juntos. O canvas é CSS de
+verdade: cada camada vira HTML/CSS. Um **servidor fica ligado**; qualquer agente (Claude Code, Codex, Cursor...) conecta pelo
+**MCP**, cria um projeto, trabalha nele, **vê** o que fez (imagem), **audita** (acessibilidade, responsivo) e **exporta**: um
+zip de HTML estruturado, um projeto React (Vite), tokens do design (CSS/JSON/Tailwind), ou puxa o código para construir o resto.
+Pessoas usam um editor visual no navegador, no mesmo projeto, ao mesmo tempo (hoje um editor legado; será refeito).
+Vai rodar localmente e também **hospedado e cobrado** — por isso Postgres, contas, tokens de agente, cotas.
 
-**Estado desta cópia:** limpeza em andamento. O chat de IA embutido (OpenAI/NIM/Ollama, Jev, subagentes) já foi removido: agentes entram só pelo MCP. Tudo que era documentação, plano, captura de tela e identidade visual
-foi removido (está no histórico do GitHub). Este é o único `.md`.
+**Foco atual: as ferramentas e o MCP, não o editor.** O editor (`apps/web`) é legado e será reconstruído depois.
 
-## Organização do repositório (monorepo, npm workspaces)
+## 2. Vocabulário (use estes nomes)
+
+| Termo | Significa |
+|---|---|
+| **projeto** | um documento salvo no banco (tabela `Project`, coluna `doc` em JSONB), com revisão e versões |
+| **documento / doc** | a árvore do projeto em memória: `pages[] → camadas`, mais `assets`, `styles`, `fonts`, `credits`, `brief`... (`core/types.ts`, `core/model.ts`) |
+| **página** | uma aba do projeto (`doc.pages[]`); contém camadas na raiz |
+| **tela / prancheta (board)** | um `frame` na raiz da página (ou dentro de uma `section`); vira **uma página HTML** na exportação |
+| **camada (node/layer)** | um elemento: `frame`, `rect`, `ellipse`, `text`, `group`, `line`, `path`, `section`, `html`, `media`. Posição relativa ao pai, em px |
+| **fixed / hug / fill** | modos de tamanho (`sizeX`/`sizeY`): medida fixa · do tamanho do conteúdo · preenche o pai. Hug/fill só o navegador sabe: o servidor **mede** com o Chromium |
+| **estilo** | cor, texto, sombra ou gradiente compartilhado (`doc.styles`); camadas ligadas seguem o estilo e viram `var(--x)` no CSS |
+| **variável** | número em px reutilizável (espaçamento, raio, fonte) |
+| **modo** | claro/escuro de um estilo de cor |
+| **breakpoint** | largura-alvo responsiva (padrão: `tablet` ≤1024, `mobile` ≤640); `set_responsive` cria as regras `@media` |
+| **ferramenta (tool)** | operação MCP com nome, entrada validada por Zod e um `run` |
+| **core tool / plugin tool** | ferramenta do núcleo (`core/tools`) ou de um plugin (`packages/plugins`) |
+| **workspace** | no servidor, os projetos abertos em memória, com executor e papel por sessão (`apps/server/src/workspace`) |
+| **runner** | o executor das ferramentas sobre o `store` (`core/tools/runner.js`) |
+| **ator** | quem chama: pessoa ou agente (com **escopos** `read`/`comment`/`write`/`export`) |
+| **conta mestre** | o dono do servidor (primeira conta): aprova pessoas e agentes |
+| **biblioteca** | assets pessoais da conta (arquivos por sha256); usar num projeto **copia** o conteúdo |
+
+## 3. Arquitetura
+
 ```
-packages/core/   @stylo/core    documento puro (sem DOM): model, store, commands, css/html/svg, exportação, zip, ferramentas MCP (src/tools)
-packages/plugins/ @stylo/plugins  plugins embutidos: **identidade** (auxiliares de cor/escalas) e **assets** (provedores gratuitos, biblioteca, fontes). Cada plugin = ferramentas MCP com Zod + `run`; contrato em `core/src/plugin.ts`
-packages/db/     @stylo/db      Postgres + Prisma: esquema (prisma/schema.prisma), migrações SQL e cliente (src/client.ts). PGlite = Postgres embutido para uso local e testes
-apps/server/     @stylo/server  servidor Node: API, MCP, workspace, presença, contas (src/), ponte stdio (bin/mcp.mjs)
-apps/web/        @stylo/web     editor no navegador (JS legado; a interface será refeita). Vite
-tests/                          testes unitários e de API (importam os pacotes por @stylo/*) e e2e (desatualizados)
-scripts/                        utilitários soltos (listas do Google, benchmark)
+packages/core     @stylo/core     documento puro (sem DOM, roda em Node e navegador): modelo, store, comandos, CSS/HTML/SVG,
+                                  exportações, auditoria, tokens, ferramentas MCP (Zod) e o executor
+packages/plugins  @stylo/plugins  plugins embutidos: identidade (cor, tipografia, brief) e assets (provedores, biblioteca, fontes)
+packages/db       @stylo/db       Postgres + Prisma: esquema, migrações SQL, cliente. PGlite = Postgres embutido (local/testes)
+apps/server       @stylo/server   servidor Node (Hono): API, MCP, workspace, contas, renderizador (Chromium), ponte stdio
+apps/web          @stylo/web      editor legado (JS, Vite). SERÁ REFEITO. Não gaste esforço aqui
+tests/                            unitários e de API (importam os pacotes por @stylo/*); tests/e2e/ está desatualizado
+scripts/                          utilitários soltos (veja "Scripts")
 ```
-Regra de dependência: `web → core`, `server → core`, `core → nada`. O `core` não pode importar de `web` nem de `server`.
-Imports entre pacotes usam o nome (`@stylo/core/model.js`); dentro do pacote, caminho relativo.
+**Regra de dependência:** `web → core`, `server → core`, `plugins → core`, **`core → nada`** (não importa `web`, `server`, `db`,
+nem Node/DOM exclusivos). Imports entre pacotes usam o nome (`@stylo/core/model.ts`); dentro do pacote, caminho relativo.
+**Quem precisa de algo do servidor (navegador, rede, disco) recebe por injeção**: ex. `renderImage`, `auditLayout`, `vendor`,
+`fetchImage` entram no `createRunner`/`exportSite` como funções; o core nunca chama o mundo de fora.
 
-## Rodar
+Stack: Node ≥ 22 (ESM), TypeScript (parcial, ver `PASSAGEM.md`), Hono + `@hono/node-server`, SDK oficial do MCP (Streamable HTTP),
+Zod 4, Prisma 7.10 (fixo) com PGlite/Postgres, Playwright-core (Chromium só para desenhar/medir), linkedom, undici, Vite 8 (editor).
+
+## 4. Rodar
+
+```bash
+npm install            # roda sozinho o `prisma generate` (cliente em packages/db/src/generated, no .gitignore)
+npx playwright install chromium   # necessário para get_image, check_design (vazamento) e a medida de layout
+npm start              # http://localhost:5173 — sobe servidor + editor legado (Vite) na mesma porta; banco PGlite local; sem login
+npm run typecheck      # tsc em db, core, plugins, server (arquivos .js não são checados)
+npm test               # ~440 testes, ~2–3 min (cada teste de servidor sobe um PGlite em memória)
+npm run build          # vite build do editor legado (apps/web/dist)
 ```
-npm start        # http://localhost:5173 (sem build: o servidor sobe o Vite junto, na mesma porta; PORT e DESIGNER_CONFIG mudam porta e config)
-npm run db:generate  # gera o cliente Prisma (roda sozinho no npm install)
-npm run typecheck    # tsc nos pacotes já em TypeScript (hoje: packages/db)
-npm run build    # gera apps/web/dist; com ele presente o servidor entrega os arquivos de lá (STYLO_DEV=1 força o Vite)
-npm test         # testes unitários e de API (node --test, ~3 s)
-npm run test:e2e # testes de navegador (precisa de playwright)
-```
-Conectar um agente: Claude Code `claude mcp add --transport http projeto-designer http://localhost:5173/mcp`;
-Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa para o `/mcp`.
+Um arquivo de teste: `node --import tsx --import ./tests/_setup.mjs --test tests/<arquivo>`.
+Conectar um agente: `claude mcp add --transport http stylo http://localhost:5173/mcp` (Claude Code); Codex/Claude Desktop (só stdio):
+`node apps/server/bin/mcp.mjs`, que repassa para o `/mcp` (aceita `STYLO_TOKEN` e `--agente`).
 
-## Mapa do código (o quê, onde, por quê)
+**Variáveis de ambiente:** `PORT` · `DESIGNER_CONFIG` (arquivo de configuração; padrão `designer.config.json`) · `DATABASE_URL`
+(Postgres; sem ela, PGlite em `designer.db/`) · `DESIGNER_DB_DIR` (`memory` nos testes) · `STYLO_AUTH=accounts` (login com contas;
+padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_DIR` (arquivos grandes; `memory` nos testes) ·
+`STYLO_SECRET_KEY` (32 bytes base64 para criptografar chaves de provedores; sem ela cria `*.secret`, que **não vai para o git**) ·
+`STYLO_LIBRARY_QUOTA_MB` (padrão 2048) · `PEXELS_API_KEY`, `PIXABAY_API_KEY`, `POLYPIZZA_API_KEY` (chaves de provedores).
 
-### `packages/core/src` — documento, puro, roda no Node e no navegador
+## 5. Mapa do código
+
+### `packages/core/src`
 | Arquivo | Faz |
 |---|---|
-| `model.js` | formato do documento (páginas → camadas), `createNode`, árvore, grupos, constraints |
-| `store.js` | estado único, histórico (undo/redo), eventos, quando salvar |
+| `types.ts`, `model.ts` | tipos e formato do documento; `createNode`, `makeDoc`, árvore, breakpoints, slugify |
+| `store.js` | estado único, histórico (undo/redo), quando salvar. `loadDoc(..., {clean:true})` |
 | `commands.js` | operações sobre a árvore (agrupar, duplicar, alinhar, auto layout, componentes...). Pede geometria a um "canvas" injetado |
-| `components.js`, `modes.js`, `palettes.js`, `color.js`, `comments.js` | componentes, modos de cor/variáveis, paletas, cores, notas e comentários |
-| `validate.js`, `geom.js`, `imagefx.js`, `image-assets.js` | validação do JSON, geometria, imagens |
-| `css.js`, `html.js`, `cssedit.js`, `codeassist.js` | camada → CSS, HTML/CSS gerado, edição de CSS livre |
-| `svg.js`, `svgimport.js` | exportar e importar SVG |
-| `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
-| `export-react.ts`, `html-to-jsx.ts` | exportação para **React** (projeto Vite): reaproveita o site exportado e converte cada tela em componente + CSS Module |
-| `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, vazamento) |
-| `tokens.ts`, `media-runtime.ts` | tokens do design (CSS/JSON/Tailwind) · players de 3D/Lottie que vão dentro do zip |
-| `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
-| `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 61 ferramentas MCP do núcleo (mais 18 dos plugins: 8 de identidade e 10 de assets) (nome, descrição, JSON Schema) |
-| `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
-| `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
+| `components.ts`, `modes.ts`, `palettes.ts`, `color.ts`, `comments.ts` | componentes e `syncStyles` · modos de cor e variáveis · paletas · cores/contraste · comentários no documento |
+| `css.js`, `html.js`, `cssedit.ts`, `codeassist.js` | camada → CSS/HTML (`exportHtml`, `generateCode`), HTML limpo, CSS livre |
+| `svg.js`, `svgimport.js`, `geom.js`, `imagefx.js`, `image-assets.ts`, `image-size.ts`, `asset-kinds.ts` | SVG, geometria, efeitos de imagem, detecção de tipo/tamanho de arquivo por bytes |
+| `fonts.ts`, `icons.ts`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
+| `site-export.ts`, `zip.ts` | `exportSite` (zip HTML: páginas, `assets/`, `fonts/`, `CREDITS.txt`, players) · zip sem dependência |
+| `export-react.ts`, `html-to-jsx.ts` | projeto **React/Vite** a partir do site exportado; conversor HTML→JSX |
+| `tokens.ts`, `media-runtime.ts` | tokens (CSS/JSON/Tailwind) · players de 3D/Lottie para o zip |
+| `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
+| `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
+| `tools/schema.ts` | **as 61 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
+| `tools/runner.js` | **executa** cada ferramenta (`READ` = leituras; `WRITE` = escritas). Recebe por injeção `renderImage`, `auditLayout`, `fetchImage`, `imageOps`, `vendor` |
+| `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
+| `sample-vitrine.js`, `version.ts`, `validate.ts` | projeto de exemplo · versão · validação do JSON |
 
-### `apps/server/src` — Hono + SDK oficial do MCP (em TypeScript, exceto arquivos antigos em .js)
+### `packages/plugins/src`
+`index.ts` (lista `builtinPlugins`) · `identidade/` (`cor.ts` OKLCH/WCAG, `tipografia.ts` escalas, `fontes.ts` pares de fontes, `index.ts`: 8 ferramentas) ·
+`assets/` (`index.ts`: 10 ferramentas; `registry.ts`; `custom.ts` fontes cadastradas; `types.ts`; `providers/*`: openverse, pexels, pixabay, polypizza, fontsource, material).
+
+### `apps/server/src`
 | Arquivo | Faz |
 |---|---|
-| `main.ts` | liga tudo: configuração, banco, serviços, app HTTP, MCP, editor; desligamento limpo. Roda com `node --import tsx` |
-| `app.ts` | a aplicação Hono: proteções, rotas `/api/*` e `/mcp` |
-| `context.ts` | o objeto `Services` (serviços juntos, sem framework de injeção) |
-| `config.ts` | arquivo de configuração (versões guardadas, chaves do Pexels/imagem, política de agentes) |
-| `http/guards.ts` | Host/Origin locais, JSON obrigatório, limites de corpo por rota, tratamento de erros |
-| `http/identity.ts` | quem fez o pedido (sessão ou usuário local), conta mestre, política de agentes |
-| `routes/library.ts` | biblioteca da conta (envio de arquivo, lista, download, remoção) e chaves dos provedores por HTTP |
-| `routes/auth.ts` · `projects.ts` · `system.ts` · `legacy.ts` | contas/agentes · projetos · status/perfil/presença/avisos ao vivo · fotos e IA de imagem (ainda em req/res) |
-| `plugins.ts` | liga os plugins: registra as ferramentas no núcleo (tools/list e validação) e guarda o `run` de cada uma |
-| `mcp/gateway.ts` | servidor MCP: protocolo do **SDK oficial**, sessões (máx. 64), identidade do agente (Bearer ou nome do programa), lista de ferramentas |
-| `mcp/agent-calls.ts` | executa uma chamada: presença, travas por camada, chamadas em voo |
-| `events.ts` | avisos ao vivo aos editores (SSE: `presence`, `project`) |
-| `services/blobs.ts` · `library.ts` · `secrets.ts` · `asset-services.ts` | arquivos grandes por sha256 (pasta/memória; S3 depois) · **biblioteca de assets da conta** (ficha no banco, bytes nos blobs) · chaves de provedores criptografadas (AES-GCM) · o que o plugin de assets usa do servidor |
-| `services/assets.ts` · `remote-image.ts` | imagens fora do JSON (tabela `Asset`, uma por conteúdo/sha256; o JSON leva `asset:<hash>`; volta como data URL ao ler) · baixar imagem por endereço com proteção contra SSRF |
-| `services/projects.ts` · `auth.ts` · `agents.ts` · `operations.ts` · `notes.ts` · `sharing.ts` | projetos com revisão e versões · contas e sessões · cadastro de agentes · log de atividade · notas · compartilhamento |
-| `services/renderer.ts` | PNG do design num Chromium isolado (`get_image`) |
-| `workspace/index.ts` · `model-canvas.ts`(.js) | **onde o MCP trabalha**: projetos abertos em memória, papel e escopos por sessão, grava sozinho, recarrega se outro autor gravar; geometria sem DOM |
-| `db.ts` | abre o banco: `DATABASE_URL` = Postgres; senão PGlite embutido |
-| `presence.js` · `account.js` · `atomic.js` · `http-error.js` | presença e travas · perfil local · gravação atômica · erro HTTP |
-| `photos.js` · `imageai.js` · `providers.js` · `web.js` | fotos livres · edição generativa de imagem · provedores · entrega do editor (dist ou Vite) |
-| `instrucoes-agente.txt` | instruções entregues a cada agente no `initialize` |
-| `../bin/mcp.mjs` | ponte stdio → `/mcp` (aceita `STYLO_TOKEN` e `--agente`) |
+| `main.ts` | liga tudo (config, banco, serviços, app HTTP, MCP, renderizador, plugins) e desliga limpo |
+| `app.ts`, `context.ts`, `config.ts` | aplicação Hono · objeto `Services` · configuração (versões guardadas, política de agentes, chaves) |
+| `http/guards.ts`, `http/identity.ts` | Host/Origin locais, limites de corpo, erros · quem fez o pedido, conta mestre, política de agentes |
+| `routes/*` | `auth` (contas/agentes) · `projects` (projetos, `site.zip`, `react.zip`, atividade) · `library` · `system` (status/presença/SSE) · `legacy` (fotos e IA de imagem do editor antigo) |
+| `mcp/gateway.ts`, `mcp/agent-calls.ts` | servidor MCP (SDK oficial, sessões, identidade do agente) · uma chamada: presença, travas por camada |
+| `workspace/index.ts` | **onde o MCP trabalha**: projetos abertos, papel/escopos, grava sozinho (400 ms), recarrega se outro autor gravar, **medida de layout** preguiçosa |
+| `workspace/measure.ts`, `workspace/model-canvas.js` | aplica as medidas do navegador em `node.w/h` · geometria sem DOM (aproximada) |
+| `services/*` | `projects` (revisão, versões) · `auth`, `agents`, `operations` (log), `notes`, `sharing` · `assets` (imagens por sha256), `blobs`, `library`, `secrets` (AES-GCM), `asset-services`, `remote-image` (SSRF) · `renderer` (Chromium: `render`, `measure`, `overflow`) · `vendor` (players de mídia) |
+| `plugins.ts`, `events.ts`, `db.ts`, `dom-polyfill.ts` | liga plugins · SSE ao editor · abre o banco · DOMParser (linkedom) para `insert_icon` sem navegador |
+| `instrucoes-agente.txt` | **o manual que cada agente recebe no `initialize`**. Edite com cuidado: é o "prompt" do produto |
+| `presence.js`, `account.js`, `atomic.js`, `http-error.js`, `photos.js`, `imageai.js`, `providers.js`, `web.js` | legados em JS (presença/travas, perfil local, gravação atômica, fotos livres, IA de imagem, entrega do editor) |
 
-### `apps/web` — editor visual (interface será refeita; só o essencial aqui)
-`src/main.js` monta tudo; `canvas.js`, `overlay.js`, `tools.js`, `pen.js`, `rulers.js`, `present.js` desenham e editam;
-`saving.js`, `storage.js`, `export.js`, `thumbnail.js`, `account.js` salvam/exportam; `live.js` liga ao servidor
-(presença e "o projeto mudou"); `ui/*` painéis; `styles/app.css`; `index.html`, `public/assets`.
+### `packages/db`
+`prisma/schema.prisma` (User, Agent, Project[doc JSONB, revision, docHash], ProjectMember, ProjectVersion, Operation, Note, Session, Asset, LibraryAsset, ProviderSecret, AssetSource) ·
+`prisma/migrations/0001…0004` · `src/client.ts` (`createDb({url}|{pglite})`, aplica as migrações no PGlite).
 
-## Como o MCP funciona agora
-```
-agente ──HTTP /mcp (Bearer token)──▶ identidade do agente ──▶ workspace.call(tool, ator) ──▶ runner.run ──▶ store
-                                                                                     │                    │ (400 ms)
-                                              operations.record (log de atividade) ◀─┘                    ▼
-editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pendente) ◀── projects.write (banco, com revisão)
-```
-- Sem editor aberto o agente cria projeto (`new_project`), edita e exporta (`export_zip`, `export_site`, `export_html`).
-- `apps/web/src/live.js` é a única ligação do editor com o servidor para MCP/presença (eventos `presence` e `project`).
-- **Dois modos de acesso:** `local` (padrão: sem login, só esta máquina, agentes entram pelo nome e a política `open` os registra) e `accounts` (`STYLO_AUTH=accounts`: login com senha, conta mestre, agentes só com token). A conta mestre cria agentes em `POST /api/agents` (o token aparece uma vez) e aprova/revoga em `/api/agents/:id/approve|revoke`; o log sai em `GET /api/projects/<arquivo>/activity`.
-- **Imagens:** o núcleo continua vendo `doc.assets` com data URLs; o banco as guarda à parte (`services/assets.ts`) e serve cada uma em `GET /api/projects/<arquivo>/assets/<sha256>`.
-- **Falta para expor na internet:** ligar em `0.0.0.0`/domínio (hoje só 127.0.0.1 e Host/Origin locais), HTTPS, limite de requisições, filtrar eventos SSE por pessoa, e o editor ainda não tem tela de login.
-- **Limites conhecidos:** (1) se duas pessoas gravam o mesmo projeto, a gravação de fora vence e o workspace recarrega
-  (colaboração em tempo real de verdade — CRDT ou operações — é trabalho futuro); (2) `get_image` precisa de um
-  renderizador (plugin com Chromium/Playwright, ainda não feito); (3) seleção e histórico (`undo`) são do projeto, não da sessão;
-  (4) a pasta de projetos (.json) deixou de ser o armazenamento: os projetos moram no banco; o editor ainda mostra a configuração antiga de pasta, que não tem mais efeito.
+### Scripts (`scripts/`)
+`importar.ts` (traz `.json` antigos para o banco; funciona) · `gerar-listas-google.mjs` (atualiza listas de fontes/ícones; funciona) ·
+`benchmark-site-load.mjs` (mede o HTML exportado no Chromium; funciona) · `auditar-colaboracao.mjs` e `gerar-miniatura-vitrine.mjs` (**legados do editor antigo; provavelmente quebrados**).
 
-## Decisões tomadas (com a pessoa dona do projeto)
-1. **Sem agente embutido.** Toda IA entra por MCP. O MCP é um *core plugin*, não um detalhe do servidor.
-2. **Modularização é a regra:** nenhum arquivo faz mil coisas. Cada parte tem uma pasta e um motivo.
-3. **Core plugins:** documento, exportação, MCP, fotos, imagem, (futuro) identidade visual. Cada plugin registra
-   suas ferramentas MCP, sua lógica e seus testes. Formato proposto: `{ nome, ferramentas, executar }`.
-4. **Execução headless:** documento e operações rodam no servidor; o navegador é só mais um cliente.
-5. **Dependências são bem-vindas** se encolherem o código. **TypeScript** no lugar de JS puro; Hono no servidor; SDK oficial do MCP; Vite no editor.
-6. **Hospedagem pessoal e serviço pago:** a pessoa roda num servidor próprio e acessa de vários lugares, com amigos
-   editando junto; o projeto também será oferecido como serviço cobrado. Banco: **Postgres + Prisma** (JSONB para a
-   árvore do design). JSON fica como formato de **exportar/importar**. Redis só se houver várias instâncias.
-   Licença: source-available (não vender a ferramenta como produto próprio; usar o resultado é livre) — **a definir**
-   (FSL ou PolyForm Shield são os candidatos; o repositório ainda está em MIT).
-7. **Contas locais:** uma conta mestre que autoriza (ou não) pessoas e agentes.
-8. **Agentes cadastrados:** cada agente MCP tem identidade, aparece na presença ("bolinha") com o que está fazendo e
-   o que fez (log de atividade).
-9. **Comentários e notas de decisão** por camada/projeto (por que se fez algo), visíveis a pessoas e agentes.
+## 6. Como as coisas funcionam
 
-## Ordem de trabalho
-1. ✅ Limpar docs/capturas/identidade e remover o chat embutido.
-2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
-3. ✅ Contrato de plugins + plugin de identidade visual (cores OKLCH, contraste WCAG, harmonias, escalas); exportação com imagens como arquivos. Próximo: provedores de assets, biblioteca da conta, fontes.
-3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
-4. ✅ Hono + SDK oficial do MCP; `server.js` fatiado em módulos. Falta: Zod nas ferramentas e TypeScript no `core`.
-5. ✅ Postgres + Prisma ligados (migrações 0001–0003, inclusive imagens): projetos, versões, contas/sessões, agentes com token e escopos, log de operações, papéis por projeto (migrações 0001 e 0002). Importar .json antigos: `npm run importar`.
-6. Plugins do núcleo (documento, exportação, MCP, fotos, imagem, identidade visual).
-7. Edição simultânea de verdade (operações ou CRDT) e renderizador para `get_image`.
+**Uma chamada MCP:** agente → `/mcp` (Bearer token, ou nome do programa em modo local) → `workspace.call(ferramenta, args, ator)`:
+confere escopo/papel → valida args (Zod; argumento desconhecido é erro) → [se for leitura que mostra tamanhos, **mede o layout real**] →
+`runner.run` sobre o `store` → registra no log de atividade → em 400 ms `projects.write` grava no banco **com revisão** (conflito = 409,
+nunca apaga trabalho alheio; conteúdo idêntico é ignorado por `docHash`) → avisa editores por SSE.
 
-## Testes
-`tests/*.test.js|ts` (unitários e API, `node --import tsx --test`, incluindo `workspace.test.js` e `db.test.ts`) e `tests/e2e/*.mjs` (Playwright).
-Estado: 411 unitários passam (cada teste de servidor sobe um PGlite em memória, ~2 s; a suíte leva ~2 min). Os e2e **estão desatualizados** (ainda usam o chat e `window.designer.agent`); serão refeitos junto com a nova interface.
+**Geometria sem navegador:** o servidor não tem DOM. `model-canvas.js` estima posições; para hug/fill o `renderer.measure` lê o layout real
+no Chromium (JavaScript da página DESLIGADO, sem rede) e `measure.ts` grava em `node.w/h` com a regra da "medida de volta" do editor.
+Fica "sujo" após escrita e só mede antes de leituras (`get_document`, `get_layer`, `find_layers`, `get_selection`, `get_image`, `check_design`) e após `build_layout`.
+
+**Imagens, fontes e áudio saem do JSON:** viram linhas na tabela `Asset` por sha256 (`asset:<hash>` no JSON) e voltam como data URL ao carregar.
+Mídia grande (vídeo/3D) dentro do projeto tem limite de 25 MB por isso. Exportar escreve arquivos reais (`assets/`, `fonts/`) e `CREDITS.txt`.
+
+**Exportação:** `exportSite` é a base (HTML + CSS + arquivos). `export_site {format:"react"}` reaproveita essa saída e a reorganiza em componentes.
+`export_tokens` sai direto do documento. Nada disso toca disco: devolve listas de arquivos; o servidor monta os zips.
+
+**Plugins:** `definePlugin({id, name, description, tools:[{def, needsProject?, run}]})`. `def` vem de `defineTool` (Zod). O servidor registra as
+definições no núcleo (aparecem em `tools/list` e passam pela mesma validação, escopos, travas e log) e guarda o `run`. `ctx` = `{actor, project:{store,commands,...}, services}`.
+
+**Segurança (não negociável):** o HTML/CSS que entra vem de agentes e pessoas e **nunca** é confiável: sem `<script>`, sem JS no servidor, Chromium
+isolado sem rede, downloads por endereço só com a proteção SSRF de `services/remote-image.ts`, Host/Origin locais, limites de corpo, CSP + sandbox em arquivos servidos.
+
+## 7. Receitas
+
+**Nova ferramenta do núcleo**
+1. `tools/schema.ts`: `defineTool({ name, write, description, input: z.object({...}) })`. Descrição em português, com o que fazer em caso comum e o que a ferramenta NÃO faz.
+2. `tools/runner.js`: um método com o mesmo nome — em `READ` se só lê; senão em `WRITE`. Erros: `throw new Error('mensagem com o conserto')`.
+3. `apps/server/src/instrucoes-agente.txt`: uma linha na tabela de ferramentas.
+4. Testes: contar ferramentas em `tests/agente.test.js` e `tests/mcp-sdk.test.js`; teste da ferramenta (padrão: `tests/tokens.test.ts` usa o workspace como um agente).
+5. Se mudou o comportamento percebido: entrada em `decisoes.md`.
+
+**Nova ferramenta de plugin:** adicione `{def, needsProject, run}` em `packages/plugins/src/<plugin>/index.ts`; o resto (registro, validação, escopos) é automático. Contagem nos mesmos dois testes.
+
+**Novo provedor de assets:** `packages/plugins/src/assets/providers/<nome>.ts` seguindo `types.ts`, registrar em `registry.ts`; teste em `tests/biblioteca.test.ts` com resposta simulada. Conferir a documentação oficial e a licença antes.
+
+**Novo formato de exportação:** função pura em `core` que recebe o `doc` e devolve `{files, warnings}` (modelo: `export-react.ts`, que parte de `exportSite`); `format` no `export_site`, rota `…/<formato>.zip` em `routes/projects.ts`, `<formato>_zip_url` no `export_zip` (`workspace/index.ts`). Teste: estrutura dos arquivos + (uma vez, à mão) instalar e compilar de verdade.
+
+**Migração do banco:** edite `schema.prisma`; gere o SQL com `npx prisma migrate diff --from-schema <antigo> --to-schema packages/db/prisma/schema.prisma --script` para `packages/db/prisma/migrations/000N_nome/migration.sql` (não há Postgres de verdade aqui para `migrate dev`); `npm run db:generate`; o PGlite aplica sozinho.
+
+**"Usar a ferramenta como um agente" (o melhor teste de qualidade):** escreva um roteiro descartável que sobe `createWorkspace` com `createRenderer` (veja `tests/workspace.test.ts` e `tests/audit.test.ts`), monte uma página só com `workspace.call(...)`, olhe o `get_image` e rode `check_design`. Foi assim que se acharam os 6 atritos de `decisoes.md` (2026-10-11, "Uso a ferramenta como um agente").
+
+## 8. Convenções
+
+- **Mensagens para o agente em português, dizendo o conserto** ("Use sizeX:\"fill\" no texto..."), nunca só o sintoma. Erro técnico cru ("Cannot read properties of undefined") é bug.
+- **Módulos pequenos, uma responsabilidade por arquivo.** Hoje há exceções a corrigir (`runner.js` ~1000 linhas, `css.js` ~1150, `commands.js` ~1250): divida **sob a cobertura dos testes**, sem mudar comportamento.
+- **TypeScript gradual:** arquivo novo em `.ts`; converta um `.js` só quando for mexer nele. `noImplicitAny` está desligado de propósito.
+- **Core puro:** sem DOM, sem disco, sem rede; o que vier de fora entra por injeção.
+- **Argumentos das ferramentas são estritos** (desconhecido = erro); o conteúdo livre (`props`) é conferido pelo executor (`applyProps`).
+- **Decisão que muda comportamento ou arquitetura → `decisoes.md`** (só acrescentar). Pendência/atalho → tabela de "pulados" em `PASSAGEM.md`.
+- **Antes de dizer que funciona, teste de verdade** (suíte + uma checagem real). Diga com franqueza o que **não** foi verificado.
+- Sem `push` nem PR sem o dono pedir.
+
+## 9. Testes
+
+`tests/*.test.js|ts` rodam com `node --test` (+`tsx`); `tests/_setup.mjs` põe o banco e os blobs em memória. Servidores de teste esperam até 60 s subir (carga).
+Testes que dependem do Chromium se **pulam** se ele não estiver instalado (`npx playwright install chromium`). Há CI em `.github/workflows/ci.yml` (Node 22 e 24, sem Chromium).
+`tests/e2e/*.mjs` são do editor antigo (usam o chat removido): **não rodam**; serão refeitos com o editor novo.
+
+## 10. Estado e limites que pegam de surpresa
+
+- `edit_image` e `generate_image_edit` aparecem na lista, mas **não funcionam no servidor** (precisam de pixels/canvas do navegador).
+- Colaboração: se duas pessoas gravam o mesmo projeto, a gravação de fora vence e o workspace recarrega (não há edição simultânea de verdade ainda).
+- Seleção e histórico (`undo`) são do projeto, não da sessão.
+- O servidor só aceita Host/Origin locais e escuta em 127.0.0.1: **ainda não está pronto para a internet** (ver `PASSAGEM.md`).
+- Os tamanhos medidos valem para o desktop (e para o breakpoint pedido em `get_image`/`check_design`); `get_layer` mostra o do desktop.
+- Veja `PASSAGEM.md §5b` para a lista completa do que foi pulado de propósito.

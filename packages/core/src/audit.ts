@@ -5,7 +5,7 @@ import { contrast } from './color.js';
 
 export interface Issue {
   severity: 'erro' | 'aviso';
-  type: 'contraste' | 'texto-pequeno' | 'sem-alt' | 'vazamento';
+  type: 'contraste' | 'texto-pequeno' | 'sem-alt' | 'vazamento' | 'titulos' | 'alvo-pequeno';
   layerId: string;
   layerName: string;
   where?: string;
@@ -33,6 +33,7 @@ function backgroundOf(chain: any[]): string | null {
 /** Regras que não precisam de navegador. `roots` são as telas a conferir. */
 export function auditStatic(roots: any[]): Issue[] {
   const out: Issue[] = [];
+  for (const r of roots) out.push(...headingIssues(r));
   const walk = (node: any, chain: any[]) => {
     if (node.visible === false) return;
     const here = [...chain, node];
@@ -55,12 +56,43 @@ export function auditStatic(roots: any[]): Issue[] {
           }
         }
       }
-    } else if (node.fill?.type === 'image' && !(node.children || []).length && !String(node.alt || '').trim()) {
+    }
+    // alvo clicável (link/botão) menor que 24px: difícil de tocar (WCAG 2.2, 2.5.8)
+    if ((node.tag === 'a' || node.tag === 'button') && node.visible !== false && (node.w < 24 || node.h < 24)) {
+      out.push({ severity: 'aviso', type: 'alvo-pequeno', layerId: node.id, layerName: node.name, message: `“${node.name}” é clicável e mede ${Math.round(node.w)}×${Math.round(node.h)}px: o mínimo recomendado é 24×24px (44×44px no celular).`, fix: 'Aumente a área clicável com padding (layout.padding) ou w/h.' });
+    }
+    // imagem sem alt (alt "" é decisão explícita de imagem decorativa; só "nunca definido" é aviso)
+    if (node.type !== 'text' && node.fill?.type === 'image' && !(node.children || []).length && (node.alt === undefined || node.alt === null)) {
       out.push({ severity: 'aviso', type: 'sem-alt', layerId: node.id, layerName: node.name, message: `“${node.name}” é uma imagem sem descrição.`, fix: 'Defina alt com o que a imagem mostra (update_layer {"alt": "..."}), ou "" se for só decorativa.' });
     }
     for (const c of node.children || []) walk(c, here);
   };
   for (const r of roots) walk(r, []);
+  return out;
+}
+
+/** Hierarquia de títulos de UMA tela: no máximo um h1, e sem pular nível (h1 → h3). */
+function headingIssues(root: any): Issue[] {
+  const heads: { node: any; level: number }[] = [];
+  const walk = (n: any) => {
+    if (n.visible === false) return;
+    const m = /^h([1-6])$/.exec(n.tag || '');
+    if (m) heads.push({ node: n, level: Number(m[1]) });
+    for (const c of n.children || []) walk(c);
+  };
+  walk(root);
+  const out: Issue[] = [];
+  const h1s = heads.filter((h) => h.level === 1);
+  if (h1s.length > 1) {
+    out.push({ severity: 'aviso', type: 'titulos', layerId: h1s[1].node.id, layerName: h1s[1].node.name, message: `A tela “${root.name}” tem ${h1s.length} títulos h1; o ideal é um por página.`, fix: 'Mantenha um h1 (o título principal) e use h2/h3 nos demais (update_layer {"tag": "h2"}).' });
+  }
+  let prev = 0;
+  for (const h of heads) {
+    if (prev && h.level > prev + 1) {
+      out.push({ severity: 'aviso', type: 'titulos', layerId: h.node.id, layerName: h.node.name, message: `“${h.node.name}” é h${h.level} logo depois de h${prev}: pulou um nível de título.`, fix: `Use h${prev + 1} aqui (a ordem ajuda leitores de tela e o SEO).` });
+    }
+    prev = h.level;
+  }
   return out;
 }
 

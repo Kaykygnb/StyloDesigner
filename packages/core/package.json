@@ -4,5 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Núcleo do documento: modelo, store, comandos, CSS/HTML/SVG, exportação em site/zip, ferramentas MCP e o contrato de plugins. Sem DOM, roda no Node e no navegador.",
-  "exports": { "./*": "./src/*" }
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "zod": "^4.6.6"
+  }
 }

@@ -407,3 +407,15 @@ test('check_design e get_image por breakpoint pelo MCP: junta regras estáticas 
   assert.match(r2.note, /Vazamento horizontal NÃO foi conferido/);
   await t2.close();
 });
+
+test('build_layout devolve o tamanho MEDIDO da estrutura criada (não a estimativa da altura "hug")', async () => {
+  const measureLayout = async (roots: any[]) => new Map(roots.map((r: any) => [r.id, { w: r.w, h: 777 }]));
+  const t = await setup({ measureLayout });
+  const a = await t.agentOf('Construtor');
+  const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'b', actor: a }) as Promise<any>;
+  await call('new_project', { name: 'Build' });
+  const out = await call('build_layout', { tree: { type: 'frame', props: { name: 'Tela', w: 400, sizeY: 'hug', layout: { mode: 'column' } }, children: [{ type: 'text', props: { text: 'oi' } }] } });
+  assert.equal(out.error, undefined, out.error);
+  assert.equal(out.created.h, 777, 'a resposta já traz a altura real');
+  await t.close();
+});

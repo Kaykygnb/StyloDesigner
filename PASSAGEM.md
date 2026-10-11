@@ -1,191 +1,169 @@
 # Passagem de trabalho — Stylo
 
-Documento para quem assume o projeto. Leia este arquivo primeiro; depois `contexto.md` (o mapa do código) e `decisoes.md`
-(o diário de decisões, com o porquê de cada uma). **`decisoes.md` só recebe entradas novas no fim; nunca reescreva as antigas.**
+**Quem assume o projeto: leia nesta ordem.** (1) este arquivo; (2) `contexto.md` — o que a ferramenta é, vocabulário, mapa do código e receitas;
+(3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
-Estado em 2026-10-11. Código em `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner`, **branch `limpeza`**, ~225 commits locais,
-**nada foi enviado ao GitHub** (sem push, sem PR). A pessoa dona do projeto **não é programadora de formação**: delega as
-decisões técnicas, quer entender o porquê, e quer tudo em módulos pequenos, sem arquivos que fazem mil coisas. Conversa em
-português. A decisão de licença foi **adiada** (hoje o repositório está em MIT; a intenção é "source-available", ver abaixo).
+Estado em **2026-10-11**. Código em `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner`, branch **`limpeza`**, 233 commits locais.
+**Nada foi enviado ao GitHub** (sem push, sem PR; veja a decisão D2). Suíte: 442 testes passando; `npm run typecheck` limpo.
+
+**Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
+pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
 
 ---
 
-## 1. O que é o Stylo
-
-Um "Figma" para **agentes de IA e pessoas** usarem juntos, via **MCP**, para prototipar e construir sites e aplicativos completos
-(React, React Native ou o que for). O canvas é CSS de verdade: cada camada vira HTML/CSS. Um servidor fica ligado; qualquer agente
-acessa pelo MCP, cria um projeto, trabalha nele, e exporta um **zip de HTML estruturado** (com imagens e fontes como arquivos reais)
-ou **puxa o código/dados** para construir o resto por conta própria. Pessoas usam o editor visual no navegador, no mesmo projeto.
-Vai ser usado localmente e também **hospedado e cobrado** (por isso Postgres, contas, tokens de agente).
-
-## 2. O que fizemos (em ordem) e por que
-
-1. **Faxina do repositório.** Veio de https://github.com/Kaykygnb/StyloDesigner. Apagamos docs, capturas, planos e "lixo de versões
-   antigas" (~26 mil linhas); sobrou `contexto.md`. *Por quê:* o histórico está no GitHub; o código estava bagunçado.
-2. **Removemos o agente de IA embutido** (chat, Jev, subagentes). *Por quê:* toda IA entra por MCP; um chat próprio duplica Claude Code/Codex.
-3. **MCP sem navegador (headless).** O servidor mantém os projetos em memória (`workspace`) e roda o mesmo executor/comandos do editor,
-   com geometria calculada do modelo (`model-canvas.ts`). *Por quê:* "server ligado, qualquer agente acessa" sem depender de uma aba aberta.
-4. **Monorepo + Vite** (`packages/core`, `packages/db`, `packages/plugins`, `apps/server`, `apps/web`). *Por quê:* cada parte com um lugar e um motivo;
-   regra: `web → core`, `server → core`, `core → nada`.
-5. **Banco: Postgres + Prisma** (PGlite embutido para uso local/testes; MongoDB e SQLite descartados). *Por quê:* haverá serviço pago e muitos
-   usuários; contas, permissões, log e cobrança são relacionais; a árvore do design cabe numa coluna JSONB.
-6. **Contas, agentes e conta mestre.** Primeira conta = mestre. Agentes cadastrados com token (só o hash fica), escopos
-   (`read`/`comment`/`write`/`export`), estados PENDING/ACTIVE/REVOKED, política de entrada `open`/`approval`/`closed`. Log de operações
-   (quem fez o quê) alimenta as "bolinhas" de presença. Papéis por projeto (dono/editor/leitor). *Por quê:* vários humanos e agentes no mesmo servidor.
-7. **Projetos no banco com revisão** (conflito 409 em vez de apagar trabalho alheio), versões, miniaturas, compartilhamento. JSON deixou de ser
-   armazenamento (só exportar/importar; `npm run importar -- <pasta>` traz .json antigos).
-8. **Servidor em Hono + SDK oficial do MCP** (`server.js` de ~700 linhas virou módulos pequenos). *Por quê:* menos código nosso, protocolo conforme a especificação.
-9. **Ferramentas MCP definidas com Zod** (uma definição gera JSON Schema + validação em português + tipos) e **TypeScript** em parte do núcleo.
-10. **Ferramentas de colaboração:** notas de decisão e comentários no banco, atividade, quem está aqui, compartilhar projeto.
-11. **`get_image` no servidor** (Chromium isolado: sem JavaScript, sem rede) para o agente "ver" o que fez.
-12. **Imagens fora do JSON** (tabela `Asset`, por sha256; o JSON leva `asset:<hash>`); `add_asset` (base64/data URL/https com proteção SSRF).
-13. **Exportação com imagens como arquivos** em `assets/` (sem base64 no HTML).
-14. **Contrato de plugins** + plugin **identidade** (auxiliares que só calculam: escala de cor OKLCH, contraste WCAG, harmonias, escalas tipográfica/espaçamento/raios/sombras).
-15. **Plugin assets:** biblioteca de assets **da conta** (cópia para o projeto ao usar), provedores gratuitos, fontes do Google **hospedadas no projeto**,
-    créditos no `CREDITS.txt`, chaves de provedores por conta (criptografadas), fontes de assets cadastráveis sem código.
-
-Também corrigimos bugs reais achados em teste (laço editor↔servidor regravando, `DOMParser` ausente no servidor quebrando `insert_icon`,
-travas de documento em `open_project`, sombreamento de `imageInfo` no runner...). Cada um está no `decisoes.md`.
-
-## 3. Como rodar
+## 1. Comece aqui (verificado num clone limpo, 2026-10-11)
 
 ```bash
-npm install                 # roda sozinho o `prisma generate`; precisa de Node >= 22
-npm start                   # http://localhost:5173 (sobe o Vite junto, mesma porta; banco PGlite local, sem login)
-npm run build               # gera apps/web/dist (com ele presente o servidor entrega os arquivos de lá; STYLO_DEV=1 força o Vite)
-npm test                    # ~410 testes, ~2 min (cada teste de servidor sobe um PGlite em memória)
-npm run typecheck           # tsc em db, core, plugins e server
-npm run importar -- <pasta> # importa .json antigos (idempotente)
+git clone <repo> && cd StyloDesigner
+npm install                          # ~1 min; roda o `prisma generate` sozinho
+npx playwright install chromium      # para get_image, check_design (vazamento) e a medida de layout
+npm run typecheck                    # deve passar sem erro
+npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
+claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
+npm test                             # ~440 testes, 2–3 min
 ```
+Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **79 ferramentas**, e um cliente do SDK oficial cria
+projeto, monta uma tela (`build_layout`), audita (`check_design`), recebe a imagem (`get_image`) e exporta (`export_zip`).
 
-Variáveis: `PORT`, `DESIGNER_CONFIG` (arquivo de configuração), `DATABASE_URL` (Postgres; sem ela, PGlite), `DESIGNER_DB_DIR` (`memory` nos testes),
-`STYLO_AUTH=accounts` (login com contas; padrão = modo local sem login), `STYLO_DEV=1`, `STYLO_BLOB_DIR` (`memory` nos testes), `STYLO_SECRET_KEY`
-(32 bytes base64; sem ela cria `*.secret`), `STYLO_LIBRARY_QUOTA_MB` (padrão 2048), `STYLO_TOKEN` (token de agente na ponte stdio), chaves de provedores
-(`PEXELS_API_KEY`, `PIXABAY_API_KEY`, `POLYPIZZA_API_KEY`).
+**O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
+no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa melhorar (foi assim que se achou boa parte do que está em `decisoes.md`).
 
-Conectar um agente: `claude mcp add --transport http designer http://localhost:5173/mcp` (Claude Code), ou `node apps/server/bin/mcp.mjs` (ponte stdio para Codex/Claude Desktop).
-Para `get_image` funcionar: `npx playwright install chromium`.
+## 2. O que existe hoje
 
-Testes usam `node --import tsx --import ./tests/_setup.mjs --test`. Para um arquivo só: `node --import tsx --import ./tests/_setup.mjs --test tests/<arquivo>`.
-
-## 4. Mapa rápido (detalhes em `contexto.md`)
-
-| Pasta | O que é |
+| Área | Estado |
 |---|---|
-| `packages/core` | O documento puro (sem DOM): modelo, store, comandos, CSS/HTML/SVG, exportação, **ferramentas MCP em Zod** (`tools/schema.ts`), executor (`tools/runner.js`), **contrato de plugin** (`plugin.ts`) |
-| `packages/db` | Prisma: `prisma/schema.prisma`, migrações SQL `0001`–`0004`, `src/client.ts` (Postgres por URL ou PGlite) |
-| `packages/plugins` | Plugins embutidos: `identidade/` e `assets/` (provedores em `assets/providers/`) |
-| `apps/server` | Hono: `main.ts` (liga tudo), `app.ts`, `routes/`, `mcp/` (SDK oficial), `services/`, `workspace/` (onde o MCP trabalha) |
-| `apps/web` | Editor visual antigo (JS puro, Vite). **Será refeito do zero; não gaste esforço nele.** |
-| `tests/` | Testes unitários/de API (`*.test.js|ts`) e `tests/e2e/` (Playwright, **desatualizados**) |
+| Servidor, MCP (SDK oficial, sessões, 79 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
+| Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
+| Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
+| **Ver**: `get_image` (inclusive por breakpoint), com layout **medido de verdade** no Chromium | ✅ (precisa do Chromium) |
+| **Auditar**: `check_design` — vazamento por breakpoint, contraste, texto pequeno, alt, títulos, alvo clicável | ✅ (vazamento precisa do Chromium) |
+| Identidade: estilos de cor/texto/sombra/gradiente, modos claro/escuro, variáveis, `export_tokens` (CSS/JSON/Tailwind), pares de fontes, brief, escalas, contraste | ✅ |
+| Assets: biblioteca da conta, 6 provedores gratuitos, fontes hospedadas no projeto, créditos, fontes cadastráveis, mídia (vídeo/áudio/3D/Lottie) como camada | ✅ — **Pexels/Pixabay/Poly Pizza nunca rodaram com chave real** |
+| Exportar: zip HTML (imagens/fontes/players/créditos como arquivos) e **projeto React (Vite)** | ✅ |
+| Editor visual | 🟡 legado (`apps/web`), a ser refeito; **não mexa** |
+| React Native, TypeScript no React, JS de protótipo, paleta de imagem | ❌ |
+| Exposição segura na internet (HTTPS, limites, login no editor) | ❌ — o servidor só aceita local |
 
-Fluxo do MCP: agente → `/mcp` (Bearer token ou nome do programa) → `workspace.call(ferramenta, ator)` → executor sobre `store` → grava em 400 ms →
-`projects.write` (banco) → avisa editores abertos por SSE. Ferramentas de plugin passam pela mesma validação, escopos, travas e log.
+Atenção: `edit_image` e `generate_image_edit` aparecem na lista de ferramentas mas **não funcionam no servidor** (dependem do navegador).
 
-## 5. Próximos passos (por prioridade, com detalhes)
+---
 
-### P1. Camada de mídia no projeto — **feita em grande parte (2026-10-11)**
-**Já existe:** camada `media` (vídeo, áudio, 3D, Lottie) criada por `library_use insert:true`; `update_layer` aceita `mediaAutoplay/Controls/Loop/Muted`; exportação escreve `<video>`, `<audio>`, `<model-viewer>` e `<div data-lottie-src>`, copia os arquivos para `assets/media-*` e, para 3D e Lottie, põe o player em `vendor/` (de `node_modules`, via `apps/server/src/services/vendor.ts`; `exportSite(doc, { vendor })`; sem o fornecedor avisa). Limite de 25 MB por mídia dentro do projeto. **Falta:** guardar mídia grande fora de `doc.assets` (hoje vira data URL em memória — por isso o limite), prévia no canvas do editor novo, `poster` do vídeo, e ferramenta para criar mídia a partir de URL sem passar pela biblioteca. O texto antigo abaixo descreve o plano original:
-Vídeo, áudio, 3D (`.glb`) e Lottie podem ser **buscados e guardados na biblioteca**, mas **não entram no projeto** (`library_use` recusa com mensagem clara).
-Fazer: novo tipo de camada `media` (`packages/core/src/types.ts`, `model.ts`) que aponta para um asset; no canvas aparece uma **imagem de prévia**; na exportação sai
-`<video>`, `<audio>`, `<model-viewer>` (glb) ou player Lottie, **com os arquivos copiados para `assets/`** (não como data URL: são grandes). Pontos de atenção:
-(a) arquivos grandes **não** podem ir para `doc.assets` (data URL hidratado em memória a cada leitura): guardar só metadados no `doc` (ex.: `doc.media[id] = { hash, kind, mime, size, name, credit }`)
-e os bytes no armazenamento de blobs por projeto; (b) a exportação (`site-export.ts`) é pura e síncrona: injetar uma função `readMedia(hash)` fornecida pelo servidor;
-(c) vender o uso das bibliotecas `model-viewer`/Lottie **vendorizadas no zip** (sem CDN); (d) a licença/crédito do asset já existe, ligar a `doc.credits`.
+## 3. Decisões que dependem do DONO (não decida por ela)
 
-### P2. Testar os provedores com chaves reais
-Pexels e Pixabay: lógica testada com respostas simuladas e conferida na documentação oficial, **nunca rodou com chave real**. **Poly Pizza: a API não foi conferida na documentação
-oficial** (só descrições de terceiros: `https://api.poly.pizza/v1/search/{consulta}`, header `X-Auth-Token`); o provedor é `unverified` e a leitura é defensiva — validar com chave real e ajustar
-`packages/plugins/src/assets/providers/polypizza.ts`. Ainda sem provedor: **Lottie** e **ilustrações** (pesquisar APIs abertas e licenças).
+Cada uma traz minha recomendação e o que fica travado enquanto não houver resposta. **Bloqueiam o lançamento** = D1–D7, D12.
 
-### P3. Interface mínima de configuração (sem refazer o editor)
-Cadastrar chaves de provedores hoje só por `PUT /api/providers/<id>/key` (body `{ "key": "..." }`). Falta tela. O editor novo vai cuidar, mas a API já existe.
+| # | Decisão | Minha recomendação | Enquanto isso |
+|---|---|---|---|
+| **D1** | **Licença e modelo de negócio** | FSL ou PolyForm Shield (veja abaixo) | não publicar o repositório nem lançar o serviço |
+| **D2** | **O que fazer com o git** (232 commits locais, `designer.secret` no histórico antigo) | reescrever o histórico sem o segredo e manter o antigo numa branch `legado` | nada de push |
+| **D3** | Nome do produto, nome do servidor MCP nos exemplos, domínio | "Stylo" + servidor MCP `stylo` | docs usam `stylo` |
+| **D4** | Idioma do produto (hoje: instruções e mensagens em português) | manter pt-BR agora, isolar os textos para permitir inglês | tudo em pt-BR |
+| **D5** | Onde hospedar (servidor, Postgres, arquivos, HTTPS) | VPS pequeno + Postgres gerenciado + Cloudflare R2 + Caddy (HTTPS) | só local |
+| **D6** | Quem entra e como (cadastro aberto, convite ou aprovação; login por e-mail/senha ou Google/GitHub; política padrão de agentes) | convite + e-mail/senha; agentes em `approval` | modo local sem login |
+| **D7** | O que cobrar e os limites por plano (assentos, projetos, armazenamento, operações de agente/dia) | cota de armazenamento + limite de operações de agente por conta, plano grátis pequeno, cobrança via Stripe | cota fixa de 2 GB e mídia ≤ 25 MB |
+| **D8** | Chaves de provedores de assets: cada conta traz a sua (BYOK) ou uma chave única do serviço | BYOK no início (é como funciona hoje); só usar chave única depois de ler os termos do Pexels/Pixabay | BYOK |
+| **D9** | Próximos formatos de exportação | variante **TypeScript** do React (barata), depois **React Native**; Vue/Svelte só se pedirem | só HTML e React |
+| **D10** | **Editor novo**: tecnologia, escopo do v1, quando começar; colaboração por operações no servidor ou CRDT | React + Vite, canvas DOM como hoje, **operações enviadas ao workspace** (sem CRDT) | editor legado congelado |
+| **D11** | JavaScript de protótipo: o agente pode escrever? | confirmar a regra já combinada (só ao Apresentar, em iframe isolado, nunca no editor/servidor) e deixar para quando houver demanda | `<script>` é removido |
+| **D12** | Privacidade e termos de uso (LGPD/GDPR, exclusão de conta, retenção de versões, direitos sobre o que os agentes geram e sobre assets de terceiros) | texto jurídico antes do lançamento | — |
+| **D13** | IA generativa de imagem (`generate_image_edit`): manter? | tirar do núcleo e virar plugin opcional com chave da própria conta | não funciona no servidor |
+| **D14** | Telemetria e logs do serviço pago | só erros e métricas agregadas; nunca o conteúdo dos projetos | nenhuma |
 
-### P4. Mais ferramentas para a identidade visual — **parte feita (2026-10-11)**
-**Já existe:** `create_text_styles`, `apply_text_style`, `add_color_mode`, `set_style_color`, `create_size_variables`, `bind_variable` e `export_tokens` (css / json / tailwind; `packages/core/src/tokens.ts`). **Também feito:** `font_pairs` (16 pares curados, todos conferidos no Fontsource) e `get_project_brief` / `set_project_brief` (o brief fica em `doc.brief`). **Falta:** paleta a partir de imagem (precisa decodificar pixels no servidor: avaliar `sharp` ou usar o Chromium do renderizador), tabela de cores CSS nomeadas, remover modo/variável/estilo por MCP. Também há `create_effect_styles` (sombras) e `create_gradient_styles` (gradientes), ligados por `update_layer` (`effectStyleId`, `fill:{gradientId}`) e presentes em `export_tokens`. Notas: no Tailwind as cores usam `var(--cor-x)`, então o modificador de opacidade (`bg-fundo/50`) não funciona nelas; sombra de TEXTO não usa variável (a sintaxe de `text-shadow` difere de `box-shadow`).
-Texto original:
-Faltam no MCP: **estilos de texto** e **variáveis/modos (claro/escuro)** — o núcleo (`modes.ts`, `components.ts`) já suporta, só não há ferramentas; **exportar tokens**
-(variáveis CSS, JSON, Tailwind); **paleta a partir de imagem**; pares de fontes; **brief** do projeto (um lugar fixo para público/tom/valores, que viaja com o projeto); tabela de cores CSS nomeadas
-(hoje "red" dentro de SVG depende do navegador; `svgimport.js` linha ~268).
+### Detalhe das que mais pesam
 
-### P5. Exportadores de framework — **React feito (2026-10-11); React Native pendente**
-**React:** `export_site {format:"react"}` e `GET /api/projects/<arq>/react.zip` (`export_zip` devolve `react_zip_url`). Código: `packages/core/src/export-react.ts` (monta o projeto Vite) e `html-to-jsx.ts` (conversor do HTML que o próprio Stylo gera; recusa o que não entende e a página cai em `dangerouslySetInnerHTML` com aviso). Conferido de verdade: `npm install` + `vite build` + navegação no Chromium (texto com quebra de linha, tokens, CSS Modules, link entre páginas, Lottie, model-viewer). Limites conhecidos: navegação por `#` (sem React Router), JavaScript puro (sem TypeScript), pastas do `public/` na raiz do site (não funciona com `base` diferente de `/`), e os estilos de interação (hover/estados) saem como o CSS gera hoje. **Pendente:** React Native e uma variante TypeScript.
-**Original (React Native ainda vale):** React (componentes) e React Native (StyleSheet; só flex — **grid não existe no RN**, avisar). Plugins de exportação seguindo o contrato de `plugin.ts`. Também **bibliotecas CSS** prontas (animate.css etc.)
-como catálogo que entra no projeto e no zip.
+**D1 — Licença.** O pedido é "source-available": ninguém vende a ferramenta como produto próprio; **usar o resultado** (os sites) é livre e
+agentes que a usam para prototipar são bem-vindos. Hoje o repositório está em **MIT** (qualquer um pode revender). Opções:
+*FSL (Functional Source License)* — impede concorrente direto por 2 anos e depois vira MIT/Apache; *PolyForm Shield* — impede concorrente
+direto sem prazo; *AGPL* — copyleft (um SaaS concorrente teria de abrir o código dele); *fechar o código*. Não chame de "open source"
+(a definição oficial não permite restringir uso comercial). Se aceitar contribuições de terceiros, precisa de um **CLA**. **Precisa de revisão
+jurídica** antes de valer. O `NOTICE` já lista as licenças das dependências (todas MIT/ISC/Apache, compatíveis).
 
-### P6. JavaScript de DOM para prototipar
-Decisão: roda **só ao apresentar** (como o Figma), em ambiente isolado (iframe sem mesma origem), nunca no editor nem no servidor; sai como `.js` no zip. Hoje `<script>` é removido de propósito (`html.js`).
-Camadas precisam de ids estáveis para o script achar elementos. O `get_image` do servidor mantém JavaScript desligado (se um dia animar, só em contexto isolado e sem rede).
+**D2 — Git.** O repositório do GitHub (`Kaykygnb/StyloDesigner`) tem a versão antiga. A branch `limpeza` é uma reorganização completa. O arquivo
+`designer.secret` (chave de criptografia **local de desenvolvimento**) foi commitado por engano no começo e removido depois, mas continua no
+histórico. Como nada foi enviado, dá para: (a) reescrever o histórico removendo o segredo (`git filter-repo`) e enviar; (b) juntar tudo em poucos
+commits; (c) enviar como está (a chave só protegia dados locais). Recomendo (a) e guardar o `main` antigo como branch `legado`.
 
-### P7. Exposição segura na internet (antes de hospedar)
-Hoje o servidor escuta só em `127.0.0.1` e aceita só Host/Origin locais (`http/guards.ts`). Falta: ouvir fora do localhost e domínio configurável, **HTTPS**, **limite de requisições**,
-**filtrar os eventos ao vivo (SSE) por pessoa** (hoje todo editor conectado recebe o aviso de todo projeto), tela de login no editor, S3/R2 para os blobs (`services/blobs.ts` já tem a interface),
-cobrança (o banco guarda plano/uso; usar Stripe ou similar), backups do Postgres.
+**D7 — Cobrança.** Já existem como base: cota de biblioteca por conta (`STYLO_LIBRARY_QUOTA_MB`), log de operações por agente, limites de tamanho por
+tipo de arquivo. Faltam planos, limite de requisições, medição de uso e integração de pagamento. Decidir **o que é a unidade cobrada** antes de implementar.
 
-### P8. TypeScript no restante do núcleo
-Já são `.ts`: types, model, color, comments, modes, zip, icons, fonts, components, image-assets, validate, site-export, cssedit, palettes, tools/schema, plugin, asset-kinds, image-size. **Continuam `.js`**:
-`store`, `commands`, `css`, `html`, `svg`, `svgimport`, `geom`, `imagefx`, `codeassist`, `sample-vitrine`, `tools/runner`. (Converter tudo de uma vez dá ~700 erros de tipo; converter quando forem mexidos.
-`noImplicitAny: false` no core e no servidor, de propósito, para ser gradual.) Também restam rotas antigas em `req/res` (`routes/legacy.ts`: fotos e IA de imagem do editor antigo) — viram plugins MCP.
+### Ações que só a pessoa dona pode fazer (não são decisões)
+- Cadastrar chaves reais do **Pexels**, **Pixabay** e **Poly Pizza** (`PUT /api/providers/<id>/key` ou variáveis de ambiente) para a verificação real.
+- Contratar a revisão jurídica (D1, D12) e escolher domínio/hospedagem (D5).
+- Apontar um agente real (Claude Code/Codex) para o servidor e dizer onde ele travou.
 
-### P9. Editor novo (decisão da pessoa: refazer do zero, depois das ferramentas)
-Ideia registrada: o servidor já é o **único dono do documento** (`workspace`); o editor novo deve mandar **operações** a ele em vez do projeto inteiro. Assim várias pessoas e agentes editam juntos sem CRDT.
-Aproveitar para unificar os dois sistemas de comentário (comentários dentro do documento do editor antigo × notas do banco) e apagar `apps/web`, os e2e antigos e a configuração de pasta que não faz mais nada.
+---
 
-### P10. Testes e qualidade
-`tests/e2e/*` estão **desatualizados** (usam o chat removido e `window.designer.agent`): refazer junto com o editor. A suíte unitária leva ~2 min (muitos PGlite): considerar compartilhar uma instância por arquivo.
-`edit_image` e `generate_image_edit` (pixels) ainda dependem do navegador e **não funcionam no servidor**. `npm audit`: 0 vulnerabilidades graças a `overrides` no `package.json` (deepmerge-ts, mysql2 — vêm da CLI do Prisma); Prisma está **fixo na 7.10.0** (a 8.x ainda é release candidate).
+## 4. Próximos passos técnicos — o programador pode fazer SEM esperar decisão
 
-### P11. Licença (adiada pela pessoa)
-Quer **source-available**: ninguém pode vender a ferramenta como produto próprio; **usar o resultado** (os sites que os agentes criam) é livre. Candidatas: **FSL** ou **PolyForm Shield**. O repositório está em MIT
-e as versões já publicadas continuam MIT. Conferir a compatibilidade com as licenças das dependências e fazer **revisão jurídica** antes de lançar/cobrar. Não chamar de "open source" (a definição oficial proíbe restringir uso comercial).
+Ordem sugerida (do que mais destrava para o que mais agrega):
 
-## 5b. Registro do que estamos PULANDO de propósito
+1. **Dividir os arquivos grandes** (`tools/runner.js` ~1000 linhas, `css.js` ~1150, `commands.js` ~1250) em módulos por responsabilidade, **sem mudar comportamento**, sob a suíte atual. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
+2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
+3. **Paleta a partir de imagem** sem dependência nova: o Chromium já está no servidor e `page.evaluate` funciona com o JavaScript da página desligado — decodificar a imagem com `createImageBitmap`/canvas em `renderer.ts` e agrupar as cores (k-means simples) em `plugins/identidade`. O mesmo caminho destrava `edit_image` no servidor.
+4. **Ferramentas de remover/renomear** estilos, modos e variáveis (hoje só se cria e se liga).
+5. **`check_design` mais completo** (`core/audit.ts`): cores fora dos estilos, ordem de foco, área de toque de 44 px no celular, medida de tamanhos por breakpoint também em `get_layer`.
+6. **Verificação real dos provedores** quando houver chaves; conferir a API oficial do **Poly Pizza** (`plugins/assets/providers/polypizza.ts`, hoje `unverified`).
+7. **Arquivo de licenças dentro do zip exportado** (players de 3D/Lottie e fontes) — pendência do `NOTICE`.
+8. **Testes de rota HTTP** de `site.zip`/`react.zip`; teste de React com um projeto que use estados (hover) e animações.
+9. **Preparar o terreno da hospedagem sem fechar decisões:** interface de `blobs.ts` para S3/R2 (já existe a interface; falta a implementação), filtro de eventos SSE por pessoa, limite de requisições por token. (A parte de HTTPS/domínio depende de D5.)
+10. **Limpar o repositório:** `scripts/auditar-colaboracao.mjs` e `scripts/gerar-miniatura-vitrine.mjs` são do editor antigo (provavelmente quebrados); `tests/e2e/*` está desatualizado; `apps/web` sai quando o editor novo chegar.
 
-Lista viva: tudo que foi visto e deixado de lado, com o motivo e o que destrava. Quem pular algo novo, acrescente aqui (não apague; marque como feito).
+O que **depende de decisão** e por isso não está nesta lista: React Native e TypeScript no React (D9), editor novo (D10), JS de protótipo (D11), hospedagem/login/cobrança (D5–D7).
+
+---
+
+## 5. Registro do que está sendo PULADO de propósito
+
+Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescente aqui; quem resolver, marque como feito (não apague).
 
 | O que | Por que foi pulado | O que destrava |
 |---|---|---|
-| Paleta a partir de imagem | exige ler pixels no servidor; não há biblioteca de imagem | decidir entre `sharp` ou usar o Chromium do renderizador |
-| Mídia grande dentro do projeto (limite 25 MB) | hoje a mídia vira data URL na memória | guardar só a referência no documento e os bytes nos blobs |
-| `poster` do vídeo / prévia da mídia no canvas | depende de decodificar vídeo e do editor novo | editor novo; ou extrair um quadro no renderizador |
+| Paleta a partir de imagem; `edit_image`/`generate_image_edit` no servidor | exigem ler pixels; não há biblioteca de imagem | passo 3 acima (Chromium) |
+| Mídia grande dentro do projeto (limite 25 MB) | hoje vira data URL na memória | passo 2 |
+| `poster` do vídeo / prévia da mídia no canvas / mídia visível em `get_image` | decodificar vídeo; vídeo/3D/Lottie não desenham sem JS | editor novo, ou extrair um quadro no renderizador |
 | Tela para cadastrar chaves de provedores | o editor será refeito | editor novo (a API `PUT /api/providers/<id>/key` existe) |
-| Pexels, Pixabay, Poly Pizza com chave real | não temos as chaves | alguém cadastrar as chaves e rodar uma busca de verdade; **Poly Pizza** ainda precisa conferir a API oficial |
-| Lottie e ilustrações como fonte de assets | falta escolher APIs e conferir licenças | pesquisa de fontes abertas (LottieFiles tem termos próprios) |
-| `edit_image` e `generate_image_edit` no servidor | usam pixels e canvas do navegador | mesma decisão da paleta (biblioteca de imagem) |
-| Remover/renomear modo, variável, estilo (texto, sombra, gradiente) por MCP | só criar e ligar foi priorizado | acrescentar ferramentas de remoção/edição quando o agente precisar |
-| Tabela de cores CSS nomeadas (ex.: "red" dentro de SVG importado) | `svgimport.js` depende do canvas do navegador | tabela fixa de ~150 nomes |
-| `tokens.css` dentro do zip do site | o HTML exportado já leva as variáveis de que precisa | incluir se um agente pedir tokens no pacote |
-| Sombra de texto como variável; opacidade do Tailwind nas cores | sintaxe de `text-shadow` difere; limite do `var()` no Tailwind v3 | usar cores com canais separados (RGB) nos tokens |
-| Interface para estilos de sombra/gradiente no editor antigo | o editor será refeito | editor novo |
-| Camada `media` visível em `get_image` (renderizador sem JS) | vídeo/3D/Lottie não desenham sem JavaScript | prévia estática (poster) |
-| Exportador **React Native** e variante TypeScript do React | o React veio primeiro; RN exige outro modelo (View/Text/StyleSheet, só flex, sem grid) | P5 |
-| Auditoria: regras de acessibilidade além de contraste/alt/tamanho (ordem de foco, área de toque ≥44px, hierarquia de títulos), lint de consistência (cores fora dos estilos) | o essencial primeiro; `check_design` é fácil de estender (`packages/core/src/audit.ts`) | quando um agente precisar |
-| Medida de layout só no desktop e no breakpoint pedido (`get_image`/`check_design`); `get_layer` mostra o tamanho do desktop | a medida de volta do editor também ignora breakpoints | medir por breakpoint se um agente precisar dos tamanhos do celular |
-| Resposta de `build_layout`/`create_layer` mostra a altura "hug" ANTES da medida (ex.: 240 em vez do real) | a medida só roda antes de leituras; medir a cada escrita deixaria cada chamada ~300 ms mais lenta | medir em segundo plano após escritas, ou refazer o resumo depois da medida |
-| Mensagem de erro de `add_font`/`library_*` quando o servidor de assets não está ligado ("Cannot read properties of undefined") | só acontece fora do servidor real (testes/scripts) | validar `services` no início das ferramentas de assets |
-| Rota HTTP `react.zip` sem teste próprio | usa o mesmo caminho do `site.zip` (que também não tem teste HTTP dedicado) | teste de integração das rotas de zip |
-| Estilos de interação (hover/estado) e animações no React | saem como o CSS atual gera; sem revisão específica | conferir com um projeto que use estados |
-| Exposição na internet (HTTPS, limites, SSE por pessoa, login) | produto ainda não hospedado | P7 |
-| Licença (FSL / PolyForm Shield) | adiada por decisão da pessoa; falta revisão jurídica | P11 |
-| TypeScript no resto do núcleo (store, commands, css, runner...) | converter tudo de uma vez gerou ~700 erros | converter junto com quando cada arquivo for mexido |
-| Testes e2e antigos (`tests/e2e`) | dependem do chat/agente removido e do editor antigo | refazer com o editor novo |
-| Armazenamento S3/R2 e cotas por plano | só há pasta/memória | P7 |
-| Importador dos `.json` antigos | é só uma ponte; os arquivos não ficam para sempre | `npm run importar` existe; apagar quando não houver mais .json |
+| Pexels, Pixabay, Poly Pizza com chave real | não há chaves | ação da pessoa dona; **Poly Pizza** ainda precisa conferir a API oficial |
+| Lottie e ilustrações como fonte de assets | falta escolher APIs e conferir licenças (LottieFiles tem termos próprios) | pesquisa de fontes abertas |
+| Remover/renomear modo, variável, estilo por MCP | só criar e ligar foi priorizado | passo 4 |
+| Tabela de cores CSS nomeadas ("red" em SVG importado) | `svgimport.js` depende do canvas do navegador | tabela fixa de ~150 nomes |
+| `tokens.css` dentro do zip HTML | o HTML já leva as variáveis que usa | se um agente pedir |
+| Sombra de texto como variável; opacidade do Tailwind nas cores (`bg-fundo/50`) | `text-shadow` tem outra sintaxe; limite do `var()` no Tailwind v3 | cores em canais RGB nos tokens |
+| React: navegação por `#` (sem React Router), só JavaScript, `public/` exige site na raiz do domínio | simplicidade | D9 |
+| React Native; variante TypeScript do React | o React veio primeiro; RN usa outro modelo (só flex, sem grid) | D9 |
+| Auditoria além de contraste/alt/tamanho/títulos/alvo/vazamento | o essencial primeiro | passo 5 |
+| Medida de layout só no desktop e no breakpoint pedido | a "medida de volta" do editor também ignora breakpoints | se um agente precisar |
+| Rota HTTP `react.zip`/`site.zip` sem teste dedicado | mesmo caminho nas duas | passo 8 |
+| Exposição na internet (HTTPS, limites, SSE por pessoa, login no editor) | produto ainda não hospedado | D5–D6 |
+| Cobrança, planos, cotas por plano, S3/R2 | só há pasta/memória e cota fixa | D5, D7 |
+| TypeScript no resto do núcleo (`store`, `commands`, `css`, `runner`...) | converter tudo de uma vez deu ~700 erros | converter ao mexer (passo 1) |
+| `tests/e2e` antigos | dependem do chat/agente removido e do editor antigo | editor novo (D10) |
+| Importador de `.json` antigos | é só uma ponte | `npm run importar`; apagar quando não houver mais `.json` |
+| Arquivo de licenças dentro dos zips exportados | pendência do `NOTICE` | passo 7 |
 
-## 6. Regras de trabalho que a pessoa pediu
+## 6. Regras de trabalho que a pessoa dona pediu
 
-- Decisões grandes: explicar o porquê e registrar em `decisoes.md` (sempre acrescentando).
-- Código em módulos pequenos; cada arquivo uma função; sem "arquivo de mil linhas". Evitar reinventar o que um framework faz bem.
-- Segurança desde o começo: o HTML/CSS/script vem de agentes e pessoas e **nunca** é confiável (sandbox, sem rede, sem JS no servidor); downloads por endereço só com a proteção SSRF de `services/remote-image.ts`.
+- Decisão grande: explicar o porquê e registrar em `decisoes.md` (**sempre acrescentando**, sem reeditar o que já está lá).
+- Código em módulos pequenos; evitar reinventar o que um framework faz bem; dependências são bem-vindas se encolherem o código.
+- Segurança desde o começo: HTML/CSS que entra **nunca** é confiável (sem `<script>`, sem JS no servidor, Chromium sem rede, proteção SSRF).
 - Só uso comercial livre nos assets de terceiros; sempre registrar licença e crédito.
-- Não fazer push, não abrir PR e não apagar dados do usuário sem pedir.
-- Antes de afirmar que algo funciona: testar de verdade (testes + uma checagem real). Dizer com franqueza o que **não** foi verificado (ex.: Poly Pizza, chaves reais).
+- **Não fazer push nem PR e não apagar dados da pessoa sem pedir.** Não mexer no editor (`apps/web`) por enquanto.
+- Antes de afirmar que algo funciona: testar de verdade (suíte + uma checagem real) e dizer com franqueza o que **não** foi verificado.
 
 ## 7. Armadilhas conhecidas
 
-- **Windows:** o shell mastiga aspas/crases em comandos longos; para editar arquivos grandes use uma ferramenta de edição de arquivo, não `node -e`/heredoc com template literals.
-- **PGlite** aceita **um processo por vez** e travou uma vez ao fechar com consulta em andamento: sempre `await operations.idle()` antes de fechar o banco (já feito em `main.ts` e nos testes).
-- **Vite em modo desenvolvimento** sobe no primeiro pedido de página e pode demorar sob carga; testes de servidor têm paciência de sobra de propósito.
-- `designer.secret` (chave de cifragem local) **não pode ir para o git**: já está no `.gitignore` (foi commitado por engano uma vez e removido do controle de versão; a cópia antiga fica só no histórico local, que nunca foi enviado).
-- `packages/core/src/tools/runner.js` tem um auxiliar local chamado `imageInfo`; o import de `image-size.ts` entra como `sniffImage` por causa disso.
-- Migrações Prisma são geradas com `prisma migrate diff --from-schema <antigo> --to-schema prisma/schema.prisma --script` (não há Postgres de verdade aqui para `migrate dev`).
+- **Windows:** o shell mastiga aspas, crases e `$` em comandos longos. Para editar arquivos grandes use a ferramenta de edição, não `node -e`/heredoc com template literals.
+- **O typecheck não cobre os `.js`.** Um conflito de nome em `runner.js` só aparece ao rodar (já aconteceu com `summarize`). Rode ao menos `node --import tsx --import ./tests/_setup.mjs --test tests/agente.test.js` depois de mexer nele.
+- **PGlite** aceita um processo por vez e travou uma vez ao fechar com consulta em andamento: sempre `await operations.idle()` antes de fechar o banco (já feito em `main.ts` e nos testes).
+- **Testes de servidor** sobem um PGlite cada; sob carga o primeiro pedido demora (a espera é de até 60 s, de propósito).
+- `designer.secret`, `*.blobs/`, `designer.config.json` e `designer.db/` são dados locais: **não vão para o git** (`.gitignore`).
+- `tools/runner.js` tem um auxiliar local `imageInfo`; o import de `image-size.ts` entra como `sniffImage` por causa disso.
+- Migrações Prisma: `prisma migrate diff --from-schema <antigo> --to-schema packages/db/prisma/schema.prisma --script` (não há Postgres de verdade aqui para `migrate dev`).
+- **Argumentos das ferramentas são estritos:** se um cliente MCP mandar campo extra, recebe erro listando os aceitos (de propósito; veja `decisoes.md`).
+- O Chromium é opcional para o resto, mas sem ele `get_image`, o vazamento do `check_design` e a medida de layout ficam de fora (as ferramentas avisam).
+
+## 8. Histórico resumido (detalhes e porquês em `decisoes.md`)
+
+Faxina do repositório e remoção do agente embutido → MCP headless (workspace) → monorepo + Vite → Postgres/Prisma/PGlite → contas, agentes e conta mestre →
+projetos com revisão e versões → Hono + SDK oficial do MCP → ferramentas em Zod → colaboração (notas, atividade, compartilhar) → `get_image` →
+imagens fora do JSON → contrato de plugins + identidade visual → assets (biblioteca, provedores, fontes, créditos, mídia) → tokens, estilos de texto/sombra/gradiente,
+modos, variáveis → exportador React → **dogfooding** (agente construindo uma página): medida real de layout, `get_image` por breakpoint, `check_design`, argumentos estritos.

@@ -277,3 +277,16 @@ Em vez de adivinhar melhorias, montei uma landing page inteira SÓ pelas ferrame
 6. **O agente não sabia que errou** (texto que não quebra linha vazando no celular). → ferramenta nova `check_design` (`core/audit.ts`): vazamento por breakpoint (medido no
    Chromium), contraste WCAG, texto < 12px e imagem sem alt, cada um com o conserto. Fica em "core" (conhece o modelo do documento), não em plugin.
 Resultado no roteiro: a auditoria achou 6 problemas reais; depois do `set_responsive` caiu para 3 (os textos que não quebram linha).
+
+## 2026-10-11 — Passagem para outro programador: documentos refeitos, decisões do dono separadas, correções de higiene
+**Documentos.** `contexto.md` estava desatualizado (dizia "JavaScript puro, sem dependências", "pasta de JSON", "get_image ainda não feito") e foi
+reescrito: vocabulário, arquitetura, mapa correto, fluxos, **receitas** (nova ferramenta/plugin/provedor/exportação/migração) e convenções. `PASSAGEM.md`
+foi refeito: como começar, o que existe, **as decisões que dependem do dono (D1–D14) com recomendação de cada uma**, passos técnicos que não esperam decisão, e a lista de
+pulados. Criado `README.md` (porta de entrada). `NOTICE` reescrito com as licenças reais das dependências, dos provedores e dos players embutidos.
+**Verificação.** Num clone limpo do repositório: `npm install`, `typecheck`, servidor no ar e um cliente do SDK oficial do MCP criando, auditando, vendo e exportando um projeto.
+**Defeito achado no clone/varredura:** `zod` era importado pelo núcleo e pelos plugins mas não estava declarado em nenhum `package.json` (só chegava como dependência
+do SDK do MCP). Agora está declarado em `packages/core` e `packages/plugins`.
+**Melhorias junto:** `check_design` ganhou hierarquia de títulos (um h1, sem pular nível) e alvo clicável < 24 px; `alt: ""` passa a valer como "imagem decorativa" (só
+"nunca definido" é aviso); `build_layout` devolve a altura medida; ferramentas de assets fora do servidor explicam o que falta em vez de um erro técnico.
+**Decisão de método:** o que é decisão de negócio (licença, cobrança, hospedagem, nome, idioma, privacidade, formatos, editor) NÃO é decidido por quem programa: fica em
+`PASSAGEM.md §3` com opções e recomendação.
