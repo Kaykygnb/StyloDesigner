@@ -87,3 +87,12 @@ saber quem está trabalhando e o que já foi feito antes de mexer.
 documento (`add_comment`, usados pelo editor atual) e as notas do banco. A intenção é unificar nas notas do banco.
 **Também:** `npm run importar -- <pasta>` importa .json antigos (idempotente, pula nomes existentes); o log de
 operações espera terminar de gravar antes de fechar o banco (achado: fechar o PGlite no meio de uma consulta trava).
+
+## 2026-10-10 — get_image: renderizador com Chromium isolado no servidor
+**Decisão:** o servidor desenha o design (HTML exportado) num Chromium sem interface via `playwright-core`, com
+contexto isolado por imagem: **sem JavaScript, sem rede** (só `data:`), tempo limite de 20 s e no máximo 2 desenhos
+ao mesmo tempo. Fontes da web ficam com a fonte do sistema. O Chromium é carregado só no primeiro `get_image`.
+**Por quê:** o agente precisa "ver" o que fez para corrigir o próprio trabalho; o HTML vem de agentes e pessoas, então
+tem de ser tratado como não confiável.
+**Requisito de instalação:** `npx playwright install chromium` no servidor. Sem ele, só `get_image` falha, com mensagem clara.
+**Continuam indisponíveis sem navegador:** `edit_image` e `generate_image_edit` (mexem nos pixels no editor).

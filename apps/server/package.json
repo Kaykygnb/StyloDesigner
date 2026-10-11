@@ -4,6 +4,13 @@
   "private": true,
   "type": "module",
   "description": "Servidor: API de projetos, MCP, workspace (projetos abertos), presença e contas.",
-  "bin": { "stylo-mcp": "./bin/mcp.mjs" },
-  "exports": { "./*": "./src/*" }
+  "bin": {
+    "stylo-mcp": "./bin/mcp.mjs"
+  },
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "playwright-core": "^1.58.0"
+  }
 }

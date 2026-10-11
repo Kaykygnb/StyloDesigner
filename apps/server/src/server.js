@@ -42,6 +42,7 @@ import { createAgents } from './services/agents.js';
 import { createOperations } from './services/operations.js';
 import { createNotes } from './services/notes.js';
 import { createSharing } from './services/sharing.js';
+import { createRenderer } from './services/renderer.js';
 import { createWorkspace } from './workspace/index.js';
 import { exportSite } from '@stylo/core/site-export.js';
 import { createWebHandler } from './web.js';
@@ -97,6 +98,8 @@ const agents = createAgents(db);
 const operations = createOperations(db);
 const notes = createNotes(db);
 const sharing = createSharing(db);
+/** Renderizador de imagens (Chromium sem interface), aberto só no primeiro get_image. */
+const renderer = createRenderer();
 /** 'local' = sem login (servidor só desta máquina; tudo age como o usuário local). 'accounts' = contas e senha. */
 const AUTH_MODE = process.env.STYLO_AUTH === 'accounts' ? 'accounts' : 'local';
 const localUser = await auth.localUser();
@@ -104,7 +107,7 @@ const localUser = await auth.localUser();
 const projects = createProjects({ db, getConfig: () => config, onWrite: (event) => { broadcastProjectChange(event); workspace.externalWrite(event); } });
 /** Projetos abertos no servidor: é aqui que o MCP trabalha, sem precisar de navegador (server/workspace). */
 const workspace = createWorkspace({
-  projects, notes, sharing, operations, presence: () => presence.snapshot(), baseUrl: () => `http://localhost:${port}`,
+  projects, notes, sharing, operations, renderImage: (node, doc, scale) => renderer.render(node, doc, scale), presence: () => presence.snapshot(), baseUrl: () => `http://localhost:${port}`,
   onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },
 });
 const photosRoute = createPhotosHandler({ getKey: (cfg) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
@@ -640,7 +643,7 @@ let stopping = false;
 async function shutdown() {
   if (stopping) return;
   stopping = true;
-  try { await workspace.flushAll(); await operations.idle(); await closeDb(); } finally { process.exit(0); }
+  try { await workspace.flushAll(); await operations.idle(); await renderer.close(); await closeDb(); } finally { process.exit(0); }
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

@@ -216,3 +216,21 @@ test('who_is_here devolve o retrato da presença injetada', async () => {
   assert.deepEqual(await t.workspace.call('who_is_here', {}, { sid: 'a', actor: a }), { agents: [] });
   await t.close();
 });
+
+test('get_image usa o renderizador injetado e devolve a imagem para o MCP', async () => {
+  const { db, close } = await createDb({ pglite: {} });
+  const owner = await db.user.create({ data: { email: 'r@x.com', name: 'R', passwordHash: '!', role: 'OWNER' } });
+  const ag = await db.agent.create({ data: { name: 'A', ownerId: owner.id, tokenHash: 'h-r', scopes: ['read', 'write'], status: 'ACTIVE' } });
+  const actor: Actor = { type: 'AGENT', userId: owner.id, agentId: ag.id, name: 'A', scopes: ag.scopes };
+  let workspace: ReturnType<typeof createWorkspace>;
+  const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), onWrite: (e) => { void workspace.externalWrite(e); } });
+  const seen: number[] = [];
+  workspace = createWorkspace({ projects, notes: createNotes(db), sharing: createSharing(db), operations: createOperations(db), renderImage: async (node, _doc, scale) => { seen.push(node.w * scale); return 'UE5HRkFLRQ=='; } });
+  await workspace.call('new_project', { name: 'Foto' }, { sid: 's', actor });
+  await workspace.call('create_layer', { type: 'frame', props: { name: 'Hero', w: 320, h: 180 } }, { sid: 's', actor });
+  const out = await workspace.call('get_image', { scale: 2 }, { sid: 's', actor });
+  assert.equal(out.error, undefined, out.error);
+  assert.deepEqual(out._image, { data: 'UE5HRkFLRQ==', mimeType: 'image/png' });
+  assert.deepEqual(seen, [640]);
+  await close();
+});

@@ -59,11 +59,13 @@ interface Doc {
   runner: any;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, renderImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
   operations: Operations;
+  /** Desenha uma camada como PNG base64 (services/renderer.ts). Sem ele, `get_image` explica que não há renderizador. */
+  renderImage?: ((node: any, doc: any, scale: number) => Promise<string>) | null;
   /** Retrato de quem está no servidor (pessoas e agentes), vindo da presença. */
   presence?: () => unknown;
   baseUrl?: () => string;
@@ -85,7 +87,7 @@ export function createWorkspace({ projects, notes, sharing, operations, presence
     entry.store = createStore({ initial: { doc, views: {}, theme: 'dark', link: { file, synced: true } }, persist });
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
-    entry.runner = createRunner({ store: entry.store, commands, approve: null, renderImage: null });
+    entry.runner = createRunner({ store: entry.store, commands, approve: null, renderImage });
     docs.set(id, entry);
     return entry;
   }
