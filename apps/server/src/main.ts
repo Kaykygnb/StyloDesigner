@@ -25,6 +25,7 @@ import { createNotes } from './services/notes.js';
 import { createSharing } from './services/sharing.js';
 import { createProjects } from './services/projects.js';
 import { createRenderer } from './services/renderer.js';
+import { fetchRemoteImage } from './services/remote-image.js';
 import { createWorkspace } from './workspace/index.js';
 import { createPresence } from './presence.js';
 import { createEvents } from './events.js';
@@ -66,6 +67,7 @@ const sharing = createSharing(db);
 workspace = createWorkspace({
   projects, notes, sharing, operations, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale) => renderer.render(node, doc, scale),
+  fetchImage: (url) => fetchRemoteImage(url),
   baseUrl: () => `http://localhost:${port}`,
   onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },
 });

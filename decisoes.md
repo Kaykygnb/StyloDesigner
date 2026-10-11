@@ -122,3 +122,16 @@ html, svg, svgimport, geom, imagefx, codeassist, sample-vitrine, tools/runner. C
 O `core` e o servidor usam `noImplicitAny: false` (gradual); `npm run typecheck` passa em db, core e server.
 **Por quê:** erros nos pontos de contato (agente ↔ servidor ↔ documento) eram descobertos só em execução; agora a
 validação e os tipos nascem da mesma definição. O editor (`apps/web`) fica em JS até ser descartado.
+
+## 2026-10-10 — Imagens fora do JSON do projeto; ferramenta add_asset
+**Decisão:** na gravação, as imagens (data URLs) vão para a tabela `Asset` (uma por conteúdo, chave = sha256 por projeto) e o
+JSON do projeto leva só `"asset:<hash>"`; na leitura voltam a ser data URLs. O núcleo e o editor **não mudam** (continuam
+vendo `doc.assets`). Versões e histórico ficam leves; imagens que nenhuma versão usa mais são recolhidas. Cada imagem sai por
+`GET /api/projects/<arquivo>/assets/<sha256>` (cache imutável, CSP com sandbox). Projetos antigos são externalizados na
+próxima gravação. Nova ferramenta MCP `add_asset` (base64, data URL ou `source_url`), com tipo e dimensões lidos dos bytes
+(`core/image-size.ts`, sem DOM) e reaproveitamento de imagem repetida.
+**Segurança:** `source_url` só aceita https e é protegida contra SSRF — o IP é conferido **na hora de conectar** (hook `lookup`
+do undici), IP privado/loopback/link-local/reservado é recusado (IPv4, IPv6 e IPv4 embutido), redirecionamentos conferidos
+a cada passo, limite de 16 MB e 12 s.
+**Achado:** em `runner.js` já existia um auxiliar local chamado `imageInfo`; importar outro com o mesmo nome o sombreou
+(o erro só apareceu em teste). Importado como `sniffImage`.

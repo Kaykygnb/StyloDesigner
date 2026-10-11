@@ -35,7 +35,7 @@ async function connect(base, name = 'Claude Code') {
 }
 const text = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 
-test('cliente oficial: initialize traz as instruções, tools/list as 50 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
+test('cliente oficial: initialize traz as instruções, tools/list as 51 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
   const base = await startServer(t);
   const client = await connect(base);
   t.after(() => client.close());
@@ -43,7 +43,7 @@ test('cliente oficial: initialize traz as instruções, tools/list as 50 ferrame
   assert.equal(client.getServerVersion().name, 'projeto-designer');
   assert.match(client.getInstructions(), /new_project/);
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 50);
+  assert.equal(tools.length, 51);
   assert.ok(tools.find((x) => x.name === 'get_document').annotations.readOnlyHint);
   assert.ok(tools.find((x) => x.name === 'delete_layers').annotations.destructiveHint);
 

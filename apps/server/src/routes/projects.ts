@@ -66,6 +66,20 @@ export function projectRoutes(s: Services, id: Identity) {
     });
   });
 
+  // a imagem pelo hash (sha256): conteúdo imutável, então o navegador pode guardar para sempre
+  r.get('/projects/:file/assets/:hash', async (c) => {
+    const hash = c.req.param('hash');
+    if (!/^[0-9a-f]{64}$/.test(hash)) throw httpError(400, 'Hash de imagem inválido.');
+    const { mime, data } = await s.projects.asset(await id.userOf(c), checkName(c.req.param('file')), hash);
+    return c.body(Buffer.from(data), 200, {
+      'Content-Type': mime,
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'X-Content-Type-Options': 'nosniff',
+      // SVG pode conter <script>: servido direto não executa nada
+      'Content-Security-Policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",
+    });
+  });
+
   r.get('/projects/:file/thumb', async (c) => {
     const svg = await s.projects.readThumb(await id.userOf(c), checkName(c.req.param('file')));
     // SVG pode conter <script>: a política de segurança abaixo impede que rode, mesmo se alguém abrir a URL direto

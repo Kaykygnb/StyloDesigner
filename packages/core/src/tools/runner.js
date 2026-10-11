@@ -25,6 +25,10 @@ import { imageAssetCatalog } from '../image-assets.js';
 import { toolByName, validateToolArgs } from './schema.js';
 import { exportSite } from '../site-export.js';
 import { agentContentLimit, boundedUtf8Chunk, DEFAULT_AGENT_CONTENT_BYTES } from './content.js';
+import { imageInfo as sniffImage, parseImageDataUrl, fromBase64, toDataUrl } from '../image-size.js';
+
+/** Tamanho máximo de uma imagem enviada por agente (depois de decodificar). */
+const MAX_UPLOAD_BYTES = 16 * 1024 * 1024;
 
 /** Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada. */
 const SIMPLE = [
@@ -173,6 +177,7 @@ export function describeCall(tool, args, store) {
       return `Alterar ${nm(args.id)}: ${keys.join(', ') || '(nada)'}`;
     }
     case 'create_layer': return `Criar ${args.type === 'text' ? 'um texto' : `um ${args.type}`}${args.props?.name ? ` “${args.props.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
+    case 'add_asset': return `Enviar uma imagem para o projeto${args.name ? ` (“${args.name}”)` : ''}${args.insert ? ' e colocá-la no canvas' : ''}`;
     case 'insert_asset': return `Inserir a imagem do projeto${args.name ? ` “${args.name}”` : ''}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' no canvas'}`;
     case 'delete_layers': return `Apagar ${(args.ids || []).map(nm).join(', ')}`;
     case 'move_layer': return `Mover ${nm(args.id)}${args.parent_id ? ` para ${args.parent_id === 'root' ? 'a raiz da página' : `dentro de ${nm(args.parent_id)}`}` : ''}${Number.isInteger(args.index) ? ` (posição ${args.index})` : ''}`;
@@ -238,9 +243,10 @@ export function assertCurrentImageTarget(store, id, doc, node, fill, source) {
  * @param {object} [deps.saving]  salvamento do editor (navegador)
  * @param {object} [deps.folder]  pasta de projetos do editor (navegador)
  * @param {((node, doc, scale) => Promise<string>)|null} [deps.renderImage]  PNG base64; null = sem renderização (o navegador ou um renderizador injeta)
+ * @param {((url: string) => Promise<{ bytes: Uint8Array }>)|null} [deps.fetchImage]  baixa uma imagem por endereço (o servidor injeta uma versão protegida contra SSRF)
  * @param {object|null} [deps.imageOps]  edição de imagem por pixel ({ editImageLocal, generativeEdit, restoreOriginal, applyImageToNode }); só existe no navegador
  */
-export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, imageOps = null }) {
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, fetchImage = null, imageOps = null }) {
   /** Camada pelo id ou erro claro (a IA às vezes inventa ids: a mensagem manda ela procurar antes). */
   const need = (id) => {
     const n = id && store.get(id);
@@ -561,6 +567,38 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       });
       store.setSelection([node.id]);
       return { created: summarize(node, 0) };
+    },
+    async add_asset({ name, data_url, data_base64, source_url, insert, parent_id, at }) {
+      const given = [data_url, data_base64, source_url].filter(Boolean).length;
+      if (given !== 1) throw new Error('Mande exatamente UM entre data_url, data_base64 e source_url.');
+      let bytes;
+      if (source_url) {
+        if (!fetchImage) throw new Error('Baixar imagem por endereço não está disponível neste servidor. Mande data_base64.');
+        bytes = (await fetchImage(String(source_url))).bytes;
+      } else if (data_url) {
+        const parsed = parseImageDataUrl(String(data_url));
+        if (!parsed) throw new Error('data_url inválido: use "data:image/png;base64,...".');
+        bytes = parsed.bytes;
+      } else {
+        const clean = String(data_base64).replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) throw new Error('data_base64 inválido: precisa ser base64 puro.');
+        bytes = fromBase64(clean);
+      }
+      if (bytes.length > MAX_UPLOAD_BYTES) throw new Error(`A imagem tem ${Math.round(bytes.length / 1048576)} MB; o limite é 16 MB.`);
+      const info = sniffImage(bytes);
+      if (!info) throw new Error('Isso não é uma imagem reconhecida (use PNG, JPEG, GIF, WebP ou SVG).');
+      const dataUrl = toDataUrl(bytes, info.mime);
+      const doc = store.state.doc;
+      // mesma imagem já no projeto: reutiliza o id em vez de guardar de novo
+      let assetId = Object.keys(doc.assets || {}).find((k) => doc.assets[k] === dataUrl);
+      const reused = !!assetId;
+      if (!assetId) { assetId = uid(); store.addAsset(assetId, dataUrl); }
+      const out = { asset_id: assetId, reused, format: info.mime.replace('image/', '').replace('+xml', ''), width: info.width, height: info.height, kb: Math.max(1, Math.round(bytes.length / 1024)) };
+      if (insert) {
+        const node = await commands.insertImageAsset(assetId, at, { parentId: parent_id || null, name: name || undefined });
+        return { ...out, created: summarize(node, 0), hint: 'A imagem foi enviada e já está numa camada nova.' };
+      }
+      return { ...out, hint: 'Imagem guardada no projeto. Use insert_asset com este asset_id para colocá-la numa camada (ou mande insert:true).' };
     },
     async insert_asset({ id, parent_id, index, at, name }) {
       const node = await commands.insertImageAsset(id, at, { parentId: parent_id || null, index, name });

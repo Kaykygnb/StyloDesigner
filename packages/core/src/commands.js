@@ -15,6 +15,7 @@ import { importSvg } from './svgimport.js';
 import { booleanPolygons, ellipseContour, flattenContour, polygonsToContours, rectContour } from './geom.js';
 import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
 import { imageAssetCatalog } from './image-assets.js';
+import { parseImageDataUrl } from './image-size.js';
 
 /**
  * Cria os COMANDOS de edição: operações que mudam a ÁRVORE de camadas ou várias camadas de uma vez
@@ -642,6 +643,11 @@ export function createCommands(store, canvas) {
     if (typeof src !== 'string' || !src.startsWith('data:image/')) throw new Error('Imagem do projeto não encontrada. Atualize a lista de assets e tente novamente.');
     const meta = imageAssetCatalog(doc).find((a) => a.id === assetId);
     let w = meta?.width, h = meta?.height;
+    if (!(w > 0 && h > 0)) {
+      // lê o cabeçalho da imagem (funciona sem navegador); só cai no decodificador do DOM se isso não bastar
+      const size = parseImageDataUrl(src)?.info;
+      if (size) { w = size.width; h = size.height; }
+    }
     if (!(w > 0 && h > 0)) {
       const image = new Image();
       image.src = src;

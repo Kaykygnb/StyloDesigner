@@ -112,6 +112,7 @@ model Project {
   owner      User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members    ProjectMember[]
   versions   ProjectVersion[]
+  assets     Asset[]
   operations Operation[]
   notes      Note[]
 
@@ -127,6 +128,21 @@ model ProjectMember {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([projectId, userId])
+}
+
+/// Imagem do projeto, guardada UMA vez por conteúdo (sha256). O JSON do projeto só leva a referência ("asset:<hash>").
+model Asset {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @db.Uuid
+  hash      String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, hash])
 }
 
 /// Foto do projeto num momento (histórico).

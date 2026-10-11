@@ -9,14 +9,14 @@ import { createNotes } from '../apps/server/src/services/notes.ts';
 import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
-async function setup() {
+async function setup(extra: { fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }> } = {}) {
   const { db, close } = await createDb({ pglite: {} });
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
   const operations = createOperations(db);
   let workspace: ReturnType<typeof createWorkspace>;
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), onWrite: (e) => { void workspace.externalWrite(e); } });
-  workspace = createWorkspace({ projects, notes: createNotes(db), sharing: createSharing(db), operations, presence: () => ({ agents: [] }), onOperation: (op) => { void operations.record(op); } });
+  workspace = createWorkspace({ projects, notes: createNotes(db), sharing: createSharing(db), operations, ...extra, presence: () => ({ agents: [] }), onOperation: (op) => { void operations.record(op); } });
   const agentOf = async (name: string, user = owner, scopes?: string[]) => {
     const a = await db.agent.create({ data: { name, ownerId: user.id, tokenHash: `h-${name}-${Math.random()}`, scopes: scopes ?? ['read', 'write', 'export'], status: 'ACTIVE' } });
     return { type: 'AGENT', userId: user.id, agentId: a.id, name, scopes: a.scopes } satisfies Actor;
@@ -233,4 +233,57 @@ test('get_image usa o renderizador injetado e devolve a imagem para o MCP', asyn
   assert.deepEqual(out._image, { data: 'UE5HRkFLRQ==', mimeType: 'image/png' });
   assert.deepEqual(seen, [640]);
   await close();
+});
+
+const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const SVG_B64 = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="red"/></svg>').toString('base64');
+
+test('add_asset: envia imagem (base64, data URL ou endereço), reaproveita a repetida, recusa o que não é imagem e guarda fora do JSON', async () => {
+  const fetched: string[] = [];
+  const t = await setup({ fetchImage: async (url) => { fetched.push(url); return { bytes: Uint8Array.from(Buffer.from(SVG_B64, 'base64')) }; } });
+  const a = await t.agentOf('Claude Code');
+  await t.workspace.call('new_project', { name: 'Imagens' }, { sid: 's', actor: a });
+
+  const first = await t.workspace.call('add_asset', { data_base64: PNG_B64 }, { sid: 's', actor: a });
+  assert.equal(first.error, undefined, first.error);
+  assert.deepEqual([first.format, first.width, first.height, first.reused], ['png', 1, 1, false]);
+  const again = await t.workspace.call('add_asset', { data_url: `data:image/png;base64,${PNG_B64}` }, { sid: 's', actor: a });
+  assert.equal(again.asset_id, first.asset_id, 'a mesma imagem não vira dois assets');
+  assert.equal(again.reused, true);
+
+  // por endereço (o servidor baixa) e já inserindo numa camada, com as dimensões do SVG sem navegador
+  const remote = await t.workspace.call('add_asset', { source_url: 'https://exemplo.com/logo.svg', insert: true, name: 'Logo' }, { sid: 's', actor: a });
+  assert.equal(remote.error, undefined, remote.error);
+  assert.deepEqual(fetched, ['https://exemplo.com/logo.svg']);
+  assert.equal(remote.created.name, 'Logo');
+  assert.deepEqual([remote.width, remote.height], [200, 100]);
+  assert.deepEqual([remote.created.w, remote.created.h], [200, 100]);
+
+  // erros claros
+  assert.match((await t.workspace.call('add_asset', {}, { sid: 's', actor: a })).error, /exatamente UM/);
+  assert.match((await t.workspace.call('add_asset', { data_base64: PNG_B64, data_url: `data:image/png;base64,${PNG_B64}` }, { sid: 's', actor: a })).error, /exatamente UM/);
+  assert.match((await t.workspace.call('add_asset', { data_base64: Buffer.from('isso nao e imagem nenhuma').toString('base64') }, { sid: 's', actor: a })).error, /não é uma imagem/);
+  assert.match((await t.workspace.call('add_asset', { data_base64: '@@@' }, { sid: 's', actor: a })).error, /base64 inválido/);
+
+  // list_assets enxerga; ao gravar, o JSON do projeto fica sem base64 e a tabela de imagens recebe
+  const listed = await t.workspace.call('list_assets', {}, { sid: 's', actor: a });
+  assert.ok(listed.count >= 1);
+  await t.workspace.flushAll();
+  const row = await t.db.project.findFirstOrThrow({ where: { slug: 'imagens.json' } });
+  assert.equal(JSON.stringify(row.doc).includes('base64'), false);
+  assert.equal(await t.db.asset.count({ where: { projectId: row.id } }), 2);
+  const loaded = await t.projects.load({ id: t.owner.id }, 'imagens.json');
+  assert.ok(Object.values<string>(loaded.doc.assets).every((v) => v.startsWith('data:image/')), 'ao ler, as imagens voltam como data URL');
+  await t.close();
+});
+
+test('add_asset sem como baixar (source_url) explica; leitor sem escrita não envia', async () => {
+  const t = await setup();
+  const w = await t.agentOf('Escritor');
+  const r = await t.agentOf('Leitor', t.owner, ['read']);
+  await t.workspace.call('new_project', { name: 'Sem Download' }, { sid: 'w', actor: w });
+  assert.match((await t.workspace.call('add_asset', { source_url: 'https://exemplo.com/a.png' }, { sid: 'w', actor: w })).error, /não está disponível/);
+  await t.workspace.call('open_project', { file: 'sem-download.json' }, { sid: 'r', actor: r });
+  assert.match((await t.workspace.call('add_asset', { data_base64: PNG_B64 }, { sid: 'r', actor: r })).error, /permissão de escrita/);
+  await t.close();
 });

@@ -152,6 +152,23 @@ ${PROP_HELP}`,
     }),
   }),
   defineTool({
+    name: 'add_asset',
+    write: true,
+    description: 'ENVIA uma imagem para o projeto (PNG, JPEG, GIF, WebP ou SVG, até 16 MB) e devolve o asset_id, o tamanho e o formato. Mande UM entre: data_base64 (conteúdo em base64), data_url ("data:image/png;base64,...") ou source_url (endereço https público que o servidor baixa; redes internas são bloqueadas). Com insert:true já cria a camada de imagem (parent_id/at opcionais); sem ele, use insert_asset depois. Enviar a mesma imagem de novo reaproveita o asset existente. As imagens ficam guardadas fora do JSON do projeto.',
+    input: z.object({
+      name: z.string().describe('nome da camada criada (com insert:true)').optional(),
+      data_base64: z.string().describe('conteúdo da imagem em base64, sem prefixo (ou com ele)').optional(),
+      data_url: z.string().describe('data URL completo da imagem').optional(),
+      source_url: z.string().describe('endereço https público da imagem').optional(),
+      insert: z.boolean().describe('se true, já coloca a imagem numa camada nova').optional(),
+      parent_id: z.string().describe('com insert: id do frame/grupo que recebe a imagem').optional(),
+      at: z.object({
+        x: z.number(),
+        y: z.number(),
+      }).describe('com insert: ponto do canvas (centro da imagem)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'insert_asset',
     write: true,
     description: 'Insere no canvas uma imagem já existente no projeto, reutilizando o asset sem duplicar o arquivo. Descubra os ids com list_assets. Pode inserir dentro de um frame com parent_id; at usa coordenadas do canvas.',

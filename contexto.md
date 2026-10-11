@@ -55,7 +55,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `site-export.js`, `zip.js` | site multipágina em **zip** (sem dependência) |
 | `fonts.js`, `icons.js`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `sample-vitrine.js`, `version.js` | projeto de exemplo, versão |
-| `tools/schema.js` | as 42 ferramentas MCP (nome, descrição, JSON Schema) |
+| `tools/schema.js` | as 51 ferramentas MCP (nome, descrição, JSON Schema) |
 | `tools/runner.js` | **executa** cada ferramenta com store + commands. Roda no servidor; `get_image`, `edit_image` e `generate_image_edit` só existem se alguém injetar `renderImage`/`imageOps` |
 | `tools/content.js` | divide conteúdo grande em trechos UTF-8 |
 
@@ -72,6 +72,7 @@ Codex/Claude Desktop (só stdio): `node apps/server/bin/mcp.mjs`, que repassa pa
 | `mcp/gateway.ts` | servidor MCP: protocolo do **SDK oficial**, sessões (máx. 64), identidade do agente (Bearer ou nome do programa), lista de ferramentas |
 | `mcp/agent-calls.ts` | executa uma chamada: presença, travas por camada, chamadas em voo |
 | `events.ts` | avisos ao vivo aos editores (SSE: `presence`, `project`) |
+| `services/assets.ts` · `remote-image.ts` | imagens fora do JSON (tabela `Asset`, uma por conteúdo/sha256; o JSON leva `asset:<hash>`; volta como data URL ao ler) · baixar imagem por endereço com proteção contra SSRF |
 | `services/projects.ts` · `auth.ts` · `agents.ts` · `operations.ts` · `notes.ts` · `sharing.ts` | projetos com revisão e versões · contas e sessões · cadastro de agentes · log de atividade · notas · compartilhamento |
 | `services/renderer.ts` | PNG do design num Chromium isolado (`get_image`) |
 | `workspace/index.ts` · `model-canvas.ts`(.js) | **onde o MCP trabalha**: projetos abertos em memória, papel e escopos por sessão, grava sozinho, recarrega se outro autor gravar; geometria sem DOM |
@@ -96,6 +97,7 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 - Sem editor aberto o agente cria projeto (`new_project`), edita e exporta (`export_zip`, `export_site`, `export_html`).
 - `apps/web/src/live.js` é a única ligação do editor com o servidor para MCP/presença (eventos `presence` e `project`).
 - **Dois modos de acesso:** `local` (padrão: sem login, só esta máquina, agentes entram pelo nome e a política `open` os registra) e `accounts` (`STYLO_AUTH=accounts`: login com senha, conta mestre, agentes só com token). A conta mestre cria agentes em `POST /api/agents` (o token aparece uma vez) e aprova/revoga em `/api/agents/:id/approve|revoke`; o log sai em `GET /api/projects/<arquivo>/activity`.
+- **Imagens:** o núcleo continua vendo `doc.assets` com data URLs; o banco as guarda à parte (`services/assets.ts`) e serve cada uma em `GET /api/projects/<arquivo>/assets/<sha256>`.
 - **Falta para expor na internet:** ligar em `0.0.0.0`/domínio (hoje só 127.0.0.1 e Host/Origin locais), HTTPS, limite de requisições, filtrar eventos SSE por pessoa, e o editor ainda não tem tela de login.
 - **Limites conhecidos:** (1) se duas pessoas gravam o mesmo projeto, a gravação de fora vence e o workspace recarrega
   (colaboração em tempo real de verdade — CRDT ou operações — é trabalho futuro); (2) `get_image` precisa de um
@@ -124,7 +126,7 @@ editor (navegador) ◀── SSE "project" (recarrega se não tem alteração pe
 2. ✅ MCP headless: `runner` e `commands` rodam no servidor (workspace); editor vira cliente ao vivo; `export_zip`.
 3. ✅ Monorepo (`packages/core`, `apps/server`, `apps/web`) com Vite.
 4. ✅ Hono + SDK oficial do MCP; `server.js` fatiado em módulos. Falta: Zod nas ferramentas e TypeScript no `core`.
-5. ✅ Postgres + Prisma ligados: projetos, versões, contas/sessões, agentes com token e escopos, log de operações, papéis por projeto (migrações 0001 e 0002). Falta: tabela de notas/comentários via MCP, imagens fora do JSON, importar projetos .json antigos.
+5. ✅ Postgres + Prisma ligados (migrações 0001–0003, inclusive imagens): projetos, versões, contas/sessões, agentes com token e escopos, log de operações, papéis por projeto (migrações 0001 e 0002). Importar .json antigos: `npm run importar`.
 6. Plugins do núcleo (documento, exportação, MCP, fotos, imagem, identidade visual).
 7. Edição simultânea de verdade (operações ou CRDT) e renderizador para `get_image`.
 

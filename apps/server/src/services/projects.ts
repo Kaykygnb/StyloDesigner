@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import type { Db } from '@stylo/db/client.ts';
 import { httpError } from '../http-error.js';
+import { collectGarbage, hashesOf, hydrate, readAsset, saveBlobs, splitAssets } from './assets.js';
 
 const VERSION_EVERY_MS = 10 * 60 * 1000;
 export const MAX_THUMB = 3 * 1024 * 1024;
@@ -78,7 +79,8 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
   async function load(user: Person, slug: string) {
     const p = await need(user, slug);
     const role = p.ownerId === user.id ? 'OWNER' : p.members[0]?.role ?? 'VIEWER';
-    return { id: p.id, ownerId: p.ownerId, role, doc: p.doc as any, modified: p.updatedAt.getTime(), contentHash: hashOf(p.revision), revision: p.revision, name: p.name };
+    const doc = await hydrate(db, p.id, p.doc);
+    return { id: p.id, ownerId: p.ownerId, role, doc, modified: p.updatedAt.getTime(), contentHash: hashOf(p.revision), revision: p.revision, name: p.name };
   }
 
   const exists = async (user: Person, slug: string) => !!(await find(user, slug));
@@ -97,11 +99,14 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     const docHash = createHash('sha1').update(text).digest('hex');
     const name = String(doc.name || slug.replace(/\.json$/i, '')).slice(0, 120);
     const keep = getConfig().keepVersions;
+    // as imagens vão para a tabela Asset; o JSON do projeto leva só as referências
+    const { light, blobs } = splitAssets(doc);
     const result = await db.$transaction(async (tx) => {
       const found = await tx.project.findMany({ where: { slug, OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] }, include: { members: { where: { userId: user.id } } } });
       const cur = found.find((p) => p.ownerId === user.id) ?? found[0];
       if (!cur) {
-        const created = await tx.project.create({ data: { slug, name, ownerId: user.id, doc, size: bytes, docHash, revision: 1 } });
+        const created = await tx.project.create({ data: { slug, name, ownerId: user.id, doc: light, size: bytes, docHash, revision: 1 } });
+        await saveBlobs(tx, created.id, blobs);
         return { project: created, changed: true };
       }
       if (cur.ownerId !== user.id && cur.members[0]?.role === 'VIEWER') throw httpError(403, 'Você só pode ler este projeto.');
@@ -111,17 +116,22 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
         throw httpError(409, 'O projeto foi alterado por outra pessoa ou agente.', { body: { modified: cur.updatedAt.getTime(), contentHash: hashOf(cur.revision) } });
       }
       // versão anterior (no máximo 1 a cada 10 min)
+      let prunedVersions = false;
       if (keep > 0) {
         const last = await tx.projectVersion.findFirst({ where: { projectId: cur.id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
         if (!last || Date.now() - last.createdAt.getTime() >= versionEveryMs) {
           await tx.projectVersion.create({ data: { projectId: cur.id, revision: cur.revision, doc: cur.doc as any, size: cur.size } });
           const old = await tx.projectVersion.findMany({ where: { projectId: cur.id }, orderBy: { createdAt: 'desc' }, skip: keep, select: { id: true } });
-          if (old.length) await tx.projectVersion.deleteMany({ where: { id: { in: old.map((v) => v.id) } } });
+          if (old.length) { await tx.projectVersion.deleteMany({ where: { id: { in: old.map((v) => v.id) } } }); prunedVersions = true; }
         }
       }
       // otimista: se alguém gravou entre a leitura e aqui, `count` é 0
-      const done = await tx.project.updateMany({ where: { id: cur.id, revision: cur.revision }, data: { doc, name, size: bytes, docHash, revision: cur.revision + 1 } });
+      await saveBlobs(tx, cur.id, blobs);
+      const done = await tx.project.updateMany({ where: { id: cur.id, revision: cur.revision }, data: { doc: light, name, size: bytes, docHash, revision: cur.revision + 1 } });
       if (done.count === 0) throw httpError(409, 'O projeto foi alterado por outra pessoa ou agente.', { body: { contentHash: hashOf(cur.revision + 1) } });
+      // alguma imagem deixou de ser usada (no documento ou por uma versão que saiu)? limpa; as das versões guardadas ficam
+      const before = hashesOf(cur.doc), after = hashesOf(light);
+      if (prunedVersions || [...before].some((h) => !after.has(h))) await collectGarbage(tx, cur.id, light);
       return { project: await tx.project.findUniqueOrThrow({ where: { id: cur.id } }), changed: true };
     });
     const p = result.project;
@@ -140,7 +150,15 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     const p = await need(user, slug);
     const v = await db.projectVersion.findFirst({ where: { id, projectId: p.id } });
     if (!v) throw httpError(404, 'Versão não encontrada.');
-    return v.doc;
+    return hydrate(db, p.id, v.doc);
+  }
+
+  /** Uma imagem do projeto pelo hash (a pessoa precisa poder ler o projeto). */
+  async function asset(user: Person, slug: string, hash: string) {
+    const p = await need(user, slug);
+    const found = await readAsset(db, p.id, hash);
+    if (!found) throw httpError(404, 'Imagem não encontrada.');
+    return found;
   }
 
   async function readThumb(user: Person, slug: string): Promise<string> {
@@ -167,7 +185,7 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     return { file: target, modified: updated.updatedAt.getTime() };
   }
 
-  return { list, load, exists, write, versions, readVersion, readThumb, writeThumb, rename };
+  return { list, load, exists, write, asset, versions, readVersion, readThumb, writeThumb, rename };
 }
 
 export type Projects = ReturnType<typeof createProjects>;

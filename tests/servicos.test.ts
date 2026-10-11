@@ -142,3 +142,66 @@ test('gravar o mesmo conteúdo de novo não cria revisão, versão nem aviso (ev
   assert.equal(c.revision, a.revision + 1);
   await close();
 });
+
+const PNG_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const GIF_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+
+test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data URLs, versões leves, lixo recolhido', async () => {
+  const { db, close } = await createDb({ pglite: {} });
+  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const stranger = await db.user.create({ data: { email: 's@x.com', name: 'S', passwordHash: '!' } });
+  const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
+  const me = { id: owner.id };
+  const withAssets = (assets: Record<string, string>, name = 'img') => ({ ...doc(name), assets });
+
+  // duas ids com o MESMO conteúdo + uma imagem diferente + um valor que não é imagem
+  const first = await projects.write(me, 'foto.json', withAssets({ a: PNG_URL, b: PNG_URL, c: GIF_URL, d: 'https://exemplo.com/x.png' }));
+  const stored = (await db.project.findFirstOrThrow()).doc as any;
+  assert.match(stored.assets.a, /^asset:[0-9a-f]{64}$/, 'o JSON leva só a referência');
+  assert.equal(stored.assets.a, stored.assets.b, 'mesmo conteúdo, mesma referência');
+  assert.equal(stored.assets.d, 'https://exemplo.com/x.png', 'o que não é imagem embutida fica como está');
+  assert.equal(JSON.stringify(stored).includes('base64'), false, 'nenhum base64 no JSON');
+  assert.equal(await db.asset.count(), 2, 'duas imagens distintas guardadas, não três');
+
+  const loaded = await projects.load(me, 'foto.json');
+  assert.equal(loaded.doc.assets.a, PNG_URL, 'ao ler, volta o data URL');
+  assert.equal(loaded.doc.assets.c, GIF_URL);
+
+  // por endereço: o dono lê, quem não tem acesso não
+  const hash = stored.assets.a.slice('asset:'.length);
+  const served = await projects.asset(me, 'foto.json', hash);
+  assert.equal(served.mime, 'image/png');
+  assert.equal(served.data.length, Buffer.from(PNG_URL.split(',')[1], 'base64').length);
+  await assert.rejects(projects.asset({ id: stranger.id }, 'foto.json', hash), /não encontrado/i);
+  await assert.rejects(projects.asset(me, 'foto.json', 'f'.repeat(64)), /Imagem não encontrada/);
+
+  // tirar a imagem do documento: a versão guardada ainda precisa dela, então ela fica; a versão hidrata
+  await projects.write(me, 'foto.json', withAssets({ c: GIF_URL }), { base: { hash: first.contentHash } });
+  assert.equal(await db.asset.count(), 2, 'a versão anterior ainda usa a imagem PNG');
+  const versions = await projects.versions(me, 'foto.json');
+  const old = await projects.readVersion(me, 'foto.json', versions[0].id) as any;
+  assert.equal(old.assets.a, PNG_URL, 'a versão antiga também volta com data URL');
+  const versionRow = await db.projectVersion.findFirstOrThrow();
+  assert.equal(JSON.stringify(versionRow.doc).includes('base64'), false, 'versões também são leves');
+
+  // quando a versão sai do limite de versões, a imagem some
+  const p = createProjects({ db, getConfig: () => ({ keepVersions: 1 }), versionEveryMs: 0 });
+  let base = (await p.load(me, 'foto.json')).contentHash;
+  for (const label of ['x1', 'x2', 'x3']) base = (await p.write(me, 'foto.json', withAssets({ c: GIF_URL }, label), { base: { hash: base } })).contentHash;
+  assert.equal(await db.asset.count(), 1, 'só a imagem ainda usada continua guardada');
+  await close();
+});
+
+test('projeto antigo com imagem embutida no JSON é externalizado na próxima gravação', async () => {
+  const { db, close } = await createDb({ pglite: {} });
+  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const old = await db.project.create({ data: { slug: 'velho.json', name: 'Velho', ownerId: owner.id, doc: { ...doc('velho'), assets: { a: PNG_URL } }, revision: 1 } });
+  const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
+  const me = { id: owner.id };
+  const loaded = await projects.load(me, 'velho.json');
+  assert.equal(loaded.doc.assets.a, PNG_URL, 'lê normalmente o formato antigo');
+  await projects.write(me, 'velho.json', { ...loaded.doc, name: 'Velho 2' }, { base: { hash: loaded.contentHash } });
+  const stored = (await db.project.findUniqueOrThrow({ where: { id: old.id } })).doc as any;
+  assert.match(stored.assets.a, /^asset:/);
+  await close();
+});
