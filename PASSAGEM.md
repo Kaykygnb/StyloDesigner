@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-11**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **449 testes, 448 passando, 0 falhas, 1 pulado** (teste específico que procura o Chromium do Playwright; os demais testes visuais usaram `/usr/bin/chromium`); `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **463 testes, 463 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** executor das ferramentas dividido em módulos TypeScript, sem mudar o contrato. Conferência real pelo cliente oficial MCP: 79 ferramentas, criação de tela, estilo de cor, ajuste e imagem no celular, auditoria medida, tokens, exportação HTML/React, download dos dois ZIPs, desfazer/refazer. Servidor encerrado depois. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco.
+**Último bloco:** edição local de fotos ligada ao servidor/MCP, manual dos agentes corrigido e 79 ferramentas organizadas por grupo em `FERRAMENTAS.md`. Conferência real pelo cliente oficial MCP: importação, giro, recorte, filtro/ajuste, imagem, restauração, fundo transparente, projeto salvo, ZIP HTML, desfazer/refazer e reabertura. Usada uma imagem sintética de cores; saídas inspecionadas. Servidor encerrado depois. Não foi conferido o editor legado, não houve chaves reais de provedores nem instalação/compilação do React exportado neste bloco; PDF/slides continuam propostas. Limite de saída de 16 MiB e timeout não foram forçados em teste.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -47,12 +47,13 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 | **Auditar**: `check_design` — vazamento por breakpoint, contraste, texto pequeno, alt, títulos, alvo clicável | ✅ (vazamento precisa do Chromium) |
 | Identidade: estilos de cor/texto/sombra/gradiente, modos claro/escuro, variáveis, `export_tokens` (CSS/JSON/Tailwind), pares de fontes, brief, escalas, contraste | ✅ |
 | Assets: biblioteca da conta, 6 provedores gratuitos, fontes hospedadas no projeto, créditos, fontes cadastráveis, mídia (vídeo/áudio/3D/Lottie) como camada | ✅ — **Pexels/Pixabay/Poly Pizza nunca rodaram com chave real** |
+| Edição local de fotos (`edit_image`) pelo MCP: giro, recorte, filtros, ajustes, fundo simples, formato e restauração | ✅ — Chromium isolado; sem IA externa/chave; limites em `FERRAMENTAS.md` |
 | Exportar: zip HTML (imagens/fontes/players/créditos como arquivos) e **projeto React (Vite)** | ✅ |
 | Editor visual | 🟡 legado (`apps/web`), a ser refeito; **não mexa** |
 | React Native, TypeScript no React, JS de protótipo, paleta de imagem | ❌ |
 | Exposição segura na internet (HTTPS, limites, login no editor) | ❌ — o servidor só aceita local |
 
-Atenção: `edit_image` e `generate_image_edit` aparecem na lista de ferramentas mas **não funcionam no servidor** (dependem do navegador).
+Atenção: `generate_image_edit` continua anunciado, mas **não funciona pelo MCP do servidor**. `edit_image` agora funciona quando há Chromium. Capacidades e propostas por grupo: `FERRAMENTAS.md`.
 
 ---
 
@@ -106,11 +107,13 @@ tipo de arquivo. Faltam planos, limite de requisições, medição de uso e inte
 
 ## 4. Próximos passos técnicos — o programador pode fazer SEM esperar decisão
 
-Ordem sugerida (do que mais destrava para o que mais agrega):
+A pessoa dona pediu para pensar as capacidades por grupo e melhorar as ferramentas, mantendo o editor congelado.
+O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos concluída; próximo bloco sugerido,
+ajustes em lote e busca por propriedades. A lista abaixo mantém as outras pendências técnicas da passagem:
 
 1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
-3. **Paleta a partir de imagem** sem dependência nova: o Chromium já está no servidor e `page.evaluate` funciona com o JavaScript da página desligado — decodificar a imagem com `createImageBitmap`/canvas em `renderer.ts` e agrupar as cores (k-means simples) em `plugins/identidade`. O mesmo caminho destrava `edit_image` no servidor.
+3. **Paleta a partir de imagem** sem dependência nova: reutilizar o codec de imagens isolado (`services/image-codec.ts`, `renderer.withImagePage`) e agrupar as cores em `plugins/identidade`. **Edição local `edit_image` no servidor concluída**, sem depender do editor; paleta ainda não foi implementada.
 4. **Ferramentas de remover/renomear** estilos, modos e variáveis (hoje só se cria e se liga).
 5. **`check_design` mais completo** (`core/audit.ts`): cores fora dos estilos, ordem de foco, área de toque de 44 px no celular, medida de tamanhos por breakpoint também em `get_layer`.
 6. **Verificação real dos provedores** quando houver chaves; conferir a API oficial do **Poly Pizza** (`plugins/assets/providers/polypizza.ts`, hoje `unverified`).
@@ -129,7 +132,7 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 
 | O que | Por que foi pulado | O que destrava |
 |---|---|---|
-| Paleta a partir de imagem; `edit_image`/`generate_image_edit` no servidor | exigem ler pixels; não há biblioteca de imagem | passo 3 acima (Chromium) |
+| Paleta a partir de imagem; `edit_image`/`generate_image_edit` no servidor | **`edit_image` local resolvido** com codec Chromium e matemática de `imagefx`; paleta permanece pendente; geração depende de D13 | passo 3 para paleta; decisão da pessoa dona para geração |
 | Mídia grande dentro do projeto (limite 25 MB) | hoje vira data URL na memória | passo 2 |
 | `poster` do vídeo / prévia da mídia no canvas / mídia visível em `get_image` | decodificar vídeo; vídeo/3D/Lottie não desenham sem JS | editor novo, ou extrair um quadro no renderizador |
 | Tela para cadastrar chaves de provedores | o editor será refeito | editor novo (a API `PUT /api/providers/<id>/key` existe) |
@@ -144,7 +147,9 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 | Auditoria além de contraste/alt/tamanho/títulos/alvo/vazamento | o essencial primeiro | passo 5 |
 | Medida de layout só no desktop e no breakpoint pedido | a "medida de volta" do editor também ignora breakpoints | se um agente precisar |
 | Rota HTTP `react.zip`/`site.zip` sem teste automatizado dedicado | mesmo caminho nas duas; download real das duas rotas conferido em 2026-10-11 após dividir o executor | passo 8 |
-| Teste específico de `STYLO_CHROMIUM_PATH` procura o executável padrão do Playwright | na nuvem há `/usr/bin/chromium`; o teste específico se pula, embora renderização, medida e auditoria funcionem com ele | adaptar o teste para aceitar o navegador já instalado, sem baixar outro |
+| Teste específico de `STYLO_CHROMIUM_PATH` procura o executável padrão do Playwright | **resolvido:** usa primeiro o caminho indicado em `STYLO_CHROMIUM_PATH`; continua pulando só quando nenhum navegador configurado está disponível | teste com o Chromium instalado, sem baixar outro |
+| Efeitos em fotos acima de 4 milhões de pixels; animação GIF; metadados EXIF | limite de memória dos arrays de pixels; a edição trabalha num quadro rasterizado, não preserva animação/metadados | reduzir em uma chamada antes dos efeitos; avaliar tratamento dedicado se necessário |
+| Filtros de pixels ainda rodam de forma síncrona no Node | reuso da matemática pura existente; fila e limite de pixels reduzem carga, mas o timeout do Chromium não interrompe CPU síncrona | avaliar worker de processamento caso apareça lentidão em fotos maiores |
 | Exposição na internet (HTTPS, limites, SSE por pessoa, login no editor) | produto ainda não hospedado | D5–D6 |
 | Cobrança, planos, cotas por plano, S3/R2 | só há pasta/memória e cota fixa | D5, D7 |
 | TypeScript no resto do núcleo (`store`, `commands`, `css`...) | converter tudo de uma vez deu ~700 erros; **executor convertido e dividido** | converter ao mexer (passo 1) |
@@ -171,7 +176,7 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 - `tools/runner/images.ts` tem um auxiliar local `imageInfo`; o import de `image-size.ts` entra como `sniffImage` por causa disso.
 - Migrações Prisma: `prisma migrate diff --from-schema <antigo> --to-schema packages/db/prisma/schema.prisma --script` (não há Postgres de verdade aqui para `migrate dev`).
 - **Argumentos das ferramentas são estritos:** se um cliente MCP mandar campo extra, recebe erro listando os aceitos (de propósito; veja `decisoes.md`).
-- O Chromium é opcional para o resto, mas sem ele `get_image`, o vazamento do `check_design` e a medida de layout ficam de fora (as ferramentas avisam).
+- O Chromium é opcional para o resto, mas sem ele `get_image`, `edit_image`, o vazamento do `check_design` e a medida de layout ficam de fora (as ferramentas avisam).
 
 ## 8. Histórico resumido (detalhes e porquês em `decisoes.md`)
 

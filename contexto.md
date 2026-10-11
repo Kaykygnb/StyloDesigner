@@ -55,7 +55,7 @@ nem Node/DOM exclusivos). Imports entre pacotes usam o nome (`@stylo/core/model.
 `fetchImage` entram no `createRunner`/`exportSite` como funções; o core nunca chama o mundo de fora.
 
 Stack: Node ≥ 22 (ESM), TypeScript (parcial, ver `PASSAGEM.md`), Hono + `@hono/node-server`, SDK oficial do MCP (Streamable HTTP),
-Zod 4, Prisma 7.10 (fixo) com PGlite/Postgres, Playwright-core (Chromium só para desenhar/medir), linkedom, undici, Vite 8 (editor).
+Zod 4, Prisma 7.10 (fixo) com PGlite/Postgres, Playwright-core (Chromium para desenhar/medir e codec de edição local de fotos), linkedom, undici, Vite 8 (editor).
 
 ## 4. Rodar
 
@@ -88,6 +88,7 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `components.ts`, `modes.ts`, `palettes.ts`, `color.ts`, `comments.ts` | componentes e `syncStyles` · modos de cor e variáveis · paletas · cores/contraste · comentários no documento |
 | `css.js`, `html.js`, `cssedit.ts`, `codeassist.js` | camada → CSS/HTML (`exportHtml`, `generateCode`), HTML limpo, CSS livre |
 | `svg.js`, `svgimport.js`, `geom.js`, `imagefx.js`, `image-assets.ts`, `image-size.ts`, `asset-kinds.ts` | SVG, geometria, efeitos de imagem, detecção de tipo/tamanho de arquivo por bytes |
+| `image-edit.ts` | contrato do adaptador de edição de foto e escrita pura no documento: arquivo novo, primeira original preservada, restauração com dimensões |
 | `fonts.ts`, `icons.ts`, `data/*` | Google Fonts e Material Symbols (listas geradas por `scripts/gerar-listas-google.mjs`) |
 | `site-export.ts`, `zip.ts` | `exportSite` (zip HTML: páginas, `assets/`, `fonts/`, `CREDITS.txt`, players) · zip sem dependência |
 | `export-react.ts`, `html-to-jsx.ts` | projeto **React/Vite** a partir do site exportado; conversor HTML→JSX |
@@ -115,6 +116,7 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `workspace/index.ts` | **onde o MCP trabalha**: projetos abertos, papel/escopos, grava sozinho (400 ms), recarrega se outro autor gravar, **medida de layout** preguiçosa |
 | `workspace/measure.ts`, `workspace/model-canvas.js` | aplica as medidas do navegador em `node.w/h` · geometria sem DOM (aproximada) |
 | `services/*` | `projects` (revisão, versões) · `auth`, `agents`, `operations` (log), `notes`, `sharing` · `assets` (imagens por sha256), `blobs`, `library`, `secrets` (AES-GCM), `asset-services`, `remote-image` (SSRF) · `renderer` (Chromium: `render`, `measure`, `overflow`) · `vendor` (players de mídia) |
+| `services/image-operations.ts`, `services/image-codec.ts` | edição local de fotos: fila limitada, validação por bytes, codec na página Chromium vazia e isolada; filtros/ajustes/fundo usam `core/imagefx.js`. `main.ts` injeta o adaptador no workspace |
 | `plugins.ts`, `events.ts`, `db.ts`, `dom-polyfill.ts` | liga plugins · SSE ao editor · abre o banco · DOMParser (linkedom) para `insert_icon` sem navegador |
 | `instrucoes-agente.txt` | **o manual que cada agente recebe no `initialize`**. Edite com cuidado: é o "prompt" do produto |
 | `presence.js`, `account.js`, `atomic.js`, `http-error.js`, `photos.js`, `imageai.js`, `providers.js`, `web.js` | legados em JS (presença/travas, perfil local, gravação atômica, fotos livres, IA de imagem, entrega do editor) |
@@ -146,6 +148,12 @@ Mídia grande (vídeo/3D) dentro do projeto tem limite de 25 MB por isso. Export
 
 **Plugins:** `definePlugin({id, name, description, tools:[{def, needsProject?, run}]})`. `def` vem de `defineTool` (Zod). O servidor registra as
 definições no núcleo (aparecem em `tools/list` e passam pela mesma validação, escopos, travas e log) e guarda o `run`. `ctx` = `{actor, project:{store,commands,...}, services}`.
+
+**Editar foto:** `edit_image` usa `imageOps` injetado pelo servidor. `renderer.withImagePage` abre uma página vazia, sem rede nem scripts da imagem;
+só nosso código confiável roda em `evaluate`. O codec decodifica/gira/recorta/codifica, e a matemática pura de `imagefx.js` aplica efeitos aos pixels.
+O executor confere documento, camada, fill e origem antes de aplicar o resultado. `origAssetId` guarda a primeira original e `editedAssetId` identifica
+a edição atual. `restore_original` decodifica a original, reconfere o alvo e restaura referência/dimensões. Um passo de desfazer por chamada.
+Limites e propostas por grupo em `FERRAMENTAS.md`; geração externa não foi ligada.
 
 **Segurança (não negociável):** o HTML/CSS que entra vem de agentes e pessoas e **nunca** é confiável: sem `<script>`, sem JS no servidor, Chromium
 isolado sem rede, downloads por endereço só com a proteção SSRF de `services/remote-image.ts`, Host/Origin locais, limites de corpo, CSP + sandbox em arquivos servidos.
@@ -187,10 +195,11 @@ Testes que dependem do Chromium se **pulam** se ele não estiver instalado (`npx
 `tests/e2e/*.mjs` são do editor antigo (usam o chat removido): **não rodam**; serão refeitos com o editor novo.
 `tests/runner-seguranca.test.ts` cobre recusa/ausência de aprovação, administrador externo, cancelamento durante aprovação,
 restauração de falha parcial e preservação de edição concorrente. `tools/runner.js` permanece como import compatível usado pelos testes.
+`tests/image-operations.test.ts` confere pixels, transparência, formatos, bloqueio de rede, limites, fila, original, histórico e concorrência.
 
 ## 10. Estado e limites que pegam de surpresa
 
-- `edit_image` e `generate_image_edit` aparecem na lista, mas **não funcionam no servidor** (precisam de pixels/canvas do navegador).
+- `edit_image` funciona pelo servidor com Chromium. `generate_image_edit` continua indisponível pelo MCP; não confundir edição local com geração por IA.
 - Colaboração: se duas pessoas gravam o mesmo projeto, a gravação de fora vence e o workspace recarrega (não há edição simultânea de verdade ainda).
 - Seleção e histórico (`undo`) são do projeto, não da sessão.
 - O servidor só aceita Host/Origin locais e escuta em 127.0.0.1: **ainda não está pronto para a internet** (ver `PASSAGEM.md`).

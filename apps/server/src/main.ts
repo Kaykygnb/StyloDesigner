@@ -26,6 +26,7 @@ import { createNotes } from './services/notes.js';
 import { createSharing } from './services/sharing.js';
 import { createProjects } from './services/projects.js';
 import { createRenderer } from './services/renderer.js';
+import { createImageOperations } from './services/image-operations.ts';
 import { fetchRemoteImage } from './services/remote-image.js';
 import { createWorkspace } from './workspace/index.js';
 import { createPlugins } from './plugins.js';
@@ -84,6 +85,7 @@ workspace = createWorkspace({
   measureLayout: (roots, doc) => renderer.measure(roots, doc),
   auditLayout: (roots, doc, widths) => renderer.overflow(roots, doc, widths),
   fetchImage: (url) => fetchRemoteImage(url),
+  imageOps: createImageOperations(renderer),
   baseUrl: () => `http://localhost:${port}`,
   onOperation: (op) => { operations.record(op).catch((err) => console.error('log de operações:', err.message)); },
 });

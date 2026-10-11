@@ -51,7 +51,7 @@ export function createInspectionTools(ctx: RunnerContext): ToolHandlers {
         return { id: node.id, name: node.name, breakpoint: bp.id, width: bp.preview, w: view.getUint32(16), h: view.getUint32(20), _image: { data, mimeType: 'image/png' }, note: `Desenhado na largura do breakpoint "${bp.name}" (${bp.preview}px), com as regras responsivas aplicadas.` };
       }
       // _image: o servidor MCP transforma em conteúdo de imagem; o Assistente interno descarta (o modelo de chat não recebe imagem)
-      return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes da web aparecem com a fonte do sistema e o efeito vidro pode não aparecer na imagem (o editor e o HTML estão certos).' };
+      return { id: node.id, name: node.name, w: Math.round(node.w * s), h: Math.round(node.h * s), _image: { data, mimeType: 'image/png' }, note: 'Fontes hospedadas no projeto são usadas na imagem. Fontes externas não hospedadas podem usar uma substituta do sistema; o efeito vidro pode não aparecer.' };
     }
   };
 }

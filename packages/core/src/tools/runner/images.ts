@@ -97,10 +97,10 @@ export function createImageTools(ctx: RunnerContext) {
       return { image: imageInfo(current), ...(res.removed !== undefined ? { background_removed_pct: res.removed } : {}), hint: 'A original fica guardada: restore_original volta para ela.' };
     },
     async generate_image_edit({ id, mode, prompt, area, expand }) {
-      if (!imageOps) throw new Error('generate_image_edit precisa de um navegador: não está disponível neste servidor.');
+      if (!imageOps?.generativeEdit) throw new Error('A edição generativa não está disponível neste servidor. Use edit_image para os ajustes locais.');
       const target = imageTarget(id);
       const ia = imageOps;
-      const res = await ia.generativeEdit({ src: target.source, mode, prompt: String(prompt || '').trim(), area, expand });
+      const res = await ia.generativeEdit!({ src: target.source, mode, prompt: String(prompt || '').trim(), area, expand });
       const current = target.assertCurrent();
       ia.applyImageToNode(store, current.id, res, { commit: false });
       return { image: imageInfo(current), hint: 'Confira com get_image. A original fica guardada (edit_image com restore_original volta para ela).' };

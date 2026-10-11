@@ -1,5 +1,6 @@
 /** Contratos do executor. Store e comandos ainda são legados em JavaScript. */
 import type { LayerNode, Doc } from '../../types.ts';
+import type { ImageOperations } from '../../image-edit.ts';
 
 export type ToolArgs = Record<string, any>;
 export type ToolHandlers = Record<string, (args: ToolArgs, client?: string) => any>;
@@ -14,7 +15,7 @@ export interface RunnerDependencies {
   renderImage?: ((node: LayerNode, doc: Doc, scale: number, options?: { width: number }) => Promise<string>) | null;
   auditLayout?: ((roots: LayerNode[], doc: Doc, widths: { rootId: string; label: string; width: number }[]) => Promise<any[]>) | null;
   fetchImage?: ((url: string) => Promise<{ bytes: Uint8Array }>) | null;
-  imageOps?: any;
+  imageOps?: ImageOperations | null;
   vendor?: ((name: string) => Uint8Array | null) | null;
 }
 

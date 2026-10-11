@@ -179,7 +179,28 @@ export function createRenderer() {
     if (p) await (await p.catch(() => null))?.close().catch(() => {});
   }
 
-  return { render, measure, overflow, close };
+  /** Página vazia para nosso codec de imagens. Só o código confiável do serviço roda em evaluate. */
+  async function withImagePage<T>(task: (page: any) => Promise<T>): Promise<T> {
+    return slot(async () => {
+      const b = await browser();
+      const context = await b.newContext({ javaScriptEnabled: false });
+      try {
+        await context.route('**/*', (route: any) => (/^(data|about|blob):/i.test(route.request().url()) ? route.continue() : route.abort()));
+        const page = await context.newPage();
+        page.setDefaultTimeout(TIMEOUT_MS);
+        // Um decode/evaluate travado também precisa encerrar o contexto, não só abandonar a espera.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          return await Promise.race([
+            task(page),
+            new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('A edição da imagem demorou demais. Reduza a imagem ou faça os ajustes em etapas.')), TIMEOUT_MS); }),
+          ]);
+        } finally { clearTimeout(timer); }
+      } finally { await context.close().catch(() => {}); }
+    });
+  }
+
+  return { render, measure, overflow, withImagePage, close };
 }
 
 export type Renderer = ReturnType<typeof createRenderer>;

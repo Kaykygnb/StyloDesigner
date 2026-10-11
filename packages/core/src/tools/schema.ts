@@ -513,7 +513,7 @@ ${PROP_HELP}`,
   defineTool({
     name: 'edit_image',
     write: true,
-    description: 'EDITA A FOTO de uma camada com imagem (preenchimento de imagem), no navegador, sem IA externa e sem chave: girar/espelhar, recortar (crop em px da imagem ou ratio), remover o fundo (automático: tira a cor das bordas; melhor com fundo liso), filtro pronto, ajustes (-100..100; sharpen 0..100; blur 0..40 px) e largura máxima/formato/qualidade. Ordem: girar → recortar → remover fundo → filtro → ajustes → tamanho. Grava uma imagem NOVA (a original fica guardada) e é um passo do Ctrl+Z. restore_original: true volta para a imagem de antes das edições.',
+    description: 'EDITA A FOTO de uma camada com imagem (preenchimento de imagem), sem IA externa e sem chave. No servidor usa Chromium isolado: girar/espelhar, recortar (crop em px da imagem ou ratio), remover o fundo (automático: tira a cor das bordas; melhor com fundo liso), filtro pronto, ajustes (-100..100; sharpen 0..100; blur 0..40 px) e largura máxima/formato/qualidade. Ordem: girar → recortar → remover fundo → filtro → ajustes → tamanho. Grava uma imagem NOVA (a original fica guardada) e é um passo do Ctrl+Z. restore_original: true volta para a imagem de antes das edições. Fundo removido sai em PNG transparente. Limites do servidor: 16 MB, lado até 8192 px, 16 milhões de pixels; filtros/ajustes/fundo até 4 milhões de pixels após recorte. Para fotos maiores, primeiro reduza com max_width em outra chamada. Não faz edição generativa nem preserva animação de GIF.',
     input: z.object({
       id: z.string().describe('id da camada com preenchimento de imagem'),
       rotate: z.literal([90, 180, 270, -90]).describe('graus, sentido horário').optional(),
@@ -547,7 +547,7 @@ ${PROP_HELP}`,
   defineTool({
     name: 'generate_image_edit',
     write: true,
-    description: 'Edição GENERATIVA da foto de uma camada com imagem, pelo modelo de imagem configurado no servidor (Configurações → Agente de IA e modelos → Modelo de imagem). mode: "fill" = preenche a área com o que o prompt pedir (ex.: tirar uma pessoa); "replace" = troca o objeto da área (sem área = variação da foto toda); "expand" = aumenta a foto para os lados (expand em px) inventando o resto; "generate" = imagem nova só pelo prompt, no lugar da atual. area em % da imagem (0..100). Se não houver modelo de imagem, devolve erro: avise a pessoa. Demora alguns segundos; um Ctrl+Z desfaz.',
+    description: 'Edição GENERATIVA: não está disponível pelo MCP do servidor atual. Use edit_image para ajustes locais sem IA externa. A definição é mantida para adaptadores que forneçam geração explicitamente: fill preenche a área; replace troca o objeto; expand inventa margens; generate cria imagem nova. area em % e expand em px. Não configure nem use chaves externas sem autorização da pessoa.',
     input: z.object({
       id: z.string().describe('id da camada com preenchimento de imagem'),
       mode: z.enum(['fill', 'replace', 'expand', 'generate']),

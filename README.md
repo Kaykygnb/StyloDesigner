@@ -20,4 +20,6 @@ claude mcp add --transport http stylo http://localhost:5173/mcp
 3. [`decisoes.md`](decisoes.md) — diário de decisões: o que se decidiu e por quê (só se acrescenta no fim).
 4. [`NOTICE`](NOTICE) — licenças de terceiros. [`LICENSE`](LICENSE) — hoje MIT; a licença definitiva está em decisão (`PASSAGEM.md`, D1).
 
+Para consultar as capacidades por grupo e as melhorias propostas: [`FERRAMENTAS.md`](FERRAMENTAS.md).
+
 Requer Node ≥ 22. Testes: `npm test` · tipos: `npm run typecheck`.

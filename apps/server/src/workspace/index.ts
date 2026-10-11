@@ -16,6 +16,7 @@
 import { createStore } from '@stylo/core/store.js';
 import { createCommands } from '@stylo/core/commands.js';
 import { createRunner } from '@stylo/core/tools/runner.ts';
+import type { ImageOperations } from '@stylo/core/image-edit.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
@@ -67,7 +68,7 @@ interface Doc {
   measuring: Promise<void> | null;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, fetchImage = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, fetchImage = null, imageOps = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
@@ -82,6 +83,8 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   measureLayout?: ((roots: any[], doc: any) => Promise<Map<string, { w: number; h: number }>>) | null;
   /** Baixa uma imagem por endereço (services/remote-image.ts, protegido contra SSRF). */
   fetchImage?: ((url: string) => Promise<{ bytes: Uint8Array }>) | null;
+  /** Edição local de fotos por um adaptador confiável; sem ele edit_image avisa. */
+  imageOps?: ImageOperations | null;
   /** Retrato de quem está no servidor (pessoas e agentes), vindo da presença. */
   presence?: () => unknown;
   baseUrl?: () => string;
@@ -104,7 +107,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
     entry.commands = commands;
-    entry.runner = createRunner({ store: entry.store, commands, renderImage, auditLayout, fetchImage, vendor: vendorFiles });
+    entry.runner = createRunner({ store: entry.store, commands, renderImage, auditLayout, fetchImage, imageOps, vendor: vendorFiles });
     docs.set(id, entry);
     return entry;
   }

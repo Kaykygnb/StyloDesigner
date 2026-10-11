@@ -45,7 +45,8 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (tool === 'set_project_css' && typeof args?.css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');
       if (tool === 'build_layout') checkSpec(args?.tree);
       if (tool === 'build_layout' || tool === 'insert_icon') targetList(args?.parent_id);
-      if ((tool === 'edit_image' || tool === 'generate_image_edit') && !imageOps) throw new Error(`${tool} precisa de um navegador: não está disponível neste servidor.`);
+      if (tool === 'edit_image' && !imageOps) throw new Error('edit_image não está disponível neste servidor. Configure o serviço de edição com Chromium.');
+      if (tool === 'generate_image_edit' && !imageOps?.generativeEdit) throw new Error('A edição generativa não está disponível pelo MCP neste servidor. Use edit_image para recortar, girar ou ajustar a foto sem IA externa.');
       if (tool === 'edit_image' || tool === 'generate_image_edit') imageLayer(args?.id);
       if (tool === 'generate_image_edit') {
         if (!String(args?.prompt || '').trim()) throw new Error('prompt: diga o que a IA de imagem deve fazer.');

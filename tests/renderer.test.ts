@@ -87,7 +87,7 @@ test('render: uma camada "hug" sai inteira (não cortada pela altura guardada) q
 test('STYLO_CHROMIUM_PATH: usa o Chromium indicado; caminho inválido dá erro claro que cita a variável', async (t) => {
   const { chromium } = await import('playwright-core');
   const { existsSync } = await import('node:fs');
-  const real = chromium.executablePath();
+  const real = process.env.STYLO_CHROMIUM_PATH || chromium.executablePath();
   const antes = process.env.STYLO_CHROMIUM_PATH;
   t.after(() => { if (antes === undefined) delete process.env.STYLO_CHROMIUM_PATH; else process.env.STYLO_CHROMIUM_PATH = antes; });
   const doc = makeDoc();
