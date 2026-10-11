@@ -148,3 +148,16 @@ só imagens (PNG/JPEG/GIF/WebP/SVG) e hoje a exportação embute imagem como dat
 faltam vídeo, áudio, 3D (glb/gltf), Lottie, fontes próprias; faltam ferramentas MCP para variáveis/modos e estilos de texto.
 **Bundler (Webpack/Vite):** não é papel da ferramenta — é do projeto que consome. Nosso papel: entregar arquivos reais com
 nomes estáveis e dados estruturados.
+
+## 2026-10-10 — Escopo ampliado: ferramenta geral de prototipagem de sites e apps completos (visão da pessoa)
+**Visão:** o Stylo é uma ferramenta **geral** para tudo que envolve estilização e prototipagem de um site ou aplicativo
+completo, usada por agentes (e pessoas) que constroem em React, React Native ou o que for. Isso inclui: JavaScript de DOM/animação
+para prototipar; acesso do agente a **assets gratuitos** (ícones, fotos, vídeos, 3D, Lottie, ilustrações...) e também a
+outros tipos de asset; sites com 3D e animação elaborada; bibliotecas CSS prontas (animate.css etc.) quando úteis.
+**Consequência de arquitetura:** provedores de assets, bibliotecas, exportadores (React, React Native, tokens) e auxiliares de
+identidade visual são **plugins do núcleo** — é hora de definir o contrato de plugin (decisão 3 do início) antes de crescer.
+**Achado:** `insert_icon` (e qualquer importação de SVG) quebrava no servidor ("DOMParser is not defined") desde que o MCP passou
+a rodar sem navegador. Corrigido com `apps/server/src/dom-polyfill.ts` (linkedom) e teste.
+**Pendente (detalhar com a pessoa):** política de licença dos assets de terceiros (só uso comercial livre; registrar créditos);
+quais provedores primeiro; JS do projeto roda **só em sandbox** (iframe sem mesma origem / Chromium isolado) e vira arquivo `.js`
+no zip exportado — nunca dentro do editor/servidor.

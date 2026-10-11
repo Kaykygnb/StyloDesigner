@@ -287,3 +287,18 @@ test('add_asset sem como baixar (source_url) explica; leitor sem escrita não en
   assert.match((await t.workspace.call('add_asset', { data_base64: PNG_B64 }, { sid: 'r', actor: r })).error, /permissão de escrita/);
   await t.close();
 });
+
+test('insert_icon funciona no servidor (SVG lido com o DOM do linkedom, sem navegador)', async (t) => {
+  await import('../apps/server/src/dom-polyfill.ts');
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3l9 8h-3v9h-12v-9h-3z"/></svg>', { status: 200 })) as typeof fetch;
+  t.after(() => { globalThis.fetch = realFetch; });
+  const tt = await setup();
+  const a = await tt.agentOf('A');
+  await tt.workspace.call('new_project', { name: 'Icones' }, { sid: 'a', actor: a });
+  const out = await tt.workspace.call('insert_icon', { name: 'home', size: 32, color: '#2255cc' }, { sid: 'a', actor: a });
+  assert.equal(out.error, undefined, out.error);
+  assert.equal(out.created.type, 'path');
+  assert.equal(out.created.fill, '#2255CC');
+  await tt.close();
+});

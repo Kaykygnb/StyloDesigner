@@ -10,6 +10,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import './dom-polyfill.js';
 import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
