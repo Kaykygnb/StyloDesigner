@@ -20,3 +20,8 @@ packages/db/src/generated/
 
 designer.db/
 *.db/
+
+# segredos e dados locais do servidor
+*.secret
+*.blobs/
+designer.config.json

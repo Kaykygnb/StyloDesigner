@@ -217,3 +217,9 @@ código): endereço https com `{consulta}`, caminho da lista e dos campos; a bus
 (preenchido por `library_use` e `add_font`) vira `CREDITS.txt` no pacote exportado.
 **Ainda falta:** camada de mídia no projeto (vídeo, áudio, 3D, Lottie só ficam na biblioteca); busca de Lottie e ilustrações;
 interface para cadastrar chaves (hoje por `PUT /api/providers/<id>/key`); testar Pexels, Pixabay e Poly Pizza com chaves reais.
+
+## 2026-10-11 — Encerramento do dia e passagem para outra pessoa
+**Decisão:** criado `PASSAGEM.md` (guia de passagem: o que foi feito e por quê, como rodar, mapa, próximos passos priorizados P1–P11,
+regras de trabalho e armadilhas) para outro programador continuar. **Achado de segurança:** `designer.secret` (chave de cifragem local)
+tinha sido commitado por engano; removido do controle de versão e do `.gitignore` (`*.secret`, `*.blobs/`, `designer.config.json`). A
+cópia antiga existe só no histórico local (nunca enviado ao GitHub); se algum dia o histórico for publicado, gerar nova chave.
