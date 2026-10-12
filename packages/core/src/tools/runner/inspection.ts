@@ -1,6 +1,6 @@
 /** Imagem do design e auditoria estática ou medida pelo renderizador injetado. */
 import { inspectLayoutReport } from './layout-inspection.ts';
-import { BREAKPOINTS } from '../../model.js';
+import { DEFAULT_BREAKPOINTS } from '../../model.js';
 import { checkDesign } from './design-audit.ts';
 import { fromBase64 } from '../../image-size.js';
 import type { RunnerContext, ToolHandlers } from './types.ts';
@@ -17,9 +17,9 @@ export function createInspectionTools(ctx: RunnerContext): ToolHandlers {
       if (!node) throw new Error('Nada para mostrar: a página está vazia.');
       const s = Math.max(0.5, Math.min(2, Number(scale) || 1));
       const doc = store.state.doc;
-      let bp: (typeof BREAKPOINTS)[number] | null = null;
+      let bp: (typeof DEFAULT_BREAKPOINTS)[number] | null = null;
       if (breakpoint) {
-        const list = doc.breakpoints?.length ? doc.breakpoints : BREAKPOINTS;
+        const list = doc.breakpoints?.length ? doc.breakpoints : DEFAULT_BREAKPOINTS;
         bp = list.find((b) => b.id === breakpoint);
         if (!bp) throw new Error(`Breakpoint "${breakpoint}" não existe. Disponíveis: ${list.map((b) => b.id).join(', ')}.`);
       }

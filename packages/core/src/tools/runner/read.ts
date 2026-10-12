@@ -1,6 +1,7 @@
 /** Consultas do projeto, catálogos e seleção, sem gravar o documento. */
-import { tagOf, walk, BREAKPOINTS } from '../../model.js';
+import { tagOf, walk, DEFAULT_BREAKPOINTS } from '../../model.js';
 import { generateCode, joinCss } from '../../css.js';
+import { withDocumentBreakpoints } from '../../document-breakpoints.ts';
 import { GOOGLE, SYSTEM_FONTS } from '../../fonts.js';
 import { searchIcons } from '../../icons.js';
 import { imageAssetCatalog } from '../../image-assets.js';
@@ -26,7 +27,7 @@ export function createReadTools(ctx: RunnerContext): ToolHandlers {
         gradientStyles: (doc.styles?.gradients || []).map((g) => ({ id: g.id, name: g.name, type: g.type })),
         colorModes: modesOf(doc.styles).map((m) => ({ id: m.id, name: m.name, scheme: m.scheme })),
         sizeVars: (doc.styles?.vars || []).map((v) => ({ id: v.id, name: v.name, value: v.value })),
-        breakpoints: BREAKPOINTS.map((b) => ({ id: b.id, name: b.name, maxWidth: b.max })),
+        breakpoints: (doc.breakpoints?.length ? doc.breakpoints : DEFAULT_BREAKPOINTS).map((b) => ({ id: b.id, name: b.name, maxWidth: b.max })),
         activeBreakpoint: store.ui.bp,
         hint: 'x/y são relativos ao pai. Camadas dentro de frames com layout são posicionadas pelo navegador (flex/grid).',
       };
@@ -64,7 +65,7 @@ export function createReadTools(ctx: RunnerContext): ToolHandlers {
       const doc = store.state.doc;
       // O CSS legado aceita styles, mas sua anotação JS descreve apenas root.
       const options = { styles: doc.styles };
-      const gen = generateCode([n], store.parentOf(id), doc.assets, options as Parameters<typeof generateCode>[3]);
+      const gen = withDocumentBreakpoints(doc, () => generateCode([n], store.parentOf(id), doc.assets, options as Parameters<typeof generateCode>[3]));
       return { html: gen.html, css: joinCss([gen]) };
     },
     find_layers(args = {}) { return findLayers(store.state.doc, args); },

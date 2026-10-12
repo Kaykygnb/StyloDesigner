@@ -20,8 +20,8 @@ PDF, apresentações, geração de imagens, licença e decisões de negócio fic
 | 1 | Manutenção de estilos, variáveis e modos | Listar sem resposta enorme; atualizar/renomear por ID; remover com tratamento explícito dos vínculos, sem referências quebradas ou alteração parcial; histórico e exportação coerentes | Concluída — 519 testes e MCP real |
 | 2 | Organização de camadas e páginas | Alinhar/distribuir/agrupar/desagrupar/ordenar com regras claras para fluxo, pais e seleção; renomear/ordenar páginas; rejeitar operações sem efeito ou inválidas com orientação | Concluída — 537 testes e MCP real |
 | 3 | Auditoria textual ampliada | Melhorar avisos de consistência e área de toque; usar medidas por largura quando necessário; apresentar camada, problema, sugestão e limites da conferência; respostas limitadas | Concluída — 550 testes e MCP real |
-| 4 | Entrega e tarefas completas | Conferir rotas ZIP e conteúdo entregue, registrar limitações; executar uma tarefa de construir → revisar → corrigir → exportar pelo MCP | Pendente |
-| 5 | Validação por cliente | Verificar o que o ambiente permite em Codex/Claude Code e registrar individualmente; OpenCode/Kimi depois. Se faltar cliente/credencial, registrar bloqueio concreto e não inventar resultado | Pendente |
+| 4 | Entrega e tarefas completas | Conferir rotas ZIP e conteúdo entregue, registrar limitações; executar uma tarefa de construir → revisar → corrigir → exportar pelo MCP | Concluída — 555 testes, ZIP e React real |
+| 5 | Validação por cliente | Verificar o que o ambiente permite em Codex/Claude Code e registrar individualmente; OpenCode/Kimi depois. Se faltar cliente/credencial, registrar bloqueio concreto e não inventar resultado | Concluída com bloqueios registrados |
 
 O alcance de cada bloco será ajustado com evidência do código, preservando a finalidade aprovada.
 Diferenças técnicas e limitações serão registradas no diário; decisões de produto reservadas à

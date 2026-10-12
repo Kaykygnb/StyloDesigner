@@ -1,6 +1,7 @@
 /** Exportação HTML, React e tokens; conteúdo grande em trechos. */
 import { slugify } from '../../model.js';
 import { exportHtml } from '../../css.js';
+import { withDocumentBreakpoints } from '../../document-breakpoints.ts';
 import { exportSite } from '../../site-export.js';
 import { exportReact } from '../../export-react.ts';
 import { exportTokens } from '../../tokens.ts';
@@ -13,7 +14,7 @@ export function createExportTools(ctx: RunnerContext): ToolHandlers {
     export_html({ id, offset = 0, maxBytes = DEFAULT_AGENT_CONTENT_BYTES } = {}) {
       const n = need(id);
       const doc = store.state.doc;
-      const html = exportHtml(n, doc.assets, n.name, doc.styles);
+      const html = withDocumentBreakpoints(doc, () => exportHtml(n, doc.assets, n.name, doc.styles));
       const { content, ...chunk } = boundedUtf8Chunk(html, { offset, maxBytes });
       return { file: `${slugify(n.name || 'pagina')}.html`, html: content, ...chunk };
     },

@@ -223,3 +223,13 @@ Módulos `tools/design-resources-schema.ts` e `tools/runner/design-resources.ts`
 ### Etapa 3 do plano MCP — auditoria ampliada
 
 check_design aceita checks styles/touch opcionais. Estilos conferem vínculos inexistentes e sugerem vincular literais equivalentes; área clicável usa tag e medidas CSS reais por largura. Relatório paginado20/8KiB, contagens totais, checked e notas explícitas quando uma conferência falta. Limite200 alvos padrão; falha descarta medição parcial. Zero área também recebe aviso. Referências e medidas vêm de snapshots, sem gravar alterações. Diretriz24px/44px não certifica acessibilidade, espaçamento, sobreposição ou controles internos de HTML manual.
+
+### Etapa 5 do plano MCP — clientes individuais
+
+Codex CLI0.159.2 existe, mas execução isolada foi recusada pelo serviço com401/autenticação expirada; não houve tarefa concluída pelo cliente. Claude Code/OpenCode/Kimi não estão instalados. SDK oficial continua sendo a evidência de protocolo, sem equivaler a validação desses aplicativos. Nenhum segredo/configuração de conta foi publicado ou alterado.
+
+### Etapa 4 do plano MCP — entrega e breakpoints isolados
+
+withDocumentBreakpoints envolve somente geração síncrona de CSS/HTML e editBp, restaurando lista anterior em finally. Exportações HTML/React, renderer, get_code e export_html respeitam o documento; metadados, validação e consultas usam doc ou DEFAULT, evitando mistura entre projetos abertos. ZIP HTTP tem teste independente de diretório/CRC/imagem/semântica, conta isolada e sanitização. Fluxo MCP construir→auditar→corrigir→exportar/download foi executado. React de exemplo instalado/compilado em diretório temporário e renderizado no Chromium, botão mobile44×44 sem erros de página. Isso não comprova toda combinação de fontes, players, protótipos ou conteúdo remoto.
+
+Plano MCP concluído no ambiente disponível: última suíte555/555, sem falhas/pulados, tipos limpos. Etapas e evidências em PLANO-MCP.md/decisoes.md; testes de clientes nativos pendentes por bloqueios concretos, sem promessa de compatibilidade universal.

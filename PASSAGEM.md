@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **550 testes, 550 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **555 testes, 555 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** etapa3 do PLANO-MCP: auditoria opcional de estilos e área clicável real em check_design. Relatório paginado20/8KiB, checked e notas de conferências ausentes; limite200 alvos, falha descarta medição parcial. MCP real verificou avisos/correções e botão com área zero por CSS. 550 testes e tipos limpos. Próxima etapa: entrega ZIP e cliente individual. Sem editor ou certificação de acessibilidade.
+**Último bloco:** etapas4/5 do PLANO-MCP: integridade e isolamento dos ZIPs HTML/React; fluxo MCP construir→auditar→corrigir→exportar/download; React de exemplo compilado e renderizado com botão mobile44×44. Corrigido isolamento de breakpoints por documento em CSS, renderer, metadados e edição responsiva (preserva base). CodexCLI0.159.2 foi tentado e bloqueado401 por autenticação expirada; Claude Code/OpenCode/Kimi não instalados. Clientes individuais seguem sem comprovação. Editor intacto. Limites: não certifica acessibilidade/estética nem todas as fontes/players/mídias exportáveis.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -28,7 +28,7 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # última suíte: 550 testes; ~5 min na nuvem
+npm test                             # última suíte: 555 testes; ~5 min na nuvem
 ```
 Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **91 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 

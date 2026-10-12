@@ -1,5 +1,5 @@
 /** Inspeção textual: renderiza a tela inteira, entrega só o trecho pedido e não altera o modelo. */
-import { BREAKPOINTS } from '../../model.js';
+import { DEFAULT_BREAKPOINTS } from '../../model.js';
 import { boundPagedLayers, shortName } from './response-budget.ts';
 import type { RunnerContext, ToolArgs } from './types.ts';
 
@@ -15,7 +15,7 @@ export async function inspectLayoutReport(ctx: RunnerContext, { id, breakpoint, 
   const parent = store.parentOf(id);
   if (original.type !== 'frame' || (parent && (parent.type !== 'section' || store.parentOf(parent.id)))) throw new Error('id deve ser uma tela: frame na raiz da página ou dentro de uma seção da raiz. Use find_layers para localizar a tela e within_id para inspecionar um filho no contexto dela.');
   const source = store.state.doc;
-  const bp = breakpoint === undefined ? null : (source.breakpoints?.length ? source.breakpoints : BREAKPOINTS).find(b => b.id === breakpoint);
+  const bp = breakpoint === undefined ? null : (source.breakpoints?.length ? source.breakpoints : DEFAULT_BREAKPOINTS).find(b => b.id === breakpoint);
   if (breakpoint !== undefined && !bp) throw new Error(`Breakpoint "${breakpoint}" não existe. Consulte get_document para ver os disponíveis.`);
   const chosenWidth = width ?? bp?.preview ?? Math.round(original.w);
   if (!Number.isInteger(chosenWidth) || chosenWidth < 200 || chosenWidth > 4000) throw new Error('A largura de inspeção deve ser inteira, entre 200 e 4000 px. Use width ou ajuste a largura da tela/breakpoint.');

@@ -1,5 +1,6 @@
 /** Alterações de camadas, componentes, responsivo, estados e comentários. */
-import { editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates, BREAKPOINTS } from '../../model.js';
+import { editBp, editState, BP_KEYS, STATE_KEYS, canHaveStates, DEFAULT_BREAKPOINTS } from '../../model.js';
+import { withDocumentBreakpoints } from '../../document-breakpoints.ts';
 import { makeComponent, createInstance } from '../../components.js';
 import { addComment } from '../../comments.js';
 import type { RunnerContext, ToolHandlers } from './types.ts';
@@ -29,10 +30,11 @@ export function createLayersTools(ctx: RunnerContext): ToolHandlers {
     },
     set_responsive({ id, breakpoint, props }) {
       const n = need(id);
-      if (!BREAKPOINTS.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${BREAKPOINTS.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
+      const breakpoints = store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS;
+      if (!breakpoints.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${breakpoints.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
       const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
       if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
-      store.update(() => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle })));
+      store.update(() => withDocumentBreakpoints(store.state.doc, () => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle }))));
       return { updated: n.id, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
     },
     set_state({ id, state, props = {} }) {

@@ -165,3 +165,5 @@ As propostas acima são um roteiro revisável, não promessa de suporte já exis
 Resultados de testes e uso real ficam em `PASSAGEM.md` e no fim de `decisoes.md`.
 
 Auditoria ampliada implementada: check_design com checks styles/touch opcionais, paginação20/8KiB e checked. Área medida por largura com Chromium; ausência/falha não vira sucesso. Diretrizes24px/44px não são certificação de acessibilidade.
+
+Entrega conferida: rotas ZIP HTML/React com integridade e isolamento entre contas; fluxo MCP completo e React de exemplo compilado/renderizado. Breakpoints próprios não vazam entre documentos nas ferramentas/renderização/exportação. Clientes: Codex bloqueado401 por autenticação expirada; Claude Code/OpenCode/Kimi ausentes. SDK oficial não equivale a teste individual desses aplicativos.

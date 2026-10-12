@@ -3,6 +3,7 @@
  * Este módulo não toca no DOM nem inicia downloads: a UI e o MCP podem reutilizar o mesmo resultado.
  */
 import { exportHtml } from './css.js';
+import { withDocumentBreakpoints } from './document-breakpoints.ts';
 import { DEFAULT_BREAKPOINTS, isBoard, slugify } from './model.js';
 import { parseDataUrl, parseImageDataUrl } from './image-size.js';
 import { extensionFor } from './asset-kinds.js';
@@ -162,7 +163,7 @@ export function exportSite(doc, { assets = 'files', vendor = null, mediaRuntime 
   const used = new Set();
   let files: SiteFile[] = boards.map((board, index) => ({
     path: index === 0 ? (used.add('index.html'), 'index.html') : uniqueHtmlPath(board.name, used),
-    content: exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null, { selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any),
+    content: withDocumentBreakpoints(doc, () => exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null, { selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any)),
   }));
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
   if (assets === 'files') files = externalizeAssets(files, doc.assets || {});

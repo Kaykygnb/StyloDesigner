@@ -390,3 +390,17 @@ renderizador usar um Chromium já instalado (comum em nuvem) em vez de baixar ou
 
 **Implementação:** checks styles/touch opcionais em check_design, sem novas ferramentas (91). Estilos verificam referências explícitas e equivalência dos campos efetivamente compartilhados, incluindo itálico. Touch mede tag/tamanho real em snapshots por largura, lotes de100 IDs e limite200 alvos padrão. Zero área recebe aviso; ausência/falha/limite excedido informa NÃO verificado, sem resultados parciais. checked separa conferências; paginação20/8KiB com contagens totais e orçamento aplicado após avisos do workspace.
 **Verificação:** 550 testes passaram, zero falhas/pulados; typecheck limpo. MCP real detectou estilo sem vínculo e botão mobile30×30; vínculo e44×44 corrigiram avisos; CSS real0×20 foi detectado. Não certifica acessibilidade, exceções de espaçamento/oclusão, HTML manual interno ou estética. Cliente individual ainda não conferido nesta etapa. Editor e negócio intactos.
+
+### 2026-10-12 — Plano MCP, etapa 5: tentativa individual dos clientes
+
+**Conferido:** Codex CLI0.159.2 instalado. Tentativa efêmera isolada, somente leitura, para abrir projeto sintético e listar uma variável; serviço respondeu401 e token não renovável por login expirado. Teste bloqueado antes de concluir a tarefa; estado local de login não comprova credencial válida. Sem alterar autenticação ou publicar logs privados. Claude Code/OpenCode/Kimi ausentes neste ambiente.
+**Limite:** nenhum desses clientes tem suporte individual comprovado por esta execução. Testes reais com SDK oficial verificam o MCP, não todos os aplicativos. Retomar teste nativo em ambiente com cliente e credencial válidos; isso não bloqueia os testes de entrega autorizados.
+
+### 2026-10-12 — Plano MCP, etapa 4: entrega conferida e isolamento responsivo
+
+**Problema:** CSS usava BREAKPOINTS global: documento com mobile600 podia exportar640, e stores distintos podiam anunciar/validar larguras de outro. editBp com ID custom ausente na lista global poderia alterar valores base.
+**Correção:** helper TS estritamente síncrono com snapshot/restauração finally, rejeita thenable; envolve exportHtml/generateCode e editBp sem await. Metadados/fallbacks/descritivo usam documento ou padrões. Sem converter/mexer no CSS legado nem editor.
+**Conferido:** cinco novos testes: escopo/restauração/aninhamento/erro, HTML/React/runner600 vs640, renderizador635/590 em docs alternados, dois stores com IDs distintos/base intacta, ZIP HTTP independente com diretório central/CRC/imagem/caminhos/HTML sanitizado/componentes e rejeições401/404 entre contas. MCP real construiu, auditou, corrigiu e exportou HTML/React, baixando ZIPsHTTP200. Projeto React de exemplo teve npm install/build concluídos e Chromium renderizou botão mobile44×44 sem erro de página. Typecheck limpo.
+**Não conferido:** todas as combinações de fontes hospedadas/players/mídia externa, aparência final por pessoa, interações de protótipo como comportamento de site ou clientes nativos com autenticação válida. Exportação mantém avisos existentes para largura fixa, links e protótipos. Editor, licença e negócio intactos.
+
+**Verificação final das etapas4/5:** suíte completa555 testes,555 passando,0 falhas/0 pulados; typecheck limpo. git diff --check limpo, nenhum arquivo em apps/web alterado. Servidor e preview temporários encerrados. Plano completo dentro do ambiente disponível, com bloqueios dos clientes explicitamente registrados; não há aprovação nova necessária para estas alterações autorizadas na limpeza.

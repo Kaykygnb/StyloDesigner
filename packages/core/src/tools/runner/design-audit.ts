@@ -1,5 +1,5 @@
 /** Auditoria com regras extras opt-in e resultado paginado, sem confundir ausência de medidas com sucesso. */
-import { BREAKPOINTS, walk } from '../../model.js';
+import { DEFAULT_BREAKPOINTS, walk } from '../../model.js';
 import { auditStatic, overflowIssues, type Issue } from '../../audit.ts';
 import { auditStyles, auditTouch, expandedReport } from '../../audit-expanded.ts';
 import { boundPagedItems, shortName } from './response-budget.ts';
@@ -19,7 +19,7 @@ export async function checkDesign(ctx: RunnerContext, { id, breakpoints, checks 
   const source = store.state.doc;
   const doc = { ...source, styles: structuredClone(source.styles), fonts: structuredClone(source.fonts), assets: { ...source.assets } };
   const boards = structuredClone(original);
-  const all = source.breakpoints?.length ? structuredClone(source.breakpoints) : BREAKPOINTS.map(b => ({ ...b }));
+  const all = source.breakpoints?.length ? structuredClone(source.breakpoints) : DEFAULT_BREAKPOINTS.map(b => ({ ...b }));
   const chosen = breakpoints?.length ? breakpoints.map(b => all.find(x => x.id === b) || (() => { throw new Error(`Breakpoint "${b}" não existe. Disponíveis: ${all.map(x => x.id).join(', ')}.`); })()) : all;
   const byId = new Map<string, any>();
   for (const board of boards) walk([board], n => { byId.set(n.id, n); });

@@ -12,6 +12,7 @@
 import type { InspectLayout } from '@stylo/core/layout-inspection.ts';
 import { inspectPage, withoutInspectionMarkers } from './layout-inspection.ts';
 import { exportHtml } from '@stylo/core/css.js';
+import { withDocumentBreakpoints } from '@stylo/core/document-breakpoints.ts';
 import { inlineFontFaces } from '@stylo/core/site-export.ts';
 
 const MAX_SIDE = 4000;
@@ -95,7 +96,7 @@ export function createRenderer() {
 
   /** HTML da camada com as fontes hospedadas do projeto embutidas. */
   function pageHtml(node: any, doc: any, ids = false) {
-    const html = exportHtml(ids ? withoutInspectionMarkers(node) : node, doc.assets, node.name, doc.styles, { ids, selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any);
+    const html = withDocumentBreakpoints(doc, () => exportHtml(ids ? withoutInspectionMarkers(node) : node, doc.assets, node.name, doc.styles, { ids, selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any));
     const faces = inlineFontFaces(doc);
     return faces ? html.replace('</head>', `<style>\n${faces}\n</style>\n</head>`) : html;
   }

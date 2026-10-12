@@ -1,5 +1,5 @@
 /** Resumos de camadas e descrição em português das alterações. */
-import { tagOf, BREAKPOINTS } from '../../model.js';
+import { tagOf, DEFAULT_BREAKPOINTS } from '../../model.js';
 import type { ToolArgs } from './types.ts';
 /** Resumo curto de uma camada (o que a IA precisa para se orientar, sem o peso de todos os campos). */
 export function summarize(n, depth = 0): ToolArgs {
@@ -60,7 +60,7 @@ export function describeCall(tool: string, args: ToolArgs, store) {
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
     case 'set_project_css': return `${String(args.css || '').trim() ? 'Substituir' : 'Limpar'} CSS global do projeto (${String(args.css || '').length} caracteres)`;
-    case 'set_responsive': return `No ${BREAKPOINTS.find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
+    case 'set_responsive': return `No ${(store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS).find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'set_state': return `No estado ${args.state}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
     case 'create_component': return `Transformar ${nm(args.id)} em componente`;
     case 'create_instance': return `Criar uma cópia do componente ${nm(args.component_id)}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
