@@ -39,7 +39,8 @@ npm start
 Abra **http://localhost:5173/studio/** (a raiz `/` já redireciona para lá).
 
 - O banco é criado sozinho na pasta `designer.db/` (PGlite, sem instalar nada).
-- O modo padrão é **local, sem login**. Para exigir contas e senha: `STYLO_AUTH=accounts npm start`.
+- O modo padrão é **contas e senha**: no primeiro acesso o painel pede para criar a conta de administração. Para uso sem login (testes e desenvolvimento): `STYLO_AUTH=local npm start`.
+- **Se o banco não abrir** ("O banco PGlite não pôde ser lido"): renomeie a pasta `designer.db` (ex.: `designer.db.antigo`) e inicie de novo; um banco novo é criado. Num alpha os dados são descartáveis.
 - **Chromium (opcional, mas recomendado):** medidas reais, a imagem da tela (`get_image`), a auditoria de vazamento e a edição de fotos usam um navegador. Se você já tem um, aponte: `STYLO_CHROMIUM_PATH=/caminho/chrome`. Se não, `npx playwright install chromium`. Sem navegador, essas ferramentas avisam e o resto funciona.
 - Por padrão o servidor escuta na rede local (`0.0.0.0`). Para ficar só neste computador: `STYLO_HOST=127.0.0.1`.
 
@@ -64,7 +65,7 @@ Com o servidor rodando, no Claude Code:
 claude mcp add --transport http stylo http://localhost:5173/mcp
 ```
 
-Outros clientes que falem MCP por HTTP também funcionam (o fluxo foi validado com o cliente oficial do SDK MCP; **não foi validado individualmente em Codex, Cursor, Kimi ou OpenCode**). Em modo `accounts`, cadastre o agente em **Administração → Agentes** e use o token Bearer gerado. As instruções entregues ao agente estão em `apps/server/src/instrucoes-agente.txt`.
+Outros clientes que falem MCP por HTTP também funcionam (o fluxo foi validado com o cliente oficial do SDK MCP; **não foi validado individualmente em Codex, Cursor, Kimi ou OpenCode**). Cadastre o agente em **Administração → Agentes** e use o token Bearer gerado. As instruções entregues ao agente estão em `apps/server/src/instrucoes-agente.txt`.
 
 Fluxo recomendado: **buscar → ler só o trecho necessário → ajustar → conferir**. Exemplos: `find_layers` (busca compacta), `inspect_layout` (medidas reais em texto), `get_image` (imagem da tela), `check_design` (problemas), `update_layers` (até 100 camadas num passo de desfazer).
 
@@ -131,10 +132,10 @@ Os dados do alpha devem ser tratados como **descartáveis**: o formato pode muda
 
 Existe e **deve existir**, com escopos diferentes por modo:
 
-- **Modo local (padrão):** útil para quem usa sozinho: saúde do servidor e do banco, endereços da rede local com QR Code, atividade global, backups, plugins e provedores de assets (ativar, diagnosticar, chaves), biblioteca. Contas ficam ocultas porque não há login.
-- **Modo `accounts`:** acrescenta usuários (criar, papéis OWNER/ADMIN/EDITOR/COMMENTER/VIEWER, senha temporária, suspender, revogar sessões), agentes MCP (tokens, escopos, aprovação, revogação, atividade) e o guia de conexão por cliente.
+- **Modo `local` (sem login):** útil para testar sozinho: saúde do servidor e do banco, endereços da rede local com QR Code, atividade global, backups, plugins e provedores de assets (ativar, diagnosticar, chaves), biblioteca. Contas ficam ocultas porque não há login.
+- **Modo `accounts` (padrão):** tem tudo isso e acrescenta usuários (criar, papéis OWNER/ADMIN/EDITOR/COMMENTER/VIEWER, senha temporária, suspender, revogar sessões), agentes MCP (tokens, escopos, aprovação, revogação, atividade) e o guia de conexão por cliente.
 
-Foi verificado por teste de ponta a ponta (`npm run test:e2e`, que precisa de um servidor em `STYLO_AUTH=accounts` em `APP_URL`).
+Foi verificado por teste de ponta a ponta (`npm run test:e2e`, que precisa de um servidor em `STYLO_AUTH=accounts` em `APP_URL` e de uma conta de administração recém-criada).
 
 ## Configuração
 
@@ -144,7 +145,7 @@ Variáveis de ambiente:
 |---|---|
 | `PORT` | Porta do servidor (padrão `5173`). |
 | `STYLO_HOST` | `127.0.0.1` para escutar só neste computador; senão `0.0.0.0`. |
-| `STYLO_AUTH` | `local` (sem login, padrão) ou `accounts` (contas e senha). |
+| `STYLO_AUTH` | `accounts` (contas e senha, padrão) ou `local` (sem login; só para testes e desenvolvimento). |
 | `DESIGNER_DB_DIR` | Pasta do PGlite (padrão `designer.db`; `memory` para testes). |
 | `DATABASE_URL` | Usa PostgreSQL em vez do PGlite (não testado). |
 | `DESIGNER_CONFIG` | Arquivo de configuração (padrão `designer.config.json`). |
