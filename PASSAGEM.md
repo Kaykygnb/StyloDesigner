@@ -28,10 +28,9 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # ~440 testes, 2–3 min
+npm test                             # última suíte: 507 testes; ~5 min na nuvem
 ```
-Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **81 ferramentas**, e um cliente do SDK oficial cria
-projeto, monta uma tela (`build_layout`), audita (`check_design`), recebe a imagem (`get_image`) e exporta (`export_zip`).
+Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **81 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 
 **O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
 no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa melhorar (foi assim que se achou boa parte do que está em `decisoes.md`).
@@ -43,6 +42,8 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 | Servidor, MCP (SDK oficial, sessões, 81 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
 | Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
 | Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
+| Localizar por propriedades: `find_layers`, página/subárvore, filtros, IDs/resumo e paginação | ✅ — até 20 itens/8KiB por padrão; valores base |
+| Inspecionar em texto: `inspect_layout`, posição/tamanho/espaçamentos/fonte por largura/breakpoint | ✅ — Chromium; resposta recortada/paginada; não altera dimensões base |
 | Ajustar em lote: `update_layers`, até 100 IDs únicos, validação antes da escrita, um desfazer, log e travas | ✅ — `w/h/layout.mode` reservam o documento; demais lotes reservam seus IDs |
 | **Ver**: `get_image` (inclusive por breakpoint), com layout **medido de verdade** no Chromium | ✅ (precisa do Chromium) |
 | **Auditar**: `check_design` — vazamento por breakpoint, contraste, texto pequeno, alt, títulos, alvo clicável | ✅ (vazamento precisa do Chromium) |
