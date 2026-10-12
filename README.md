@@ -6,6 +6,17 @@ Um servidor local fica ligado. Pessoas editam num **painel web**; agentes (Claud
 
 > **Versão `v0.1.0` (alpha).** Funciona de ponta a ponta no seu computador, mas é um alpha: há lacunas (veja [O que falta](#o-que-falta)) e a interface ainda será refinada. Não é pronto para hospedagem pública.
 
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [docs/INSTALACAO.md](docs/INSTALACAO.md) | Requisitos, variáveis de ambiente, dados, conectar agentes, backups, solução de problemas |
+| [docs/PAINEL.md](docs/PAINEL.md) | Guia completo do painel: canvas, ferramentas, vetores, abas, atalhos, administração |
+| [docs/FERRAMENTAS-MCP.md](docs/FERRAMENTAS-MCP.md) | Referência das 120 ferramentas MCP (gerada do código) |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Como o projeto é organizado e por quê; regras de segurança |
+| [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) | Rotina, testes, receitas (nova ferramenta, plugin, migração), convenções |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | O que falta, o que precisa ser testado e as decisões tomadas |
+
 ---
 
 ## Sumário
