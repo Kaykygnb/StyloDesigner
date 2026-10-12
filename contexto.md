@@ -237,3 +237,7 @@ Plano MCP concluído no ambiente disponível: última suíte555/555, sem falhas/
 ## Planejamento do acesso web
 
 [ACESSO-WEB.md](ACESSO-WEB.md) registra a direção aprovada: instalação própria baixada do GitHub, primeira conta administradora com senha, login posterior, outras contas controladas pelo administrador e projetos compartilhados na rede; criação manual e por agente. Detalha painel/projetos/biblioteca/conexões MCP/administração, apresentação de segredos e critérios. Ainda é planejamento, sem implementar apps/web ou liberar rede. Identidade de login, cadastro, direitos administrativos, tokens por projeto/membro, recuperação e transporte permanecem decisões explícitas. Hoje padrão local sem login e127.0.0.1; API accounts usa e-mail.
+
+### Direção visual web e personalização
+
+A pessoa dona rejeitou a aparência pouco polida do legado e pediu cor principal pessoal discreta. INTERFACE-WEB.md propõe estruturas de acesso/painel/editor, ferramentas contextuais, sistema visual e destaque separado de conteúdo, presença e cores semânticas. Já existem temas/variáveis CSS no legado, mas não houve inspeção visual ao vivo nem implementação da preferência. Próximo passo sugerido: propostas visuais antes de substituir apps/web.

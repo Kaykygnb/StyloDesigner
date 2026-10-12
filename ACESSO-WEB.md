@@ -272,3 +272,7 @@ escuta do servidor, além do estado registrado em PASSAGEM.md. Documento não al
 login, rede ou editor. Não foram feitos testes entre computadores nem novas execuções da suíte.
 Última suíte anterior:555 testes passando,0 falhas/pulados; typecheck limpo. Isso não é validação
 das telas e capacidades propostas aqui.
+
+## Direção visual complementar
+
+[INTERFACE-WEB.md](INTERFACE-WEB.md) detalha a proposta de estrutura profissional para painel/editor e o pedido de cor de destaque pessoal. Preferência da interface não altera projetos ou exportações. Ainda é planejamento; telas finais e implementação pendentes.
