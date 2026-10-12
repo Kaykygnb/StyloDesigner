@@ -4,8 +4,9 @@ O Stylo permite que agentes de IA construam, inspecionem e ajustem desenhos de s
 com um documento estruturado e CSS real. O agente pode montar telas, organizar estilos, editar fotos,
 conferir problemas e exportar HTML, um projeto React com Vite ou tokens de design.
 
-O foco atual é o **servidor e o uso pelo MCP**, inclusive por agentes que não recebem imagens.
-O editor visual em `apps/web` é legado e está congelado; sua reformulação fica para outro trabalho.
+**O painel web (`apps/studio`, em `/studio/`) já existe**: projetos, editor visual com camadas, propriedades, responsivo, conferência do design,
+agentes ao vivo e exportação. Ele usa as **mesmas ferramentas do MCP** (pessoa e agente produzem o mesmo resultado). O editor antigo (`apps/web`)
+continua disponível em `/index.html`, mas está congelado.
 
 **Branch deste trabalho: [`limpeza`](https://github.com/Kaykygnb/StyloDesigner/tree/limpeza).**
 A `main` contém a versão antiga. Estado documentado em **2026-10-12**:
@@ -52,6 +53,22 @@ em Codex, Claude Code, Kimi ou OpenCode**. A capacidade de receber imagens depen
 O modo local inicia sem login. Contas, tokens de agentes, papéis e escopos existem no servidor;
 configuração e autenticação estão em [contexto.md](contexto.md). O produto ainda não está preparado
 para hospedagem pública; as decisões de acesso e hospedagem estão em [PASSAGEM.md](PASSAGEM.md).
+
+## Usar o painel
+
+Com o servidor rodando (`npm start`), abra **http://localhost:5173/studio/** no navegador (a raiz `/` já leva para lá).
+
+- **Projetos:** crie, abra e busque; cada cartão mostra a miniatura da primeira tela. Há um comando pronto para **conectar um agente** (Claude Code, Codex, Cursor...).
+- **Editor:** páginas e camadas à esquerda (arraste para reordenar; duplo clique renomeia; o olho esconde), canvas no centro, propriedades à direita.
+- **Na tela:** clique seleciona; **arraste** move camadas soltas; **alças** redimensionam; **duplo clique** num texto edita direto; `Ctrl+Z` desfaz; `Delete` apaga; `Ctrl+D` duplica; setas movem 1 px (Shift: 10).
+- **Tablet e Celular** no topo mostram a tela naquela largura e as mudanças valem só naquele tamanho.
+- **Conferir** procura o que vaza da tela, contraste fraco, texto pequeno, imagem sem descrição e títulos fora de ordem; clicar num problema seleciona a camada.
+- **Agentes:** quem está conectado e o que fizeram; o que um agente altera aparece na tela sozinho.
+- **Exportar:** site em HTML (.zip), projeto React (.zip) e tokens do design (CSS, JSON, Tailwind).
+- **Aparência:** tema claro/escuro e cor de destaque pessoal (só do seu navegador; nunca entram no projeto).
+- Com `STYLO_AUTH=accounts` o painel pede **login** (e cria a conta de administração no primeiro acesso).
+
+Em desenvolvimento o painel é compilado na hora; para a versão final: `npm run build`.
 
 ## O que já pode ser feito pelo MCP
 

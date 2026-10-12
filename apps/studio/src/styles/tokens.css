@@ -1,0 +1,56 @@
+/* Sistema visual do painel. Superfícies neutras; só o destaque (--accent) é escolhido pela pessoa e NUNCA toca no projeto. */
+:root {
+  --accent: #5b5bd6;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-strong: color-mix(in srgb, var(--accent) 86%, black);
+  --on-accent: #ffffff;
+
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius-s: 5px;
+  --radius: 8px;
+  --radius-l: 12px;
+
+  --danger: #d1364a;
+  --warn: #b7791f;
+  --ok: #2b8a57;
+
+  --topbar-h: 48px;
+  --left-w: 264px;
+  --right-w: 300px;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f3f3f6;
+  --surface: #ffffff;
+  --surface-2: #f0f0f4;
+  --surface-3: #e7e7ed;
+  --border: #dedee6;
+  --text: #1c1c22;
+  --text-2: #5a5a67;
+  --text-3: #8a8a97;
+  --canvas: #e6e6ec;
+  --shadow: 0 1px 2px rgba(20, 20, 40, 0.06), 0 8px 24px rgba(20, 20, 40, 0.08);
+  --danger-soft: #fdecee;
+  --warn-soft: #fdf3e1;
+  --ok-soft: #e6f5ec;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #151519;
+  --surface: #1d1d23;
+  --surface-2: #25252d;
+  --surface-3: #2e2e38;
+  --border: #33333e;
+  --text: #ececf2;
+  --text-2: #a6a6b5;
+  --text-3: #7b7b8b;
+  --canvas: #101013;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.45);
+  --danger-soft: #3a1f25;
+  --warn-soft: #3a2f1b;
+  --ok-soft: #1d3326;
+}

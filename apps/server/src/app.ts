@@ -15,6 +15,8 @@ import { projectRoutes } from './routes/projects.js';
 import { systemRoutes } from './routes/system.js';
 import { legacyRoutes } from './routes/legacy.js';
 import { libraryRoutes } from './routes/library.js';
+import { studioRoutes } from './routes/studio.js';
+import type { StudioCaller } from './studio/studio-calls.js';
 import type { AssetServices } from '@stylo/plugins/assets/types.ts';
 
 /** Tamanho máximo do corpo por rota: um projeto aceita muito (imagens embutidas); miniaturas e MCP, médio; o resto, pouco. */
@@ -22,11 +24,12 @@ function bodyLimitFor(method: string, path: string): number {
   if (method === 'GET' || method === 'HEAD') return MAX_PROJECT;
   if (/^\/api\/projects\/[^/]+$/.test(path) && method === 'PUT') return MAX_PROJECT;
   if (method === 'POST' && path === '/api/library') return MAX_UPLOAD;
+  if (method === 'POST' && path === '/api/studio/call') return MAX_MEDIUM; // ferramentas com imagem em base64
   if (/\/thumb$/.test(path) || path.startsWith('/api/imageai/')) return MAX_MEDIUM;
   return MAX_JSON;
 }
 
-export function createApp(s: Services, identity: Identity, mcp: McpGateway, assetServices: AssetServices) {
+export function createApp(s: Services, identity: Identity, mcp: McpGateway, assetServices: AssetServices, studio: StudioCaller) {
   const app = new Hono<{ Bindings: HttpBindings }>();
   app.onError(errorHandler);
   app.notFound((c) => c.json({ error: 'Rota não encontrada.' }, 404));
@@ -41,6 +44,7 @@ export function createApp(s: Services, identity: Identity, mcp: McpGateway, asse
   app.route('/api', systemRoutes(s));
   app.route('/api', legacyRoutes(s));
   app.route('/api', libraryRoutes(s, identity, assetServices));
+  app.route('/api', studioRoutes(s, identity, studio));
 
   app.use('/mcp', localOnly(s.port, { originAlways: true }), limit(MAX_MEDIUM));
   app.all('/mcp', (c) => mcp.handle(c));

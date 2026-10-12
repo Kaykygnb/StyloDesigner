@@ -1,0 +1,22 @@
+{
+  "name": "@stylo/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Painel e editor web do Stylo (React + TypeScript + Vite). Fala com o servidor pelas mesmas ferramentas do MCP.",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

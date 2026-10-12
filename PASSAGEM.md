@@ -38,7 +38,7 @@ cd StyloDesigner
 npm install                          # ~1 min; roda o `prisma generate` sozinho
 npx playwright install chromium      # para get_image, check_design (vazamento) e a medida de layout
 npm run typecheck                    # deve passar sem erro
-npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
+npm start                            # http://localhost:5173/studio/ — servidor + painel web; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
 npm test                             # última suíte: 555 testes; ~5 min na nuvem
 ```
@@ -63,7 +63,8 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 | Assets: biblioteca da conta, 6 provedores gratuitos, fontes hospedadas no projeto, créditos, fontes cadastráveis, mídia (vídeo/áudio/3D/Lottie) como camada | ✅ — **Pexels/Pixabay/Poly Pizza nunca rodaram com chave real** |
 | Edição local de fotos (`edit_image`) pelo MCP: giro, recorte, filtros, ajustes, fundo simples, formato e restauração | ✅ — Chromium isolado; sem IA externa/chave; limites em `FERRAMENTAS.md` |
 | Exportar: zip HTML (imagens/fontes/players/créditos como arquivos) e **projeto React (Vite)** | ✅ |
-| Editor visual | 🟡 legado (`apps/web`), a ser refeito; **não mexa** |
+| **Painel web** (`apps/studio`, `/studio/`): projetos, editor (camadas, propriedades, mover/redimensionar, texto direto na tela, responsivo), conferir, agentes ao vivo, exportar, tema e destaque, login | ✅ **primeira versão utilizável** (2026-10-12; `agente/painel-web`). Lacunas em "Painel: o que falta" |
+| Editor antigo (`apps/web`) | 🟡 congelado; some quando o painel cobrir tudo |
 | React Native, TypeScript no React, JS de protótipo, paleta de imagem | ❌ |
 | Acesso pela **rede local** com login (versão base) | 🟡 planejado em `ACESSO-WEB.md`; hoje o servidor só aceita local. **Internet pública não faz parte da versão base** |
 
@@ -158,6 +159,22 @@ inspeção textual por largura também concluída; próximo grupo sugerido, manu
 8. **Testes de rota HTTP** de `site.zip`/`react.zip`; teste de React com um projeto que use estados (hover) e animações.
 9. **[ADIADO — versão paga]** ~~Preparar o terreno da hospedagem~~: S3/R2 para os blobs e limite de requisições por token só interessam à versão hospedada. **Fica na base:** filtro de eventos ao vivo (SSE) por pessoa, porque contas na rede local precisam disso (veja `ACESSO-WEB.md`).
 10. **Limpar o repositório:** `scripts/auditar-colaboracao.mjs` e `scripts/gerar-miniatura-vitrine.mjs` são do editor antigo (provavelmente quebrados); `tests/e2e/*` está desatualizado; `apps/web` sai quando o editor novo chegar.
+
+### Painel: o que falta (apps/studio)
+
+O painel cobre o ciclo **construir → conferir → corrigir → exportar** à mão. Ainda **não** tem (do mais útil para o menos):
+1. **Copiar e colar** camadas; **seleção por retângulo** (laço) e guias/ímãs ao arrastar; mover camadas **dentro do layout automático** arrastando na tela (hoje só pela lista).
+2. **Recursos de design na interface:** estilos de cor/texto/sombra/gradiente, variáveis e modos claro/escuro (as ferramentas do MCP existem: `list_design_resources`, `create_*_styles`, `bind_variable`...).
+3. **Componentes e instâncias**, **estados** (hover) e **interações**/protótipo (ferramentas `create_component`, `set_state`, `add_interaction`).
+4. **Biblioteca e assets:** buscar fotos/ícones/fontes pela interface (`search_assets`, `library_*`, `add_font`, `insert_icon`) e cadastrar chaves de provedores. Hoje só dá para enviar uma imagem do computador.
+5. **Gradientes, sombras múltiplas, vetores (caneta) e mídia** nas propriedades; edição de fotos (`edit_image`) na interface.
+6. **Gerenciar projetos:** renomear, duplicar, excluir, compartilhar e ver versões/atividade (as rotas do servidor existem: `rename`, `versions`, `members`).
+7. **Acesso pela rede e administração** (`ACESSO-WEB.md`): o servidor ainda escuta só em `127.0.0.1`; falta a tela para o administrador criar contas/aprovar agentes.
+8. **Desfazer por sessão:** o `undo` do servidor é do projeto inteiro (desfaz também o trabalho de um agente). O plano em `ARQUITETURA-EDITOR.md` prevê desfazer só da própria sessão.
+9. **Telas pequenas:** abaixo de ~900 px os painéis laterais comem a área de trabalho (recolher/redimensionar painéis).
+10. **Acessibilidade e teclado:** o essencial existe (foco visível, rótulos, atalhos), mas falta revisão completa; **a seleção por teclado dentro do canvas** não existe.
+
+**Atenção ao testar com automação:** o Chromium em modo automatizado **cai** se o mouse nativo for apertado e movido sobre um `iframe` sem scripts (acontece até em Edge/Chrome automatizados; num navegador comum com janela não acontece). Os testes (`tests/studio-ui.test.js`) simulam o arrasto com eventos enviados por script. Não troque o `sandbox` do iframe por `allow-scripts` para contornar: isso abriria o HTML de agentes para executar código.
 
 O que **depende de decisão** e por isso não está nesta lista: React Native e TypeScript no React (D9), escopo do editor v1 (D10), JS de protótipo (D11), login/contas da instalação (D6). **Versão paga (D5, D7, D12-serviço, D16): adiada.**
 

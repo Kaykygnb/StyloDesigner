@@ -77,8 +77,8 @@ fica ligado**; qualquer agente (Claude Code, Codex, Cursor...) conecta pelo **MC
 **vê** o resultado (imagem), **audita** (responsivo, contraste, acessibilidade) e **exporta**: zip de HTML, projeto React (Vite) ou tokens do design (CSS/JSON/Tailwind).
 Pessoas usam um editor no navegador no mesmo projeto. **Há duas versões (decisão de 2026-10-12):** a **BASE**, que qualquer pessoa baixa do GitHub e roda na própria máquina (**é a que construímos agora; a prioridade é ser ESTÁVEL**), e a **PAGA hospedada**, outro produto, bem maior, **para depois: não trabalhe nela**.
 
-**Estado:** há 91 ferramentas MCP anunciadas (73 do núcleo + 18 de plugins); `generate_image_edit` continua indisponível pelo MCP do servidor. O estado e os números da última suíte estão em `PASSAGEM.md`. O **editor visual é legado e será refeito** — **não mexa nele**.
-O foco é ter **todas as ferramentas e o MCP completos** primeiro, **o editor depois**.
+**Estado:** há 91 ferramentas MCP anunciadas (73 do núcleo + 18 de plugins); `generate_image_edit` continua indisponível pelo MCP do servidor. O estado e os números da última suíte estão em `PASSAGEM.md`. O **painel web novo (`apps/studio`, em `/studio/`) já existe** e é o que a pessoa dona usa para abrir e editar projetos; ele chama as MESMAS ferramentas do MCP. O **editor antigo (`apps/web`) está congelado** — **não mexa nele**.
+O foco é **ferramentas/MCP estáveis e o painel web**; o aplicativo Electron só vem depois que tudo funcionar (decisão da pessoa dona, 2026-10-12).
 
 **Onde está tudo** (leia nesta ordem): `PASSAGEM.md` (estado, como começar, **decisões do dono**, próximos passos, pulados) → `contexto.md` (vocabulário, arquitetura,
 mapa do código, receitas) → `decisoes.md` (o porquê de cada decisão; **só se acrescenta no fim, nunca reescreva as antigas**) → `NOTICE` (licenças de terceiros).
@@ -119,7 +119,7 @@ com a linha de coautoria que o ambiente indicar. **Ao fim de cada bloco: `git pu
 ## 5. O que NÃO fazer (limites firmes)
 
 - **Não abrir PR, não tocar na `main` nem na `stylo-2.0-planning`, não usar `--force`, não reescrever o histórico, não apagar branches nem o repositório, não publicar nada fora do repositório** sem pedido claro. (Push comum na `limpeza` é permitido: seção 0. Reescrever o histórico depende da decisão D2.)
-- **Não mexer no editor** (`apps/web`), nem nos testes e2e antigos, por enquanto.
+- **Não mexer no editor antigo** (`apps/web`) nem nos testes e2e antigos. O painel novo (`apps/studio`) é onde se trabalha na interface (veja `PASSAGEM.md`, "Painel: o que falta").
 - **Não alterar a licença**, nem `LICENSE`, nem escolher por ela as decisões D1–D14 de `PASSAGEM.md §3`.
 - **Não reescrever nem apagar entradas antigas** de `decisoes.md`.
 - **Não rodar comandos destrutivos** sem olhar o alvo antes (`rm -rf`, `git reset --hard`, `git clean`...). Você não tem os dados locais da pessoa, mas o repositório dela existe: cuide dele.
@@ -127,7 +127,7 @@ com a linha de coautoria que o ambiente indicar. **Ao fim de cada bloco: `git pu
 - **Não enfraquecer a segurança:** nada de `<script>` vindo de agentes, JS no servidor, rede liberada no Chromium de desenho, downloads por endereço sem a proteção SSRF.
 - **Não criar um agente de IA embutido** nem um segundo caminho paralelo ao MCP.
 - **Não "resolver" um erro de teste enfraquecendo o teste** ou pulando-o. Se o teste está errado, explique por quê; se o código está errado, corrija o código.
-- **Não pular na frente:** a pessoa já lembrou uma vez que "o editor ainda não chegou". Siga a ordem combinada (ferramentas → editor).
+- **Não pular na frente:** siga a ordem combinada. Hoje: painel web utilizável e ferramentas estáveis; **Electron, hospedagem, cobrança e a versão paga ficam para depois**.
 - **Não afirmar o que não verificou** (ex.: Pexels, Pixabay e Poly Pizza nunca rodaram com chave real; a API do Poly Pizza nem foi conferida na documentação oficial).
 
 ## 6. Decisão: quando decidir sozinho e quando perguntar

@@ -4,6 +4,10 @@
 Este documento fecha a direção de implementação de [EDITOR-WEB.md](EDITOR-WEB.md).
 **Arquitetura decidida não significa código implementado.** Este bloco altera somente documentos.
 
+> **Atualização 2026-10-12:** existe uma **primeira implementação** em `apps/studio` (branch `agente/painel-web`). Seguiu: React + TypeScript + Vite, canvas em DOM isolado (`iframe` sem scripts),
+> as MESMAS ferramentas do MCP para qualquer mudança, tema/destaque fora do documento. **Ainda não implementa** a fila/revisão obrigatória por sessão, a idempotência, o desfazer por sessão nem o
+> contexto de página/seleção no servidor (a aba mantém seleção e página localmente e restabelece a página antes de cada ferramenta). Veja `decisoes.md` (2026-10-12, "Painel web").
+
 ## 1. Decisões centrais
 
 | Questão | Escolha técnica | Motivo |

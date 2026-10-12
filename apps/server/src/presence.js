@@ -92,7 +92,7 @@ export function createPresence({ now = Date.now } = {}) {
      * Tenta travar as camadas para a sessão. Devolve { ok: true } ou { ok: false, id, by } se outra sessão está
      * mexendo numa delas agora.
      */
-    lock(owner, ids, ms = LOCK_MS, { agentId = owner, name } = {}) {
+    lock(owner, ids, ms = LOCK_MS, { agentId = owner, name, yieldToCompleted = false } = {}) {
       const t = now();
       for (const id of ids) {
         const conflicts = id === DOCUMENT_LOCK
@@ -100,7 +100,9 @@ export function createPresence({ now = Date.now } = {}) {
           : [[id, locks.get(id)], [DOCUMENT_LOCK, locks.get(DOCUMENT_LOCK)]];
         for (const [key, l] of conflicts) {
           const sameAgentAfterCompletion = l?.agentId === agentId && Number.isFinite(l.until);
-          if (l && l.owner !== owner && l.until > t && !sameAgentAfterCompletion) return { ok: false, id: key, by: l.name, wait: Number.isFinite(l.until) ? Math.ceil((l.until - t) / 1000) : 10 };
+          // `yieldToCompleted`: uma PESSOA no painel só espera chamadas EM ANDAMENTO; a janela de 10 s depois da edição de um agente é só para agente não pisar em agente
+          const completedWindow = yieldToCompleted && Number.isFinite(l?.until);
+          if (l && l.owner !== owner && l.until > t && !sameAgentAfterCompletion && !completedWindow) return { ok: false, id: key, by: l.name, wait: Number.isFinite(l.until) ? Math.ceil((l.until - t) / 1000) : 10 };
         }
       }
       const displayName = name || agents.get(agentId)?.name || 'IA externa';
@@ -112,6 +114,8 @@ export function createPresence({ now = Date.now } = {}) {
       const until = now() + ms;
       for (const id of ids) { const lock = locks.get(id); if (lock?.owner === owner) lock.until = until; }
     },
+    /** Registra uma ação na lista de atividade (usado pelo painel web, onde quem age é uma pessoa e não um agente MCP). */
+    log(who, color, text) { record(who, color, text); },
     /** Uma ferramenta terminou: guarda na atividade. */
     done(owner, tool, summary, ok = true) {
       const a = agents.get(owner);

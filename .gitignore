@@ -25,3 +25,6 @@ designer.db/
 *.secret
 *.blobs/
 designer.config.json
+
+# painel novo
+apps/studio/dist/

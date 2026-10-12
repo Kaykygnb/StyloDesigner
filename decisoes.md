@@ -438,3 +438,24 @@ para a versão paga; ficam para a base D1 (licença), D15 (limite da "pequena eq
 após 2 anos, o oposto do desejado); como a pessoa dona é a única titular do código, ela segue livre para vender a versão paga. **Não é decisão final**: falta a escolha dela e revisão jurídica. O trecho de
 MIT já enviado ao GitHub continua MIT para quem copiou. Prioridades da base: instalar fácil, versões numeradas com changelog, atualizar sem perder dados, backup/restauração, não perder trabalho, seguro por padrão,
 testado em CI, documentação de uso (lista completa em `PASSAGEM.md` seção 4, "Meta: estável").
+
+## 2026-10-12 — Painel web (apps/studio): primeira versão utilizável
+**Pedido da pessoa dona:** uma página web que dê para abrir e usar ("chegar em casa e conseguir acessar, usar"); o aplicativo Electron fica para depois de tudo funcionar. A versão base roda como
+**servidor que se baixa e inicia; o acesso é pelo navegador, numa porta**. **O que foi feito:** app novo `apps/studio` (React + TypeScript + Vite, como em `ARQUITETURA-EDITOR.md`), servido em `/studio/`; a raiz `/` leva para ele;
+o editor antigo segue em `/index.html`.
+**Decisões de arquitetura (e por quê):**
+1. **O painel não tem caminho próprio para alterar o documento.** Toda mudança é uma chamada das MESMAS ferramentas do MCP (`POST /api/studio/call` → `workspace.call`, com as mesmas validações, escopos, log e
+   argumentos estritos). Assim pessoa e agente produzem o mesmo resultado, e uma ferramenta nova já vale na interface. O painel LÊ o documento do servidor (`GET /api/studio/doc`) e se atualiza quando o servidor avisa (SSE) que alguém gravou.
+2. **Canvas = o MESMO HTML/CSS da exportação** (`@stylo/core`: `exportHtml`) dentro de um `iframe` com `sandbox` SEM scripts. O painel só lê o DOM dele (posição de cada camada) para desenhar seleção, alças e arrasto por cima.
+   Edição de texto: `contentEditable` na própria camada (duplo clique). Mover/redimensionar viram `update_layer` (ou `set_responsive` em tablet/celular).
+3. **Travas:** a janela de 10 s depois de cada escrita (para um agente não pisar em outro) **não vale para pessoas no painel**: elas só travam durante a chamada em andamento e ignoram a janela dos agentes. Sem isso o agente era
+   bloqueado ("o documento está sendo alterado por Você… espere 9 s") depois de qualquer clique da pessoa. Teste de regressão: `tests/studio-api.test.js`.
+4. **Entre iframes não existe `instanceof Element`** (cada iframe tem as suas classes): a seleção por clique e os atalhos usam checagem por métodos (duck typing). Foi o defeito que quebrou, no começo, o clique na tela e o duplo clique.
+5. **Armadilha de teste:** o Chromium em modo automatizado cai ao apertar e mover o mouse nativo sobre um iframe sem scripts (reproduzido com uma página mínima e também em Edge/Chrome automatizados; num navegador comum com janela
+   — o do aplicativo — não ocorre). Os testes simulam o arrasto com eventos enviados por script. Não se afrouxou o `sandbox` (nada de `allow-scripts`).
+6. **Aparência:** tema claro/escuro/sistema e cor de destaque pessoal (8 opções), guardados no navegador; não entram no projeto nem na exportação.
+**Pequenas mudanças no servidor:** `GET /api/projects` passou a devolver `name`; `/api/studio/doc` responde `null` (e não 404) sem projeto aberto; o Vite de desenvolvimento aceita `@react-refresh` (lista de caminhos permitidos);
+`web.js` ganhou `base` para servir o painel em `/studio/`; `presence.lock` ganhou `yieldToCompleted`; `typecheck` e `build` incluem o painel.
+**Verificação:** 4 testes novos (`studio-api` ×3 e `studio-ui` ×1, que percorre o painel inteiro num Chromium: criar projeto/tela, inserir, arrastar, redimensionar, editar texto e cor, camadas, atalhos,
+desfazer, responsivo, conferir, **agente (MCP) alterando o mesmo projeto com a tela atualizando sozinha**, aparência, miniatura, exportação, sem erros no console); o fluxo de contas (primeiro acesso, login, senha errada, sair) foi conferido à mão; o clique e a seleção foram
+conferidos também no navegador do aplicativo. **Não verificado:** uso por várias pessoas ao mesmo tempo no painel; telas pequenas; navegadores diferentes de Chromium (Firefox/Safari); a lista do que falta está em `PASSAGEM.md` ("Painel: o que falta").

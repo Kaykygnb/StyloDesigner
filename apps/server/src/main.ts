@@ -42,6 +42,7 @@ import { createToolCaller } from './mcp/agent-calls.js';
 import { createMcpGateway } from './mcp/gateway.js';
 import { createApp } from './app.js';
 import { createWebHandler } from './web.js';
+import { createStudioCaller } from './studio/studio-calls.js';
 import type { Services } from './context.js';
 
 const here = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -100,7 +101,8 @@ const caller = createToolCaller({ workspace, presence, events });
 /** Instruções entregues aos agentes (o arquivo é lido a cada sessão nova: editar muda o comportamento sem reiniciar). */
 const instructions = () => readFile(join(here, 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
 const mcp = createMcpGateway({ s: services, identity, caller, instructions, version: VERSION });
-const app = createApp(services, identity, mcp, assetServices);
+const studio = createStudioCaller({ workspace, presence, events });
+const app = createApp(services, identity, mcp, assetServices, studio);
 const api = getRequestListener(app.fetch);
 
 // ---------------------------------------------------------------- servidor
@@ -108,9 +110,12 @@ const api = getRequestListener(app.fetch);
 const httpServer = createServer((req, res) => {
   const url = req.url || '/';
   if (/^\/(api(\/|$)|mcp\b)/.test(url)) return void api(req, res);
+  if (url === '/studio') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
+  // a entrada é o painel novo; o editor antigo continua em /index.html (ou /?editor)
+  if (url === '/') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
   let path: string;
   try { path = decodeURIComponent(new URL(url, 'http://x').pathname); } catch { res.writeHead(404).end('Not found'); return; }
-  web(req, res, path).catch((err: any) => {
+  (path.startsWith('/studio/') ? studioWeb : web)(req, res, path).catch((err: any) => {
     const notFound = err && (err.code === 'ENOENT' || err.code === 'ENOTDIR');
     if (!notFound) console.error(err);
     if (!res.headersSent) res.writeHead(notFound ? 404 : 500).end(notFound ? 'Not found' : 'Internal error');
@@ -118,6 +123,8 @@ const httpServer = createServer((req, res) => {
   });
 });
 const web = createWebHandler({ webRoot: join(root, 'apps', 'web'), httpServer });
+/** O painel novo mora em /studio/ (o editor legado continua em /). */
+const studioWeb = createWebHandler({ webRoot: join(root, 'apps', 'studio'), httpServer, base: '/studio/' });
 
 let stopping = false;
 async function shutdown() {
@@ -136,7 +143,7 @@ process.on('SIGTERM', shutdown);
 
 // escuta só em 127.0.0.1 (localhost): ninguém na sua rede consegue acessar o servidor
 httpServer.listen(port, '127.0.0.1', () => {
-  console.log(`\n  Stylo rodando em  http://localhost:${port}`);
+  console.log(`\n  Stylo rodando em  http://localhost:${port}/studio/`);
   console.log(`  Banco de dados               ${process.env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : 'PGlite em ' + dbDir}`);
   console.log(`  Acesso                       ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'}\n`);
 });

@@ -35,7 +35,7 @@ export function fileNameFor(title: string): string {
 }
 
 export interface Person { id: string }
-export interface ProjectSummary { file: string; modified: number; size: number; thumb: number }
+export interface ProjectSummary { file: string; name: string; modified: number; size: number; thumb: number }
 export interface WriteResult { projectId: string; file: string; modified: number; contentHash: string; revision: number }
 export interface WriteEvent extends WriteResult { by: string }
 
@@ -70,10 +70,10 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
   async function list(user: Person): Promise<ProjectSummary[]> {
     const rows = await db.project.findMany({
       where: { OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] },
-      select: { slug: true, updatedAt: true, size: true, thumb: true },
+      select: { slug: true, name: true, updatedAt: true, size: true, thumb: true },
       orderBy: { updatedAt: 'desc' },
     });
-    return rows.map((p) => ({ file: p.slug, modified: p.updatedAt.getTime(), size: p.size, thumb: p.thumb ? p.updatedAt.getTime() : 0 }));
+    return rows.map((p) => ({ file: p.slug, name: p.name, modified: p.updatedAt.getTime(), size: p.size, thumb: p.thumb ? p.updatedAt.getTime() : 0 }));
   }
 
   async function load(user: Person, slug: string) {

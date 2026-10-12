@@ -10,10 +10,10 @@ Um "Figma" para **agentes de IA e pessoas** prototiparem e construírem sites e 
 verdade: cada camada vira HTML/CSS. Um **servidor fica ligado**; qualquer agente (Claude Code, Codex, Cursor...) conecta pelo
 **MCP**, cria um projeto, trabalha nele, **vê** o que fez (imagem), **audita** (acessibilidade, responsivo) e **exporta**: um
 zip de HTML estruturado, um projeto React (Vite), tokens do design (CSS/JSON/Tailwind), ou puxa o código para construir o resto.
-Pessoas usam um editor visual no navegador, no mesmo projeto, ao mesmo tempo (hoje um editor legado; será refeito).
+Pessoas usam o **painel web** (`apps/studio`, em `/studio/`) no mesmo projeto, ao mesmo tempo; o editor antigo (`apps/web`) está congelado.
 Há **duas versões** (2026-10-12): a **base**, que qualquer pessoa baixa e roda na própria máquina (**é a que se constrói agora, com foco em estabilidade**), e a **paga hospedada**, outro produto bem maior, para depois. Contas, tokens de agente e Postgres existem para a instalação e para a futura versão paga.
 
-**Foco atual: as ferramentas e o MCP, não o editor.** O editor (`apps/web`) é legado e será reconstruído depois.
+**Foco atual: ferramentas/MCP estáveis e o painel web (`apps/studio`).** O editor antigo (`apps/web`) está congelado e sai quando o painel cobrir tudo.
 
 ## 2. Vocabulário (use estes nomes)
 
@@ -45,7 +45,8 @@ packages/core     @stylo/core     documento puro (sem DOM, roda em Node e navega
 packages/plugins  @stylo/plugins  plugins embutidos: identidade (cor, tipografia, brief) e assets (provedores, biblioteca, fontes)
 packages/db       @stylo/db       Postgres + Prisma: esquema, migrações SQL, cliente. PGlite = Postgres embutido (local/testes)
 apps/server       @stylo/server   servidor Node (Hono): API, MCP, workspace, contas, renderizador (Chromium), ponte stdio
-apps/web          @stylo/web      editor legado (JS, Vite). SERÁ REFEITO. Não gaste esforço aqui
+apps/studio       @stylo/studio   PAINEL WEB NOVO (React + TypeScript + Vite), servido em /studio/. Fala com o servidor pelas MESMAS ferramentas do MCP
+apps/web          @stylo/web      editor antigo (JS, Vite), congelado; ainda acessível em /index.html
 tests/                            unitários e de API (importam os pacotes por @stylo/*); tests/e2e/ está desatualizado
 scripts/                          utilitários soltos (veja "Scripts")
 ```
@@ -62,10 +63,10 @@ Zod 4, Prisma 7.10 (fixo) com PGlite/Postgres, Playwright-core (Chromium para de
 ```bash
 npm install            # roda sozinho o `prisma generate` (cliente em packages/db/src/generated, no .gitignore)
 npx playwright install chromium   # necessário para get_image, check_design (vazamento) e a medida de layout
-npm start              # http://localhost:5173 — sobe servidor + editor legado (Vite) na mesma porta; banco PGlite local; sem login
+npm start              # servidor + painel: http://localhost:5173/studio/ (a raiz / leva para lá); editor antigo em /index.html; PGlite local; sem login
 npm run typecheck      # tsc em db, core, plugins, server (arquivos .js não são checados)
 npm test               # ~440 testes, ~2–3 min (cada teste de servidor sobe um PGlite em memória)
-npm run build          # vite build do editor legado (apps/web/dist)
+npm run build          # compila o painel (apps/studio/dist) e o editor antigo (apps/web/dist); com dist presente o servidor entrega de lá (STYLO_DEV=1 força o Vite)
 ```
 Um arquivo de teste: `node --import tsx --import ./tests/_setup.mjs --test tests/<arquivo>`.
 Conectar um agente: `claude mcp add --transport http stylo http://localhost:5173/mcp` (Claude Code); Codex/Claude Desktop (só stdio):
@@ -120,6 +121,21 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `plugins.ts`, `events.ts`, `db.ts`, `dom-polyfill.ts` | liga plugins · SSE ao editor · abre o banco · DOMParser (linkedom) para `insert_icon` sem navegador |
 | `instrucoes-agente.txt` | **o manual que cada agente recebe no `initialize`**. Edite com cuidado: é o "prompt" do produto |
 | `presence.js`, `account.js`, `atomic.js`, `http-error.js`, `photos.js`, `imageai.js`, `providers.js`, `web.js` | legados em JS (presença/travas, perfil local, gravação atômica, fotos livres, IA de imagem, entrega do editor) |
+
+### `apps/studio/src` — o painel web (React + TypeScript)
+| Pasta/arquivo | Faz |
+|---|---|
+| `lib/api.ts` | conversa com o servidor: `tool(nome, args)` chama UMA ferramenta do MCP (`POST /api/studio/call`); `snapshot()` lê o projeto aberto (`GET /api/studio/doc`); avisos ao vivo (SSE) |
+| `lib/app.ts`, `lib/store.ts` | estado do painel (um store pequeno, sem biblioteca) e as operações básicas: abrir projeto, `run(ferramenta, args)` (chama + relê o documento), seleção, tema |
+| `lib/actions.ts` | uma função por ação do usuário (inserir, mover, agrupar, desfazer...), cada uma = ferramenta(s) do MCP |
+| `lib/render.ts`, `lib/doc.ts`, `lib/thumbnail.ts` | HTML de uma tela (o MESMO da exportação, `@stylo/core`), leitura do documento, miniatura do projeto |
+| `editor/Canvas.tsx`, `BoardFrame.tsx` | o canvas: cada tela num `iframe` isolado (`sandbox` sem scripts); seleção, alças, arrastar e zoom ficam numa camada por cima; duplo clique edita texto |
+| `editor/Inspector.tsx`, `LayersPanel.tsx`, `Panels.tsx`, `TopBar.tsx`, `InsertBar.tsx`, `shortcuts.ts` | propriedades, páginas e camadas, painéis (problemas/agentes/exportar), barra superior, inserir, atalhos |
+| `screens/Home.tsx`, `Login.tsx` | lista de projetos e entrada (modo com contas) |
+| `ui/*`, `styles/*` | campos, ícones, menu, aparência; tokens de tema (claro/escuro + cor de destaque pessoal) |
+
+No servidor: `apps/server/src/routes/studio.ts` (a ponte HTTP), `studio/studio-calls.ts` (chama a ferramenta como PESSOA: mesmas validações, escopos e log do MCP; trava só durante a chamada) e `web.js` (entrega `/studio/`).
+**Regra do painel:** ele NÃO altera o documento; toda mudança é uma chamada de ferramenta no servidor. Ao inserir uma ferramenta nova no MCP, o painel já a pode chamar.
 
 ### `packages/db`
 `prisma/schema.prisma` (User, Agent, Project[doc JSONB, revision, docHash], ProjectMember, ProjectVersion, Operation, Note, Session, Asset, LibraryAsset, ProviderSecret, AssetSource) ·

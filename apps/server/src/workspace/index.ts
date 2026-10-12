@@ -374,6 +374,14 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     call,
     externalWrite,
     endSession: (sid: string) => { current.delete(sid); },
+    /** O projeto aberto numa sessão (para o painel web desenhar): arquivo, página atual e o documento inteiro. Null se não há projeto aberto. */
+    snapshot: (sid: string) => {
+      const cur = current.get(sid);
+      const entry = cur && docs.get(cur.id);
+      if (!entry) return null;
+      entry.lastUsed = Date.now();
+      return { file: entry.file, id: entry.id, role: cur!.role, pageId: entry.store.page().id as string, doc: entry.store.state.doc };
+    },
     /** Gravação imediata de tudo que está pendente (desligar o servidor). */
     flushAll: () => Promise.all([...docs.values()].map((e) => e.store.saveNow())),
     /** Projetos abertos agora. */
