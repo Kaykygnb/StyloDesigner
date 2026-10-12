@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **519 testes, 519 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **537 testes, 537 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** etapa1 do PLANO-MCP, manutenção de seis tipos de recurso com três ferramentas novas (84 anunciadas). Listagem paginada/limitada, atualizar/renomear por ID e remover com detach explícito em uso; preserva valores literais e trata base/bps/states/snapshots. Um desfazer e trava de documento. MCP real: seis tipos atualizados, componente/instância propagados,36 recursos paginados sob1024 bytes, remoção recusada sem detach, preservação/undo e tokens renomeados. CSS manual não é reescrito; cor desligada perde modos. Próxima etapa: organização. Editor/provedores reais/composição estética não verificados.
+**Último bloco:** etapa2 do PLANO-MCP, sete tools de organização (91 anunciadas). Alinhar/distribuir, agrupar/desagrupar grupos/seções preserváveis, reordenar camadas e renomear/reordenar páginas. Valida pais/página/seleção, recusa mudanças que perderiam ordem/posições responsivas/efeitos/semântica e protege telas raiz na exportação. Geometria base, resultados até20 IDs, um desfazer e trava documento. MCP real conferiu medidas0/50/100, group/ungroup, undo/redo, ordem, páginas e recusas de responsivo/efeitos/rootframes. Próxima etapa: auditoria textual ampliada. Sem editor, cliente individual/provedor real ou revisão estética.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -28,9 +28,9 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # última suíte: 519 testes; ~5 min na nuvem
+npm test                             # última suíte: 537 testes; ~5 min na nuvem
 ```
-Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **84 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
+Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **91 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 
 **O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
 no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa melhorar (foi assim que se achou boa parte do que está em `decisoes.md`).
@@ -39,7 +39,7 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 
 | Área | Estado |
 |---|---|
-| Servidor, MCP (SDK oficial, sessões, 84 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
+| Servidor, MCP (SDK oficial, sessões, 91 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
 | Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
 | Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
 | Localizar por propriedades: `find_layers`, página/subárvore, filtros, IDs/resumo e paginação | ✅ — até 20 itens/8KiB por padrão; valores base |

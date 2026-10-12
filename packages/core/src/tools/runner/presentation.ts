@@ -30,6 +30,13 @@ export function summarize(n, depth = 0): ToolArgs {
 export function describeCall(tool: string, args: ToolArgs, store) {
   const nm = (id) => { const n = id && store.get(id); return n ? `“${n.name}”` : `(camada ${id})`; };
   switch (tool) {
+    case 'align_layers': return `Alinhar ${(args.ids || []).length} camadas (${args.alignment})`;
+    case 'distribute_layers': return `Distribuir ${(args.ids || []).length} camadas (${args.axis})`;
+    case 'group_layers': return `Agrupar ${(args.ids || []).length} camadas`;
+    case 'ungroup_layers': return `Desagrupar ${(args.ids || []).length} grupos/seções`;
+    case 'reorder_layer': return `Mover camada ${args.id} ao índice ${args.index}`;
+    case 'rename_page': return `Renomear página ${args.id} para ${args.name}`;
+    case 'reorder_page': return `Mover página ${args.id} ao índice ${args.index}`;
     case 'update_design_resource': return `Atualizar recurso ${args.kind} ${args.id}: ${Object.keys(args.changes || {}).join(', ')}`;
     case 'delete_design_resource': return `Remover recurso ${args.kind} ${args.id}${args.detach ? ' desligando seus vínculos' : ''}`;
     case 'update_layer': {

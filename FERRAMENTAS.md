@@ -1,7 +1,7 @@
 # Ferramentas do Stylo — capacidades e próximos passos
 
 Mapa em 2026-10-12. O foco é o **servidor e o MCP**; o editor legado está congelado.
-São **84 ferramentas anunciadas**: 66 do núcleo, 8 de identidade e 10 de assets. Uma delas,
+São **91 ferramentas anunciadas**: 73 do núcleo, 8 de identidade e 10 de assets. Uma delas,
 `generate_image_edit`, continua indisponível pelo MCP do servidor. Contagem não significa que todas
 as integrações foram verificadas com serviços reais: veja as ressalvas de `PASSAGEM.md`.
 
@@ -32,8 +32,17 @@ ou os filtros. O orçamento inclui avisos do workspace e o JSON formatado, mas n
 **Hoje:** `create_layer`, `build_layout`, `move_layer`, `delete_layers`, `duplicate_layers`,
 `create_page`, `switch_page`, `delete_page`, `select_layers`, `get_selection`.
 
-**Melhorar:** expor alinhamento, distribuição e agrupamento já existentes na base; ordenar e
-renomear páginas de forma explícita. Avaliar controles reais de formulário: texto, seleção e checkbox.
+**Organização implementada:** `align_layers`, `distribute_layers`, `group_layers`,
+`ungroup_layers`, `reorder_layer`, `rename_page`, `reorder_page`. Até100 IDs de irmãs na página
+aberta; alinhamento/distribuição seguem geometria base, não CSS manual. Respostas devolvem até20
+IDs e contagem, não resumos enormes. Agrupa irmãs consecutivas dentro de telas; não agrupa telas
+raiz nem cria grupos em seções. Desagrupa somente grupos/seções sem efeitos/recorte/interações.
+Recusa sobrescritas posicionais, fluxo flex/grid inadequado, ancestrais girados e estruturas de
+instâncias: nesses casos use layout do pai ou componente principal. Não desmonta frames, pois
+fundo/layout poderiam se perder. Ordem por índice exato e nomes de página sem trocar página aberta.
+Um passo de desfazer; trava de documento. Confira o resultado com inspect_layout.
+
+**Melhorar:** avaliar controles reais de formulário: texto, seleção e checkbox.
 Uma caixa com aparência de campo ainda não é um controle funcional.
 
 ## 3. Ajustar e revisar alterações

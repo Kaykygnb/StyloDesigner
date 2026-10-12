@@ -1,5 +1,6 @@
 import { toolByName, validateToolArgs } from './schema.js';
 import type { RunnerDependencies, ToolHandlers, RunOptions, ToolArgs } from './runner/types.ts';
+import { createOrganizationTools, prepareOrganization } from './runner/organization.ts';
 import { createDesignResourceTools, prepareDesignResourceUpdate } from './runner/design-resources.ts';
 import { createRunnerContext } from './runner/context.ts';
 import { createReadTools } from './runner/read.ts';
@@ -23,7 +24,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   const { tools: imageTools, imageLayer } = createImageTools(ctx);
   const resourceTools = createDesignResourceTools(ctx);
   const READ: ToolHandlers = { list_design_resources: resourceTools.list_design_resources, ...createReadTools(ctx), ...createInspectionTools(ctx), ...createExportTools(ctx) };
-  const WRITE: ToolHandlers = { update_design_resource: resourceTools.update_design_resource, delete_design_resource: resourceTools.delete_design_resource, ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
+  const WRITE: ToolHandlers = { ...createOrganizationTools(ctx), update_design_resource: resourceTools.update_design_resource, delete_design_resource: resourceTools.delete_design_resource, ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
   /**
    * Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
    * @param {string} tool
@@ -44,6 +45,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (!def.write) return await READ[tool](args || {});
       // alteração: confere o pedido ANTES de perguntar (não adianta pedir permissão para algo que vai falhar)
       if (tool === 'update_layer' || tool === 'move_layer') need(args?.id);
+      if (['align_layers', 'distribute_layers', 'group_layers', 'ungroup_layers', 'reorder_layer', 'rename_page', 'reorder_page'].includes(tool)) prepareOrganization(ctx, tool, args);
       if (tool === 'update_design_resource' || tool === 'delete_design_resource') prepareDesignResourceUpdate(ctx, args, tool === 'update_design_resource' ? 'update' : 'delete');
       if (tool === 'update_layers') prepareLayerUpdates(ctx, args.updates);
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);

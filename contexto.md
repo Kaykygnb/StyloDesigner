@@ -95,7 +95,7 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `tokens.ts`, `media-runtime.ts` | tokens (CSS/JSON/Tailwind) · players de 3D/Lottie para o zip |
 | `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
 | `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
-| `tools/schema.ts` | **as 66 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
+| `tools/schema.ts` | **as 73 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
 | `tools/runner.ts`, `tools/runner.js` | executor central: validação, aprovação, cancelamento, commit e restauração sem apagar alterações concorrentes; `.js` só reexporta para compatibilidade |
 | `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `search`, `inspection`, `layout-inspection`, `export`, `layout`, `layers`, `batch`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. `batch` prepara cópias e publica uma atualização para `update_layers`; `search` filtra e pagina `find_layers`; `layout-inspection` organiza `inspect_layout`; ambos usam `response-budget` para limitar JSON UTF-8. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
 | `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
@@ -215,3 +215,7 @@ A pessoa dona aprovou executar o [PLANO-MCP.md](PLANO-MCP.md): manutenção de e
 ### Etapa 1 do plano MCP — recursos de design
 
 Módulos `tools/design-resources-schema.ts` e `tools/runner/design-resources.ts`: listagem limitada de seis tipos de recurso, atualização por ID e remoção com desligamento explícito. Validação antes e após aprovação; alterações reservam documento inteiro. Vínculos incluem base/bps/states e snapshots de componentes; CSS manual não é reescrito e desligar cor perde seus modos. Lista compartilha orçamento JSON/avisos com consultas de camadas. IDs de recursos ficam nos argumentos do log, não são apresentados como IDs de camadas afetadas.
+
+### Etapa 2 do plano MCP — organização
+
+`tools/organization-schema.ts` e `tools/runner/organization.ts` expõem sete operações de organização. Reutilizam comandos síncronos legados com commit suprimido apenas no escopo try/finally; o executor publica um passo. Validação pré/pós aprovação, trava de documento, respostas de até20 IDs. Agrupamento requer irmãs consecutivas e casos sem sobrescritas posicionais; protege telas raiz/exportação e listas HTML. Desagrupa somente grupos/seções sem efeitos/recorte/interações/variações e sem desmontar frames. Estrutura de instâncias é alterada no componente principal. Páginas são renomeadas/reordenadas sem mudar a ativa. Geometria é do modelo; inspect_layout confere CSS real.

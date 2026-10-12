@@ -9,7 +9,7 @@ O editor visual em `apps/web` é legado e está congelado; sua reformulação fi
 
 **Branch deste trabalho: [`limpeza`](https://github.com/Kaykygnb/StyloDesigner/tree/limpeza).**
 A `main` contém a versão antiga. Estado documentado em **2026-10-12**:
-**84 ferramentas anunciadas** (66 do núcleo + 8 de identidade + 10 de assets),
+**91 ferramentas anunciadas** (73 do núcleo + 8 de identidade + 10 de assets),
 com uma ferramenta generativa ainda indisponível no servidor.
 
 ## Começar
@@ -58,7 +58,7 @@ para hospedagem pública; as decisões de acesso e hospedagem estão em [PASSAGE
 | Objetivo | Ferramentas e comportamento |
 |---|---|
 | Abrir e retomar | Projetos, páginas, brief, notas, comentários e atividade. |
-| Montar telas | `build_layout`, `create_layer`, mover, duplicar e remover camadas; layouts flex/grid, texto e vetores. |
+| Montar telas | `build_layout`, `create_layer`, mover, duplicar e remover camadas; layouts flex/grid, texto e vetores. Organização por alinhamento/distribuição/grupos e ordem de camadas/páginas, com validação de casos que não podem preservar o desenho. |
 | Localizar alvos | `find_layers`: busca por texto, tipo, página/subárvore e propriedades como fonte, cor e vínculos com estilos. |
 | Ajustar juntos | `update_layers`: até 100 IDs únicos, validação antes da escrita e um passo de desfazer/refazer. |
 | Conferir em texto | `inspect_layout`: medidas reais, espaçamentos e fonte aplicada na largura escolhida, sem precisar entregar imagens ao modelo. |
@@ -161,7 +161,7 @@ O orçamento inclui JSON formatado e avisos, exclui o envelope MCP e **não mede
 
 ## Verificação
 
-Última verificação de código, em **2026-10-12**: **519 testes passaram, 0 falhas e 0 pulados**,
+Última verificação de código, em **2026-10-12**: **537 testes passaram, 0 falhas e 0 pulados**,
 com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` passou.
 
 O cliente oficial MCP conferiu busca paginada, ajustes em lote, medidas desktop/mobile,

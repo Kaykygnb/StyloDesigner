@@ -48,7 +48,7 @@ export function createToolCaller({ workspace, presence, events }: { workspace: W
       const props = update?.props;
       return props && typeof props === 'object' && ('w' in props || 'h' in props || (props.layout && typeof props.layout === 'object' && 'mode' in props.layout));
     })) writeTargets.push(DOCUMENT_LOCK);
-    if (locking && ['update_design_resource', 'delete_design_resource'].includes(tool)) writeTargets.push(DOCUMENT_LOCK);
+    if (locking && ['update_design_resource', 'delete_design_resource', 'align_layers', 'distribute_layers', 'group_layers', 'ungroup_layers', 'reorder_layer', 'rename_page', 'reorder_page'].includes(tool)) writeTargets.push(DOCUMENT_LOCK);
     const lockTargets = locking ? (writeTargets.length ? writeTargets : [DOCUMENT_LOCK]) : [];
     let locked = false;
     // Trava por chamada, não por sessão: uma mesma IA pode disparar ferramentas em paralelo, e chamadas
