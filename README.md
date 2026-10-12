@@ -8,7 +8,7 @@ conferir problemas e exportar HTML, um projeto React com Vite ou tokens de desig
 agentes ao vivo e exportação. Ele usa as **mesmas ferramentas do MCP** (pessoa e agente produzem o mesmo resultado). O editor antigo (`apps/web`)
 continua disponível em `/index.html`, mas está congelado.
 
-**Branch deste trabalho: [`limpeza`](https://github.com/Kaykygnb/StyloDesigner/tree/limpeza).**
+**Branch deste trabalho: [`limpeza`](https://github.com/Kaykygnb/StyloDesigner/tree/limpeza)** (inclui o painel web novo).
 A `main` contém a versão antiga. Estado documentado em **2026-10-12**:
 **91 ferramentas anunciadas** (73 do núcleo + 8 de identidade + 10 de assets),
 com uma ferramenta generativa ainda indisponível no servidor.
@@ -178,8 +178,8 @@ O orçamento inclui JSON formatado e avisos, exclui o envelope MCP e **não mede
 
 ## Verificação
 
-Última verificação de código, em **2026-10-12**: **537 testes passaram, 0 falhas e 0 pulados**,
-com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` passou.
+Última verificação de código, em **2026-10-12** (Windows, Chromium do Playwright): **559 testes passaram, 0 falhas e 0 pulados**; `npm run typecheck` passou.
+Entre eles, `tests/studio-ui.test.js` percorre o **painel web** num navegador de verdade (pula sozinho se não houver Chromium) e `tests/studio-api.test.js` cobre a ponte do painel.
 
 O cliente oficial MCP conferiu busca paginada, ajustes em lote, medidas desktop/mobile,
 correção de saída horizontal e ausência de alteração do projeto salvo durante a inspeção.

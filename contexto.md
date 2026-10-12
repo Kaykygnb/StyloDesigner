@@ -248,7 +248,7 @@ Codex CLI0.159.2 existe, mas execução isolada foi recusada pelo serviço com40
 
 withDocumentBreakpoints envolve somente geração síncrona de CSS/HTML e editBp, restaurando lista anterior em finally. Exportações HTML/React, renderer, get_code e export_html respeitam o documento; metadados, validação e consultas usam doc ou DEFAULT, evitando mistura entre projetos abertos. ZIP HTTP tem teste independente de diretório/CRC/imagem/semântica, conta isolada e sanitização. Fluxo MCP construir→auditar→corrigir→exportar/download foi executado. React de exemplo instalado/compilado em diretório temporário e renderizado no Chromium, botão mobile44×44 sem erros de página. Isso não comprova toda combinação de fontes, players, protótipos ou conteúdo remoto.
 
-Plano MCP concluído no ambiente disponível: última suíte555/555, sem falhas/pulados, tipos limpos. Etapas e evidências em PLANO-MCP.md/decisoes.md; testes de clientes nativos pendentes por bloqueios concretos, sem promessa de compatibilidade universal.
+Plano MCP concluído no ambiente disponível: suíte de 2026-10-12: 559/559, sem falhas/pulados, tipos limpos. Etapas e evidências em PLANO-MCP.md/decisoes.md; testes de clientes nativos pendentes por bloqueios concretos, sem promessa de compatibilidade universal.
 
 ## Planejamento do acesso web
 

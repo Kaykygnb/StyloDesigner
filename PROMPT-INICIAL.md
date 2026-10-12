@@ -36,6 +36,7 @@ Leia inteiro. Depois siga o protocolo da seção 8.
 - Prefere **entender o porquê** a receber só o resultado. Valoriza que tudo fique **registrado** (para outra IA ou outra pessoa assumir depois).
 - Descansa e volta: ela vai sumir por horas e retomar. O trabalho deve estar sempre **num estado que alguém consiga continuar** (documentado e commitado).
 - **Pronomes:** não adivinhe. Fale com ela por "você"; ao falar dela a terceiros, use "a pessoa dona do projeto" ou o neutro.
+- **Ela pediu para NÃO pensar agora em licença, nome, idioma, hospedagem nem na versão paga** ("por enquanto eu ainda não quero pensar nisso"). Não puxe esses assuntos; foque no que ela pediu: **o painel web utilizável e estável**.
 
 ## 2. Como falar com ela
 
@@ -115,6 +116,14 @@ com a linha de coautoria que o ambiente indicar. **Ao fim de cada bloco: `git pu
 **G. Editar com segurança:** o ambiente é Linux, mas a pessoa e os documentos vêm do Windows: use `/` nos caminhos e confie no `.gitattributes` para fim de linha. Em arquivos grandes use a **ferramenta de edição de arquivos**; evite `node -e` ou heredoc com texto cheio de aspas, crases e `$`.
 
 **H. Verificar antes de afirmar:** nomes de arquivos, funções e flags citados em documentos podem estar velhos — confira que existem antes de recomendar.
+
+**I. Trabalhar no painel web (`apps/studio`).** Suba com `npm start` (porta 5173; o painel fica em `/studio/`) e teste por navegador automatizado (Playwright). Regras:
+- **O painel não altera o documento.** Toda ação é uma chamada de ferramenta do MCP (`lib/api.ts` → `tool()`; `lib/actions.ts`). Faltou uma capacidade? **Primeiro a ferramenta no núcleo**, depois o botão.
+- O canvas é o HTML da exportação num `iframe` com `sandbox` **sem scripts**. **Nunca** coloque `allow-scripts` nele (abriria o HTML de agentes para executar código).
+- Entre iframes **não use `instanceof Element/HTMLElement`** (falha sempre); use checagem por métodos. Ouvintes criados uma vez só (arrasto, atalhos) devem ler funções/estado por **ref**, não por fechamento antigo.
+- **O mouse nativo do Playwright apertado sobre o iframe derruba o Chromium automatizado** (defeito dele, também em Edge/Chrome automatizados). Simule o arrasto com eventos enviados por script, como `tests/studio-ui.test.js`.
+- A pessoa dona **não vê o seu ambiente**: mostre o resultado com capturas de tela (`page.screenshot`) e descreva o que mudou. Olhe as imagens você mesmo antes de afirmar que ficou bom.
+- Escolha da lista **"Painel: o que falta"** (`PASSAGEM.md`, seção 4) na ordem, a menos que a pessoa peça outra coisa. Cada entrega: teste novo (de preferência no `studio-ui.test.js` ou `studio-api.test.js`), `npm run typecheck`, `npm test`, docs, commit e push.
 
 ## 5. O que NÃO fazer (limites firmes)
 

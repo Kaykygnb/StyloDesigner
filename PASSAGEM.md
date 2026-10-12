@@ -4,9 +4,11 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **555 testes, 555 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação (2026-10-12, Windows): **559 testes passando, 0 falhas, 0 pulados**; `npm run typecheck` limpo. (Na nuvem: use `STYLO_CHROMIUM_PATH=/usr/bin/chromium`.)
 
-**Último bloco:** [ARQUITETURA-EDITOR.md](ARQUITETURA-EDITOR.md) fecha escolhas técnicas delegadas: React/TS/Vite, DOM isolado, contexto por sessão, operações comuns, fila/revisão/idempotência, conflitos explícitos e undo conservador. Planejamento concreto, não implementação: nenhum apps/web/store/workspace alterado ou novo teste. Primeiro bloco futuro deve provar contratos de concorrência/persistência. Negócio/acesso pendentes permanecem separados; suíte anterior555/tipos limpos.
+**Último bloco (2026-10-12): o PAINEL WEB existe** — `apps/studio`, em `/studio/` (`npm start` e abra http://localhost:5173/studio/). Projetos, editor (camadas, propriedades, mover/redimensionar, texto direto na tela, responsivo), conferir, agentes ao vivo, exportar, tema, login. Ele chama as MESMAS ferramentas do MCP. Detalhes e decisões: `decisoes.md` (2026-10-12, "Painel web") e `contexto.md` (mapa de `apps/studio`).
+
+**O que a pessoa dona quer agora:** chegar em casa, abrir o painel e **usar de verdade**. A prioridade é fechar as lacunas do painel ("Painel: o que falta", na seção 4) e manter tudo estável. Licença, nome, idioma, hospedagem e a versão paga: **ela pediu para não discutir agora** (não traga esses assuntos, a menos que bloqueiem algo). O aplicativo Electron só vem depois que tudo funcionar.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -40,7 +42,7 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173/studio/ — servidor + painel web; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # última suíte: 555 testes; ~5 min na nuvem
+npm test                             # última suíte: 559 testes; ~5 min (o teste do painel pula sozinho sem Chromium)
 ```
 Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **91 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 
