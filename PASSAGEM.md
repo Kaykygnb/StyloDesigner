@@ -6,7 +6,7 @@
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
 **O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **555 testes, 555 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** direção visual em [INTERFACE-WEB.md](INTERFACE-WEB.md), complementar ao acesso web. Pedido de aparência profissional e cor de destaque pessoal limitada à interface; proposta de painel/editor, ferramentas contextuais, temas e componentes consistentes. Apenas documentação e leitura do legado, sem inspeção visual ao vivo ou mudança em apps/web. Próximo passo sugerido: propostas visuais para revisão. Última suíte555/tipos limpos permanece evidência anterior.
+**Último bloco:** [EDITOR-WEB.md](EDITOR-WEB.md) registra estrutura funcional adaptada às capacidades MCP/modelo: áreas contextuais, fluxo, recursos, responsivo, fotos, revisão e entrega. Destaca contratos web e seleção/página/histórico compartilhados a resolver. Só planejamento; sem apps/web, inspeção visual ou novos testes. Complementa ACESSO-WEB.md e INTERFACE-WEB.md; última suíte555/tipos limpos permanece anterior.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.

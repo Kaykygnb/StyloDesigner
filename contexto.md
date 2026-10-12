@@ -241,3 +241,7 @@ Plano MCP concluído no ambiente disponível: última suíte555/555, sem falhas/
 ### Direção visual web e personalização
 
 A pessoa dona rejeitou a aparência pouco polida do legado e pediu cor principal pessoal discreta. INTERFACE-WEB.md propõe estruturas de acesso/painel/editor, ferramentas contextuais, sistema visual e destaque separado de conteúdo, presença e cores semânticas. Já existem temas/variáveis CSS no legado, mas não houve inspeção visual ao vivo nem implementação da preferência. Próximo passo sugerido: propostas visuais antes de substituir apps/web.
+
+### Editor adaptado às capacidades
+
+EDITOR-WEB.md mapeia ferramentas e conceitos para interação manual/contextual. Distinções críticas: página organizadora vs tela exportada, fluxo vs coordenadas, recursos vinculados, instâncias, sobrescritas e prévia vs protótipo/exportação. Requer caminho web de operações comuns e contexto visual por sessão; hoje seleção/página ativa/histórico são do projeto. Nenhuma mudança em apps/web neste planejamento.

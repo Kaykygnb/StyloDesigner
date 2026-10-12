@@ -180,3 +180,7 @@ vêm da leitura do código e do relato da pessoa dona. Nenhum arquivo em apps/we
 Não rodou nova suíte/typecheck: este bloco é documentação. A última suíte de código permanece555
 passando,0 falhas/pulados. Próximo passo sugerido é proposta visual para revisão, sem decisão
 implícita de implementação, licença, hospedagem ou negócio.
+
+## Estrutura funcional complementar
+
+[EDITOR-WEB.md](EDITOR-WEB.md) mapeia capacidades para áreas do editor e detalha documento/layout, vínculos, estados, mídia, revisão, entrega e contratos de concorrência. Ainda é planejamento, sem implementação.
