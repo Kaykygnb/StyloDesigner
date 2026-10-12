@@ -378,4 +378,8 @@ button.res-row:hover { background: var(--surface-2); border-color: var(--border)
 .plugin-admin .btn.sm { width: auto; }
 .plugin-tools { margin-top: 4px; }
 .plugin-tools summary { cursor: pointer; color: var(--text-2); font-size: 12px; }
-
+.topbar { position: relative; }
+.topbar .sync-notice { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 60; max-width: 380px; margin: 0; box-shadow: var(--shadow-m, 0 6px 20px rgba(0,0,0,.35)); }
+.segmented.devices { flex: none; }
+@media (max-width: 1199px) { .topbar { overflow-x: auto; scrollbar-width: none; } .topbar > * { flex: none; } .topbar .project-title { max-width: 110px; } .topbar .btn:not(.primary):not(.icon) { padding-inline: 8px; } }
+@media (max-width: 1199px) { .zoom-controls { bottom: 64px; } .toolbar { max-width: calc(100% - 24px); } }

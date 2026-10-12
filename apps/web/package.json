@@ -1,8 +1,0 @@
-{
-  "name": "@stylo/web",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "description": "Editor visual no navegador (legado em JS puro; a interface será refeita).",
-  "exports": { "./*": "./src/*" }
-}

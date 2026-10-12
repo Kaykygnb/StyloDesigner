@@ -1,5 +1,5 @@
 /**
- * routes/legacy.ts — FOTOS E IA DE IMAGEM (ainda escritas sobre req/res do Node)
+ * routes/photos.ts — FOTOS E IA DE IMAGEM (ainda escritas sobre req/res do Node)
  *   /api/photos/*    busca de fotos livres e proxy de imagem (photos.js)
  *   /api/imageai/*   edição generativa de foto com a chave guardada aqui (imageai.js)
  * São recursos do editor atual. Viram plugins MCP (ferramentas search_photos / generate_image) quando refizermos o editor;
@@ -13,7 +13,7 @@ import { createPhotosHandler } from '../photos.js';
 import { createImageAi } from '../imageai.js';
 import type { Services } from '../context.js';
 
-export function legacyRoutes(s: Services) {
+export function photoRoutes(s: Services) {
   const r = new Hono<{ Bindings: HttpBindings }>();
   const photos = createPhotosHandler({ getKey: (cfg: any) => cfg.pexels?.apiKey || process.env.PEXELS_API_KEY || '' });
   const imageAi = createImageAi({ getConfig: () => s.config.get(), saveConfig: (next: any) => s.config.set(next) });

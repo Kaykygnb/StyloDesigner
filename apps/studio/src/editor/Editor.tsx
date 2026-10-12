@@ -41,8 +41,8 @@ export function Editor() {
   const language = useApp((s) => s.language);
   const [leftWidth, setLeftWidth] = useState(() => readPref('stylo.leftWidth', 252));
   const [rightWidth, setRightWidth] = useState(() => readPref('stylo.rightWidth', 300));
-  const [leftCollapsed, setLeftCollapsed] = useState(() => readPref('stylo.leftCollapsed', false));
-  const [rightCollapsed, setRightCollapsed] = useState(() => readPref('stylo.rightCollapsed', false));
+  const [leftCollapsed, setLeftCollapsed] = useState(() => readPref('stylo.leftCollapsed', typeof window !== 'undefined' && window.innerWidth < 900));
+  const [rightCollapsed, setRightCollapsed] = useState(() => readPref('stylo.rightCollapsed', typeof window !== 'undefined' && window.innerWidth < 900));
   const setLeft = (value: number | ((old: number) => number)) => setLeftWidth((old) => { const next = typeof value === 'function' ? value(old) : value; writePref('stylo.leftWidth', next); return next; });
   const setRight = (value: number | ((old: number) => number)) => setRightWidth((old) => { const next = typeof value === 'function' ? value(old) : value; writePref('stylo.rightWidth', next); return next; });
   const collapseLeft = (value: boolean | ((old: boolean) => boolean)) => setLeftCollapsed((old) => { const next = typeof value === 'function' ? value(old) : value; writePref('stylo.leftCollapsed', next); return next; });

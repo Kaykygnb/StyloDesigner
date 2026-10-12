@@ -1,7 +1,7 @@
 /**
- * server/web.js — ENTREGA O EDITOR (apps/web) NO NAVEGADOR
+ * server/web.js — ENTREGA O PAINEL (apps/studio) NO NAVEGADOR
  *
- * - Produção: se existe apps/web/dist (npm run build), serve os arquivos de lá, só de dentro dessa pasta.
+ * - Produção: se existe apps/studio/dist (npm run build), serve os arquivos de lá, só de dentro dessa pasta.
  * - Desenvolvimento: sem dist, sobe o Vite em "middleware mode" na MESMA porta (carregado só no 1º pedido de página,
  *   para quem usa só a API/MCP não pagar o custo). Assim há uma única origem e nada de CORS.
  */
@@ -18,9 +18,9 @@ const TYPES = {
 
 /**
  * @param {object} deps
- * @param {string} deps.webRoot  pasta apps/web
+ * @param {string} deps.webRoot  pasta apps/studio
  * @param {import('node:http').Server} deps.httpServer  servidor HTTP (o Vite usa para o recarregamento ao vivo)
- * @param {string} [deps.base]  prefixo onde o app mora ("/" para o editor legado; "/studio/" para o painel novo)
+ * @param {string} [deps.base]  prefixo onde o app mora ("/studio/" para o painel)
  * @returns {(req, res, pathname: string) => Promise<void>}
  */
 /** No modo Vite só estas rotas existem; package.json, vite.config.js e dotfiles da pasta do editor nunca saem. */

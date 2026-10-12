@@ -161,26 +161,22 @@ const app = createApp(services, identity, mcp, assetServices, studio);
 const api = getRequestListener(app.fetch);
 
 // ---------------------------------------------------------------- servidor
-/** /api e /mcp vão para o Hono; o resto é o editor (arquivos de dist em produção, Vite em desenvolvimento). */
+/** /api e /mcp vão para o Hono; o resto é o painel (arquivos de dist em produção, Vite em desenvolvimento). */
 const httpServer = createServer((req, res) => {
   const url = req.url || '/';
   if (/^\/(api(\/|$)|mcp\b)/.test(url)) return void api(req, res);
   if (url === '/studio') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
-  // a entrada é o painel novo; o editor antigo continua em /index.html (ou /?editor)
-  // Compatibilidade explícita: os testes e o editor legado usam /?editor.
-  // A raiz sem esse sinal continua levando ao painel novo.
   if (url === '/' || url === '') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
   let path: string;
   try { path = decodeURIComponent(new URL(url, 'http://x').pathname); } catch { res.writeHead(404).end('Not found'); return; }
-  (path.startsWith('/studio/') ? studioWeb : web)(req, res, path).catch((err: any) => {
+  studioWeb(req, res, path).catch((err: any) => {
     const notFound = err && (err.code === 'ENOENT' || err.code === 'ENOTDIR');
     if (!notFound) console.error(err);
     if (!res.headersSent) res.writeHead(notFound ? 404 : 500).end(notFound ? 'Not found' : 'Internal error');
     else res.end();
   });
 });
-const web = createWebHandler({ webRoot: join(root, 'apps', 'web'), httpServer });
-/** O painel novo mora em /studio/ (o editor legado continua em /). */
+/** O painel mora em /studio/. */
 const studioWeb = createWebHandler({ webRoot: join(root, 'apps', 'studio'), httpServer, base: '/studio/' });
 
 let stopping = false;

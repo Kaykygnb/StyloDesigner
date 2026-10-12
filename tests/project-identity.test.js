@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore } from '@stylo/core/store.js';
 import { createProjectId, forkProject, makeDoc } from '@stylo/core/model.js';
-import { openProjectFile } from '@stylo/web/export.js';
 
 test('cada novo projeto recebe identidade estável e distinta', () => {
   const first = makeDoc();
@@ -27,13 +26,6 @@ test('duplicar projeto preserva os dados e cria identidade nova', () => {
   assert.notEqual(copy.projectId, original.projectId);
   assert.equal(copy.name, original.name);
   assert.equal(original.projectId.length, 36);
-});
-
-test('importar JSON atribui identidade nova mesmo quando contém projectId', async () => {
-  const backup = makeDoc();
-  const imported = await openProjectFile({ text: async () => JSON.stringify(backup) });
-  assert.notEqual(imported.projectId, backup.projectId);
-  assert.ok(imported.pages.length);
 });
 
 test('fallback de identidade de projeto permanece não vazio sem crypto.randomUUID', () => {

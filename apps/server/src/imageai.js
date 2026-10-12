@@ -13,7 +13,7 @@
  *  Qual endereço/modelo: o de Configurações → Agente de IA e modelos → Modelo de imagem (config.imageai) ou, sem
  *  escolha, o do provedor do Agente — se ele tiver API de imagem (a OpenAI tem; NVIDIA NIM e Ollama não).
  *
- *  Rotas (ligadas em routes/legacy.ts, que já confere Host, Origin e Content-Type JSON):
+ *  Rotas (ligadas em routes/photos.ts, que já confere Host, Origin e Content-Type JSON):
  *    GET  /api/imageai/config   → { available, reason, baseUrl, model, provider, hasKey, custom, maxMB, timeoutSec }
  *    PUT  /api/imageai/config   { baseUrl?, model?, apiKey? } → grava ("" volta ao padrão / apaga a chave)
  *    POST /api/imageai/edit     { image, mask?, prompt, size? } → { image } (data URLs PNG)

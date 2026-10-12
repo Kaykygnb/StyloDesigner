@@ -38,18 +38,20 @@ test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t
   assert.equal(ready, true, 'server should start and serve the app shell');
 
   // codex: cobre assets aninhados e tentativas comuns de sair da allowlist em Windows e Unix.
-  for (const path of ['/', '/src/main.js', '/src/styles/app.css', '/src/ui/props.js']) {
+  for (const path of ['/studio/', '/studio/src/main.tsx', '/studio/src/styles/app.css', '/studio/src/ui/Icon.tsx']) {
     assert.equal((await fetch(`${base}${path}`)).status, 200, `${path} should be served`);
   }
   for (const path of [
-    '/package.json',
+    '/studio/package.json',
+    '/studio/vite.config.ts',
+    '/studio/.env',
     '/.git/config',
     '/server.js',
     '/tests/css.test.js',
-    '/src/../package.json',
+    '/studio/src/../package.json',
     '/%2e%2e/package.json',
-    '/src/%5c..%5cpackage.json',
-    '/src/nao-existe.js',
+    '/studio/src/%5c..%5cpackage.json',
+    '/studio/src/nao-existe.tsx',
   ]) {
     assert.equal((await fetch(`${base}${path}`)).status, 404, `${path} should be blocked or missing`);
   }

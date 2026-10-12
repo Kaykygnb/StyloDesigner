@@ -13,7 +13,7 @@ import { authRoutes } from './routes/auth.js';
 import { MAX_UPLOAD } from './routes/library.js';
 import { projectRoutes } from './routes/projects.js';
 import { systemRoutes } from './routes/system.js';
-import { legacyRoutes } from './routes/legacy.js';
+import { photoRoutes } from './routes/photos.js';
 import { libraryRoutes } from './routes/library.js';
 import { pluginRoutes } from './routes/plugins.js';
 import { studioRoutes } from './routes/studio.js';
@@ -43,7 +43,7 @@ export function createApp(s: Services, identity: Identity, mcp: McpGateway, asse
   app.route('/api', authRoutes(s, identity));
   app.route('/api', projectRoutes(s, identity));
   app.route('/api', systemRoutes(s, identity));
-  app.route('/api', legacyRoutes(s));
+  app.route('/api', photoRoutes(s));
   app.route('/api', libraryRoutes(s, identity, assetServices));
   app.route('/api', pluginRoutes(s, identity, assetServices));
   app.route('/api', studioRoutes(s, identity, studio));

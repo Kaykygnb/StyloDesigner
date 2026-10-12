@@ -1,4 +1,4 @@
-// Modelo de dados do Stylo (Postgres). Ver contexto.md → "Decisões".
+// Modelo de dados do Stylo (Postgres).
 // O documento do design (a árvore de páginas e camadas) fica numa coluna JSONB em Project.doc.
 // Tudo que é "quem fez o quê" (contas, agentes, operações, notas) é relacional.
 

@@ -151,6 +151,8 @@ export function useShortcuts() {
     window.addEventListener('keydown', handleShortcut);
     window.addEventListener('keyup', trackModifiers);
     window.addEventListener('blur', clearKeys);
-    return () => { window.removeEventListener('keydown', handleShortcut); window.removeEventListener('keyup', trackModifiers); window.removeEventListener('blur', clearKeys); };
+    const present = () => app.set({ presenting: true });
+    window.addEventListener('stylo:present', present);
+    return () => { window.removeEventListener('keydown', handleShortcut); window.removeEventListener('keyup', trackModifiers); window.removeEventListener('blur', clearKeys); window.removeEventListener('stylo:present', present); };
   }, []);
 }
