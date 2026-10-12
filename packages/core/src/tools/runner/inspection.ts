@@ -1,4 +1,5 @@
 /** Imagem do design e auditoria estática ou medida pelo renderizador injetado. */
+import { inspectLayoutReport } from './layout-inspection.ts';
 import { BREAKPOINTS } from '../../model.js';
 import { auditStatic, overflowIssues, auditReport } from '../../audit.ts';
 import { fromBase64 } from '../../image-size.js';
@@ -7,6 +8,7 @@ import type { RunnerContext, ToolHandlers } from './types.ts';
 export function createInspectionTools(ctx: RunnerContext): ToolHandlers {
   const { store, need, auditLayout, renderImage } = ctx;
   return {
+    inspect_layout(args) { return inspectLayoutReport(ctx, args); },
     async check_design({ id, breakpoints } = {}) {
       const doc = store.state.doc;
       const boards = id ? [need(id)] : store.page().children.flatMap((n) => (n.type === 'section' ? n.children : [n])).filter((n) => n.type === 'frame' && n.visible !== false);

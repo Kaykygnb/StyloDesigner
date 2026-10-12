@@ -3,10 +3,10 @@
 **Quem assume o projeto: leia nesta ordem.** (1) este arquivo; (2) `contexto.md` — o que a ferramenta é, vocabulário, mapa do código e receitas;
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
-Estado em **2026-10-11**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **493 testes, 493 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **507 testes, 507 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** `find_layers` busca por propriedades/vínculos, página/subárvore e devolve até 20 itens compactos/8KiB por padrão, com paginação. `fields:"ids"` evita detalhes desnecessários; `summary` mantém resumo e medida. Filtros são valores base, sem CSS/modos/estados/breakpoints. MCP real: 137 textos paginados sem perdas sob 1024 bytes, 20 ajustados em lote, buscas conferidas e undo. Continuam 80 ferramentas. Servidor encerrado. Não foi medida cobrança real de tokens; orçamento é de JSON UTF-8, sem envelope MCP. Não verificados neste bloco: editor, provedores reais, revisão visual e exportação. PDF/slides continuam propostas. Próximo grupo sugerido: manutenção dos estilos/componentes.
+**Último bloco:** `inspect_layout` oferece inspeção textual de medidas reais por largura/breakpoint, com posição/tamanho, padding/gaps, tipografia e indicadores geométricos. Renderiza a tela inteira; devolve só o escopo/profundidade solicitados, paginado e limitado a 8KiB/até 20 linhas por padrão; não grava medidas nos dados base. Agora 81 ferramentas (63 do núcleo + 18 de plugins). MCP real: CSS desktop/mobile (fonte 32→18), posição 36/36, padding 16, 34 camadas paginadas sob 4096 bytes sem perdas, saída horizontal identificada/corrigida e projeto salvo intacto durante leituras. Servidor encerrado. Não verificados neste bloco: editor, provedores reais, exportação e composição estética. Não mede tokens/cobrança, oclusão ou reprodução de mídia/estados; recursos remotos bloqueados, fontes não hospedadas podem ser substituídas. PDF/slides seguem propostas. Próximo grupo técnico: manutenção dos estilos/componentes ou ampliar auditoria textual.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -30,7 +30,7 @@ npm start                            # http://localhost:5173 — servidor + edit
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
 npm test                             # ~440 testes, 2–3 min
 ```
-Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **80 ferramentas**, e um cliente do SDK oficial cria
+Confirmado no clone limpo: instala, o typecheck passa, o servidor sobe, o MCP lista **81 ferramentas**, e um cliente do SDK oficial cria
 projeto, monta uma tela (`build_layout`), audita (`check_design`), recebe a imagem (`get_image`) e exporta (`export_zip`).
 
 **O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
@@ -40,7 +40,7 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 
 | Área | Estado |
 |---|---|
-| Servidor, MCP (SDK oficial, sessões, 80 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
+| Servidor, MCP (SDK oficial, sessões, 81 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
 | Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
 | Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
 | Ajustar em lote: `update_layers`, até 100 IDs únicos, validação antes da escrita, um desfazer, log e travas | ✅ — `w/h/layout.mode` reservam o documento; demais lotes reservam seus IDs |
@@ -110,7 +110,7 @@ tipo de arquivo. Faltam planos, limite de requisições, medição de uso e inte
 
 A pessoa dona pediu para pensar as capacidades por grupo e melhorar as ferramentas, mantendo o editor congelado.
 O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos, ajustes em lote e busca por propriedades concluídos;
-próximo bloco sugerido, manutenção dos estilos/componentes. A lista abaixo mantém as outras pendências técnicas da passagem:
+inspeção textual por largura também concluída; próximo grupo sugerido, manutenção dos estilos/componentes. A lista abaixo mantém as outras pendências técnicas da passagem:
 
 1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
@@ -146,7 +146,7 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 | React: navegação por `#` (sem React Router), só JavaScript, `public/` exige site na raiz do domínio | simplicidade | D9 |
 | React Native; variante TypeScript do React | o React veio primeiro; RN usa outro modelo (só flex, sem grid) | D9 |
 | Auditoria além de contraste/alt/tamanho/títulos/alvo/vazamento | o essencial primeiro | passo 5 |
-| Medida de layout só no desktop e no breakpoint pedido | a "medida de volta" do editor também ignora breakpoints | se um agente precisar |
+| Medidas reais por largura em texto | **resolvido no MCP:** `inspect_layout` mede sem alterar dados base; `get_layer` continua lendo geometria desktop/base. Editor fora deste bloco | ampliar auditoria quando necessário |
 | Rota HTTP `react.zip`/`site.zip` sem teste automatizado dedicado | mesmo caminho nas duas; download real das duas rotas conferido em 2026-10-11 após dividir o executor | passo 8 |
 | Teste específico de `STYLO_CHROMIUM_PATH` procura o executável padrão do Playwright | **resolvido:** usa primeiro o caminho indicado em `STYLO_CHROMIUM_PATH`; continua pulando só quando nenhum navegador configurado está disponível | teste com o Chromium instalado, sem baixar outro |
 | Efeitos em fotos acima de 4 milhões de pixels; animação GIF; metadados EXIF | limite de memória dos arrays de pixels; a edição trabalha num quadro rasterizado, não preserva animação/metadados | reduzir em uma chamada antes dos efeitos; avaliar tratamento dedicado se necessário |

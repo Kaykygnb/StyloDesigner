@@ -9,6 +9,8 @@
  * resto do servidor segue funcionando.
  */
 
+import type { InspectLayout } from '@stylo/core/layout-inspection.ts';
+import { inspectPage, withoutInspectionMarkers } from './layout-inspection.ts';
 import { exportHtml } from '@stylo/core/css.js';
 import { inlineFontFaces } from '@stylo/core/site-export.ts';
 
@@ -93,7 +95,7 @@ export function createRenderer() {
 
   /** HTML da camada com as fontes hospedadas do projeto embutidas. */
   function pageHtml(node: any, doc: any, ids = false) {
-    const html = exportHtml(node, doc.assets, node.name, doc.styles, { ids, selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any);
+    const html = exportHtml(ids ? withoutInspectionMarkers(node) : node, doc.assets, node.name, doc.styles, { ids, selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any);
     const faces = inlineFontFaces(doc);
     return faces ? html.replace('</head>', `<style>\n${faces}\n</style>\n</head>`) : html;
   }
@@ -173,6 +175,30 @@ export function createRenderer() {
     });
   }
 
+  /** Mede a tela inteira, sem alterar o documento; só os IDs pedidos saem do navegador. */
+  const inspect: InspectLayout = async (root, doc, { width, ids, opaqueIds }) => {
+    if (!Number.isInteger(width) || width < 200 || width > MAX_SIDE) throw new Error('A largura de inspeção deve estar entre 200 e 4000 px.');
+    if (ids.length > 100) throw new Error('Inspecione até 100 camadas por chamada.');
+    return slot(async () => {
+      const b = await browser();
+      const context = await b.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          (async () => {
+            await context.route('**/*', (route: any) => (/^(data|about|blob):/i.test(route.request().url()) ? route.continue() : route.abort()));
+            const page = await context.newPage();
+            page.setDefaultTimeout(TIMEOUT_MS);
+            await page.setContent(pageHtml(root, doc, true), { waitUntil: 'load', timeout: TIMEOUT_MS });
+            await page.evaluate(() => document.fonts.ready.then(() => undefined));
+            return inspectPage(page, root.id, ids, width, opaqueIds);
+          })(),
+          new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('A inspeção demorou demais. Simplifique a tela ou tente novamente.')), TIMEOUT_MS); }),
+        ]);
+      } finally { clearTimeout(timer); await context.close().catch(() => {}); }
+    });
+  };
+
   async function close() {
     const p = browserPromise;
     browserPromise = null;
@@ -200,7 +226,7 @@ export function createRenderer() {
     });
   }
 
-  return { render, measure, overflow, withImagePage, close };
+  return { render, measure, overflow, inspect, withImagePage, close };
 }
 
 export type Renderer = ReturnType<typeof createRenderer>;

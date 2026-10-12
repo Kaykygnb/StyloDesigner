@@ -15,7 +15,7 @@ const bytes = (out: any) => Buffer.byteLength(JSON.stringify(out, null, 2), 'utf
 
 test('busca combina texto, tipo e propriedades base sem enviar texto, notas ou overrides', async () => {
   const good = createNode('text', { name: 'Título', text: 'Olá Mundo', fontFamily: 'Inter', fontSize: 24, fontWeight: 700, fill: { type: 'solid', color: '#AABBCC' }, note: 'nota privada' });
-  good.responsive = { mobile: { fontSize: 12 } };
+  good.bps = { mobile: { fontSize: 12 } };
   const different = createNode('text', { text: 'Olá Mundo', fontFamily: 'Inter Tight', fontSize: 24, fontWeight: 700 });
   const f = fixture([good, different]);
   const out = await f.find({ query: 'MUNDO', type: 'text', where: { fontFamily: 'INTER', fontSize: 24, fontWeight: 700, fillColor: '#abc' } });

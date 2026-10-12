@@ -1,7 +1,7 @@
 # Ferramentas do Stylo — capacidades e próximos passos
 
-Mapa em 2026-10-11. O foco é o **servidor e o MCP**; o editor legado está congelado.
-São **80 ferramentas anunciadas**: 62 do núcleo, 8 de identidade e 10 de assets. Uma delas,
+Mapa em 2026-10-12. O foco é o **servidor e o MCP**; o editor legado está congelado.
+São **81 ferramentas anunciadas**: 63 do núcleo, 8 de identidade e 10 de assets. Uma delas,
 `generate_image_edit`, continua indisponível pelo MCP do servidor. Contagem não significa que todas
 as integrações foram verificadas com serviços reais: veja as ressalvas de `PASSAGEM.md`.
 
@@ -97,10 +97,26 @@ verificação real dos provedores pendentes. Remoção de fundo simples não é 
 
 ## 8. Ver e conferir
 
-**Hoje:** `get_image`, `get_code`, `check_design`.
+**Hoje:** `get_image`, `get_code`, `check_design`, `inspect_layout`.
 
-**Melhorar:** medidas por largura em `get_layer`; auditoria de teclado/foco, consistência de
-estilos e área de toque no celular. Imagens estáticas não verificam reprodução de mídia ou interações.
+**Inspeção textual implementada:** `inspect_layout` mede a tela inteira no Chromium e devolve
+somente as camadas solicitadas, com posição/tamanho, padding/gaps, fonte aplicada e indicadores
+de saída da janela/pai/conteúdo. Serve a clientes MCP que não entregam imagens ao modelo.
+`id` identifica a tela raiz; `within_id` recorta a resposta, mantendo o contexto do pai.
+Escolha `breakpoint` ou `width` (200..4000 px); padrão é a largura desktop da tela.
+`depth` é relativo ao escopo (padrão 1, até 8). Até 20 linhas/8KiB por padrão, `limit` até100,
+`maxBytes` 1024..65536 e paginação por `offset:nextOffset` enquanto `hasMore`.
+O orçamento inclui JSON formatado/avisos, exclui envelope MCP e não mede tokens/cobrança.
+
+Caixas são relativas à tela, em pixels CSS, com transformações; `rendered` indica presença no
+layout, `visible` considera visibility/opacidade sem verificar oclusão. Ausentes têm caixa nula;
+tela oculta tem `root:null`. Saída geométrica não é automaticamente erro: recorte/rolagem podem
+ser intencionais. A inspeção não grava medidas nos dados base. Sem Chromium recebe erro honesto.
+JS e rede externos desativados; fontes não hospedadas podem ser substituídas; mídia/estados de
+interação não são executados. Não detecta sobreposição nem avalia composição estética.
+
+**Melhorar:** auditoria de teclado/foco, consistência de estilos e área de toque no celular.
+Imagens estáticas também não verificam reprodução de mídia ou interações.
 
 ## 9. Exportar e entregar
 
@@ -127,7 +143,7 @@ as decisões da pessoa dona em `PASSAGEM.md`.
 1. Edição local de fotos no servidor e correção das instruções antigas dos agentes — implementadas neste bloco.
 2. Ajustes em lote e busca por propriedades com respostas limitadas — implementados.
 3. Completar manutenção dos estilos e ações de componentes já existentes no núcleo.
-4. Melhorar controles, inspeção e testes de entrega a partir de telas reais montadas pelo MCP.
+4. Inspeção textual por largura implementada; ampliar auditoria, controles e testes de entrega a partir de telas reais pelo MCP.
 5. Avaliar PDF/apresentações quando a pessoa dona fechar os novos formatos. Editor, licença e decisões de negócio não entram por autorização implícita.
 
 As propostas acima são um roteiro revisável, não promessa de suporte já existente.

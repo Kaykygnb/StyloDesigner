@@ -9,7 +9,7 @@ import { createNotes } from '../apps/server/src/services/notes.ts';
 import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
-async function setup(extra: { fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
+async function setup(extra: { inspectLayout?: import('../packages/core/src/layout-inspection.ts').InspectLayout; fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
   const { db, close } = await createDb({ pglite: {} });
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
@@ -436,5 +436,31 @@ test('find_layers compacto e ids dispensam medição; summary pede geometria atu
     }
     const summary = await call('find_layers', { fields: 'summary' });
     assert.equal(summary.error, undefined); assert.equal(summary.layers[0].h, 777); assert.equal(calls, 1);
+  } finally { await t.close(); }
+});
+
+test('inspect_layout pelo workspace aceita leitor e não grava medidas responsivas nos dados base', async () => {
+  let measures = 0, inspections = 0;
+  const t = await setup({
+    measureLayout: async () => { measures++; return new Map(); },
+    inspectLayout: async (_root, _doc, opts) => {
+      inspections++;
+      return { viewport: { width: opts.width, height: 800 }, root: { x: 0, y: 0, w: opts.width, h: 777 }, layers: opts.ids.map(id => ({ id, parentId: null, rendered: true, visible: true, box: { x: 0, y: 0, w: opts.width, h: 777 } })) };
+    },
+  });
+  try {
+    const writer = await t.agentOf('Criador'); const reader = await t.agentOf('Leitor de layout', t.owner, ['read']);
+    const call = (tool: string, args: any = {}, actor = writer, sid = 'inspector') => t.workspace.call(tool, args, { sid, actor }) as Promise<any>;
+    await call('new_project', { name: 'Inspeção sem escrita' });
+    const { created } = await call('create_layer', { type: 'frame', props: { w: 600, h: 100 } });
+    await call('save_project');
+    await call('open_project', { file: 'inspecao-sem-escrita.json' }, reader, 'reader');
+    const before = await t.projects.load({ id: t.owner.id }, 'inspecao-sem-escrita.json');
+    const out = await call('inspect_layout', { id: created.id, width: 390 }, reader, 'reader');
+    assert.equal(out.error, undefined, out.error); assert.equal(out.layers[0].box.w, 390); assert.equal(out.layers[0].box.h, 777);
+    assert.equal(inspections, 1); assert.equal(measures, 0, 'inspeção não chama a medição que altera geometria desktop');
+    await t.workspace.flushAll();
+    const after = await t.projects.load({ id: t.owner.id }, 'inspecao-sem-escrita.json');
+    assert.equal(after.contentHash, before.contentHash); assert.equal(after.doc.pages[0].children[0].w, 600); assert.equal(after.doc.pages[0].children[0].h, 100);
   } finally { await t.close(); }
 });

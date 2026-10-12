@@ -95,9 +95,9 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `tokens.ts`, `media-runtime.ts` | tokens (CSS/JSON/Tailwind) · players de 3D/Lottie para o zip |
 | `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
 | `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
-| `tools/schema.ts` | **as 62 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
+| `tools/schema.ts` | **as 63 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
 | `tools/runner.ts`, `tools/runner.js` | executor central: validação, aprovação, cancelamento, commit e restauração sem apagar alterações concorrentes; `.js` só reexporta para compatibilidade |
-| `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `search`, `inspection`, `export`, `layout`, `layers`, `batch`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. `batch` prepara cópias e publica uma atualização para `update_layers`; `search` filtra e pagina `find_layers` sob orçamento UTF-8. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
+| `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `search`, `inspection`, `layout-inspection`, `export`, `layout`, `layers`, `batch`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. `batch` prepara cópias e publica uma atualização para `update_layers`; `search` filtra e pagina `find_layers`; `layout-inspection` organiza `inspect_layout`; ambos usam `response-budget` para limitar JSON UTF-8. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
 | `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
 | `sample-vitrine.js`, `version.ts`, `validate.ts` | projeto de exemplo · versão · validação do JSON |
 
@@ -138,7 +138,7 @@ nunca apaga trabalho alheio; conteúdo idêntico é ignorado por `docHash`) → 
 
 **Geometria sem navegador:** o servidor não tem DOM. `model-canvas.js` estima posições; para hug/fill o `renderer.measure` lê o layout real
 no Chromium (JavaScript da página DESLIGADO, sem rede) e `measure.ts` grava em `node.w/h` com a regra da "medida de volta" do editor.
-Fica "sujo" após escrita e só mede antes de leituras (`get_document`, `get_layer`, `find_layers`, `get_selection`, `get_image`, `check_design`) e após `build_layout`. Em `find_layers`, só `fields:"summary"` pede medição: compact/ids consultam os dados base sem renderizador.
+Fica "sujo" após escrita e só mede antes de leituras (`get_document`, `get_layer`, `find_layers`, `get_selection`, `get_image`, `check_design`) e após `build_layout`. Em `find_layers`, só `fields:"summary"` pede medição: compact/ids consultam os dados base sem renderizador. `inspect_layout` chama uma medição independente por largura, sem escrever w/h no store: renderiza a tela inteira e entrega só os IDs selecionados em texto, sob orçamento/paginação. `services/layout-inspection.ts` mede no DOM, remove marcadores reservados de HTML manual na cópia de inspeção (inclusive markup malformado) e ignora descendentes de HTML/vetor/mídia; contrato em `core/layout-inspection.ts`.
 
 **Imagens, fontes e áudio saem do JSON:** viram linhas na tabela `Asset` por sha256 (`asset:<hash>` no JSON) e voltam como data URL ao carregar.
 Mídia grande (vídeo/3D) dentro do projeto tem limite de 25 MB por isso. Exportar escreve arquivos reais (`assets/`, `fonts/`) e `CREDITS.txt`.

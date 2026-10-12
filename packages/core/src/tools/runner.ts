@@ -16,8 +16,8 @@ export { summarize, describeCall } from './runner/presentation.ts';
 export { assertCurrentImageTarget } from './runner/images.ts';
 
 /** Executor das ferramentas: validação, permissão, histórico e proteção de alterações concorrentes. */
-export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, auditLayout = null, fetchImage = null, imageOps = null, vendor = null }: RunnerDependencies) {
-  const ctx = createRunnerContext({ store, commands, approve, saving, folder, renderImage, auditLayout, fetchImage, imageOps, vendor });
+export function createRunner({ store, commands, approve, saving = null, folder = null, renderImage = null, auditLayout = null, inspectLayout = null, fetchImage = null, imageOps = null, vendor = null }: RunnerDependencies) {
+  const ctx = createRunnerContext({ store, commands, approve, saving, folder, renderImage, auditLayout, inspectLayout, fetchImage, imageOps, vendor });
   const { need, targetList } = ctx;
   const { tools: imageTools, imageLayer } = createImageTools(ctx);
   const READ: ToolHandlers = { ...createReadTools(ctx), ...createInspectionTools(ctx), ...createExportTools(ctx) };

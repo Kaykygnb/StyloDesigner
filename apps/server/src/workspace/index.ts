@@ -17,6 +17,8 @@ import { createStore } from '@stylo/core/store.js';
 import { createCommands } from '@stylo/core/commands.js';
 import { createRunner } from '@stylo/core/tools/runner.ts';
 import type { ImageOperations } from '@stylo/core/image-edit.ts';
+import type { InspectLayout } from '@stylo/core/layout-inspection.ts';
+import { boundLayoutResponse } from '@stylo/core/tools/runner/layout-inspection.ts';
 import { boundFindResponse } from '@stylo/core/tools/runner/search.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
@@ -69,7 +71,7 @@ interface Doc {
   measuring: Promise<void> | null;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, fetchImage = null, imageOps = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, inspectLayout = null, fetchImage = null, imageOps = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
@@ -79,6 +81,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
   /** Desenha uma camada como PNG base64 (services/renderer.ts). Sem ele, `get_image` explica que não há renderizador. */
   renderImage?: ((node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string>) | null;
   /** Descobre o que vaza da tela em cada largura (services/renderer.ts → overflow). */
+  inspectLayout?: InspectLayout | null;
   auditLayout?: ((roots: any[], doc: any, widths: Array<{ rootId: string; label: string; width: number }>) => Promise<any[]>) | null;
   /** Mede o layout real das pranchetas (services/renderer.ts → measure). Sem ele, alturas "hug" ficam como guardadas. */
   measureLayout?: ((roots: any[], doc: any) => Promise<Map<string, { w: number; h: number }>>) | null;
@@ -108,7 +111,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     const canvas = createModelCanvas(entry.store);
     const commands = createCommands(entry.store, canvas);
     entry.commands = commands;
-    entry.runner = createRunner({ store: entry.store, commands, renderImage, auditLayout, fetchImage, imageOps, vendor: vendorFiles });
+    entry.runner = createRunner({ store: entry.store, commands, renderImage, auditLayout, inspectLayout, fetchImage, imageOps, vendor: vendorFiles });
     docs.set(id, entry);
     return entry;
   }
@@ -342,6 +345,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
+      if (tool === 'inspect_layout' && !out.error) return boundLayoutResponse(out, args?.maxBytes);
       if (tool === 'find_layers' && !out.error) return boundFindResponse(out, args?.maxBytes);
       return out;
     } catch (err: any) {

@@ -5,12 +5,7 @@ import { summarize } from './presentation.ts';
 import type { ToolArgs } from './types.ts';
 
 export const DEFAULT_SEARCH_BYTES = 8192;
-const bytesOf = (value: unknown) => new TextEncoder().encode(JSON.stringify(value, null, 2)).length;
-const short = (value: unknown, limit: number) => {
-  const chars: string[] = [];
-  for (const char of String(value ?? '')) { chars.push(char); if (chars.length > limit) break; }
-  return chars.length > limit ? chars.slice(0, limit - 1).join('') + '…' : chars.join('');
-};
+import { responseBytes as bytesOf, shortName as short, boundPagedLayers } from './response-budget.ts';
 
 function* nodesIn(nodes: any[]): Generator<any> {
   for (const node of nodes) { yield node; if (node.children) yield* nodesIn(node.children); }
@@ -35,16 +30,7 @@ function matches(node: any, where: ToolArgs) {
 
 /** Inclui avisos do workspace no orçamento, sem perder alvos nem avançar o cursor sobre linhas omitidas. */
 export function boundFindResponse(result: ToolArgs, maxBytes = DEFAULT_SEARCH_BYTES) {
-  const out: ToolArgs = { ...result, layers: [...result.layers] };
-  if (out.notice && bytesOf(out) > maxBytes) out.notice = 'O projeto mudou durante a sessão. Releia os dados antes de alterar.';
-  while (bytesOf(out) > maxBytes && out.layers.length) {
-    out.layers.pop();
-    out.count = out.layers.length;
-    out.hasMore = out.offset + out.count < out.total;
-    out.nextOffset = out.hasMore ? out.offset + out.count : null;
-  }
-  if (bytesOf(out) > maxBytes || (!out.layers.length && result.layers.length)) throw new Error('Uma camada não cabe no limite de resposta. Aumente maxBytes (até 65536) ou use fields:"ids" e get_layer para detalhes.');
-  return out;
+  return boundPagedLayers(result, maxBytes, 'Uma camada não cabe no limite de resposta. Aumente maxBytes (até 65536) ou use fields:"ids" e get_layer para detalhes.');
 }
 
 export function findLayers(doc: any, { query = '', type, page_id, within_id, where = {}, limit = 20, offset = 0, fields = 'compact', maxBytes = DEFAULT_SEARCH_BYTES }: ToolArgs = {}) {
