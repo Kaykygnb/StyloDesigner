@@ -44,6 +44,41 @@ export function createArrangeTools(ctx: RunnerContext): ToolHandlers {
       withSelection(ctx, list, true, run[action]);
       return { action, selected: ids().slice(0, 20), selectedCount: ids().length };
     },
+    set_guides({ page_id, guides }: ToolArgs) {
+      const page = page_id ? store.state.doc.pages.find((p: any) => p.id === page_id) : store.page();
+      if (!page) throw new Error(`Página "${page_id}" não existe. Veja get_document.`);
+      store.update(() => { page.guides = guides.map((g: ToolArgs) => ({ axis: g.axis, pos: Math.round(g.pos * 100) / 100 })); });
+      return { page: page.id, guides: page.guides.length };
+    },
+    move_layers({ moves }: ToolArgs) {
+      const ids = moves.map((m: ToolArgs) => m.id);
+      const nodes = target(ctx, ids);
+      // confere tudo antes de mexer em qualquer coisa
+      const parents = moves.map((m: ToolArgs) => {
+        if (!m.parent_id) return undefined;
+        if (m.parent_id === 'root') return null;
+        const p = need(m.parent_id);
+        if (!p.children) throw new Error(`“${p.name}” não pode ter filhos (só frames, grupos e seções).`);
+        return p;
+      });
+      moves.forEach((m: ToolArgs, i: number) => {
+        const p = parents[i];
+        if (p && (p.id === m.id || store.isAncestor(m.id, p.id))) throw new Error('Não dá para mover uma camada para dentro dela mesma.');
+        if (nodes[i].type === 'section' && p) throw new Error('Seções só existem na raiz da página.');
+      });
+      moves.forEach((m: ToolArgs, i: number) => {
+        const n = nodes[i];
+        if (parents[i] !== undefined) {
+          commands.reparent([n], parents[i], Number.isInteger(m.index) ? m.index : null);
+          if (store.parentOf(n.id) !== parents[i]) throw new Error(`Não deu para mover “${n.name}” para lá (seções só guardam frames).`);
+        } else if (Number.isInteger(m.index)) {
+          const list = store.listOf(n.id);
+          store.update(() => { list.splice(list.indexOf(n), 1); list.splice(Math.max(0, Math.min(m.index, list.length)), 0, n); }, { structural: true });
+        }
+        if (typeof m.x === 'number' || typeof m.y === 'number') store.update(() => { if (typeof m.x === 'number') n.x = Math.round(m.x); if (typeof m.y === 'number') n.y = Math.round(m.y); });
+      });
+      return { moved: nodes.length, ids: ids.slice(0, 20) };
+    },
     paste_layers({ ids: list, parent_id }: ToolArgs) {
       target(ctx, list);
       let into: any = null;

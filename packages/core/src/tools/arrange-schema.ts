@@ -3,10 +3,31 @@ import { z } from 'zod';
 import type { ToolDef } from './schema.ts';
 const id = z.string().min(1).max(200);
 const ids = (min = 1) => z.array(id).min(min).max(100);
+const index = z.number().int().min(0);
 
 export const ARRANGE_ACTIONS = ['front', 'forward', 'backward', 'back', 'flip_h', 'flip_v', 'wrap_in_frame', 'toggle_auto_layout', 'create_component', 'detach_instance', 'toggle_mask'] as const;
 
+const move = z.object({
+  id,
+  parent_id: id.describe('novo pai (id de um frame/grupo) ou "root" para a raiz da página; omita para manter o pai').optional(),
+  index: index.describe('posição entre as irmãs no pai de destino (0 = fundo); omita para ir ao fim').optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+}).strict();
+
 export const ARRANGE_TOOLS: Omit<ToolDef, 'inputSchema'>[] = [
+  {
+    name: 'set_guides',
+    write: true,
+    description: 'Define as GUIAS de régua de uma página (page_id; padrão: a aberta): a lista completa [{axis, pos}], até 200. axis "x" = linha vertical em x = pos; "y" = linha horizontal em y = pos (px do canvas). Guias só ajudam a alinhar no editor (o arrasto gruda nelas); não entram no CSS nem na exportação. Para apagar todas, mande [].',
+    input: z.object({ page_id: id.optional(), guides: z.array(z.object({ axis: z.enum(['x', 'y']), pos: z.number().finite() }).strict()).max(200) }).strict(),
+  },
+  {
+    name: 'move_layers',
+    write: true,
+    description: 'Move 1–100 camadas de uma vez, tudo ou nada e com UM desfazer: cada item pode mudar de pai (parent_id, ou "root"), de posição entre as irmãs (index) e de posição dentro do pai (x, y; sem efeito em itens de auto layout). É o que o editor faz ao soltar camadas arrastadas. Recusa mover uma camada para dentro dela mesma, seção fora da raiz e pais que não aceitam filhos.',
+    input: z.object({ moves: z.array(move).min(1).max(100) }).strict(),
+  },
   {
     name: 'arrange_layers',
     write: true,

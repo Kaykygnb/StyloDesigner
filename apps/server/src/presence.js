@@ -26,13 +26,18 @@ export const AGENT_IDLE_MS = 10 * 60 * 1000;
 export const DOCUMENT_LOCK = '__document__';
 
 /** Ferramentas que mexem na estrutura (pais, ordem, páginas): reservam o documento inteiro, não só as camadas citadas. */
-export const DOCUMENT_WIDE_TOOLS = ['update_design_resource', 'delete_design_resource', 'align_layers', 'distribute_layers', 'group_layers', 'ungroup_layers', 'reorder_layer', 'rename_page', 'reorder_page', 'arrange_layers', 'paste_layers', 'paste_style'];
+export const DOCUMENT_WIDE_TOOLS = ['update_design_resource', 'delete_design_resource', 'align_layers', 'distribute_layers', 'group_layers', 'ungroup_layers', 'reorder_layer', 'rename_page', 'reorder_page', 'arrange_layers', 'paste_layers', 'paste_style', 'move_layers'];
 
 /** ids de camadas que uma ferramenta vai alterar (para as travas). */
 export function targetsOf(args = {}) {
   const ids = [];
   for (const k of ['id', 'parent_id', 'component_id']) if (typeof args[k] === 'string' && args[k] !== 'root') ids.push(args[k]);
   if (Array.isArray(args.ids)) ids.push(...args.ids.filter((x) => typeof x === 'string'));
+  if (Array.isArray(args.moves)) {
+    for (const m of args.moves) {
+      if (m && typeof m === 'object' && !Array.isArray(m)) for (const k of ['id', 'parent_id']) if (typeof m[k] === 'string' && m[k] !== 'root') ids.push(m[k]);
+    }
+  }
   if (Array.isArray(args.updates)) {
     for (const update of args.updates) {
       if (update && typeof update === 'object' && !Array.isArray(update) && typeof update.id === 'string' && update.id !== 'root') ids.push(update.id);

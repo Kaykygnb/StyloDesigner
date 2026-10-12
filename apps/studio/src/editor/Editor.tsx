@@ -1,7 +1,7 @@
 // O editor: barra superior, páginas/camadas à esquerda, canvas ao centro, propriedades (ou painéis) à direita.
 import { setPanel, useApp } from '../lib/app';
 import { Canvas } from './Canvas';
-import { InsertBar } from './InsertBar';
+import { Toolbar } from './Toolbar';
 import { Inspector } from './Inspector';
 import { LayersPanel } from './LayersPanel';
 import { AgentsPanel, ExportPanel, IssuesPanel } from './Panels';
@@ -28,7 +28,7 @@ export function Editor() {
       <LayersPanel />
       <main className="stage">
         <Canvas />
-        <InsertBar />
+        <Toolbar />
       </main>
       <aside className="right-panel" aria-label="Painel lateral">
         <div className="tabs" role="tablist">

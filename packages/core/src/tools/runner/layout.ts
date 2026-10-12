@@ -114,8 +114,9 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
 
   return {
     create_layer({ type, parent_id, index, props = {} }) {
-      if (!['frame', 'rect', 'ellipse', 'text', 'line', 'path'].includes(type)) throw new Error('type: frame, rect, ellipse, text, line ou path.');
+      if (!['frame', 'rect', 'ellipse', 'text', 'line', 'path', 'section', 'html'].includes(type)) throw new Error('type: frame, rect, ellipse, text, line, path, section ou html.');
       const parent = parent_id ? need(parent_id) : null;
+      if (type === 'section' && parent) throw new Error('Seção só existe na raiz da página (sem parent_id).');
       if (parent && !parent.children) throw new Error(`“${parent.name}” não pode ter filhos (só frames, grupos e seções).`);
       const made = type === 'path' ? pathNode(props) : { node: createNode(type, type === 'text' ? { text: 'Texto', sizeX: 'hug', sizeY: 'hug' } : {}), rest: props };
       const node = made.node;

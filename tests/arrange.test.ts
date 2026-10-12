@@ -129,3 +129,48 @@ test('atividade: o verbo da descrição vai para o passado', () => {
   assert.equal(pastTense('conectou pelo MCP'), 'conectou pelo MCP');
   assert.equal(pastTense('não conseguiu: Alterar “A”'), 'não conseguiu: Alterar “A”');
 });
+
+test('move_layers: troca de pai, de ordem e de posição de uma vez, com um só desfazer; recusa o que não faz sentido', async () => {
+  const f = fixture();
+  const before = JSON.stringify(f.store.state.doc);
+  const out = await f.runner.run('move_layers', { moves: [
+    { id: f.kids[0].id, parent_id: f.b.id, x: 5, y: 6 },
+    { id: f.kids[1].id, parent_id: 'root', x: 900, y: 40 },
+    { id: f.kids[2].id, index: 0 },
+  ] });
+  assert.equal(out.ok, true, out.error);
+  const r0 = f.store.get(f.kids[0].id);
+  assert.equal(f.store.parentOf(r0.id).id, f.b.id);
+  assert.deepEqual([r0.x, r0.y], [5, 6]);
+  assert.equal(f.store.parentOf(f.kids[1].id), null, 'foi para a raiz da página');
+  assert.equal(f.store.get(f.a.id).children[0].id, f.kids[2].id, 'índice 0 = fundo');
+  f.store.undo();
+  assert.equal(JSON.stringify(f.store.state.doc), before, 'um desfazer volta tudo');
+
+  assert.match((await f.runner.run('move_layers', { moves: [{ id: f.a.id, parent_id: f.kids[0].id }] })).error, /frame|grupo|filhos|dentro dela/);
+  assert.match((await f.runner.run('move_layers', { moves: [{ id: f.a.id, parent_id: f.a.id }] })).error, /dentro dela mesma/);
+  assert.equal(JSON.stringify(f.store.state.doc), before, 'erro não deixa meia mudança');
+});
+
+test('create_layer: seção (só na raiz) e código HTML', async () => {
+  const f = fixture();
+  const sec = await f.runner.run('create_layer', { type: 'section', props: { name: 'Fluxo', w: 900, h: 700 } });
+  assert.equal(sec.ok, true, sec.error);
+  assert.equal(f.store.get(sec.created.id).type, 'section');
+  assert.match((await f.runner.run('create_layer', { type: 'section', parent_id: f.a.id })).error, /raiz/);
+  const html = await f.runner.run('create_layer', { type: 'html', parent_id: f.a.id, props: { x: 10, y: 10, html: '<p>oi</p>' } });
+  assert.equal(html.ok, true, html.error);
+  assert.equal(f.store.get(html.created.id).html, '<p>oi</p>');
+  assert.match((await f.runner.run('update_layer', { id: f.kids[0].id, props: { html: '<p>x</p>' } })).error, /html só vale/);
+});
+
+test('set_guides: define a lista de guias da página, valida e um desfazer volta', async () => {
+  const f = fixture();
+  const out = await f.runner.run('set_guides', { guides: [{ axis: 'x', pos: 120 }, { axis: 'y', pos: 40.456 }] });
+  assert.equal(out.ok, true, out.error);
+  assert.deepEqual(f.store.page().guides, [{ axis: 'x', pos: 120 }, { axis: 'y', pos: 40.46 }]);
+  f.store.undo();
+  assert.deepEqual(f.store.page().guides ?? [], []);
+  assert.match((await f.runner.run('set_guides', { guides: [{ axis: 'z', pos: 1 }] })).error, /axis|x|y/);
+  assert.match((await f.runner.run('set_guides', { page_id: 'nao-existe', guides: [] })).error, /não existe/);
+});

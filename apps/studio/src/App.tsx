@@ -3,6 +3,8 @@ import { boot, dismissToast, useApp } from './lib/app';
 import { Editor } from './editor/Editor';
 import { Home } from './screens/Home';
 import { Login } from './screens/Login';
+import { MenuHost } from './ui/ContextMenu';
+import { DialogHost } from './ui/Dialog';
 
 export function App() {
   const state = useApp((s) => s.boot);
@@ -31,6 +33,8 @@ export function App() {
   return (
     <>
       {content}
+      <MenuHost />
+      <DialogHost />
       {toast && (
         <div className={`toast ${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
           <span>{toast.text}</span>

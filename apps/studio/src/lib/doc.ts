@@ -44,3 +44,31 @@ export const TYPE_LABEL: Record<string, string> = {
 /** A camada está dentro de um auto layout (flex/grid)? Então x/y não valem: quem posiciona é o layout do pai. */
 export const inFlow = (parent: LayerNode | null | undefined, node: LayerNode) =>
   !!parent && (parent.layout?.mode ?? 'none') !== 'none' && !node.absolute;
+
+/** Tira da lista as camadas que têm um ancestral também na lista (mover/copiar/apagar o pai já leva o filho). */
+export function topLevel(list: LayerNode[], ids: string[]): string[] {
+  const set = new Set(ids);
+  return ids.filter((id) => {
+    for (let p = parentOf(list, id); p; p = parentOf(list, p.id)) if (set.has(p.id)) return false;
+    return true;
+  });
+}
+
+/** `maybeAncestor` contém `id` (em qualquer profundidade)? */
+export const isAncestor = (list: LayerNode[], maybeAncestor: string, id: string): boolean => {
+  const a = findNode(list, maybeAncestor);
+  return !!a && a.id !== id && !!findNode(a.children ?? [], id);
+};
+
+/** Todas as camadas da página em ordem de leitura (pai antes dos filhos). */
+export function flatten(list: LayerNode[], out: LayerNode[] = []): LayerNode[] {
+  for (const n of list) { out.push(n); if (n.children) flatten(n.children, out); }
+  return out;
+}
+
+/** A camada é uma "tela" (frame na raiz ou dentro de uma seção)? */
+export const isBoard = (list: LayerNode[], node: LayerNode): boolean => {
+  if (node.type !== 'frame') return false;
+  const p = parentOf(list, node.id);
+  return !p || p.type === 'section';
+};

@@ -137,29 +137,6 @@ pre.code { margin: 6px 0 12px; padding: 10px; max-height: 280px; overflow: auto;
 .colorfield { display: flex; align-items: center; gap: 6px; }
 .hint { font-size: 11.5px; margin: 0; line-height: 1.4; }
 
-/* ============ canvas ============ */
-.canvas-area { position: absolute; inset: 0; }
-.canvas-viewport { position: absolute; inset: 0; overflow: auto; background-color: var(--canvas); background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 22px 22px; }
-.canvas-sizer { position: relative; }
-.canvas-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-.board-frame { position: absolute; border: 0; background: #fff; color-scheme: light; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 8px 28px rgba(0, 0, 0, 0.14); display: block; }
-.board-label { position: absolute; font-size: calc(12px * var(--inv, 1)); color: var(--text-2); white-space: nowrap; pointer-events: none; }
-.sel-hover { position: absolute; pointer-events: none; outline: calc(1.5px * var(--inv, 1)) solid var(--accent); outline-offset: calc(-1px * var(--inv, 1)); opacity: 0.65; }
-.sel-box { position: absolute; pointer-events: none; box-sizing: border-box; border: calc(1.5px * var(--inv, 1)) solid var(--accent); }
-.sel-box.dragging { background: var(--accent-soft); }
-.sel-label { position: absolute; left: calc(-1.5px * var(--inv, 1)); background: var(--accent); color: var(--on-accent); font-size: calc(11px * var(--inv, 1)); line-height: 1.5; padding: 0 calc(6px * var(--inv, 1)); border-radius: calc(3px * var(--inv, 1)); white-space: nowrap; }
-.sel-label .faint { color: inherit; opacity: 0.8; }
-.handle { position: absolute; width: calc(10px * var(--inv, 1)); height: calc(10px * var(--inv, 1)); margin: calc(-5px * var(--inv, 1)); background: #fff; border: calc(1.5px * var(--inv, 1)) solid var(--accent); border-radius: calc(2px * var(--inv, 1)); box-sizing: border-box; }
-.handle.h-n, .handle.h-s { cursor: ns-resize; }
-.handle.h-e, .handle.h-w { cursor: ew-resize; }
-.handle.h-nw, .handle.h-se { cursor: nwse-resize; }
-.handle.h-ne, .handle.h-sw { cursor: nesw-resize; }
-.drag-shield { position: fixed; inset: 0; z-index: 30; cursor: grabbing; }
-.canvas-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px; }
-.zoom-controls { position: absolute; right: 14px; bottom: 14px; display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 2px; z-index: 5; }
-.insert-bar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); z-index: 5; }
-.insert-bar .btn.icon { width: 36px; height: 36px; }
-
 @media (max-width: 1100px) {
   :root { --left-w: 220px; --right-w: 260px; }
 }

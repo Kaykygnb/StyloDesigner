@@ -38,6 +38,8 @@ export function describeCall(tool: string, args: ToolArgs, store) {
       const what = { front: 'Trazer para a frente', forward: 'Avançar uma camada', backward: 'Recuar uma camada', back: 'Enviar para trás', flip_h: 'Espelhar na horizontal', flip_v: 'Espelhar na vertical', wrap_in_frame: 'Envolver em frame', toggle_auto_layout: 'Alternar auto layout de', create_component: 'Criar componente de', detach_instance: 'Desanexar instância de', toggle_mask: 'Alternar máscara em' }[args.action] || args.action;
       return `${what} ${(args.ids || []).map(nm).join(', ')}`;
     }
+    case 'set_guides': return `Definir ${(args.guides || []).length} guia(s) de régua`;
+    case 'move_layers': return `Mover ${(args.moves || []).slice(0, 5).map((m) => nm(m.id)).join(', ')}${(args.moves || []).length > 5 ? '…' : ''}`;
     case 'paste_layers': return `Colar cópia de ${(args.ids || []).map(nm).join(', ')}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ''}`;
     case 'paste_style': return `Colar a aparência de ${nm(args.source_id)} em ${(args.ids || []).map(nm).join(', ')}`;
     case 'reorder_layer': return `Mover camada ${args.id} ao índice ${args.index}`;

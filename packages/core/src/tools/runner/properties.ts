@@ -10,12 +10,12 @@ const SIMPLE = [
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
   'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted',
   'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
-  'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
+  'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
 /** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
 const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink'];
 const NUMBERS = ['skewX', 'skewY', 'order'];
-const STRINGS = ['htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
+const STRINGS = ['html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
 const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
 const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
 const FX_KEYS = ['brightness', 'contrast', 'saturate', 'grayscale', 'hue'];
@@ -63,6 +63,7 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     if (BOOLEANS.includes(k) && typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);
     if (NUMBERS.includes(k) && !Number.isFinite(v)) throw new Error(`${k} precisa ser um número.`);
     if (STRINGS.includes(k) && typeof v !== 'string') throw new Error(`${k} precisa ser um texto (use "" para limpar).`);
+    if (k === 'html' && (node.type !== 'html' || v.length > 200000)) throw new Error('html só vale para camadas de código HTML (type "html") e vai até 200.000 caracteres.');
     if (['text'].includes(k) && node.type !== 'text') throw new Error('text só vale para camadas de texto.');
     if (MEDIA_FLAGS.includes(k)) {
       if (node.type !== 'media') throw new Error(`${k} só vale para camadas de mídia (vídeo, áudio, 3D, Lottie).`);

@@ -1,27 +1,37 @@
-// A área de trabalho: as telas do projeto num "mundo" com zoom, a seleção por cima delas, arrastar para mover e alças para redimensionar.
-// Tudo que muda o projeto sai daqui como UMA chamada de ferramenta (setProps → update_layer / set_responsive).
+// A área de trabalho: as telas do projeto num "mundo" com zoom e pan livres, a seleção por cima delas e todos os gestos
+// (mover com encaixe e guias, redimensionar, girar, desenhar formas, caixa de seleção, mão, medidas com Alt).
+// Tudo que muda o projeto sai daqui como chamadas de ferramenta (update_layer(s), move_layers, create_layer…): o canvas só desenha.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { canEdit, insert, setProps } from '../lib/actions';
-import { app, hoverLayer, run, select, setZoom, useApp } from '../lib/app';
-import { boardContaining, boardsOf, findNode, inFlow, pageOf, parentOf } from '../lib/doc';
+import { commentOn } from '../lib/editing';
+import { app, hoverLayer, run, select, setTool, useApp } from '../lib/app';
+import { boardContaining, boardsOf, findNode, flatten, inFlow, isAncestor, isBoard, pageOf, parentOf, topLevel } from '../lib/doc';
+import { createShape, parentFor, SHAPE_TOOLS, type Drawn, type ShapeTool } from '../lib/shapes';
 import type { LayerNode } from '../lib/types';
 import { Icon } from '../ui/Icon';
-import { BoardFrame, type Box } from './BoardFrame';
+import { showMenu } from '../ui/ContextMenu';
+import { BoardFrame, type Box as RawBox, type BoardPointer } from './BoardFrame';
 import { breakpointsOf } from './devices';
+import { canvasMenuItems, layerMenuItems } from './menus';
+import { Rulers } from './Rulers';
+import { SelectionOverlay, type Gesture, type ObBox } from './SelectionOverlay';
+import {
+  SNAP_PX, angleOf, flowDrop, intersects, normalize, resizeGroupBox, resizeSingle, rotateBy, scaleInto, snapMove, snapResize, union,
+  type Box,
+} from './canvas/geometry';
 
-const PAD = 96;
 type Handle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
-const HANDLES: Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+const HANDLE_DIR: Record<Handle, [number, number]> = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0], ne: [1, -1], nw: [-1, -1], se: [1, 1], sw: [-1, 1] };
+const THRESHOLD = 3; // px de tela antes de um clique virar arrasto
+const MAX_ZOOM = 16, MIN_ZOOM = 0.02;
 
-interface Drag {
-  kind: 'move' | 'resize';
-  handle?: Handle;
-  ids: string[];
-  startX: number;
-  startY: number;
-  moved: boolean;
-  dx: number;
-  dy: number;
+/** Converte as coordenadas de um evento (da janela ou de dentro de um iframe) para a janela. */
+function toParent(e: MouseEvent): { x: number; y: number } {
+  const fe = (e.view as Window | null)?.frameElement as HTMLIFrameElement | null | undefined;
+  if (!fe) return { x: e.clientX, y: e.clientY };
+  const r = fe.getBoundingClientRect();
+  const k = fe.offsetWidth ? r.width / fe.offsetWidth : 1;
+  return { x: r.left + e.clientX * k, y: r.top + e.clientY * k };
 }
 
 export function Canvas() {
@@ -29,18 +39,26 @@ export function Canvas() {
   const pageId = useApp((s) => s.pageId);
   const device = useApp((s) => s.device);
   const zoom = useApp((s) => s.zoom);
+  const panX = useApp((s) => s.panX);
+  const panY = useApp((s) => s.panY);
   const selection = useApp((s) => s.selection);
   const hover = useApp((s) => s.hover);
   const file = useApp((s) => s.file);
+  const tool = useApp((s) => s.tool);
+  const spaceDown = useApp((s) => s.spaceDown);
+  const altDown = useApp((s) => s.altDown);
+  const pendingEdit = useApp((s) => s.pendingEdit);
+  const rulers = useApp((s) => s.rulers);
+  const showGuides = useApp((s) => s.guides);
   const page = pageOf(doc, pageId);
   const editable = canEdit();
 
   const viewport = useRef<HTMLDivElement>(null);
   const [sizes, setSizes] = useState<Record<string, { w: number; h: number }>>({});
-  const [boxes, setBoxes] = useState<Record<string, Record<string, Box>>>({});
-  const [drag, setDrag] = useState<Drag | null>(null);
-  const dragRef = useRef<Drag | null>(null);
-  dragRef.current = drag;
+  const [boxes, setBoxes] = useState<Record<string, Record<string, RawBox>>>({});
+  const [gesture, setGestureState] = useState<Gesture | null>(null);
+  const g = useRef<Gesture | null>(null);
+  const setGesture = (next: Gesture | null) => { g.current = next; setGestureState(next); };
 
   const allBoards = boardsOf(page);
   const bp = device === 'desktop' ? null : breakpointsOf(doc).find((b) => b.id === device) ?? null;
@@ -48,244 +66,643 @@ export function Canvas() {
   const target = bp ? boardContaining(page, selection[0] ?? '') ?? allBoards[0] ?? null : null;
   const boards = bp ? (target ? [target] : []) : allBoards;
   const widthOf = (b: LayerNode) => (bp ? bp.preview : b.w);
-  const heightOf = (b: LayerNode) => sizes[b.id]?.h ?? b.h;
 
-  const layout = useMemo(() => {
-    if (bp) return { ox: PAD, oy: PAD, w: (boards[0] ? bp.preview : 0) + PAD * 2, h: (boards[0] ? (sizes[boards[0].id]?.h ?? boards[0].h) : 0) + PAD * 2 };
-    if (!boards.length) return { ox: PAD, oy: PAD, w: 0, h: 0 };
-    const minX = Math.min(...boards.map((b) => b.x));
-    const minY = Math.min(...boards.map((b) => b.y));
-    const maxX = Math.max(...boards.map((b) => b.x + b.w));
-    const maxY = Math.max(...boards.map((b) => b.y + (sizes[b.id]?.h ?? b.h)));
-    return { ox: PAD - minX, oy: PAD - minY, w: maxX - minX + PAD * 2, h: maxY - minY + PAD * 2 };
-  }, [bp, boards, sizes]);
-
-  const posOf = (b: LayerNode) => (bp ? { x: layout.ox, y: layout.oy } : { x: b.x + layout.ox, y: b.y + layout.oy });
+  // tudo que os ouvintes (criados uma vez só) precisam enxergar fica aqui, sempre atualizado
+  const S = useRef({ doc, page, zoom, panX, panY, selection, tool, editable, bp, boxes, sizes, boards, spaceDown, showGuides });
+  S.current = { doc, page, zoom, panX, panY, selection, tool, editable, bp, boxes, sizes, boards, spaceDown, showGuides };
 
   const onMeasure = useCallback((id: string, size: { w: number; h: number }) => {
     setSizes((prev) => (prev[id]?.h === size.h && prev[id]?.w === size.w ? prev : { ...prev, [id]: size }));
   }, []);
-  const onBoxes = useCallback((boardId: string, b: Record<string, Box>) => setBoxes((prev) => ({ ...prev, [boardId]: b })), []);
+  const onBoxes = useCallback((boardId: string, b: Record<string, RawBox>) => setBoxes((prev) => ({ ...prev, [boardId]: b })), []);
 
-  // ---------------------------------------------------------------- zoom
-  const fit = useCallback(() => {
-    const el = viewport.current;
-    if (!el || !layout.w) return;
-    setZoom(Math.min(1, (el.clientWidth - 32) / layout.w, (el.clientHeight - 32) / layout.h) || 1);
-    el.scrollTo({ left: 0, top: 0 });
-  }, [layout.w, layout.h]);
+  // ---------------------------------------------------------------- coordenadas
+  const vpRect = () => viewport.current?.getBoundingClientRect() ?? { left: 0, top: 0, width: 800, height: 600 };
+  const toWorld = (p: { x: number; y: number }) => { const r = vpRect(); const s = S.current; return { x: (p.x - r.left - s.panX) / s.zoom, y: (p.y - r.top - s.panY) / s.zoom }; };
+  const nodeOf = (id: string) => findNode(S.current.page.children, id);
+  /** A caixa visual (com rotação) de uma camada, no mundo. */
+  const aabbOf = (id: string): Box | null => {
+    const s = S.current;
+    const b = boardContaining(s.page, id);
+    const inner = b && s.boxes[b.id]?.[id];
+    if (!b || !inner) return null;
+    return { x: b.x + inner.x, y: b.y + inner.y, w: inner.w, h: inner.h };
+  };
+  /** Caixa orientada: o retângulo sem girar, o centro e a rotação. */
+  const oboxOf = (id: string): ObBox | null => {
+    const a = aabbOf(id);
+    const n = nodeOf(id);
+    if (!a || !n) return null;
+    const inner = S.current.boxes[boardContaining(S.current.page, id)!.id]?.[id];
+    const rot = n.rotation || 0;
+    const w = rot ? inner.ow : a.w, h = rot ? inner.oh : a.h;
+    return { x: a.x + a.w / 2 - w / 2, y: a.y + a.h / 2 - h / 2, w, h, rot };
+  };
+  /** Origem (no mundo) do espaço onde x/y de uma camada são medidos: o canto do pai (ou 0,0 na raiz). */
+  const originOfParent = (parentId: string | null | undefined): { x: number; y: number } => {
+    if (!parentId) return { x: 0, y: 0 };
+    const a = aabbOf(parentId);
+    const n = nodeOf(parentId);
+    if (!a) return { x: 0, y: 0 };
+    // pai girado: usa o canto da caixa sem girar
+    if (n?.rotation) { const o = oboxOf(parentId)!; return { x: o.x, y: o.y }; }
+    return { x: a.x, y: a.y };
+  };
+  const parentIdOf = (id: string): string | null => parentOf(S.current.page.children, id)?.id ?? null;
+
+  // ---------------------------------------------------------------- layout, zoom e pan
+  const worldBounds = (): Box | null => {
+    const s = S.current;
+    const rects = s.boards.map((b) => ({ x: b.x, y: b.y, w: s.bp ? s.bp.preview : b.w, h: s.sizes[b.id]?.h ?? b.h }));
+    return union(rects);
+  };
+
+  const fitBox = useCallback((box: Box | null, { max = 1, margin = 72 }: { max?: number; margin?: number } = {}) => {
+    const r = viewport.current?.getBoundingClientRect();
+    if (!box || !r || !box.w || !box.h) return;
+    const z = Math.max(MIN_ZOOM, Math.min(max, (r.width - margin * 2) / box.w, (r.height - margin * 2) / box.h));
+    app.set({ zoom: z, panX: (r.width - box.w * z) / 2 - box.x * z, panY: (r.height - box.h * z) / 2 - box.y * z });
+  }, []);
+
+  const zoomTo = useCallback((next: number, cx?: number, cy?: number) => {
+    const r = viewport.current?.getBoundingClientRect();
+    if (!r) return;
+    const s = S.current;
+    const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+    const px = (cx ?? r.left + r.width / 2) - r.left, py = (cy ?? r.top + r.height / 2) - r.top;
+    app.set({ zoom: z, panX: px - ((px - s.panX) / s.zoom) * z, panY: py - ((py - s.panY) / s.zoom) * z });
+  }, []);
 
   // ajusta ao abrir um projeto e quando a primeira medida chega
-  const fitted = useRef<string>('');
+  const fitted = useRef('');
   useEffect(() => {
     const key = `${file}|${device}|${pageId}`;
-    if (fitted.current !== key && layout.w > 0 && Object.keys(sizes).length > 0) { fitted.current = key; fit(); }
-  }, [file, device, pageId, layout.w, sizes, fit]);
+    if (fitted.current !== key && boards.length && boards.every((b) => sizes[b.id])) { fitted.current = key; fitBox(worldBounds()); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, device, pageId, sizes, boards, fitBox]);
+
+  useEffect(() => {
+    const fitAll = () => fitBox(worldBounds());
+    const fitSel = () => { const b = union(S.current.selection.map(aabbOf).filter((x): x is Box => !!x)); if (b) fitBox(b, { max: 2 }); else fitAll(); };
+    const z100 = () => zoomTo(1);
+    window.addEventListener('stylo:fit', fitAll);
+    window.addEventListener('stylo:fit-selection', fitSel);
+    window.addEventListener('stylo:zoom100', z100);
+    return () => { window.removeEventListener('stylo:fit', fitAll); window.removeEventListener('stylo:fit-selection', fitSel); window.removeEventListener('stylo:zoom100', z100); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Roda do mouse: Ctrl/⌘ dá zoom no ponteiro; sem Ctrl rola a vista (Shift = horizontal). Vale também para a roda sobre as telas. */
+  const onWheel = useCallback((d: { dx: number; dy: number; ctrl: boolean; shift: boolean; x: number; y: number }) => {
+    const s = S.current;
+    if (d.ctrl) zoomTo(s.zoom * Math.exp(-Math.max(-25, Math.min(25, d.dy)) * 0.01), d.x, d.y);
+    else {
+      const horizontal = d.shift && !d.dx;
+      app.set({ panX: s.panX - (horizontal ? d.dy : d.dx), panY: s.panY - (horizontal ? 0 : d.dy) });
+    }
+  }, [zoomTo]);
 
   useEffect(() => {
     const el = viewport.current;
     if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      const factor = Math.exp(-e.deltaY * 0.0015);
-      const before = app.get().zoom;
-      const next = Math.min(4, Math.max(0.1, before * factor));
-      const rect = el.getBoundingClientRect();
-      const px = e.clientX - rect.left + el.scrollLeft;
-      const py = e.clientY - rect.top + el.scrollTop;
-      setZoom(next);
-      el.scrollLeft = px * (next / before) - (e.clientX - rect.left);
-      el.scrollTop = py * (next / before) - (e.clientY - rect.top);
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+    const wheel = (e: WheelEvent) => { e.preventDefault(); onWheel({ dx: e.deltaX, dy: e.deltaY, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, x: e.clientX, y: e.clientY }); };
+    const custom = (e: Event) => onWheel((e as CustomEvent).detail);
+    el.addEventListener('wheel', wheel, { passive: false });
+    window.addEventListener('stylo:wheel', custom);
+    return () => { el.removeEventListener('wheel', wheel); window.removeEventListener('stylo:wheel', custom); };
+  }, [onWheel]);
 
-  // arrastar com o botão do meio move a visão
-  const panStart = useRef<{ x: number; y: number; l: number; t: number } | null>(null);
-  const onViewportDown = (e: React.MouseEvent) => {
-    const el = viewport.current;
-    if (!el) return;
-    if (e.button === 1) {
-      e.preventDefault();
-      panStart.current = { x: e.clientX, y: e.clientY, l: el.scrollLeft, t: el.scrollTop };
-      const move = (ev: MouseEvent) => { if (panStart.current) { el.scrollLeft = panStart.current.l - (ev.clientX - panStart.current.x); el.scrollTop = panStart.current.t - (ev.clientY - panStart.current.y); } };
-      const up = () => { panStart.current = null; window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-      window.addEventListener('mousemove', move);
-      window.addEventListener('mouseup', up);
-    } else if (e.button === 0 && (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('canvas-sizer') || (e.target as HTMLElement).classList.contains('canvas-world'))) {
-      select([]);
-    }
-  };
-
-  // ---------------------------------------------------------------- arrastar / redimensionar
-  const nodeOf = (id: string) => findNode(page.children, id);
-  const movable = (id: string) => {
-    const n = nodeOf(id);
-    if (!n || n.locked || !editable) return false;
-    return !inFlow(parentOf(page.children, id), n);
-  };
-
-  /** Liga o arrasto: ouve o ponteiro na janela e dentro de cada iframe (o mouse pode passar por cima deles). */
-  const beginDrag = useCallback((d: Drag) => {
-    dragRef.current = d; // já vale para o próximo evento do mouse (o estado do React só chega no próximo quadro)
-    setDrag(d);
+  // ---------------------------------------------------------------- acompanhar o ponteiro durante um gesto (a janela e cada iframe)
+  const track = (onMove: (e: MouseEvent) => void, onUp: (e: MouseEvent) => void) => {
     const targets: Document[] = [document, ...Array.from(viewport.current?.querySelectorAll('iframe') ?? []).map((f) => f.contentDocument).filter((x): x is Document => !!x)];
-    const move = (e: MouseEvent) => {
-      const cur = dragRef.current;
-      if (!cur) return;
-      const dx = (e.screenX - cur.startX) / app.get().zoom;
-      const dy = (e.screenY - cur.startY) / app.get().zoom;
-      const moved = cur.moved || Math.abs(dx) + Math.abs(dy) > 3 / app.get().zoom;
-      const next = { ...cur, dx, dy, moved };
-      dragRef.current = next;
-      setDrag(next);
+    const move = (e: MouseEvent) => { if (e.buttons === 0 && e.type === 'mousemove') { up(e); return; } onMove(e); };
+    const up = (e: MouseEvent) => {
+      targets.forEach((t) => { t.removeEventListener('mousemove', move as EventListener, true); t.removeEventListener('mouseup', up as EventListener, true); });
+      onUp(e);
     };
-    const up = () => {
-      targets.forEach((t) => { t.removeEventListener('mousemove', move as EventListener); t.removeEventListener('mouseup', up); });
-      const cur = dragRef.current;
-      dragRef.current = null;
-      setDrag(null);
-      if (cur?.moved) void commitRef.current(cur); // sempre a versão MAIS NOVA (o documento muda enquanto se desenha)
-    };
-    targets.forEach((t) => { t.addEventListener('mousemove', move as EventListener); t.addEventListener('mouseup', up); });
-  }, []);
+    targets.forEach((t) => { t.addEventListener('mousemove', move as EventListener, true); t.addEventListener('mouseup', up as EventListener, true); });
+  };
 
-  const commitDrag = async (d: Drag) => {
-    const round = (v: number) => Math.round(v);
-    if (d.kind === 'move') {
-      const updates = d.ids.filter(movable).map((id) => { const n = nodeOf(id)!; return { id, props: { x: round(n.x + d.dx), y: round(n.y + d.dy) } }; });
-      if (!updates.length) return;
+  // ---------------------------------------------------------------- prévias dentro das telas (o elemento de verdade se mexe)
+  const previews = useRef<Map<HTMLElement, string | null>>(new Map());
+  const elementOf = (id: string): HTMLElement | null => {
+    for (const f of Array.from(viewport.current?.querySelectorAll('iframe') ?? [])) {
+      const el = f.contentDocument?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"]`);
+      if (el) return el;
+    }
+    return null;
+  };
+  const preview = (id: string, style: Partial<CSSStyleDeclaration>) => {
+    const el = elementOf(id);
+    if (!el) return;
+    if (!previews.current.has(el)) previews.current.set(el, el.getAttribute('style'));
+    Object.assign(el.style, style);
+  };
+  const clearPreviews = () => {
+    for (const [el, original] of previews.current) {
+      if (!el.isConnected) continue;
+      if (original == null) el.removeAttribute('style'); else el.setAttribute('style', original);
+    }
+    previews.current.clear();
+  };
+
+  // ---------------------------------------------------------------- alvos de encaixe
+  const snapTargets = (movingIds: string[]) => {
+    const s = S.current;
+    const first = movingIds[0];
+    const parent = parentOf(s.page.children, first);
+    const moving = new Set(movingIds.flatMap((id) => { const n = findNode(s.page.children, id); return n ? flatten([n]).map((x) => x.id) : []; }));
+    const sibs = (parent ? parent.children ?? [] : s.page.children).filter((n) => !moving.has(n.id) && n.visible !== false);
+    const rects = sibs.map((n) => aabbOf(n.id)).filter((x): x is Box => !!x);
+    if (parent) { const pb = aabbOf(parent.id); if (pb) rects.push(pb); }
+    const gs = s.showGuides && app.get().rulers ? s.page.guides ?? [] : [];
+    return { rects, guidesX: gs.filter((x) => x.axis === 'x').map((x) => x.pos), guidesY: gs.filter((x) => x.axis === 'y').map((x) => x.pos) };
+  };
+
+  // ---------------------------------------------------------------- escolher o que um clique seleciona
+  /** Camada travada não é clicável (vale a de cima dela, ou nenhuma); grupos são uma peça só, a não ser com Ctrl. */
+  const resolveHit = (hitId: string | null, deep: boolean): string | null => {
+    const s = S.current;
+    let n = hitId ? findNode(s.page.children, hitId) : null;
+    while (n && n.locked) n = parentOf(s.page.children, n.id) ?? null;
+    if (!n) return null;
+    if (deep) return n.id;
+    let result = n.id;
+    for (let p = parentOf(s.page.children, n.id); p; p = parentOf(s.page.children, p.id)) {
+      const inside = s.selection.some((x) => x === p!.id || isAncestor(s.page.children, p!.id, x));
+      if (p.type === 'group' && !inside) result = p.id;
+    }
+    return result;
+  };
+
+  // ---------------------------------------------------------------- gesto: mover a vista
+  const startPan = (e: MouseEvent) => {
+    const start = toParent(e);
+    const s = S.current;
+    const p0 = { x: s.panX, y: s.panY };
+    setGesture({ kind: 'pan' });
+    track((ev) => { const p = toParent(ev); app.set({ panX: p0.x + p.x - start.x, panY: p0.y + p.y - start.y }); }, () => setGesture(null));
+  };
+
+  // ---------------------------------------------------------------- gesto: mover camadas
+  const startMove = (e: MouseEvent, ids: string[], collapseTo: string | null) => {
+    const s = S.current;
+    if (!s.editable || s.bp) return;
+    const top = topLevel(s.page.children, ids);
+    const items = top.map((id) => {
+      const node = findNode(s.page.children, id)!;
+      const parent = parentOf(s.page.children, id) ?? null;
+      return { id, name: node.name, box: aabbOf(id)!, flow: inFlow(parent, node), locked: !!node.locked, parentId: parent?.id ?? null, board: isBoard(s.page.children, node), section: node.type === 'section' };
+    }).filter((i) => i.box);
+    if (!items.length) return;
+    const start = toParent(e);
+    const p0 = toWorld(start);
+    let moved = false, duplicate = e.altKey;
+    const targets = snapTargets(top);
+    const moving = items.filter((i) => !i.locked);
+
+    track((ev) => {
+      const now = toParent(ev);
+      if (!moved && Math.hypot(now.x - start.x, now.y - start.y) < THRESHOLD) return;
+      moved = true;
+      const p = toWorld(now);
+      let dx = p.x - p0.x, dy = p.y - p0.y;
+      if (ev.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
+      const free = moving.filter((i) => !i.flow);
+      let guides: ReturnType<typeof snapMove>['guides'] = [];
+      if (free.length && !(ev.ctrlKey || ev.metaKey)) {
+        const sn = snapMove(union(free.map((i) => i.box))!, dx, dy, targets, SNAP_PX / S.current.zoom);
+        dx = sn.dx; dy = sn.dy; guides = sn.guides;
+      }
+      // soltar dentro de outro frame (telas e seções não trocam de pai)
+      const canReparent = moving.every((i) => !i.section && !i.board);
+      let dropFrame: string | null = null;
+      let dropRoot = false;
+      if (canReparent && moved) {
+        const under = frameUnder(p, moving.map((i) => i.id));
+        dropFrame = under?.id ?? null;
+        dropRoot = !under;
+      }
+      // em auto layout arrastar REORDENA: acha onde o item entra
+      let dropLine: ReturnType<typeof flowDrop>['line'] = null;
+      let flowIndex: number | null = null;
+      const destId = canReparent ? dropFrame : moving[0].parentId;
+      const dest = destId ? nodeOf(destId) : null;
+      if (dest && (dest.layout?.mode ?? 'none') !== 'none' && moving.length === 1) {
+        const others = (dest.children ?? []).filter((c) => c.id !== moving[0].id && c.visible !== false && !c.absolute);
+        const r = flowDrop(others.map((c) => aabbOf(c.id)).filter((b): b is Box => !!b), p, dest.layout!.mode === 'row');
+        dropLine = r.line; flowIndex = r.index;
+      }
+      for (const i of moving) preview(i.id, { translate: `${dx}px ${dy}px` } as Partial<CSSStyleDeclaration>);
+      setGesture({ kind: 'move', items, dx, dy, moved: true, guides, dropFrame, dropRoot, dropLine, flowIndex, duplicate });
+    }, async (ev) => {
+      const cur = g.current;
+      setGesture(null);
+      if (!moved || cur?.kind !== 'move') {
+        clearPreviews();
+        // clique sem arrastar numa seleção múltipla: fica só essa camada
+        if (collapseTo && !ev.shiftKey) select([collapseTo]);
+        return;
+      }
+      try { await commitMove(cur, duplicate); } finally { clearPreviews(); }
+    });
+  };
+
+  /** O frame mais fundo sob o ponto (ignora as camadas que estão sendo arrastadas e o que há dentro delas). */
+  const frameUnder = (p: { x: number; y: number }, ignore: string[]): LayerNode | null => {
+    const s = S.current;
+    const skip = new Set(ignore.flatMap((id) => { const n = findNode(s.page.children, id); return n ? flatten([n]).map((x) => x.id) : []; }));
+    let best: LayerNode | null = null, bestDepth = -1;
+    const walk = (list: LayerNode[], depth: number) => {
+      for (const n of list) {
+        if (skip.has(n.id) || n.visible === false) continue;
+        if (n.type === 'frame' || n.type === 'section') {
+          const b = aabbOf(n.id);
+          if (b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h && n.type === 'frame' && depth >= bestDepth) { best = n; bestDepth = depth; }
+        }
+        if (n.children) walk(n.children, depth + 1);
+      }
+    };
+    walk(s.page.children, 0);
+    return best;
+  };
+
+  const commitMove = async (cur: Extract<Gesture, { kind: 'move' }>, duplicate: boolean) => {
+    const s = S.current;
+    let ids = cur.items.filter((i) => !i.locked).map((i) => i.id);
+    if (duplicate) {
+      const out = await run<{ created?: { id: string }[] }>('duplicate_layers', { ids });
+      const created = out?.created?.map((c) => c.id) ?? [];
+      if (created.length !== ids.length) return;
+      ids = created;
+      select(created);
+    }
+    const byId = new Map(cur.items.map((i, k) => [i.id, ids[k] ?? i.id]));
+    const moves: { id: string; parent_id?: string; index?: number; x?: number; y?: number }[] = [];
+    for (const item of cur.items) {
+      if (item.locked) continue;
+      const id = byId.get(item.id)!;
+      const node = findNode(s.page.children, item.id);
+      if (!node) continue;
+      const canReparent = !item.board && !item.section;
+      const newParent = canReparent ? cur.dropFrame : item.parentId;
+      const reparent = canReparent && (newParent ?? null) !== item.parentId;
+      const move: (typeof moves)[number] = { id };
+      if (reparent) move.parent_id = newParent ?? 'root';
+      const dest = newParent ? findNode(s.page.children, newParent) : null;
+      const destFlow = !!dest && (dest.layout?.mode ?? 'none') !== 'none';
+      if (destFlow && cur.flowIndex != null) {
+        // posição entre as irmãs de destino, sem contar o próprio item
+        const list = (dest!.children ?? []).filter((c) => c.id !== item.id);
+        const others = list.filter((c) => c.visible !== false && !c.absolute);
+        const ref = others[cur.flowIndex];
+        move.index = ref ? list.indexOf(ref) : others.length ? list.indexOf(others[others.length - 1]) + 1 : list.length;
+      } else if (!item.flow || reparent) {
+        const po = originOfParent(newParent);
+        const o = oboxOf(item.id)!;
+        move.x = Math.round(o.x + cur.dx - po.x);
+        move.y = Math.round(o.y + cur.dy - po.y);
+      }
+      if (move.parent_id === undefined && move.index === undefined && move.x === undefined) continue;
+      if (move.parent_id === undefined && move.index === undefined && Math.abs(cur.dx) + Math.abs(cur.dy) < 0.5) continue;
+      moves.push(move);
+    }
+    if (!moves.length) return;
+    // uma só chamada: mudar de pai, de ordem e de posição vale um único desfazer
+    if (moves.every((m) => m.parent_id === undefined && m.index === undefined)) {
+      const updates = moves.map((m) => ({ id: m.id, props: { x: m.x, y: m.y } }));
       if (updates.length === 1) await setProps([updates[0].id], updates[0].props);
       else await run('update_layers', { updates });
-      return;
-    }
-    const id = d.ids[0];
-    const n = nodeOf(id);
-    const h = d.handle!;
-    if (!n) return;
-    const box = boxOf(id);
-    let { w, h: height } = { w: box?.w ?? n.w, h: box?.h ?? n.h };
-    let x = n.x, y = n.y;
-    if (h.includes('e')) w += d.dx;
-    if (h.includes('s')) height += d.dy;
-    if (h.includes('w')) { w -= d.dx; x += d.dx; }
-    if (h.includes('n')) { height -= d.dy; y += d.dy; }
-    const props: Record<string, unknown> = { w: Math.max(4, round(w)), h: Math.max(4, round(height)) };
-    if (movable(id) && (h.includes('w') || h.includes('n'))) { props.x = round(x); props.y = round(y); }
-    await setProps([id], props);
+    } else await run('move_layers', { moves });
   };
 
-  // o fim do arrasto roda dentro de um ouvinte criado uma vez só: precisa enxergar o documento atual, não o de quando o ouvinte nasceu
-  const commitRef = useRef(commitDrag);
-  commitRef.current = commitDrag;
-
-  const onPressSelected = useCallback((id: string, e: MouseEvent) => {
-    const ids = app.get().selection.includes(id) ? app.get().selection : [id];
-    if (!ids.some(movable)) return;
-    beginDrag({ kind: 'move', ids, startX: e.screenX, startY: e.screenY, moved: false, dx: 0, dy: 0 });
-  }, [beginDrag, page, editable]);
-
+  // ---------------------------------------------------------------- gesto: redimensionar
   const startResize = (handle: Handle) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    beginDrag({ kind: 'resize', handle, ids: [selection[0]], startX: e.screenX, startY: e.screenY, moved: false, dx: 0, dy: 0 });
+    const s = S.current;
+    if (!s.editable || s.bp) return;
+    const ids = topLevel(s.page.children, s.selection).filter((id) => !nodeOf(id)?.locked);
+    if (!ids.length) return;
+    const [hx, hy] = HANDLE_DIR[handle];
+    const start = toParent(e.nativeEvent);
+    const p0 = toWorld(start);
+    const single = ids.length === 1;
+    const items = ids.map((id) => {
+      const n = nodeOf(id)!;
+      const ob = oboxOf(id)!;
+      const parentId = parentIdOf(id);
+      return { id, node: n, ob, flow: inFlow(parentOf(s.page.children, id), n), parentId };
+    });
+    const box0 = single ? { x: items[0].ob.x, y: items[0].ob.y, w: items[0].ob.w, h: items[0].ob.h } : union(items.map((i) => aabbOf(i.id)!))!;
+    const targets = snapTargets(ids);
+    let moved = false;
+    setGesture({ kind: 'resize', handle, box: items[0].ob, boxes: [], guides: [], single });
+
+    const compute = (ev: MouseEvent) => {
+      const p = toWorld(toParent(ev));
+      let dx = p.x - p0.x, dy = p.y - p0.y;
+      let guides: ReturnType<typeof snapResize>['guides'] = [];
+      const unrotated = items.every((i) => !i.ob.rot);
+      if (unrotated && !ev.altKey && !(ev.ctrlKey || ev.metaKey)) {
+        const sn = snapResize(box0, dx, dy, hx, hy, targets, SNAP_PX / S.current.zoom);
+        dx = sn.dx; dy = sn.dy; guides = sn.guides;
+      }
+      if (single) {
+        const it = items[0];
+        const n = it.node;
+        const r = resizeSingle({
+          x: it.ob.x, y: it.ob.y, w: it.ob.w, h: it.ob.h, rotation: it.ob.rot, hx, hy, dx, dy, shift: ev.shiftKey, alt: ev.altKey,
+          lockRatio: !!n.lockRatio, aspect: n.aspect ? Number(n.aspect) : undefined,
+          min: { w: n.minW, h: n.minH }, max: { w: n.maxW, h: n.maxH },
+        });
+        return { guides, ob: { x: r.x, y: r.y, w: r.w, h: r.h, rot: it.ob.rot } as ObBox, list: [{ id: it.id, x: r.x, y: r.y, w: r.w, h: r.h }] };
+      }
+      const { box } = resizeGroupBox(box0, hx, hy, dx, dy, ev.shiftKey);
+      const list = items.map((it) => { const a = aabbOf(it.id)!; const nb = scaleInto(a, box0, box); return { id: it.id, x: nb.x, y: nb.y, w: nb.w, h: nb.h }; });
+      return { guides, ob: { ...box, rot: 0 } as ObBox, list };
+    };
+
+    track((ev) => {
+      const now = toParent(ev);
+      if (!moved && Math.hypot(now.x - start.x, now.y - start.y) < 2) return;
+      moved = true;
+      const r = compute(ev);
+      for (const l of r.list) {
+        const it = items.find((i) => i.id === l.id)!;
+        const style: Partial<CSSStyleDeclaration> = {};
+        if (hx || !single) { style.width = `${Math.round(l.w)}px`; style.flex = 'none'; style.maxWidth = 'none'; }
+        if (hy || !single) { style.height = `${Math.round(l.h)}px`; style.flex = 'none'; style.maxHeight = 'none'; }
+        if (!it.flow) {
+          const po = originOfParent(it.parentId);
+          style.left = `${Math.round(l.x - po.x)}px`; style.top = `${Math.round(l.y - po.y)}px`;
+        }
+        preview(l.id, style);
+      }
+      setGesture({ kind: 'resize', handle, box: r.ob, boxes: r.list, guides: r.guides, single });
+    }, async (ev) => {
+      setGesture(null);
+      if (!moved) { clearPreviews(); return; }
+      const r = compute(ev);
+      try {
+        const updates = r.list.map((l) => {
+          const it = items.find((i) => i.id === l.id)!;
+          const props: Record<string, unknown> = {};
+          if (hx || !single) props.w = Math.max(1, Math.round(l.w));
+          if (hy || !single) props.h = Math.max(1, Math.round(l.h));
+          if (!it.flow) { const po = originOfParent(it.parentId); props.x = Math.round(l.x - po.x); props.y = Math.round(l.y - po.y); }
+          return { id: l.id, props };
+        });
+        if (updates.length === 1) await setProps([updates[0].id], updates[0].props);
+        else await run('update_layers', { updates });
+      } finally { clearPreviews(); }
+    });
   };
 
-  // ---------------------------------------------------------------- caixas de seleção em coordenadas do mundo
-  const boxOf = (id: string): Box | null => {
-    const b = boardContaining(page, id);
-    const inner = b && boxes[b.id]?.[id];
-    if (!b || !inner) return null;
-    const p = posOf(b);
-    return { x: p.x + inner.x, y: p.y + inner.y, w: inner.w, h: inner.h };
+  // ---------------------------------------------------------------- gesto: girar
+  const startRotate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const s = S.current;
+    const id = s.selection[0];
+    const ob = id && oboxOf(id);
+    if (!id || !ob || !s.editable || s.bp || nodeOf(id)?.locked) return;
+    const c = { x: ob.x + ob.w / 2, y: ob.y + ob.h / 2 };
+    const a0 = angleOf(c.x, c.y, toWorld(toParent(e.nativeEvent)).x, toWorld(toParent(e.nativeEvent)).y);
+    const r0 = ob.rot;
+    let angle = r0, moved = false;
+    setGesture({ kind: 'rotate', ob, angle });
+    track((ev) => {
+      const p = toWorld(toParent(ev));
+      angle = rotateBy(r0, a0, angleOf(c.x, c.y, p.x, p.y), ev.shiftKey);
+      moved = true;
+      preview(id, { rotate: `${angle - r0}deg` } as Partial<CSSStyleDeclaration>);
+      setGesture({ kind: 'rotate', ob: { ...ob, rot: angle }, angle });
+    }, async () => {
+      setGesture(null);
+      try { if (moved && angle !== r0) await setProps([id], { rotation: angle }); } finally { clearPreviews(); }
+    });
   };
 
-  const inv = 1 / zoom;
-  /** O menor lado da caixa na tela: caixas pequenas só ganham as alças dos cantos (ou nenhuma). */
-  const small = (b: Box) => Math.min(b.w, b.h) * zoom;
-  const selBoxes = selection.map((id) => ({ id, box: boxOf(id) })).filter((s): s is { id: string; box: Box } => !!s.box);
-  const hoverBox = hover && !selection.includes(hover) ? boxOf(hover) : null;
-  const single = selection.length === 1 ? selBoxes[0] : undefined;
+  // ---------------------------------------------------------------- gesto: caixa de seleção
+  const startMarquee = (e: MouseEvent, scope: string | null, clickId: string | null, additive: boolean) => {
+    const start = toParent(e);
+    const a = toWorld(start);
+    const base = additive ? S.current.selection : [];
+    let moved = false;
+    const pick = (rect: Box): string[] => {
+      const s = S.current;
+      const list = scope ? (findNode(s.page.children, scope)?.children ?? []) : s.boards;
+      return list.filter((n) => n.visible !== false && !n.locked).filter((n) => { const b = aabbOf(n.id); return b && intersects(rect, b); }).map((n) => n.id);
+    };
+    track((ev) => {
+      const now = toParent(ev);
+      if (!moved && Math.hypot(now.x - start.x, now.y - start.y) < THRESHOLD) return;
+      moved = true;
+      const rect = normalize(a, toWorld(now));
+      setGesture({ kind: 'marquee', rect });
+      select([...new Set([...base, ...pick(rect)])]);
+    }, () => {
+      setGesture(null);
+      if (!moved && clickId) select(additive && base.includes(clickId) ? base.filter((x) => x !== clickId) : [...new Set([...base, clickId])]);
+    });
+  };
 
-  const onPick = useCallback((id: string, additive: boolean) => {
-    const cur = app.get().selection;
-    select(additive ? (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]) : [id]);
+  // ---------------------------------------------------------------- gesto: desenhar uma forma
+  const startDraw = (e: MouseEvent, shape: ShapeTool, hitId: string | null, boardId: string) => {
+    const s = S.current;
+    if (!s.editable || s.bp) return;
+    const start = toParent(e);
+    const a = toWorld(start);
+    const root = shape === 'section' || shape === 'frame' && !hitId;
+    // um frame novo cai dentro do frame sob o ponteiro (se houver); seção só na raiz
+    const parent = root ? null : parentFor(s.page.children, hitId);
+    let moved = false;
+    let cur = a;
+    const drawn = (ev?: MouseEvent): Drawn => {
+      let b = cur;
+      if (shape === 'line') {
+        let { x, y } = cur;
+        if (ev?.shiftKey) { const ang = Math.round(Math.atan2(y - a.y, x - a.x) / (Math.PI / 4)) * (Math.PI / 4); const len = Math.hypot(x - a.x, y - a.y); x = a.x + Math.cos(ang) * len; y = a.y + Math.sin(ang) * len; }
+        b = { x, y };
+        return { ...normalize(a, b), a, b };
+      }
+      let box = normalize(a, b);
+      if (ev?.shiftKey && shape !== 'text') { const side = Math.max(box.w, box.h); box = { x: b.x < a.x ? a.x - side : a.x, y: b.y < a.y ? a.y - side : a.y, w: side, h: side }; }
+      if (ev?.altKey) box = { x: a.x - (b.x - a.x), y: a.y - (b.y - a.y), w: Math.abs(b.x - a.x) * 2, h: Math.abs(b.y - a.y) * 2 };
+      return box;
+    };
+    setGesture({ kind: 'draw', tool: shape, box: { x: a.x, y: a.y, w: 0, h: 0 } });
+    track((ev) => {
+      const now = toParent(ev);
+      if (!moved && Math.hypot(now.x - start.x, now.y - start.y) < THRESHOLD) return;
+      moved = true;
+      cur = toWorld(now);
+      const d = drawn(ev);
+      setGesture({ kind: 'draw', tool: shape, box: { x: d.x, y: d.y, w: d.w, h: d.h }, line: shape === 'line' ? { a: d.a!, b: d.b! } : undefined });
+    }, async (ev) => {
+      const d = drawn(ev);
+      setGesture(null);
+      setTool('move');
+      void boardId;
+      const origin = originOfParent(parent?.id ?? null);
+      await createShape(shape, moved ? d : { x: a.x, y: a.y, w: 0, h: 0 }, parent, origin, !moved);
+    });
+  };
+
+  // ---------------------------------------------------------------- ponteiro vindo das telas
+  const onPointer = useCallback((p: BoardPointer) => {
+    const s = S.current;
+    const e = p.e;
+    if (p.type === 'move') {
+      if (g.current) return;
+      const id = resolveHit(p.hitId, e.ctrlKey || e.metaKey);
+      if (s.tool === 'inspect') hoverLayer(p.hitId); else hoverLayer(id);
+      return;
+    }
+    if (p.type === 'leave') { if (!g.current) hoverLayer(null); return; }
+    if (p.type === 'context') {
+      e.preventDefault();
+      const id = resolveHit(p.hitId, e.ctrlKey || e.metaKey);
+      const pt = toParent(e);
+      if (id && !s.selection.includes(id)) select([id]);
+      const raw = id ?? null;
+      showMenu(raw ? layerMenuItems() : canvasMenuItems(), pt.x, pt.y);
+      return;
+    }
+    if (p.type === 'dblclick') {
+      // entra no grupo/frame: seleciona o filho que contém o ponto (ou a camada mais funda)
+      const hit = p.hitId ? findNode(s.page.children, p.hitId) : null;
+      if (!hit) return;
+      const cur = s.selection[0];
+      if (cur && cur !== p.hitId && isAncestor(s.page.children, cur, p.hitId!)) {
+        let child: LayerNode | null = hit;
+        for (let q: LayerNode | null | undefined = hit; q && q.id !== cur; q = parentOf(s.page.children, q.id)) child = q;
+        if (child && !child.locked) select([child.id]);
+      } else if (!s.selection.includes(hit.id)) select([hit.id]);
+      return;
+    }
+    if (p.type !== 'down' || e.button !== 0) return;
+    if (document.activeElement && document.activeElement !== document.body) (document.activeElement as HTMLElement).blur?.();
+    if (s.spaceDown || s.tool === 'hand') { startPan(e); return; }
+    if (s.tool === 'comment') { const id = resolveHit(p.hitId, true); setTool('move'); if (id) { select([id]); void commentOn(id); } return; }
+    if (s.tool === 'inspect') { select(p.hitId ? [p.hitId] : []); return; }
+    if (SHAPE_TOOLS.includes(s.tool as ShapeTool)) { startDraw(e, s.tool as ShapeTool, p.hitId, p.boardId); return; }
+    const id = resolveHit(p.hitId, e.ctrlKey || e.metaKey);
+    if (s.bp) { select(id ? (e.shiftKey ? [...new Set([...s.selection, id])] : [id]) : []); return; }
+    if (!id) { if (!e.shiftKey) select([]); startMarquee(e, null, null, e.shiftKey); return; }
+    const node = findNode(s.page.children, id)!;
+    const inSel = s.selection.includes(id);
+    // tela (frame da raiz) ainda não selecionada: o clique a seleciona; arrastar faz a caixa de seleção dentro dela
+    if (isBoard(s.page.children, node) && !inSel) { startMarquee(e, id, id, e.shiftKey); return; }
+    if (e.shiftKey) {
+      select(inSel ? s.selection.filter((x) => x !== id) : [...s.selection, id]);
+      if (inSel) return;
+    } else if (!inSel) select([id]);
+    const ids = e.shiftKey ? [...s.selection.filter((x) => x !== id), id] : inSel ? s.selection : [id];
+    startMove(e, ids, inSel && !e.shiftKey && s.selection.length > 1 ? id : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const onEditText = useCallback((id: string, text: string) => { void setProps([id], { text }); }, []);
+  const onEditConsumed = useCallback(() => app.set({ pendingEdit: null }), []);
+
+  // clicar no nome da tela seleciona e arrasta a tela inteira
+  const onLabelDown = (b: LayerNode) => (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    if (S.current.spaceDown || S.current.tool === 'hand') { startPan(e.nativeEvent); return; }
+    const inSel = selection.includes(b.id);
+    if (e.shiftKey) select(inSel ? selection.filter((x) => x !== b.id) : [...selection, b.id]);
+    else if (!inSel) select([b.id]);
+    if (b.locked) return;
+    startMove(e.nativeEvent, e.shiftKey ? [...selection, b.id] : inSel ? selection : [b.id], null);
+  };
+  const onLabelContext = (b: LayerNode) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!selection.includes(b.id)) select([b.id]);
+    showMenu(layerMenuItems(), e.clientX, e.clientY);
+  };
+
+  // clicar no vazio do canvas (fora das telas)
+  const onViewportDown = (e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && (S.current.spaceDown || S.current.tool === 'hand'))) { e.preventDefault(); startPan(e.nativeEvent); return; }
+    if (e.button !== 0 || e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('canvas-world')) return;
+    const s = S.current;
+    if (SHAPE_TOOLS.includes(s.tool as ShapeTool)) { startDraw(e.nativeEvent, s.tool as ShapeTool, null, ''); return; }
+    if (s.tool === 'comment' || s.tool === 'inspect') { select([]); return; }
+    if (!e.shiftKey) select([]);
+    startMarquee(e.nativeEvent, null, null, e.shiftKey);
+  };
+  const onViewportContext = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.board-frame, .board-label, .handle')) return;
+    e.preventDefault();
+    showMenu(canvasMenuItems(), e.clientX, e.clientY);
+  };
+
+  // ---------------------------------------------------------------- derivados para o desenho
+  const sel = useMemo(() => topLevel(page.children, selection), [page, selection]);
+  const hoverBox = hover && !selection.includes(hover) && !gesture ? aabbOf(hover) : null;
+
+  const selUnion = useMemo(() => union(sel.map(aabbOf).filter((x): x is Box => !!x)), [sel, boxes, page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // distância (Alt) entre a seleção e a camada sob o ponteiro
+  const measureTarget = altDown && !gesture && hover && !selection.includes(hover) && sel.length ? hover : null;
+
+  const cursorClass = gesture?.kind === 'pan' || spaceDown || tool === 'hand' ? 'grab' : SHAPE_TOOLS.includes(tool as ShapeTool) ? 'cross' : tool === 'comment' ? 'comment' : '';
 
   if (!allBoards.length) {
     return (
-      <div className="canvas-viewport">
-        <div className="canvas-empty">
-          <h3>Esta página está vazia</h3>
-          <p className="muted">Crie uma tela para começar. Um agente conectado também pode montar a estrutura para você.</p>
-          {editable && <button className="btn primary" onClick={() => void insert('screen')}><Icon name="plus" /> Criar uma tela</button>}
+      <div className="canvas-area">
+        <div className="canvas-viewport">
+          <div className="canvas-empty">
+            <h3>Esta página está vazia</h3>
+            <p className="muted">Crie uma tela para começar (tecla F e arraste no canvas). Um agente conectado também pode montar a estrutura para você.</p>
+            {editable && <button className="btn primary" onClick={() => void insert('screen')}><Icon name="plus" /> Criar uma tela</button>}
+          </div>
         </div>
       </div>
     );
   }
 
-  const live = (box: Box, id: string): Box => {
-    if (!drag?.moved) return box;
-    if (drag.kind === 'move' && drag.ids.includes(id) && movable(id)) return { ...box, x: box.x + drag.dx, y: box.y + drag.dy };
-    if (drag.kind === 'resize' && drag.ids[0] === id) {
-      let { x, y, w, h } = box;
-      const hd = drag.handle!;
-      if (hd.includes('e')) w += drag.dx;
-      if (hd.includes('s')) h += drag.dy;
-      if (hd.includes('w')) { x += drag.dx; w -= drag.dx; }
-      if (hd.includes('n')) { y += drag.dy; h -= drag.dy; }
-      return { x, y, w: Math.max(4, w), h: Math.max(4, h) };
-    }
-    return box;
-  };
+  const dotStep = 24 * zoom;
 
   return (
-    <div className="canvas-area">
-      <div className="canvas-viewport" ref={viewport} onMouseDown={onViewportDown}>
-        <div className="canvas-sizer" style={{ width: layout.w * zoom, height: layout.h * zoom }}>
-          <div className="canvas-world" style={{ width: layout.w, height: layout.h, transform: `scale(${zoom})`, ['--inv' as string]: inv }}>
-            {boards.map((b) => {
-              const p = posOf(b);
-              return (
-                <div key={b.id}>
-                  <div className="board-label" style={{ left: p.x, top: p.y - 18 * inv }}>{b.name}{bp ? ` · ${bp.name} ${bp.preview}px` : ''}</div>
-                  <BoardFrame
-                    board={b} doc={doc} x={p.x} y={p.y} width={widthOf(b)} selection={selection} editable={editable}
-                    onMeasure={onMeasure} onPick={onPick} onHover={hoverLayer} onEditText={onEditText}
-                    onPressSelected={onPressSelected} onBoxes={onBoxes}
-                  />
-                </div>
-              );
-            })}
+    <div className={`canvas-area ${cursorClass}`}>
+      <div
+        className="canvas-viewport" ref={viewport} onMouseDown={onViewportDown} onContextMenu={onViewportContext}
+        style={{ backgroundSize: `${dotStep}px ${dotStep}px`, backgroundPosition: `${panX}px ${panY}px`, backgroundImage: zoom < 0.3 ? 'none' : undefined }}
+      >
+        <div className="canvas-world" style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, ['--inv' as string]: 1 / zoom }}>
+          {boards.map((b) => (
+            <div key={b.id}>
+              <div className={`board-label${selection.includes(b.id) ? ' on' : ''}`} style={{ left: b.x, top: b.y - 22 / zoom }} onMouseDown={onLabelDown(b)} onContextMenu={onLabelContext(b)}>
+                {b.name}{bp ? ` · ${bp.name} ${bp.preview}px` : ''}
+              </div>
+              <BoardFrame
+                board={b} doc={doc} x={b.x} y={b.y} width={widthOf(b)} editable={editable} pendingEdit={pendingEdit}
+                onMeasure={onMeasure} onPointer={onPointer} onEditText={onEditText} onEditConsumed={onEditConsumed} onBoxes={onBoxes}
+              />
+            </div>
+          ))}
 
-            {hoverBox && <div className="sel-hover" style={{ left: hoverBox.x, top: hoverBox.y, width: hoverBox.w, height: hoverBox.h }} />}
-            {selBoxes.map(({ id, box }) => {
-              const b = live(box, id);
-              const node = nodeOf(id);
-              return (
-                <div key={id} className={`sel-box${drag?.moved ? ' dragging' : ''}`} style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
-                  {single?.id === id && <span className="sel-label" style={{ top: -22 * inv }}>{node?.name}{node && <span className="faint"> · {Math.round(b.w)}×{Math.round(b.h)}</span>}</span>}
-                </div>
-              );
-            })}
-            {single && editable && !nodeOf(single.id)?.locked && (small(single.box) < 14 ? [] : small(single.box) < 44 ? HANDLES.filter((h) => h.length === 2) : HANDLES).map((h) => {
-              const b = live(single.box, single.id);
-              const cx = h.includes('w') ? b.x : h.includes('e') ? b.x + b.w : b.x + b.w / 2;
-              const cy = h.includes('n') ? b.y : h.includes('s') ? b.y + b.h : b.y + b.h / 2;
-              return <div key={h} className={`handle h-${h}`} style={{ left: cx, top: cy }} onMouseDown={startResize(h)} />;
-            })}
-          </div>
+          <SelectionOverlay
+            zoom={zoom} gesture={gesture} selection={sel} editable={editable && !bp} hoverBox={hoverBox}
+            pageGuides={showGuides && rulers ? page.guides ?? [] : []}
+            oboxOf={oboxOf} aabbOf={aabbOf} nameOf={(id) => nodeOf(id)?.name ?? ''} lockedOf={(id) => !!nodeOf(id)?.locked}
+            measureTarget={measureTarget}
+            onResize={startResize} onRotate={startRotate}
+          />
         </div>
-        {drag?.moved && <div className="drag-shield" />}
+        {gesture && gesture.kind !== 'pan' && <div className="drag-shield" />}
+        {rulers && <Rulers viewport={viewport} guides={page.guides ?? []} highlight={selUnion} />}
       </div>
 
       <div className="zoom-controls">
-        <button className="btn ghost icon sm" title="Diminuir" onClick={() => setZoom(zoom / 1.2)}>−</button>
-        <button className="btn ghost sm" title="Ajustar à tela" onClick={fit}>{Math.round(zoom * 100)}%</button>
-        <button className="btn ghost icon sm" title="Aumentar" onClick={() => setZoom(zoom * 1.2)}>+</button>
+        <button className="btn ghost icon sm" title="Diminuir" onClick={() => zoomTo(zoom / 1.25)}><Icon name="minus" size={14} /></button>
+        <button className="btn ghost sm" title="Ajustar tudo à tela (⇧1) · 100% (⇧0)" onClick={() => window.dispatchEvent(new Event('stylo:fit'))}>{Math.round(zoom * 100)}%</button>
+        <button className="btn ghost icon sm" title="Aumentar" onClick={() => zoomTo(zoom * 1.25)}><Icon name="plus" size={14} /></button>
+        <button className="btn ghost icon sm" title="Ajustar à seleção (⇧2)" onClick={() => window.dispatchEvent(new Event('stylo:fit-selection'))}><Icon name="fit" size={14} /></button>
       </div>
     </div>
   );

@@ -3,10 +3,14 @@ import * as api from './api';
 import { collectIds, pageOf } from './doc';
 import { saveThumbnail } from './thumbnail';
 import { createStore, useStore } from './store';
+import type { MenuState } from '../ui/ContextMenu';
+import type { DialogState } from '../ui/Dialog';
 import type { AuthState, DesignIssue, Device, Doc, Presence, ProjectInfo, PublicUser } from './types';
 
 export type Panel = 'issues' | 'agents' | 'export' | null;
 export type Theme = 'light' | 'dark' | 'system';
+/** A ferramenta do canvas: mover/selecionar, mão (arrastar a vista) ou uma forma para desenhar. */
+export type Tool = 'move' | 'hand' | 'frame' | 'section' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'text' | 'html' | 'comment' | 'inspect';
 
 export interface AppState {
   boot: 'loading' | 'ready' | 'error';
@@ -34,6 +38,20 @@ export interface AppState {
   issuesNote: string | null;
   theme: Theme;
   accent: string;
+  menu: MenuState | null;
+  dialog: DialogState | null;
+  /** camada cujo nome está sendo editado na lista */
+  renaming: string | null;
+  tool: Tool;
+  /** deslocamento da visão (px de tela) — a posição do "mundo" dentro do canvas */
+  panX: number;
+  panY: number;
+  altDown: boolean;
+  spaceDown: boolean;
+  /** camada de texto recém-criada, para entrar em edição */
+  pendingEdit: string | null;
+  rulers: boolean;
+  guides: boolean;
 }
 
 export const ACCENTS = ['#5b5bd6', '#2f7de1', '#0f9d8a', '#2f9e44', '#d9822b', '#d6409f', '#c2410c', '#6b7280'];
@@ -53,6 +71,9 @@ export const app = createStore<AppState>({
   busy: 0, toast: null, presence: null, live: false, panel: null,
   issues: null, issuesRunning: false, issuesNote: null,
   theme: readPref<Theme>('stylo.theme', 'system'), accent: readPref<string>('stylo.accent', ACCENTS[0]),
+  menu: null, dialog: null, renaming: null, tool: 'move',
+  panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
+  rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
 });
 
 export const useApp = <T,>(selector: (s: AppState) => T): T => useStore(app, selector);
@@ -149,9 +170,12 @@ export async function run<T = any>(toolName: string, args: Record<string, unknow
 
 // ---------------------------------------------------------------- seleção e visão
 export function select(ids: string[]) { app.set({ selection: ids }); }
+export const setTool = (tool: Tool) => app.set({ tool });
 export const hoverLayer = (id: string | null) => { if (app.get().hover !== id) app.set({ hover: id }); };
 export const setDevice = (device: Device) => app.set({ device });
-export const setZoom = (zoom: number) => app.set({ zoom: Math.min(4, Math.max(0.1, zoom)) });
+export const setZoom = (zoom: number) => app.set({ zoom: Math.min(16, Math.max(0.02, zoom)) });
+export const setRulers = (rulers: boolean) => { app.set({ rulers }); writePref('stylo.rulers', rulers); };
+export const setGuides = (guides: boolean) => { app.set({ guides }); writePref('stylo.guides', guides); };
 export const setPanel = (panel: Panel) => app.set({ panel: app.get().panel === panel ? null : panel });
 export function setPage(id: string) { app.set({ pageId: id, selection: [], hover: null }); }
 

@@ -31,6 +31,7 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - texto: text, fontFamily, fontSize, fontWeight, fontStyle, lineHeight (multiplicador, ex.: 1.4), letterSpacing (px), textAlign, textDecoration, textTransform, truncate ("ellipsis"|"clamp"), lines
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
 - transformar: flipX/flipY (espelhar), skewX/skewY (inclinação em graus), lockRatio (trava a proporção ao redimensionar), constraints {h:"left"|"right"|"leftright"|"center"|"scale", v:"top"|"bottom"|"topbottom"|"center"|"scale"} (só em frames sem layout), fx {brightness,contrast,saturate,grayscale (%), hue (graus)} (filtros de cor; null limpa), order e shrink (item de flex)
+- código HTML escrito à mão (camada type "html"): html (o texto HTML; é limpo ao exibir e exportar: sem <script> nem on*)
 - HTML: htmlId (id), classes (classes extras separadas por espaço), title, role, lang, target/rel (links), buttonType, dateTime, cite; tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
 
 type Shape = z.ZodObject<any, any>;
@@ -178,10 +179,10 @@ ${PROP_HELP}`,
   defineTool({
     name: 'create_layer',
     write: true,
-    description: `Cria uma camada nova. Sem parent_id, vai para a raiz da página (vira uma tela, se for frame). Dentro de um frame com layout, entra na posição "index" (padrão: no fim).
+    description: `Cria uma camada nova. Sem parent_id, vai para a raiz da página (vira uma tela, se for frame). type "section" (só na raiz) agrupa telas no canvas; "html" é uma caixa com HTML escrito à mão. Dentro de um frame com layout, entra na posição "index" (padrão: no fim).
 ${PROP_HELP}`,
     input: z.object({
-      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'line', 'path']),
+      type: z.enum(['frame', 'rect', 'ellipse', 'text', 'line', 'path', 'section', 'html']),
       parent_id: z.string().describe('id do frame/grupo pai (opcional)').optional(),
       index: z.number().int().describe('posição entre os irmãos (0 = primeiro / mais ao fundo)').optional(),
       props: z.record(z.string(), z.any()).optional(),
