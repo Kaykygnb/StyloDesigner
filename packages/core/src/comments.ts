@@ -19,6 +19,24 @@ import { uid, walk } from './model.js';
 
 const clamp01 = (n) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
+/** Retorna identificadores mencionados no texto (ex.: @ana ou @agent-reviewer). */
+export function extractMentions(text) {
+  const found = new Array();
+  const seen = /** @type {Record<string, boolean>} */ (Object.create(null));
+  const re = /(^|[^\w])@([\p{L}\p{N}][\w.-]{0,63})/gu;
+  let match;
+  while ((match = re.exec(String(text ?? '')))) {
+    const name = match[2];
+    const key = name.toLowerCase();
+    if (!seen[key]) { seen[key] = true; found[found.length] = name; }
+  }
+  return found;
+}
+
+function recordHistory(item, type, previous, next) {
+  (item.history ||= []).push({ type, previous, next, at: new Date().toISOString() });
+}
+
 /** Todos os comentários do documento (lista vazia se o projeto é antigo e não tem). */
 export const commentsOf = (doc) => doc.comments || [];
 
@@ -31,7 +49,7 @@ export const commentsOf = (doc) => doc.comments || [];
 export function addComment(doc, { nodeId, rx = 1, ry = 0, text, author }) {
   const t = String(text ?? '').trim();
   if (!t) return null;
-  const c = { id: uid(), nodeId, rx: clamp01(rx), ry: clamp01(ry), text: t, author: author || 'Eu', at: new Date().toISOString(), resolved: false, replies: [] };
+  const c = { id: uid(), nodeId, rx: clamp01(rx), ry: clamp01(ry), text: t, mentions: extractMentions(t), author: author || 'Eu', at: new Date().toISOString(), resolved: false, replies: [], history: [] };
   (doc.comments ||= []).push(c);
   return c;
 }
@@ -40,7 +58,7 @@ export function addComment(doc, { nodeId, rx = 1, ry = 0, text, author }) {
 export function addReply(comment, { text, author }) {
   const t = String(text ?? '').trim();
   if (!t) return null;
-  const r = { id: uid(), text: t, author: author || 'Eu', at: new Date().toISOString() };
+  const r = { id: uid(), text: t, mentions: extractMentions(t), author: author || 'Eu', at: new Date().toISOString(), history: [] };
   (comment.replies ||= []).push(r);
   return r;
 }
@@ -52,14 +70,19 @@ export function addReply(comment, { text, author }) {
 export function editText(item, text) {
   const t = String(text ?? '').trim();
   if (!t || t === item.text) return false;
+  const previous = item.text;
   item.text = t;
+  item.mentions = extractMentions(t);
   item.editedAt = new Date().toISOString();
+  recordHistory(item, 'edit', previous, t);
   return true;
 }
 
 /** Marca (ou reabre) um comentário como resolvido. */
 export function setResolved(comment, resolved) {
-  comment.resolved = !!resolved;
+  const next = !!resolved;
+  if (!!comment.resolved !== next) recordHistory(comment, next ? 'resolve' : 'reopen', comment.resolved, next);
+  comment.resolved = next;
 }
 
 /** Apaga um comentário pelo id. @returns {boolean} true se existia */

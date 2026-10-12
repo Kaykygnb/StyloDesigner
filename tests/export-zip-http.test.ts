@@ -69,6 +69,7 @@ test('rotas ZIP entregam HTML/React íntegros e isolam projetos por conta', { ti
   const owner = (await setup.json()).token;
   const created = await json('/api/users', { email: 'other@zip.test', name: 'Outra conta', password: 'SenhaZipTeste123!' }, owner); assert.equal(created.status, 201);
   const other = (await (await json('/api/auth/login', { email: 'other@zip.test', password: 'SenhaZipTeste123!' })).json()).token;
+  const changedOther = await json('/api/me/password', { current: 'SenhaZipTeste123!', next: 'SenhaZipTesteNova123!' }, other); assert.equal(changedOther.status, 200);
   const doc: any = makeDoc(); doc.name = 'Entrega ZIP'; doc.assets.foto = `data:image/png;base64,${PNG}`;
   doc.breakpoints = [{ id: 'mobile', name: 'Celular', max: 600, preview: 390 }];
   const home: any = createNode('frame', { name: 'Home', w: 800, h: 400, fluid: true }); home.layout.mode = 'column';

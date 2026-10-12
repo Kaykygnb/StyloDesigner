@@ -11,7 +11,7 @@ export type LayerType = 'frame' | 'rect' | 'ellipse' | 'text' | 'group' | 'line'
 export interface GradientStop { color: string; opacity: number; pos: number }
 
 export interface Fill {
-  type: 'solid' | 'linear' | 'radial' | 'conic' | 'image' | 'none';
+  type: 'solid' | 'linear' | 'radial' | 'conic' | 'image' | 'pattern' | 'none';
   color: string;
   opacity: number;
   stops: GradientStop[];
@@ -26,7 +26,12 @@ export interface Fill {
   [extra: string]: any;
 }
 
-export interface Stroke { color: string; opacity: number; width: number; style: string; position: 'inside' | 'center' | 'outside' }
+export interface Stroke {
+  color: string; opacity: number; width: number; style: string; position: 'inside' | 'center' | 'outside';
+  /** Marcadores seguros do editor; SVG arbitrário não é preservado sem importação explícita. */
+  markerStart?: 'none' | 'arrow' | 'circle' | 'square';
+  markerEnd?: 'none' | 'arrow' | 'circle' | 'square';
+}
 
 export interface Shadow { x: number; y: number; blur: number; spread: number; color: string; opacity: number; inset: boolean }
 
@@ -83,6 +88,7 @@ export interface LayerNode {
   lineHeight?: number; letterSpacing?: number;
   textAlign?: string; textDecoration?: string; textTransform?: string; textVAlign?: string;
   points?: PathPoint[]; closed?: boolean; vw?: number; vh?: number;
+  pathEffect?: { kind: 'round-corners'; radius: number } | null;
   html?: string;
   mediaKind?: 'video' | 'audio' | 'model3d' | 'lottie';
   mediaAssetId?: string;
@@ -90,6 +96,8 @@ export interface LayerNode {
   mediaControls?: boolean;
   mediaLoop?: boolean;
   mediaMuted?: boolean;
+  mediaPoster?: string;
+  mediaFallback?: string;
   /** Etiqueta HTML escolhida (div, section, h1...). */
   tag?: string;
   href?: string; alt?: string; note?: string;

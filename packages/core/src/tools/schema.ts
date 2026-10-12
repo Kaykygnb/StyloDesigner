@@ -33,7 +33,7 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
 - transformar: flipX/flipY (espelhar), skewX/skewY (inclinação em graus), lockRatio (trava a proporção ao redimensionar), constraints {h:"left"|"right"|"leftright"|"center"|"scale", v:"top"|"bottom"|"topbottom"|"center"|"scale"} (só em frames sem layout), fx {brightness,contrast,saturate,grayscale (%), hue (graus)} (filtros de cor; null limpa), order e shrink (item de flex)
 - opcionais: mande null para APAGAR (minW, maxW, minH, maxH, aspect, overflow, sticky, cursor, pointerEvents, skewX/Y, order, shrink, grow, margin, note, href, alt, whiteSpace, wordBreak, textWrap, truncate, lines, customCss, htmlId, classes…)
-- mais: isMask (máscara; camada dentro de um grupo), noteInCode, fillRule ("nonzero"|"evenodd", vetor), customCss (declarações CSS livres, uma por linha), transition {duration ms, easing}, grids [{type:"columns"|"rows"|"grid", count, gutter, margin, size, color, opacity}] (grades de layout só de guia, em frames)
+- mais: isMask (máscara; camada dentro de um grupo), noteInCode, fillRule ("nonzero"|"evenodd", vetor), shape {kind:"polygon"|"star", sides:3..24, innerRatio:0..1} (forma paramétrica editável), customCss (declarações CSS livres, uma por linha), transition {duration ms, easing}, grids [{type:"columns"|"rows"|"grid", count, gutter, margin, size, color, opacity}] (grades de layout só de guia, em frames)
 - protótipo: interactions [{trigger:"click"|"hover", action:"navigate"|"back"|"url", target (id da tela), transition ("instant"|"dissolve"|"slide-left"|"slide-right"|"slide-up"|"slide-down"), url}] (substitui a lista; null apaga), flowStart (true na tela onde a apresentação começa)
 - photoCredit {provider, author, authorUrl, sourceUrl, license, licenseUrl, attribution, attributionRequired} (crédito de uma foto de banco de imagens; vai para o CREDITS.txt do site; null apaga)
 - código HTML escrito à mão (camada type "html"): html (o texto HTML; é limpo ao exibir e exportar: sem <script> nem on*)
@@ -113,6 +113,28 @@ export const AGENT_TOOLS: ToolDef[] = [
     description: 'Todos os dados de UMA camada (posição, tamanho, preenchimento, layout, texto, etiqueta...) e a lista dos filhos diretos.',
     input: z.object({
       id: z.string().describe('id da camada'),
+    }),
+  }),
+  defineTool({
+    name: 'audit_vector',
+    write: false,
+    description: 'Audita vetores da página ou de uma camada: caminhos vazios/degenerados, pontos e alças inválidos, viewBox incoerente, contornos abertos com preenchimento, booleanas sem fontes, vetores invisíveis e filtros pesados. Não altera o documento; cada aviso traz severidade, código e sugestão de correção.',
+    input: z.object({
+      id: z.string().describe('id de um vetor ou de uma camada que contenha vetores; omita para auditar a página aberta').optional(),
+      includeInvisible: z.boolean().describe('inclui vetores ocultos, transparentes ou sem tamanho (padrão true)').optional(),
+      maxIssues: z.number().int().min(1).max(500).describe('máximo de problemas devolvidos').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'inspect_vector',
+    write: false,
+    description: 'Inspeciona um vetor sem converter para SVG: devolve viewBox, fechamento, regra de preenchimento, contornos e nós com índices estáveis, coordenadas e alças hin/hout. Use contour_index ou node_index para uma leitura pequena antes de editar. maxBytes limita a resposta.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      contour_index: z.number().int().nonnegative().describe('contorno: 0 é o principal; os demais vêm dos furos/contornos compostos').optional(),
+      node_index: z.number().int().nonnegative().describe('índice do nó dentro do contorno').optional(),
+      max_points: z.number().int().min(1).max(500).describe('máximo de nós por contorno quando node_index não foi informado').optional(),
+      maxBytes: z.number().int().min(1024).max(65536).describe('orçamento da resposta JSON; padrão 16 KiB').optional(),
     }),
   }),
   defineTool({
@@ -260,7 +282,7 @@ ${PROP_HELP}`,
   defineTool({
     name: 'search_icons',
     write: false,
-    description: 'Procura ícones do Google (Material Symbols, mais de 4 mil) pelo nome em inglês ou por um sinônimo em português (casa, carrinho, seta, sino...). Devolve os nomes para usar em insert_icon ou em build_layout.',
+    description: 'Procura ícones do Google (Material Symbols) pelo nome em inglês ou por um sinônimo em português. Para Lucide, use a busca de assets do plugin assets.',
     input: z.object({
       query: z.string(),
       limit: z.number().int().describe('máximo de resultados (padrão 20)').optional(),
@@ -271,13 +293,166 @@ ${PROP_HELP}`,
     write: true,
     description: 'Insere um ícone do Google (Material Symbols) como vetor editável, dentro de um frame (na posição index) ou na página.',
     input: z.object({
-      name: z.string().describe('nome exato do ícone (use search_icons)'),
+      name: z.string().describe('nome exato do ícone (use search_icons ou asset_search)'),
+      collection: z.enum(['Material Symbols', 'Lucide']).optional().describe('coleção do ícone; padrão Material Symbols'),
       parent_id: z.string().optional(),
       index: z.number().int().optional(),
       color: z.string().describe('#RRGGBB').optional(),
       size: z.number().int().describe('px (padrão 24)').optional(),
       style: z.enum(['outlined', 'rounded', 'sharp']).optional(),
       filled: z.boolean().optional(),
+    }),
+  }),
+  defineTool({
+    name: 'edit_vector_node',
+    write: true,
+    description: 'Edita um nó específico de um vetor em uma única operação de undo, preservando o ID, os demais nós, contornos e alças. Mande somente o que mudar: point pode conter x/y parciais; hin/hout aceitam {x,y} ou null para remover; mode aceita corner, smooth, symmetric ou free. Use inspect_vector antes para obter os índices.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      contour_index: z.number().int().nonnegative().describe('contorno: 0 é o principal').optional(),
+      node_index: z.number().int().nonnegative().describe('índice do nó dentro do contorno'),
+      point: z.object({ x: z.number().optional(), y: z.number().optional() }).strict().refine((p) => p.x !== undefined || p.y !== undefined, { message: 'point precisa trazer x ou y.' }).optional(),
+      hin: z.union([z.object({ x: z.number(), y: z.number() }).strict(), z.null()]).optional(),
+      hout: z.union([z.object({ x: z.number(), y: z.number() }).strict(), z.null()]).optional(),
+      mode: z.enum(['corner', 'smooth', 'symmetric', 'free']).nullable().optional(),
+    }),
+  }),
+  defineTool({
+    name: 'create_vector_network',
+    write: true,
+    description: 'Cria uma rede vetorial editável com junções estáveis e segmentos de linha ou Bézier. A rede preserva ramificações e alças no metadata vectorNetwork e também é exportada como contornos SVG editáveis; as fontes não são achatadas em uma string. Uma operação de undo.',
+    input: z.object({
+      name: z.string().max(120).optional(),
+      parent_id: z.string().optional(),
+      index: z.number().int().nonnegative().optional(),
+      nodes: z.array(z.object({ id: z.string().min(1).max(80).optional(), x: z.number(), y: z.number() }).strict()).min(2).max(200),
+      segments: z.array(z.object({ id: z.string().min(1).max(80).optional(), from: z.string(), to: z.string(), kind: z.enum(['line', 'cubic']).optional(), hout_from: z.object({ x: z.number(), y: z.number() }).optional(), hin_to: z.object({ x: z.number(), y: z.number() }).optional() }).strict()).min(1).max(400),
+      fill: z.union([z.string(), z.record(z.string(), z.any())]).optional(),
+      stroke: z.record(z.string(), z.any()).nullable().optional(),
+    }).strict(),
+  }),
+  defineTool({
+    name: 'edit_vector_shape',
+    write: true,
+    description: 'Altera os parâmetros de um polígono ou estrela paramétrico sem substituir o SVG: sides (3–24) e inner_ratio (0–1, usado na estrela) são regenerados de forma determinística e viram um único passo de undo. Use get_layer/inspect_vector para confirmar que a camada tem shape.kind.',
+    input: z.object({
+      id: z.string().describe('id da camada path paramétrica'),
+      sides: z.number().int().min(3).max(24).describe('quantidade de lados/pontas').optional(),
+      inner_ratio: z.number().gt(0).lte(1).describe('raio interno da estrela, entre 0 e 1').optional(),
+    }).refine((value) => value.sides !== undefined || value.inner_ratio !== undefined, { message: 'Informe sides ou inner_ratio para alterar a forma.' }),
+  }),
+  defineTool({
+    name: 'set_path_effect',
+    write: true,
+    description: 'Aplica ou remove o efeito vetorial não destrutivo de cantos arredondados. A geometria original e seus nós permanecem intactos; radius controla a distância do canto em unidades do viewBox e a operação tem undo.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      kind: z.enum(['round-corners', 'none']).describe('round-corners aplica; none remove').optional(),
+      radius: z.number().positive().max(100000).describe('raio do arredondamento em unidades do viewBox').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'interpolate_vectors',
+    write: true,
+    description: 'Cria um novo vetor entre dois paths compatíveis, interpolando posição, tamanho, nós e alças Bézier. As fontes permanecem intactas; exige a mesma quantidade de contornos, nós, fechamento e viewBox e registra um único undo.',
+    input: z.object({
+      from_id: z.string().describe('id do vetor inicial'),
+      to_id: z.string().describe('id do vetor final'),
+      t: z.number().min(0).max(1).describe('posição da interpolação: 0 = início, 1 = fim').optional(),
+      name: z.string().max(120).optional(),
+    }),
+  }),
+  defineTool({
+    name: 'shape_builder',
+    write: true,
+    description: 'Cria uma nova forma a partir de regiões das formas selecionadas. points são coordenadas do canvas dentro das regiões a manter; mode add mantém as regiões e mode subtract remove-as da forma base. As fontes não são destruídas e o resultado tem undo.',
+    input: z.object({
+      ids: z.array(z.string()).min(2).max(6).describe('2 a 6 ids de formas fechadas'),
+      points: z.array(z.object({ x: z.number(), y: z.number() })).min(1).max(64).describe('pontos do canvas nas regiões desejadas'),
+      mode: z.enum(['add', 'subtract']).optional(),
+    }),
+  }),
+  defineTool({
+    name: 'reverse_vector',
+    write: true,
+    description: 'Inverte a direção dos segmentos de um vetor sem trocar sua identidade, preservando curvas ao trocar as alças hin/hout. Sem contour_index inverte todos os contornos; com ele inverte somente aquele contorno. Uma operação de undo.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      contour_index: z.number().int().nonnegative().describe('contorno específico; omita para inverter todos').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'split_vector_contour',
+    write: true,
+    description: 'Divide um contorno em dois caminhos abertos no node_index, duplicando o nó de corte e preservando a geometria. Para contorno fechado, a aresta de fechamento também é preservada. Uma operação de undo.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      contour_index: z.number().int().nonnegative().optional(),
+      node_index: z.number().int().positive().describe('nó onde a divisão acontece; não pode ser a primeira nem a última posição'),
+    }),
+  }),
+  defineTool({
+    name: 'simplify_vector',
+    write: true,
+    description: 'Reduz nós redundantes de contornos retos e Bézier (abertos ou fechados) com Ramer–Douglas–Peucker seguido de ajuste cúbico, preservando o ID, as alças editáveis e uma operação de undo. tolerance é a distância máxima em unidades do viewBox; contornos que não ganham redução permanecem intactos.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      contour_index: z.number().int().nonnegative().describe('contorno específico; omita para simplificar todos').optional(),
+      tolerance: z.number().positive().max(10000).describe('desvio máximo permitido em unidades do vetor; padrão 1').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'join_vector_contours',
+    write: true,
+    description: 'Une o contorno principal e os subcontornos de um vetor path em um único caminho aberto, preservando nós e alças, o ID e uma operação de undo. Use depois de split_vector_contour ou quando o vetor tiver vários subcaminhos editáveis.',
+    input: z.object({
+      id: z.string().describe('id da camada path com pelo menos dois contornos'),
+    }),
+  }),
+  defineTool({
+    name: 'stroke_to_path',
+    write: true,
+    description: 'Converte strokes centrais em formas preenchidas editáveis, achatando curvas com tolerance e preservando o ID em um único undo. Caminhos abertos aceitam pontas butt, square e round e tracejados/pontilhados viram subcaminhos separados; caminhos fechados sólidos e subcaminhos viram anéis com fillRule evenodd. Recusa tracejados fechados e posições inside/outside, que exigem regras geométricas diferentes.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      tolerance: z.number().positive().max(100).describe('tolerância do achatamento de curvas em unidades do vetor; padrão 0.5').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'offset_path',
+    write: true,
+    description: 'Desloca contornos fechados de um vetor pela distância indicada, positiva para fora e negativa para dentro, preservando o ID e registrando um único undo. Curvas são achatadas com tolerance; contour_index limita a um contorno. Recusa caminhos abertos e distância zero para não alterar a geometria silenciosamente.',
+    input: z.object({
+      id: z.string().describe('id da camada path'),
+      distance: z.number().finite().min(-100000).max(100000).refine((v) => v !== 0, 'distance não pode ser zero'),
+      contour_index: z.number().int().nonnegative().optional(),
+      tolerance: z.number().positive().max(100).describe('tolerância ao achatar curvas; padrão 0.5').optional(),
+    }),
+  }),
+  defineTool({
+    name: 'audit_svg',
+    write: false,
+    description: 'Audita um SVG antes da importação: valida o documento, informa dimensões, tipos de camadas editáveis, quantidade convertida e recursos ignorados. Não cria nem altera projeto; use o resultado para decidir se a importação é fiel.',
+    input: z.object({
+      svg: z.string().min(1).max(2_000_000).describe('conteúdo completo do arquivo SVG'),
+      name: z.string().max(120).optional(),
+      current_color: z.string().optional(),
+      fill: z.string().optional(),
+      size: z.number().positive().max(4096).optional(),
+    }),
+  }),
+  defineTool({
+    name: 'import_svg',
+    write: true,
+    description: 'Importa um SVG como vetor(es) editável(is), preservando caminhos, curvas, transformações, gradientes, textos simples e grupos suportados. Máscaras, filtros ou referências externas não suportados são informados no resultado, nunca ocultados. Dentro de parent_id entra no frame; sem parent_id entra na página.',
+    input: z.object({
+      svg: z.string().min(1).max(2_000_000).describe('conteúdo completo do arquivo SVG'),
+      name: z.string().max(120).optional(),
+      parent_id: z.string().optional(),
+      index: z.number().int().optional(),
+      current_color: z.string().optional(),
+      fill: z.string().optional(),
+      size: z.number().positive().max(4096).optional(),
     }),
   }),
   defineTool({

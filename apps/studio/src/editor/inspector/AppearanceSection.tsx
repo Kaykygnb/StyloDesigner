@@ -1,14 +1,16 @@
 // Aparência: opacidade, mesclagem, cantos arredondados (juntos ou por canto), conteúdo que sai da caixa e máscara.
 import { useState } from 'react';
 import { BLEND_MODES, overflowOf } from '@stylo/core/model.js';
+import { useApp } from '../../lib/app';
+import { t } from '../../lib/i18n';
 import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fields';
 import type { Ctx } from './ctx';
 
 const NO_RADIUS = ['text', 'ellipse', 'group', 'line', 'path', 'section'];
-const OVERFLOWS: [string, string][] = [['hidden', 'Cortar (hidden)'], ['visible', 'Mostrar (visible)'], ['scroll-y', 'Rolar na vertical'], ['scroll-x', 'Rolar na horizontal'], ['scroll', 'Rolar nos dois']];
-
 export function AppearanceSection({ c }: { c: Ctx }) {
   const { n, parent } = c;
+  const language = useApp((s) => s.language);
+  const tr = (key: string) => t(language, key);
   const off = c.readOnly;
   const [corners, setCorners] = useState(false);
   const radius = (n.radius ?? [0, 0, 0, 0]) as [number, number, number, number];
@@ -18,16 +20,16 @@ export function AppearanceSection({ c }: { c: Ctx }) {
   const setCorner = (i: number, v: number | null) => { const next = [...radius]; next[i] = Math.max(0, v ?? 0); void c.set({ radius: next }); };
 
   return (
-    <Section id="appearance" title="Aparência">
+    <Section id="appearance" title={tr('inspector.appearance.title')}>
       <Row>
-        <Cap label="Opacidade" css="opacity"><Num value={(n.opacity ?? 1) * 100} min={0} max={100} decimals={0} unit="%" disabled={off} mixed={c.mixed((x) => x.opacity)} onCommit={(v) => void c.set({ opacity: (v ?? 100) / 100 })} /></Cap>
-        <Cap label="Mesclagem" css="mix-blend-mode"><Sel value={n.blend ?? 'normal'} options={BLEND_MODES.map((m: string) => [m, m] as [string, string])} disabled={off} title="mix-blend-mode" onChange={(v) => void c.set({ blend: v })} /></Cap>
+        <Cap label={tr('inspector.appearance.opacity')} css="opacity"><Num value={(n.opacity ?? 1) * 100} min={0} max={100} decimals={0} unit="%" disabled={off} mixed={c.mixed((x) => x.opacity)} onCommit={(v) => void c.set({ opacity: (v ?? 100) / 100 })} /></Cap>
+        <Cap label={tr('inspector.appearance.blend')} css="mix-blend-mode"><Sel value={n.blend ?? 'normal'} options={BLEND_MODES.map((m: string) => [m, m] as [string, string])} disabled={off} title="mix-blend-mode" onChange={(v) => void c.set({ blend: v })} /></Cap>
       </Row>
       {canRound && (
-        <Cap label="Raio dos cantos" css="border-radius">
+        <Cap label={tr('inspector.appearance.radius')} css="border-radius">
           <Row>
             <Num label="◜" value={radius[0]} min={0} decimals={1} disabled={off} title="border-radius" mixed={c.mixed((x) => x.radius?.[0])} onCommit={(v) => { const r = Math.max(0, v ?? 0); void c.set({ radius: [r, r, r, r] }); }} />
-            <IconBtn icon="corner" title="Cantos independentes" on={showCorners} onClick={() => setCorners(!corners)} />
+            <IconBtn icon="corner" title={tr('inspector.appearance.independentCorners')} on={showCorners} onClick={() => setCorners(!corners)} />
           </Row>
           {showCorners && (
             <>
@@ -38,14 +40,14 @@ export function AppearanceSection({ c }: { c: Ctx }) {
         </Cap>
       )}
       {n.type === 'frame' && c.editState == null && (
-        <Cap label="Conteúdo que sai" css="overflow">
-          <Sel value={overflowOf(n)} options={OVERFLOWS} disabled={off} title="overflow"
+        <Cap label={tr('inspector.appearance.overflow')} css="overflow">
+          <Sel value={overflowOf(n)} options={[["hidden", tr('inspector.appearance.cut')], ["visible", tr('inspector.appearance.show')], ["scroll-y", tr('inspector.appearance.scrollY')], ["scroll-x", tr('inspector.appearance.scrollX')], ["scroll", tr('inspector.appearance.scroll')]]} disabled={off} title="overflow"
             onChange={(v) => void c.set({ clip: v !== 'visible', overflow: v === 'hidden' || v === 'visible' ? null : v })} />
-          {overflowOf(n).startsWith('scroll') && <Hint>A rolagem funciona na apresentação e no HTML exportado. No editor o conteúdo aparece cortado.</Hint>}
+          {overflowOf(n).startsWith('scroll') && <Hint>{tr('inspector.appearance.scrollHint')}</Hint>}
         </Cap>
       )}
       {c.baseOnly && (n.isMask || parent?.type === 'group') && (
-        <Check label="Usar como máscara (clip-path)" checked={!!n.isMask} disabled={off} onChange={(v) => void c.set({ isMask: v })} />
+        <Check label={tr('inspector.appearance.mask')} checked={!!n.isMask} disabled={off} onChange={(v) => void c.set({ isMask: v })} />
       )}
     </Section>
   );

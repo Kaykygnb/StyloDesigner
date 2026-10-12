@@ -10,13 +10,14 @@ import { fileURLToPath } from 'node:url';
 
 const freePort = () => new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const WOFF = Buffer.from([0x77, 0x4f, 0x46, 0x46, 0, 1, 0, 0, 0, 0, 0, 0]);
 
 test('HTTP: envia arquivo para a biblioteca, lista, baixa com o tipo certo, remove; chave do provedor é guardada e nunca devolvida', async (t) => {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-lib-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64'), PEXELS_API_KEY: '', PIXABAY_API_KEY: '' },
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64'), PEXELS_API_KEY: '', PIXABAY_API_KEY: '' },
     stdio: 'ignore',
   });
   t.after(() => child.kill());
@@ -49,6 +50,19 @@ test('HTTP: envia arquivo para a biblioteca, lista, baixa com o tipo certo, remo
   assert.equal(file.headers.get('content-type'), 'image/png');
   assert.match(file.headers.get('content-security-policy'), /sandbox/);
   assert.deepEqual(Buffer.from(await file.arrayBuffer()), PNG);
+  const usage = await (await fetch(`${base}/api/library/usage-detail`)).json();
+  assert.deepEqual(usage.assets.find((item) => item.assetId === asset.id), { assetId: asset.id, useCount: 0, projectIds: [], projects: [], orphan: true });
+  const projectDoc = { name: 'Usa logo', pages: [{ id: 'p1', name: 'Página', children: [{ id: 'shape', type: 'rect', fill: { type: 'image', assetId: asset.id }, x: 0, y: 0, w: 10, h: 10 }] }], assets: {}, styles: { colors: [], texts: [] } };
+  assert.equal((await fetch(`${base}/api/projects/usa-logo.json`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(projectDoc) })).status, 200);
+  const used = await (await fetch(`${base}/api/library/usage-detail`)).json();
+  const usedAsset = used.assets.find((item) => item.assetId === asset.id);
+  assert.equal(usedAsset.useCount, 1);
+  assert.equal(usedAsset.projects[0].file, 'usa-logo.json');
+  const replaced = await fetch(`${base}/api/library/${asset.id}/replace`, { method: 'POST', headers: { 'Content-Type': 'font/woff', 'X-Name': encodeURIComponent('Logo atualizado') }, body: WOFF });
+  assert.equal(replaced.status, 200);
+  const replacedAsset = await replaced.json();
+  assert.deepEqual([replacedAsset.id, replacedAsset.name, replacedAsset.mime], [asset.id, 'Logo atualizado', 'font/woff']);
+  assert.equal((await (await fetch(`${base}/api/library/usage-detail`)).json()).assets.find((item) => item.assetId === asset.id).useCount, 1, 'substituição mantém o uso nos projetos');
   assert.equal((await fetch(`${base}/api/library/00000000-0000-0000-0000-000000000000/file`)).status, 404);
 
   // provedores e chaves
@@ -67,6 +81,23 @@ test('HTTP: envia arquivo para a biblioteca, lista, baixa com o tipo certo, remo
   await fetch(base + '/api/providers/pexels/key', { method: 'DELETE', headers: json });
   assert.equal((await (await fetch(base + '/api/providers')).json()).providers.find((p) => p.id === 'pexels').ready, false);
 
-  assert.equal((await fetch(`${base}/api/library/${asset.id}`, { method: 'DELETE', headers: json })).status, 200);
+  // fonte declarativa: o painel consegue cadastrar tipos, mapeamento e licença sem código executável
+  const source = await fetch(base + '/api/asset-sources', { method: 'POST', headers: json, body: JSON.stringify({
+    name: 'Catálogo Comunitário', searchUrl: 'https://assets.example.test/search?q={consulta}&page={pagina}',
+    kinds: ['image', 'icon'], resultsPath: 'data.items',
+    fields: { id: 'id', title: 'name', preview: 'thumb', download: 'file', author: 'creator', page: 'page', license: 'license' },
+    headers: { Accept: 'application/json' }, license: { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/', commercial: true, attribution: 'required' },
+  }) });
+  assert.equal(source.status, 201);
+  const savedSource = (await source.json());
+  assert.deepEqual([savedSource.name, savedSource.kinds, savedSource.fields.preview, savedSource.license.attribution], ['Catálogo Comunitário', ['image', 'icon'], 'thumb', 'required']);
+  const listedSources = await (await fetch(base + '/api/asset-sources')).json();
+  assert.equal(listedSources.sources.some((item) => item.name === 'Catálogo Comunitário' && item.headers.Accept === 'application/json'), true);
+  assert.equal((await fetch(base + '/api/asset-sources', { method: 'POST', headers: json, body: JSON.stringify({ name: 'Sem licença', searchUrl: 'https://assets.example.test/?q={consulta}', kinds: ['image'], resultsPath: 'items', fields: { id: 'id', title: 'title', download: 'url' } }) })).status, 400);
+  assert.equal((await fetch(base + '/api/asset-sources/Cat%C3%A1logo%20Comunit%C3%A1rio', { method: 'DELETE', headers: json })).status, 200);
+
+  const bulk = await fetch(`${base}/api/library`, { method: 'DELETE', headers: json, body: JSON.stringify({ ids: [asset.id, asset.id] }) });
+  assert.equal(bulk.status, 200);
+  assert.equal((await bulk.json()).count, 1, 'remoção em lote deduplica IDs');
   assert.equal((await (await fetch(base + '/api/library')).json()).assets.length, 0);
 });

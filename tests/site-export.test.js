@@ -156,12 +156,14 @@ test('fontes do projeto saem como arquivos em fonts/ com @font-face; só famíli
   assert.equal(/family=Inter/.test(html), false, 'Inter é hospedada: fora do CDN do Google');
 });
 
-test('créditos do projeto viram CREDITS.txt no pacote; sem créditos, nenhum arquivo extra', () => {
+test('créditos do projeto viram arquivos de crédito no pacote; sem créditos, nenhum arquivo extra', () => {
   const doc = docOf(frame('Home'));
   doc.credits = [{ text: 'Foto de Bia no Pexels (https://pexels/7)', license: 'Licença Pexels' }, { text: 'Inter — SIL Open Font License 1.1 (Google Fonts)' }];
   const credits = exportSite(doc).files.find((f) => f.path === 'CREDITS.txt');
   assert.match(credits.content, /Créditos dos assets/);
   assert.match(credits.content, /- Foto de Bia no Pexels \(https:\/\/pexels\/7\) — Licença Pexels/);
   assert.match(credits.content, /- Inter — SIL Open Font License 1\.1/);
-  assert.equal(exportSite(docOf(frame('Home'))).files.some((f) => f.path === 'CREDITS.txt'), false);
+  assert.match(String(exportSite(doc).files.find((f) => f.path === 'CREDITS.md')?.content), /# Créditos dos assets/);
+  assert.match(String(exportSite(doc).files.find((f) => f.path === 'THIRD-PARTY-NOTICES')?.content), /THIRD-PARTY NOTICES/);
+  assert.equal(exportSite(docOf(frame('Home'))).files.some((f) => f.path === 'CREDITS.md'), false);
 });

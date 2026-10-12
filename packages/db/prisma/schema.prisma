@@ -14,6 +14,10 @@ datasource db {
 /// Papel na plataforma. OWNER = conta mestre: aprova pessoas e agentes.
 enum Role {
   OWNER
+  ADMIN
+  EDITOR
+  COMMENTER
+  VIEWER
   MEMBER
 }
 
@@ -21,6 +25,7 @@ enum Role {
 enum ProjectRole {
   OWNER
   EDITOR
+  COMMENTER
   VIEWER
 }
 
@@ -47,8 +52,12 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
-  role         Role     @default(MEMBER)
-  color        String?
+    role         Role     @default(MEMBER)
+    color        String?
+    avatar       String?
+  preferences  Json       @default("{}")
+  suspended    Boolean  @default(false)
+  mustChangePassword Boolean @default(false)
   createdAt    DateTime @default(now())
 
   agents      Agent[]
@@ -60,6 +69,17 @@ model User {
   sources     AssetSource[]
   operations  Operation[]
   notes       Note[]
+  authEvents  AuthEvent[]
+}
+
+model AuthEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  email     String
+  kind      String
+  createdAt DateTime @default(now())
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
 }
 
 /// Sessão de login de uma pessoa (cookie ou token). Só o hash do token fica aqui.
@@ -79,6 +99,7 @@ model Session {
 model Agent {
   id         String      @id @default(uuid()) @db.Uuid
   name       String
+  type       String      @default("mcp")
   ownerId    String      @db.Uuid
   tokenHash  String      @unique
   scopes     String[] // ex.: ["read", "write", "export"]
@@ -89,6 +110,7 @@ model Agent {
   owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   operations Operation[]
   notes      Note[]
+  projects   AgentProject[]
 
   @@index([ownerId])
 }
@@ -118,6 +140,8 @@ model Project {
   assets     Asset[]
   operations Operation[]
   notes      Note[]
+  agents     AgentProject[]
+  publishes  PublishRecord[]
 
   @@unique([ownerId, slug])
 }
@@ -131,6 +155,32 @@ model ProjectMember {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([projectId, userId])
+}
+
+/// Autorização explícita de um agente em um projeto.
+model AgentProject {
+  agentId   String   @db.Uuid
+  projectId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  agent   Agent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([agentId, projectId])
+  @@index([projectId])
+}
+
+model PublishRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @db.Uuid
+  format    String
+  status    String
+  warnings  Json?
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }
 
 /// Imagem do projeto, guardada UMA vez por conteúdo (sha256). O JSON do projeto só leva a referência ("asset:<hash>").
@@ -242,6 +292,7 @@ model LibraryAsset {
   license   Json?
   /// texto de crédito pronto (autor + link), vai para o arquivo de créditos do site exportado
   credit    String?
+  capturedAt DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

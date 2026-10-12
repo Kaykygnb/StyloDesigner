@@ -56,6 +56,18 @@ export interface StyloPlugin {
   id: string;
   name: string;
   description?: string;
+  /** Categoria visível no catálogo administrativo; não altera o contrato das ferramentas. */
+  category?: 'design' | 'quality' | 'asset-provider' | 'exporter' | 'integration' | 'utility';
+  /** Página oficial do plugin/projeto, quando houver. */
+  sourceUrl?: string;
+  version?: string;
+  author?: string;
+  license?: string;
+  repository?: string;
+  permissions?: string[];
+  dependencies?: string[];
+  /** Formatos/artefatos que o plugin altera ou consegue gerar. */
+  exportCompatibility?: string[];
   tools?: PluginTool[];
 }
 

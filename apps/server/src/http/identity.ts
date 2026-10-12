@@ -20,6 +20,13 @@ export function createIdentity(s: Pick<Services, 'authMode' | 'localUser' | 'aut
     if (s.authMode === 'local') return s.localUser;
     const user = await s.auth.userFromToken(sessionTokenOf(c));
     if (!user) throw httpError(401, 'Entre com a sua conta.');
+    if (user.mustChangePassword) throw httpError(403, 'Troque a senha temporária antes de continuar.');
+    return user;
+  }
+  async function passwordUserOf(c: Context): Promise<PublicUser> {
+    if (s.authMode === 'local') return s.localUser;
+    const user = await s.auth.userFromToken(sessionTokenOf(c));
+    if (!user) throw httpError(401, 'Entre com a sua conta.');
     return user;
   }
   /** A conta mestre (403 para os outros). */
@@ -28,12 +35,17 @@ export function createIdentity(s: Pick<Services, 'authMode' | 'localUser' | 'aut
     if (user.role !== 'OWNER') throw httpError(403, 'Só a conta mestre faz isto.');
     return user;
   }
+  async function adminOf(c: Context): Promise<PublicUser> {
+    const user = await userOf(c);
+    if (user.role !== 'OWNER' && user.role !== 'ADMIN') throw httpError(403, 'Só administradores fazem isto.');
+    return user;
+  }
   /** Política de entrada de agentes sem token: configurável; padrão aberta no modo local e fechada com contas. */
   const agentPolicy = (): AgentPolicy => {
     const p = s.config.get().mcp?.agentPolicy;
     return p === 'open' || p === 'approval' || p === 'closed' ? p : s.authMode === 'local' ? 'open' : 'closed';
   };
-  return { userOf, ownerOf, agentPolicy };
+  return { userOf, passwordUserOf, ownerOf, adminOf, agentPolicy };
 }
 
 export type Identity = ReturnType<typeof createIdentity>;

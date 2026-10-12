@@ -61,6 +61,8 @@ function BoardFrameImpl({ board, doc, x, y, width, editable, pendingEdit, onMeas
   const editing = useRef(false);
   const ready = useRef(false);
   const observer = useRef<ResizeObserver | null>(null);
+  const frameRequest = useRef<number | null>(null);
+  const lastMeasure = useRef<{ w: number; h: number } | null>(null);
 
   // os callbacks mudam a cada render do pai; o iframe usa sempre a versão mais nova sem reanexar os ouvintes
   const live = useRef({ doc, board, editable, onPointer, onEditText });
@@ -73,9 +75,12 @@ function BoardFrameImpl({ board, doc, x, y, width, editable, pendingEdit, onMeas
     const root = d && rootOf(d);
     if (!root) return;
     const r = root.getBoundingClientRect();
+    const w = Math.ceil(r.width);
     const h = Math.max(1, Math.ceil(r.height));
+    if (lastMeasure.current?.w === w && lastMeasure.current?.h === h) return;
+    lastMeasure.current = { w, h };
     setHeight((prev) => (prev === h ? prev : h));
-    onMeasure(live.current.board.id, { w: Math.ceil(r.width), h });
+    onMeasure(live.current.board.id, { w, h });
     setVersion((v) => v + 1);
   }, [onMeasure]);
 
@@ -83,7 +88,10 @@ function BoardFrameImpl({ board, doc, x, y, width, editable, pendingEdit, onMeas
     const d = frame.current?.contentDocument;
     observer.current?.disconnect();
     if (!d) return;
-    observer.current = new ResizeObserver(() => measure());
+    lastMeasure.current = null;
+    // a medição vai para o próximo quadro: evita o aviso "ResizeObserver loop" quando o React redimensiona o iframe
+    const later = () => { if (frameRequest.current === null) frameRequest.current = requestAnimationFrame(() => { frameRequest.current = null; measure(); }); };
+    observer.current = new ResizeObserver(later);
     observer.current.observe(d.body);
     const root = rootOf(d);
     if (root) observer.current.observe(root);
@@ -195,9 +203,12 @@ function BoardFrameImpl({ board, doc, x, y, width, editable, pendingEdit, onMeas
     const el = d?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(pendingEdit)}"]`);
     const node = findNode([board], pendingEdit);
     if (el && node?.type === 'text') { onEditConsumed(); startTextEdit(el, node); }
-  }, [pendingEdit, html, board, onEditConsumed, startTextEdit]);
+  }, [pendingEdit, html, version, board, onEditConsumed, startTextEdit]);
 
-  useEffect(() => () => observer.current?.disconnect(), []);
+  useEffect(() => () => {
+    observer.current?.disconnect();
+    if (frameRequest.current !== null) cancelAnimationFrame(frameRequest.current);
+  }, []);
 
   return (
     <iframe

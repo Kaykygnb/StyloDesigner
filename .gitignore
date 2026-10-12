@@ -20,6 +20,8 @@ packages/db/src/generated/
 
 designer.db/
 *.db/
+# cópias de segurança feitas antes de migrações do banco
+designer.db.*/
 
 # segredos e dados locais do servidor
 *.secret

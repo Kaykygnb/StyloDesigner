@@ -9,10 +9,10 @@
  */
 
 import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName, resizeNode, round, uid } from './model.js';
-import { generateCode, joinCss } from './css.js';
+import { dashList, generateCode, joinCss } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 import { importSvg } from './svgimport.js';
-import { booleanPolygons, ellipseContour, flattenContour, polygonsToContours, rectContour } from './geom.js';
+import { booleanPolygons, ellipseContour, flattenContour, insideShape, polygonsToContours, rectContour, rdp, simplifyBezierContour } from './geom.js';
 import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
 import { imageAssetCatalog } from './image-assets.js';
 import { parseImageDataUrl } from './image-size.js';
@@ -1132,7 +1132,25 @@ export function createCommands(store, canvas) {
       const wc = worldContours(n);
       if (!wc) return { error: 'Não consegui medir as formas (estão visíveis?).' };
       const closedOf = (i) => (n.type !== 'path' ? true : i === 0 ? true : n.contours[i - 1].closed !== false);
-      shapes.push({ rule: wc.rule, rings: wc.contours.map((pts, i) => flattenContour(pts, closedOf(i), tol)) });
+      const closed = wc.contours.map((_, i) => closedOf(i));
+      shapes.push({
+        sourceId: n.id,
+        sourceName: n.name || n.id,
+        sourceType: n.type,
+        sourceShape: n.shape ? JSON.parse(JSON.stringify(n.shape)) : null,
+        rule: wc.rule,
+        rings: wc.contours.map((pts, i) => flattenContour(pts, closed[i], tol)),
+        // Keep the original Bézier source alongside the flattened rings used by
+        // the boolean kernel so editing the operation does not lose handles.
+        contours: wc.contours.map((points, i) => ({
+          closed: closed[i],
+          points: points.map((p) => ({
+            x: round(p.x), y: round(p.y),
+            hin: p.hin ? { x: round(p.hin.x), y: round(p.hin.y) } : null,
+            hout: p.hout ? { x: round(p.hout.x), y: round(p.hout.y) } : null,
+          })),
+        })),
+      });
     }
     const rings = booleanPolygons(shapes, op);
     if (!rings.length) return { error: 'O resultado ficou vazio: as formas não se sobrepõem.' };
@@ -1153,6 +1171,20 @@ export function createCommands(store, canvas) {
       points: main.points, fillRule: 'nonzero',
     });
     if (rest.length) node.contours = rest;
+    // Mantém as fontes achatadas em coordenadas do mundo. O caminho renderizado continua sendo o resultado
+    // rápido para o editor, mas a operação deixa de ser destrutiva: a fonte pode ser editada e recalculada.
+    node.boolean = {
+      op,
+      sources: shapes.map((s) => ({
+        id: s.sourceId,
+        name: s.sourceName,
+        type: s.sourceType,
+        ...(s.sourceShape ? { shape: s.sourceShape } : {}),
+        rule: s.rule,
+        rings: s.rings.map((ring) => ring.map((p) => ({ x: round(p.x), y: round(p.y) }))),
+        contours: s.contours,
+      })),
+    };
     // estilo da camada de baixo (preenchimento, contorno, sombras, opacidade)
     node.fill = JSON.parse(JSON.stringify(base.fill || defaultFill('#D9D9D9')));
     if (node.fill.type === 'none') node.fill = defaultFill('#D9D9D9');
@@ -1170,6 +1202,408 @@ export function createCommands(store, canvas) {
     store.setSelection([node.id]);
     store.commit();
     return { node };
+  }
+
+  /** Shape Builder: decompõe interseções e mantém somente regiões apontadas. */
+  function shapeBuilder(mode = 'add', regionPoints = []) {
+    if (!['add', 'subtract'].includes(mode)) return { error: 'Shape Builder aceita mode add ou subtract.' };
+    const sel = topSelection().filter((n) => n.type !== 'section');
+    if (sel.length < 2 || sel.length > 6) return { error: 'Shape Builder exige de 2 a 6 formas selecionadas.' };
+    if (!Array.isArray(regionPoints) || !regionPoints.length || regionPoints.length > 64 || regionPoints.some((p) => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y))) return { error: 'points precisa ter de 1 a 64 pontos {x, y} nas regiões desejadas.' };
+    const bad = sel.find((n) => !BOOL_TYPES.includes(n.type) || (n.type === 'frame' && n.children?.length));
+    if (bad) return { error: `“${bad.name}” não pode entrar no Shape Builder: use vetores, retângulos, elipses ou frames vazios.` };
+    const shapes = sel.map((n) => { const wc = worldContours(n); return wc ? { rule: wc.rule, rings: wc.contours.map((pts) => flattenContour(pts, true, 0.15)) } : null; });
+    if (shapes.some((s) => !s)) return { error: 'Não consegui medir uma das formas selecionadas.' };
+    const regions = [];
+    for (let mask = 1; mask < (1 << shapes.length); mask++) {
+      const included = shapes.filter((_, i) => mask & (1 << i));
+      let rings = booleanPolygons(included, 'intersect');
+      const excluded = shapes.filter((_, i) => !(mask & (1 << i)));
+      if (rings.length && excluded.length) rings = booleanPolygons([{ rule: 'nonzero', rings }, ...excluded], 'subtract');
+      if (rings.length && regionPoints.some((p) => insideShape({ rule: 'nonzero', rings }, p))) regions.push({ mask, rings });
+    }
+    if (!regions.length) return { error: 'Nenhum ponto caiu numa região formada pelas interseções.' };
+    const selectedRings = regions.flatMap((r) => r.rings);
+    let rings = selectedRings;
+    if (mode === 'subtract') {
+      const base = regions.filter((r) => r.mask & 1).flatMap((r) => r.rings);
+      if (!base.length) return { error: 'Os pontos escolhidos não pertencem à forma base para subtrair.' };
+      rings = booleanPolygons([{ rule: 'nonzero', rings: base }, { rule: 'nonzero', rings: selectedRings }], 'subtract');
+    } else if (rings.length > 1) rings = booleanPolygons([{ rule: 'nonzero', rings }], 'union');
+    if (!rings.length) return { error: 'O Shape Builder ficou sem geometria.' };
+    const contours = polygonsToContours(rings, { tol: 0.15, smooth: true });
+    const boxes = contours.map((c) => pathBounds(c.points, true));
+    const box = { x0: Math.min(...boxes.map((q) => q.x0)), y0: Math.min(...boxes.map((q) => q.y0)), x1: Math.max(...boxes.map((q) => q.x1)), y1: Math.max(...boxes.map((q) => q.y1)) };
+    const base = sel[0], parent = store.parentOf(base.id), po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
+    const loc = (p) => ({ x: round(p.x - box.x0), y: round(p.y - box.y0) });
+    const conv = (c) => ({ closed: true, points: c.points.map((p) => ({ ...loc(p), hin: p.hin ? loc(p.hin) : null, hout: p.hout ? loc(p.hout) : null })) });
+    const [main, ...rest] = contours.map(conv);
+    const node = createNode('path', { name: nextName(store.page(), 'path').replace('Vetor', mode === 'add' ? 'Shape Builder' : 'Shape Builder – subtração'), x: round(box.x0 - po.x), y: round(box.y0 - po.y), w: Math.max(1, round(box.x1 - box.x0)), h: Math.max(1, round(box.y1 - box.y0)), vw: Math.max(1, round(box.x1 - box.x0)), vh: Math.max(1, round(box.y1 - box.y0)), points: main.points, closed: true, ...(rest.length ? { contours: rest } : {}), fill: JSON.parse(JSON.stringify(base.fill || defaultFill('#D9D9D9'))), stroke: base.stroke ? JSON.parse(JSON.stringify(base.stroke)) : null, shapeBuilder: { mode, sourceIds: sel.map((n) => n.id), regions: regions.map((r) => r.mask) } });
+    const list = store.listOf(base.id), at = Math.max(...sel.map((n) => list.indexOf(n))) + 1;
+    store.update(() => list.splice(at, 0, node), { structural: true });
+    store.setSelection([node.id]);
+    return { node, mode, regionCount: regions.length, sourceIds: sel.map((n) => n.id) };
+  }
+
+  /** Recalcula uma booleana preservando o ID, estilo e posição sem reimportar as fontes originais. */
+  function editBooleanSource(id, sourceIndex, patch = {}) {
+    const node = store.get(id);
+    if (!node?.boolean?.sources?.length) return { error: 'A camada não é uma operação booleana editável.' };
+    if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= node.boolean.sources.length) return { error: 'Índice de fonte booleana inválido.' };
+    const dx = Number.isFinite(patch.dx) ? patch.dx : 0;
+    const dy = Number.isFinite(patch.dy) ? patch.dy : 0;
+    const scale = Number.isFinite(patch.scale) && patch.scale > 0 ? patch.scale : 1;
+    const source = node.boolean.sources[sourceIndex];
+    const points = source.rings.flat();
+    if (!points.length) return { error: 'A fonte booleana não tem geometria.' };
+    const cx = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+    const cy = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+    let moved = source.rings.map((ring) => ring.map((p) => ({
+      x: round(cx + (p.x - cx) * scale + dx),
+      y: round(cy + (p.y - cy) * scale + dy),
+    })));
+    const movePoint = (p) => ({
+      x: round(cx + (p.x - cx) * scale + dx),
+      y: round(cy + (p.y - cy) * scale + dy),
+    });
+    let movedContours = Array.isArray(source.contours)
+      ? source.contours.map((contour) => ({
+        ...contour,
+        points: contour.points.map((p) => ({
+          ...p,
+          ...movePoint(p),
+          hin: p.hin ? movePoint(p.hin) : null,
+          hout: p.hout ? movePoint(p.hout) : null,
+        })),
+      }))
+      : null;
+    if (Number.isInteger(patch.contourIndex) || Number.isInteger(patch.pointIndex)) {
+      const contourIndex = Number.isInteger(patch.contourIndex) ? patch.contourIndex : 0;
+      const pointIndex = Number.isInteger(patch.pointIndex) ? patch.pointIndex : -1;
+      const ring = moved[contourIndex];
+      if (!ring || pointIndex < 0 || pointIndex >= ring.length) return { error: 'Ponto da fonte booleana inválido.' };
+      const current = ring[pointIndex];
+      if (Number.isFinite(patch.x)) current.x = round(patch.x);
+      if (Number.isFinite(patch.y)) current.y = round(patch.y);
+      const structured = movedContours?.[contourIndex]?.points?.[pointIndex];
+      if (structured) {
+        if (Number.isFinite(patch.x)) structured.x = current.x;
+        if (Number.isFinite(patch.y)) structured.y = current.y;
+        if (patch.clearHin) structured.hin = null;
+        if (patch.clearHout) structured.hout = null;
+        if (Number.isFinite(patch.hinX) || Number.isFinite(patch.hinY)) structured.hin = { x: Number.isFinite(patch.hinX) ? round(patch.hinX) : structured.hin?.x ?? structured.x, y: Number.isFinite(patch.hinY) ? round(patch.hinY) : structured.hin?.y ?? structured.y };
+        if (Number.isFinite(patch.houtX) || Number.isFinite(patch.houtY)) structured.hout = { x: Number.isFinite(patch.houtX) ? round(patch.houtX) : structured.hout?.x ?? structured.x, y: Number.isFinite(patch.houtY) ? round(patch.houtY) : structured.hout?.y ?? structured.y };
+        if (patch.mode) structured.mode = patch.mode;
+      }
+    }
+    // The structured Bézier contours are the source of truth. Re-flatten them for the
+    // polygon kernel only at recomputation time, so moving a node or handle changes the
+    // actual boolean geometry instead of merely changing metadata beside stale rings.
+    if (movedContours) moved = movedContours.map((contour) => flattenContour(contour.points, contour.closed !== false, 0.12));
+    const nextSources = node.boolean.sources.map((s, i) => i === sourceIndex
+      ? { ...s, rings: moved, ...(movedContours ? { contours: movedContours } : {}) }
+      : s);
+    const rings = booleanPolygons(nextSources, node.boolean.op);
+    if (!rings.length) return { error: 'A edição deixou a operação booleana vazia.' };
+    const contours = polygonsToContours(rings, { tol: 0.15, smooth: true });
+    const boxes = contours.map((c) => pathBounds(c.points, true));
+    const box = { x0: Math.min(...boxes.map((q) => q.x0)), y0: Math.min(...boxes.map((q) => q.y0)), x1: Math.max(...boxes.map((q) => q.x1)), y1: Math.max(...boxes.map((q) => q.y1)) };
+    const parent = store.parentOf(node.id);
+    const po = parent ? canvas.originOf(parent.id) : { x: 0, y: 0 };
+    const w = Math.max(1, round(box.x1 - box.x0)), h = Math.max(1, round(box.y1 - box.y0));
+    const loc = (p) => (p ? { x: round(p.x - box.x0), y: round(p.y - box.y0) } : null);
+    const conv = (c) => ({ closed: true, points: c.points.map((p) => ({ ...loc(p), hin: loc(p.hin), hout: loc(p.hout), ...(p.mode ? { mode: p.mode } : {}) })) });
+    store.update(() => {
+      const [main, ...rest] = contours.map(conv);
+      node.x = round(box.x0 - po.x); node.y = round(box.y0 - po.y); node.w = w; node.h = h; node.vw = w; node.vh = h;
+      node.points = main.points; node.closed = true;
+      if (rest.length) node.contours = rest; else delete node.contours;
+      node.boolean = { ...node.boolean, sources: nextSources };
+    });
+    store.setSelection([node.id]);
+    store.commit();
+    return { node };
+  }
+
+  /** Edita um nó de um caminho sem trocar a identidade nem destruir os demais nós. */
+  function editPathNode(id, contourIndex, nodeIndex, patch = {}) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    const index = Number.isInteger(contourIndex) ? contourIndex : 0;
+    const points = index === 0 ? node.points : node.contours?.[index - 1]?.points;
+    if (!Array.isArray(points)) return { error: `Contorno ${index} não existe neste vetor.` };
+    if (!Number.isInteger(nodeIndex) || nodeIndex < 0 || nodeIndex >= points.length) return { error: `Nó ${nodeIndex} não existe no contorno ${index}.` };
+    const current = points[nodeIndex];
+    const finite = (value, label) => {
+      if (!Number.isFinite(value) || Math.abs(value) > 1e7) throw new Error(`${label} precisa ser um número finito entre -10000000 e 10000000.`);
+      return Math.round(value * 100) / 100;
+    };
+    const coord = (value, label) => {
+      if (value === null) return null;
+      if (!value || typeof value !== 'object') throw new Error(`${label} precisa ser {x, y} ou null.`);
+      return { x: finite(value.x, `${label}.x`), y: finite(value.y, `${label}.y`) };
+    };
+    const next = {
+      x: patch.point?.x === undefined ? current.x : finite(patch.point.x, 'point.x'),
+      y: patch.point?.y === undefined ? current.y : finite(patch.point.y, 'point.y'),
+      hin: patch.hin === undefined ? (current.hin || null) : coord(patch.hin, 'hin'),
+      hout: patch.hout === undefined ? (current.hout || null) : coord(patch.hout, 'hout'),
+    };
+    if (patch.mode !== undefined) {
+      if (patch.mode === null || patch.mode === 'corner') { next.hin = null; next.hout = null; }
+      else if (!['smooth', 'symmetric', 'free'].includes(patch.mode)) throw new Error('mode precisa ser corner, smooth, symmetric ou free.');
+      else next.mode = patch.mode;
+    } else if (current.mode) next.mode = current.mode;
+    if (!next.hin && !next.hout) delete next.mode;
+    store.update(() => { points[nodeIndex] = next; });
+    store.setSelection([node.id]);
+    return { node, contourIndex: index, nodeIndex };
+  }
+
+  /** Inverte a direção de um contorno, trocando também as alças de entrada/saída. */
+  function reversePath(id, contourIndex = undefined) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    const indexes = contourIndex === undefined ? [0, ...(node.contours || []).map((_, i) => i + 1)] : [contourIndex];
+    const clonePoint = (p) => ({ ...p, ...(p.hout ? { hin: { ...p.hout } } : {}), ...(p.hin ? { hout: { ...p.hin } } : {}) });
+    store.update(() => {
+      for (const index of indexes) {
+        const contour = index === 0 ? node : node.contours?.[index - 1];
+        if (!contour || !Array.isArray(contour.points)) throw new Error(`Contorno ${index} não existe neste vetor.`);
+        contour.points = contour.points.slice().reverse().map(clonePoint);
+      }
+    });
+    store.setSelection([node.id]);
+    return { id, contours: indexes, reversed: true };
+  }
+
+  /** Divide um contorno em dois caminhos abertos, duplicando o nó de corte para não perder geometria. */
+  function splitPathContour(id, contourIndex = 0, nodeIndex) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    const contour = contourIndex === 0 ? node : node.contours?.[contourIndex - 1];
+    if (!contour || !Array.isArray(contour.points)) return { error: `Contorno ${contourIndex} não existe neste vetor.` };
+    if (!Number.isInteger(nodeIndex) || nodeIndex < 1 || nodeIndex >= contour.points.length - 1) return { error: `node_index precisa estar entre 1 e ${contour.points.length - 2} para dividir o contorno.` };
+    const points = contour.points.map((p) => ({ ...p, ...(p.hin ? { hin: { ...p.hin } } : {}), ...(p.hout ? { hout: { ...p.hout } } : {}) }));
+    if (contour.closed !== false) points.push({ ...points[0], ...(points[0].hin ? { hin: { ...points[0].hin } } : {}), ...(points[0].hout ? { hout: { ...points[0].hout } } : {}) });
+    const first = points.slice(0, nodeIndex + 1);
+    const second = points.slice(nodeIndex);
+    const a = { ...contour, points: first, closed: false };
+    const b = { ...contour, points: second, closed: false };
+    store.update(() => {
+      if (contourIndex === 0) { node.points = a.points; node.closed = false; node.contours = [b, ...(node.contours || [])]; }
+      else { node.contours.splice(contourIndex - 1, 1, a, b); }
+    });
+    store.setSelection([node.id]);
+    return { id, contourIndex, nodeIndex, contourCount: 1 + (node.contours || []).length, split: true };
+  }
+
+  /** Une o contorno principal e os subcontornos no mesmo caminho aberto, preservando nós e alças. */
+  function joinPathContours(id) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    const contours = [{ points: node.points || [], closed: node.closed !== false }, ...(node.contours || [])]
+      .filter((contour) => Array.isArray(contour.points) && contour.points.length > 0);
+    if (contours.length < 2) return { error: 'O vetor precisa ter pelo menos dois contornos para serem unidos.' };
+    const clonePoint = (p) => ({ ...p, ...(p.hin ? { hin: { ...p.hin } } : { hin: null }), ...(p.hout ? { hout: { ...p.hout } } : { hout: null }) });
+    const points = [];
+    for (const contour of contours) {
+      for (const point of contour.points) {
+        const copy = clonePoint(point);
+        const previous = points.at(-1);
+        if (!previous || previous.x !== copy.x || previous.y !== copy.y) points.push(copy);
+      }
+    }
+    if (points.length < 2) return { error: 'Os contornos não têm nós suficientes para formar um caminho.' };
+    store.update(() => {
+      node.points = points;
+      node.closed = false;
+      delete node.contours;
+      delete node.shape;
+    });
+    store.setSelection([node.id]);
+    return { id, joined: contours.length, pointCount: points.length, closed: false };
+  }
+
+  /** Simplifica nós retos ou curvas abertas sem destruir a edição por alças. */
+  function simplifyPath(id, contourIndex = undefined, tolerance = 1) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 10000) return { error: 'tolerance precisa ser um número entre 0 e 10000.' };
+    const indexes = contourIndex === undefined ? [0, ...(node.contours || []).map((_, i) => i + 1)] : [contourIndex];
+    let removed = 0;
+    store.update(() => {
+      for (const index of indexes) {
+        const contour = index === 0 ? node : node.contours?.[index - 1];
+        if (!contour || !Array.isArray(contour.points)) throw new Error(`Contorno ${index} não existe neste vetor.`);
+        if (contour.points.length < 3) continue;
+        const curved = contour.points.some((p) => p.hin || p.hout);
+        if (curved) {
+          const simplifiedCurve = simplifyBezierContour(contour.points, contour.closed !== false, tolerance);
+          if (simplifiedCurve) {
+            removed += contour.points.length - simplifiedCurve.length;
+            contour.points = simplifiedCurve;
+          }
+          continue;
+        }
+        const source = contour.closed !== false ? [...contour.points, contour.points[0]] : contour.points;
+        const simplified = rdp(source, tolerance);
+        const points = simplified.map((p) => ({ x: p.x, y: p.y, hin: null, hout: null }));
+        if (contour.closed !== false && points.length > 1 && points.at(-1).x === points[0].x && points.at(-1).y === points[0].y) points.pop();
+        const minimum = contour.closed !== false ? 3 : 2;
+        if (points.length >= minimum && points.length < contour.points.length) {
+          removed += contour.points.length - points.length;
+          contour.points = points;
+        }
+      }
+    });
+    if (removed) store.setSelection([node.id]);
+    return { id, contours: indexes, removed, simplified: removed > 0 };
+  }
+
+  /** Converte strokes sólidos em silhuetas preenchidas editáveis, mantendo anéis e subcaminhos. */
+  function strokeToPath(id, tolerance = 0.5) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    const stroke = node.stroke;
+    if (!stroke || !Number.isFinite(stroke.width) || stroke.width <= 0) return { error: 'O vetor não tem um contorno com espessura para converter.' };
+    if (stroke.align && stroke.align !== 'center') return { error: 'stroke-to-path ainda exige posição central; contornos internos/externos dependem da geometria fechada.' };
+    if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 100) return { error: 'tolerance precisa ser um número entre 0 e 100.' };
+    const half = stroke.width / 2;
+    const cap = stroke.cap || 'round';
+    const arc = (center, from, to, steps = 8) => {
+      const a0 = Math.atan2(from.y - center.y, from.x - center.x), a1 = Math.atan2(to.y - center.y, to.x - center.x);
+      let delta = a1 - a0;
+      while (delta <= 0) delta += Math.PI * 2;
+      if (delta > Math.PI * 1.1) delta -= Math.PI * 2;
+      return Array.from({ length: steps - 1 }, (_, k) => { const a = a0 + (delta * (k + 1)) / steps; return { x: center.x + Math.cos(a) * half, y: center.y + Math.sin(a) * half }; });
+    };
+    const closedOffset = (line, sign) => {
+      const dirs = line.map((p, i) => {
+        const a = line[(i + line.length - 1) % line.length], b = line[(i + 1) % line.length];
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+      });
+      return line.map((p, i) => {
+        const prev = { x: -dirs[(i + line.length - 1) % line.length].y, y: dirs[(i + line.length - 1) % line.length].x };
+        const next = { x: -dirs[i].y, y: dirs[i].x };
+        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
+        return { x: p.x + ((prev.x + next.x) / len) * half * sign, y: p.y + ((prev.y + next.y) / len) * half * sign };
+      });
+    };
+    const openOutline = (line) => {
+      const dirs = line.map((p, i) => {
+        const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+      });
+      const normals = dirs.map((d, i) => {
+        const prev = i ? { x: -dirs[i - 1].y, y: dirs[i - 1].x } : { x: -d.y, y: d.x }, next = { x: -d.y, y: d.x };
+        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
+        return { x: (prev.x + next.x) / len, y: (prev.y + next.y) / len };
+      });
+      const start = { ...line[0] }, end = { ...line.at(-1) };
+      if (cap === 'square') { start.x -= dirs[0].x * half; start.y -= dirs[0].y * half; end.x += dirs.at(-1).x * half; end.y += dirs.at(-1).y * half; }
+      const left = line.map((p, i) => ({ x: p.x + normals[i].x * half, y: p.y + normals[i].y * half }));
+      const right = line.map((p, i) => ({ x: p.x - normals[i].x * half, y: p.y - normals[i].y * half }));
+      left[0] = { x: start.x + normals[0].x * half, y: start.y + normals[0].y * half }; left.at(-1).x = end.x + normals.at(-1).x * half; left.at(-1).y = end.y + normals.at(-1).y * half;
+      right[0] = { x: start.x - normals[0].x * half, y: start.y - normals[0].y * half }; right.at(-1).x = end.x - normals.at(-1).x * half; right.at(-1).y = end.y - normals.at(-1).y * half;
+      const outline = [...left]; if (cap === 'round') outline.push(...arc(end, left.at(-1), right.at(-1))); outline.push(...right.reverse()); if (cap === 'round') outline.push(...arc(start, right[0], left[0]));
+      return outline;
+    };
+    const dashed = Boolean(stroke.dash || (stroke.style && stroke.style !== 'solid'));
+    const dashPattern = () => {
+      const custom = dashList(stroke.dash);
+      if (custom) return custom.split(' ').map(Number).filter((n) => n > 0);
+      if (stroke.style === 'dotted') return [stroke.width, stroke.width];
+      if (stroke.style === 'dashed') return [stroke.width * 3, stroke.width * 2];
+      return [];
+    };
+    const dashSegments = (line) => {
+      const base = dashPattern();
+      if (!base.length) return [line];
+      const pattern = base.length % 2 ? [...base, ...base] : base;
+      const result = [], current = [];
+      let patternIndex = 0, remaining = pattern[0], drawing = true;
+      const finish = () => { if (current.length >= 2) result.push(current.splice(0)); else current.length = 0; };
+      for (let i = 1; i < line.length; i++) {
+        let a = line[i - 1], b = line[i], dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
+        if (!length) continue;
+        while (length > 1e-8) {
+          const take = Math.min(length, remaining), t = take / length;
+          const q = { x: a.x + dx * t, y: a.y + dy * t };
+          if (drawing) { if (!current.length) current.push({ ...a }); current.push({ ...q }); }
+          a = q; dx = b.x - a.x; dy = b.y - a.y; length = Math.hypot(dx, dy);
+          remaining -= take;
+          if (remaining <= 1e-8) { if (drawing) finish(); drawing = !drawing; patternIndex = (patternIndex + 1) % pattern.length; remaining = pattern[patternIndex]; }
+        }
+      }
+      if (drawing) finish();
+      return result;
+    };
+    const rings = [];
+    for (const contour of [{ points: node.points || [], closed: node.closed !== false }, ...(node.contours || [])]) {
+      const line = flattenContour(contour.points || [], contour.closed, tolerance).filter((p, i, all) => !i || p.x !== all[i - 1].x || p.y !== all[i - 1].y);
+      if (line.length < 2) return { error: 'Cada contorno precisa de pelo menos dois pontos.' };
+      if (contour.closed) {
+        if (dashed) return { error: 'stroke-to-path ainda não converte tracejado em caminho fechado; use um contorno aberto ou remova o tracejado.' };
+        const area = line.reduce((sum, p, i) => { const q = line[(i + 1) % line.length]; return sum + p.x * q.y - q.x * p.y; }, 0) / 2;
+        const left = closedOffset(line, 1), right = closedOffset(line, -1);
+        rings.push(area >= 0 ? right : left, area >= 0 ? left : right);
+      } else rings.push(...dashSegments(line).map(openOutline));
+    }
+    store.update(() => {
+      node.points = rings[0].map((p) => ({ x: round(p.x), y: round(p.y), hin: null, hout: null }));
+      node.closed = true;
+      node.contours = rings.slice(1).map((ring) => ({ points: ring.map((p) => ({ x: round(p.x), y: round(p.y), hin: null, hout: null })), closed: true }));
+      node.fill = { ...defaultFill(stroke.color || '#000000'), opacity: Number.isFinite(stroke.opacity) ? stroke.opacity : 1 };
+      node.stroke = null;
+      node.fillRule = 'evenodd';
+      normalizePath(node);
+    });
+    store.setSelection([node.id]);
+    return { id, converted: true, pointCount: rings.reduce((n, ring) => n + ring.length, 0), contourCount: rings.length, dashed, cap, width: stroke.width };
+  }
+
+  /** Desloca contornos fechados para fora (distância positiva) ou para dentro (negativa). */
+  function offsetPath(id, distance, contourIndex = undefined, tolerance = 0.5) {
+    const node = store.get(id);
+    if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
+    if (!Number.isFinite(distance) || distance === 0 || Math.abs(distance) > 100000) return { error: 'distance precisa ser um número finito entre -100000 e 100000, diferente de zero.' };
+    if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 100) return { error: 'tolerance precisa ser um número entre 0 e 100.' };
+    const indexes = contourIndex === undefined ? [0, ...(node.contours || []).map((_, i) => i + 1)] : [contourIndex];
+    const offsetRing = (line, amount) => {
+      const area = line.reduce((sum, p, i) => { const q = line[(i + 1) % line.length]; return sum + p.x * q.y - q.x * p.y; }, 0) / 2;
+      const side = (area >= 0 ? -1 : 1) * Math.sign(amount);
+      const d = Math.abs(amount);
+      const dirs = line.map((p, i) => {
+        const a = line[(i + line.length - 1) % line.length], b = line[(i + 1) % line.length], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+      });
+      return line.map((p, i) => {
+        const prev = { x: -dirs[(i + line.length - 1) % line.length].y, y: dirs[(i + line.length - 1) % line.length].x }, next = { x: -dirs[i].y, y: dirs[i].x };
+        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
+        return { x: p.x + ((prev.x + next.x) / len) * d * side, y: p.y + ((prev.y + next.y) / len) * d * side };
+      });
+    };
+    const rings = [];
+    for (const index of indexes) {
+      const contour = index === 0 ? node : node.contours?.[index - 1];
+      if (!contour || !Array.isArray(contour.points)) return { error: `Contorno ${index} não existe neste vetor.` };
+      if (contour.closed === false) return { error: `offset_path só aceita contornos fechados; o contorno ${index} está aberto.` };
+      const line = flattenContour(contour.points, true, tolerance).filter((p, i, all) => !i || p.x !== all[i - 1].x || p.y !== all[i - 1].y);
+      if (line.length < 3) return { error: `O contorno ${index} precisa de pelo menos três pontos.` };
+      rings.push({ index, points: offsetRing(line, distance) });
+    }
+    store.update(() => {
+      for (const ring of rings) {
+        const contour = ring.index === 0 ? node : node.contours[ring.index - 1];
+        contour.points = ring.points.map((p) => ({ x: round(p.x), y: round(p.y), hin: null, hout: null }));
+        contour.closed = true;
+      }
+      normalizePath(node);
+    });
+    store.setSelection([node.id]);
+    return { id, distance, contours: indexes, pointCount: rings.reduce((n, r) => n + r.points.length, 0), changed: true };
   }
 
   /** Caixa da camada relativa ao PAI, medida no DOM (respeita flexbox/grid). Usada pela exportação SVG. */
@@ -1200,7 +1634,7 @@ export function createCommands(store, canvas) {
 
   // API pública dos comandos
   const api = {
-    insertSvg, placeNew, booleanOp,
+    insertSvg, placeNew, booleanOp, shapeBuilder, editBooleanSource, editPathNode, reversePath, splitPathContour, joinPathContours, simplifyPath, strokeToPath, offsetPath,
     topSelection, deleteSelection, duplicate, copy, cut, paste, group, ungroup, reorder,
     setSelectionBox, copyStyle, pasteStyle, toggleAutoLayout, setLayoutMode, align, distribute, reparent, addImageFiles, importAsset, addText, addHtmlEmbed, cssOf,
     localBox, frameSelection, createComponent, insertInstance, detach, goToMain, toggleMask, flip, addColorStyle, addColorStyles, addTextStyle,

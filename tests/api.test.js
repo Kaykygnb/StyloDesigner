@@ -28,7 +28,9 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await unusedPort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json') },
+    // Este teste exercita apenas a persistência da API. O servidor real exige
+    // contas por padrão; o modo local fica explícito somente neste teste legado.
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'local' },
     stdio: 'ignore',
   });
   t.after(() => child.kill());
@@ -58,6 +60,10 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   assert.equal((await r.json()).name, 'Meu app');
   assert.equal(Number(r.headers.get('x-modified')), modified);
   assert.equal(r.headers.get('x-content-hash'), contentHash, 'GET devolve a revisão por conteúdo além do timestamp');
+
+  const imported = await fetch(base + '/api/projects/import', { method: 'POST', headers: json, body: JSON.stringify({ name: 'Importado pela API', doc: doc('Documento importado') }) });
+  assert.equal(imported.status, 201);
+  assert.equal((await (await fetch(base + '/api/projects/importado-pela-api.json')).json()).name, 'Documento importado');
 
   // 3. conflito: gravar sem saber a revisão atual (ou com revisão velha) é recusado; com a revisão certa, aceito
   assert.equal((await put('/api/projects/meu-app.json', doc('Sem base'))).status, 409);

@@ -58,7 +58,7 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     const own = found.find((p) => p.ownerId === user.id);
     const project = own ?? found[0];
     if (!project) return null;
-    if (write && !own && project.members[0]?.role === 'VIEWER') throw httpError(403, 'Você só pode ler este projeto.');
+    if (write && !own && (project.members[0]?.role === 'VIEWER' || project.members[0]?.role === 'COMMENTER')) throw httpError(403, 'Você só pode ler ou comentar este projeto.');
     return project;
   }
   const need = async (user: Person, slug: string, write = false) => {
@@ -109,7 +109,7 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
         await saveBlobs(tx, created.id, blobs);
         return { project: created, changed: true };
       }
-      if (cur.ownerId !== user.id && cur.members[0]?.role === 'VIEWER') throw httpError(403, 'Você só pode ler este projeto.');
+      if (cur.ownerId !== user.id && (cur.members[0]?.role === 'VIEWER' || cur.members[0]?.role === 'COMMENTER')) throw httpError(403, 'Você só pode ler ou comentar este projeto.');
       // mesmo conteúdo que já está salvo (e a base confere): nada a gravar, sem revisão nem versão nova
       if (cur.docHash === docHash && (overwrite || base.hash === hashOf(cur.revision))) return { project: cur, changed: false };
       if (!overwrite && base.hash !== hashOf(cur.revision)) {
@@ -142,8 +142,52 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
 
   async function versions(user: Person, slug: string) {
     const p = await need(user, slug);
-    const rows = await db.projectVersion.findMany({ where: { projectId: p.id }, orderBy: { createdAt: 'desc' }, select: { id: true, createdAt: true, size: true } });
-    return rows.map((v) => ({ id: v.id, modified: v.createdAt.getTime(), size: v.size }));
+    const rows = await db.projectVersion.findMany({ where: { projectId: p.id }, orderBy: { createdAt: 'desc' }, select: { id: true, createdAt: true, size: true, label: true, revision: true } });
+    return rows.map((v) => ({ id: v.id, modified: v.createdAt.getTime(), size: v.size, label: v.label, revision: v.revision }));
+  }
+
+  /** Guarda explicitamente o estado atual como uma versão nomeada (por exemplo, uma publicação). */
+  async function snapshot(user: Person, slug: string, label: string | null = null) {
+    const p = await need(user, slug, true);
+    const keep = getConfig().keepVersions;
+    if (keep <= 0) return { id: null, label: null };
+    const value = label == null || !String(label).trim() ? null : String(label).trim().slice(0, 120);
+    const created = await db.$transaction(async (tx) => {
+      const row = await tx.projectVersion.create({ data: { projectId: p.id, revision: p.revision, doc: p.doc as any, size: p.size, label: value } });
+      const old = await tx.projectVersion.findMany({ where: { projectId: p.id }, orderBy: { createdAt: 'desc' }, skip: keep, select: { id: true } });
+      if (old.length) await tx.projectVersion.deleteMany({ where: { id: { in: old.map((v) => v.id) } } });
+      return row;
+    });
+    return { id: created.id, label: created.label, revision: created.revision };
+  }
+
+  async function labelVersion(user: Person, slug: string, id: string, label: string | null) {
+    const p = await need(user, slug, true);
+    const value = label == null || !String(label).trim() ? null : String(label).trim().slice(0, 120);
+    const found = await db.projectVersion.updateMany({ where: { id, projectId: p.id }, data: { label: value } });
+    if (!found.count) throw httpError(404, 'Versão não encontrada.');
+    return { id, label: value };
+  }
+
+  async function compareVersions(user: Person, slug: string, leftId: string, rightId: string) {
+    const p = await need(user, slug);
+    const rows = await db.projectVersion.findMany({ where: { projectId: p.id, id: { in: [leftId, rightId] } }, select: { id: true, doc: true, size: true, createdAt: true, label: true, revision: true } });
+    const left = rows.find((v) => v.id === leftId), right = rows.find((v) => v.id === rightId);
+    if (!left || !right) throw httpError(404, 'As duas versões precisam pertencer a este projeto.');
+    const a = left.doc as any, b = right.doc as any;
+    const keys = [...new Set([...Object.keys(a || {}), ...Object.keys(b || {})])];
+    return { left: { id: left.id, label: left.label, revision: left.revision, modified: left.createdAt.getTime(), size: left.size }, right: { id: right.id, label: right.label, revision: right.revision, modified: right.createdAt.getTime(), size: right.size }, changed: keys.filter((k) => JSON.stringify(a?.[k]) !== JSON.stringify(b?.[k])), same: JSON.stringify(a) === JSON.stringify(b) };
+  }
+
+  async function duplicateVersion(user: Person, slug: string, id: string, title: string) {
+    const p = await need(user, slug);
+    const v = await db.projectVersion.findFirst({ where: { id, projectId: p.id } });
+    if (!v) throw httpError(404, 'Versão não encontrada.');
+    const base = fileNameFor(title || v.label || `${p.name}-copia`);
+    let target = base, n = 2;
+    while (await exists(user, target)) target = fileNameFor(`${base.replace(/\.json$/i, '')}-${n++}`);
+    const out = await write(user, target, v.doc, { overwrite: false, by: `duplicate:${id}` });
+    return { file: out.file, projectId: out.projectId, sourceVersion: id };
   }
 
   async function readVersion(user: Person, slug: string, id: string) {
@@ -151,6 +195,11 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     const v = await db.projectVersion.findFirst({ where: { id, projectId: p.id } });
     if (!v) throw httpError(404, 'Versão não encontrada.');
     return hydrate(db, p.id, v.doc);
+  }
+
+  async function restoreVersion(user: Person, slug: string, id: string) {
+    const doc = await readVersion(user, slug, id);
+    return write(user, slug, doc, { overwrite: true, by: `restore:${id}` });
   }
 
   /** Uma imagem do projeto pelo hash (a pessoa precisa poder ler o projeto). */
@@ -185,7 +234,7 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     return { file: target, modified: updated.updatedAt.getTime() };
   }
 
-  return { list, load, exists, write, asset, versions, readVersion, readThumb, writeThumb, rename };
+  return { list, load, exists, write, asset, versions, snapshot, labelVersion, compareVersions, duplicateVersion, readVersion, restoreVersion, readThumb, writeThumb, rename };
 }
 
 export type Projects = ReturnType<typeof createProjects>;

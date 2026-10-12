@@ -21,6 +21,7 @@ import { resetAssetCaches } from '@stylo/plugins/assets/registry.ts';
 import { resetFontCatalog } from '@stylo/plugins/assets/providers/fontsource.ts';
 import { pickPexelsVideo } from '@stylo/plugins/assets/providers/pexels.ts';
 import { openverseLicense } from '@stylo/plugins/assets/providers/openverse.ts';
+import { lucide } from '@stylo/plugins/assets/providers/lucide.ts';
 import { readPath } from '@stylo/plugins/assets/custom.ts';
 import { sniffAsset } from '@stylo/core/asset-kinds.ts';
 
@@ -29,6 +30,17 @@ const WOFF2 = (n: number) => { const b = new Uint8Array(200); b.set(Buffer.from(
 const MP3 = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0x21, ...new Array(40).fill(0)]);
 const GLB = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 2, 0, 0, 0, ...new Array(40).fill(1)]);
 const MP4 = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, ...new Array(40).fill(2)]);
+
+test('Lucide: catálogo local de ícones devolve licença, origem, crédito e download', async () => {
+  const out = await lucide.search({ kind: 'icon', query: 'arrow', page: 1 }, { key: null, getJson: async () => ({}) });
+  assert.ok(out.results.length > 0);
+  const item = out.results[0];
+  assert.equal(item.provider, 'lucide-icons');
+  assert.equal(item.license.name, 'ISC');
+  assert.equal(item.license.attribution, 'required');
+  assert.match(item.download?.url || '', /lucide-static@/);
+  assert.match(item.credit, /Lucide Icons/);
+});
 
 test('blobs: arquivo e memória guardam por conteúdo, não duplicam, leem e removem; hash inválido é recusado', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'stylo-blobs-'));
@@ -191,6 +203,9 @@ test('asset_providers e search_assets: provedores sem chave são pulados com o m
   assert.equal(by('pexels').needsKey.envVar, 'PEXELS_API_KEY');
   assert.equal(by('polypizza').unverified, true);
   assert.deepEqual(by('fontsource').kinds, ['font']);
+  assert.equal(by('lucide-icons').sourceUrl, 'https://lucide.dev/icons');
+  assert.equal(by('lucide-icons').licenseUrl, 'https://lucide.dev/license');
+  assert.equal(by('openverse').licenseUrl, 'https://creativecommons.org/share-your-work/cclicenses/');
 
   const img = await t.call('search_assets', { kind: 'image', query: 'cat' }, a);
   assert.equal(img.error, undefined, img.error);
@@ -296,6 +311,9 @@ test('library_use: copia imagem e mídia para o projeto; add_font hospeda a font
   const again = await t.call('library_use', { id: imgId }, a);
   assert.equal(again.asset_id, used.asset_id, 'mesma imagem, mesmo asset');
   assert.equal(again.reused, true);
+  await t.db.libraryAsset.update({ where: { id: imgId }, data: { license: null } });
+  assert.match((await t.call('library_use', { id: imgId }, a)).error, /licença comercial registrada/);
+  await t.db.libraryAsset.update({ where: { id: imgId }, data: { license: { name: 'CC BY 4.0', commercial: true, attribution: 'required' } } as any });
   const video = await t.call('library_use', { id: vidId, insert: true, name: 'Vídeo do mar' }, a);
   assert.equal(video.error, undefined, video.error);
   assert.equal(video.kind, 'video');

@@ -72,6 +72,8 @@ export const assets = definePlugin({
   id: 'assets',
   name: 'Assets gratuitos e biblioteca',
   description: 'Busca em provedores gratuitos, biblioteca da conta, fontes e fontes de assets cadastradas por você.',
+  category: 'asset-provider', sourceUrl: 'https://github.com/Kaykygnb/StyloDesigner',
+  version: '1.0.0', author: 'Stylo', license: 'MIT', repository: 'https://github.com/Kaykygnb/StyloDesigner', permissions: ['read', 'write'], dependencies: [],
   tools: [
     {
       def: defineTool({
@@ -89,7 +91,7 @@ export const assets = definePlugin({
       def: defineTool({
         name: 'search_assets',
         write: false, needs: 'read',
-        description: 'BUSCA assets gratuitos de uso comercial: image (fotos, ilustrações), video, audio, model3d (modelos .glb), font (catálogo do Google Fonts), icon (Material Symbols). Pergunta a todos os provedores prontos do tipo (ou a um só, com provider) e devolve resultados normalizados com licença, autor e crédito. Cada resultado tem uma `ref`: use library_save para guardar na biblioteca (fontes: add_font; ícones: insert_icon). Provedores sem chave ou que falharam vêm em `skipped`.',
+        description: 'BUSCA assets gratuitos de uso comercial: image (fotos, ilustrações), video, audio, model3d (modelos .glb), font (catálogo do Google Fonts), icon (Material Symbols e Lucide). Pergunta a todos os provedores prontos do tipo (ou a um só, com provider) e devolve resultados normalizados com licença, autor e crédito. Cada resultado tem uma `ref`: use library_save para guardar na biblioteca (fontes: add_font; ícones: insert_icon). Provedores sem chave ou que falharam vêm em `skipped`.',
         input: z.object({
           kind: z.enum(KINDS),
           query: z.string().describe('o que procurar (em inglês costuma achar mais; ícones aceitam português)'),
@@ -206,6 +208,9 @@ export const assets = definePlugin({
       needsProject: true,
       run: async ({ id, insert, name, parent_id, at }, ctx) => {
         const { asset, data } = await svc(ctx).library.bytes(ctx.actor.userId, String(id));
+        if (!asset.license?.name || asset.license.commercial !== true) {
+          throw new Error(`O asset “${asset.name}” não tem uma licença comercial registrada. Atualize a ficha na biblioteca antes de usá-lo no projeto.`);
+        }
         const sniff = sniffAsset(data, asset.mime);
         const store = ctx.project!.store;
         if (sniff.kind === 'FONT') throw new Error('Fontes entram no projeto com add_font.');

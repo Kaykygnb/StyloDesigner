@@ -4,17 +4,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { canEdit, insert, setProps } from '../lib/actions';
 import { commentOn } from '../lib/editing';
-import { app, hoverLayer, run, select, setTool, useApp, type WorldBox } from '../lib/app';
+import { app, hoverLayer, run, select, setTool, toast, useApp, type WorldBox } from '../lib/app';
 import { boardContaining, boardsOf, findNode, flatten, inFlow, isAncestor, isBoard, pageOf, parentOf, topLevel } from '../lib/doc';
 import { createShape, parentFor, SHAPE_TOOLS, type Drawn, type ShapeTool } from '../lib/shapes';
 import type { LayerNode } from '../lib/types';
 import { Icon } from '../ui/Icon';
+import { t } from '../lib/i18n';
 import { showMenu } from '../ui/ContextMenu';
 import { BoardFrame, type Box as RawBox, type BoardPointer } from './BoardFrame';
 import { breakpointsOf } from './devices';
 import { canvasMenuItems, layerMenuItems } from './menus';
 import { Rulers } from './Rulers';
-import { SelectionOverlay, type Gesture, type ObBox } from './SelectionOverlay';
+import { PenOverlay, type PenPoint } from './PenOverlay';
+import { SelectionOverlay, VectorNodeOverlay, type Gesture, type ObBox } from './SelectionOverlay';
 import {
   SNAP_PX, angleOf, flowDrop, intersects, normalize, resizeGroupBox, resizeSingle, rotateBy, scaleInto, snapMove, snapResize, union,
   type Box,
@@ -50,6 +52,7 @@ export function Canvas() {
   const pendingEdit = useApp((s) => s.pendingEdit);
   const rulers = useApp((s) => s.rulers);
   const showGuides = useApp((s) => s.guides);
+  const language = useApp((s) => s.language);
   const page = pageOf(doc, pageId);
   const editable = canEdit();
 
@@ -158,8 +161,9 @@ export function Canvas() {
     const z100 = () => zoomTo(1);
     window.addEventListener('stylo:fit', fitAll);
     window.addEventListener('stylo:fit-selection', fitSel);
+    window.addEventListener('stylo:reveal-selection', fitSel);
     window.addEventListener('stylo:zoom100', z100);
-    return () => { window.removeEventListener('stylo:fit', fitAll); window.removeEventListener('stylo:fit-selection', fitSel); window.removeEventListener('stylo:zoom100', z100); };
+    return () => { window.removeEventListener('stylo:fit', fitAll); window.removeEventListener('stylo:fit-selection', fitSel); window.removeEventListener('stylo:reveal-selection', fitSel); window.removeEventListener('stylo:zoom100', z100); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -561,6 +565,27 @@ export function Canvas() {
     });
   };
 
+  /** Cria o vetor desenhado com a caneta/lápis (pontos em coordenadas do mundo) dentro da tela onde ele começa. */
+  const createPath = async (pts: PenPoint[], closed: boolean) => {
+    const s = S.current;
+    setTool('move');
+    const xs = pts.flatMap((p) => [p.x, ...(p.hin ? [p.hin.x] : []), ...(p.hout ? [p.hout.x] : [])]);
+    const ys = pts.flatMap((p) => [p.y, ...(p.hin ? [p.hin.y] : []), ...(p.hout ? [p.hout.y] : [])]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys);
+    const w = Math.max(1, Math.round(Math.max(...xs) - x0)), h = Math.max(1, Math.round(Math.max(...ys) - y0));
+    const host = boardsOf(s.page).find((b) => b.type === 'frame' && pts[0].x >= b.x && pts[0].x <= b.x + b.w && pts[0].y >= b.y && pts[0].y <= b.y + (s.boxes[b.id]?.[b.id]?.oh ?? b.h));
+    if (!host) { toast('error', 'Desenhe dentro de uma tela (frame): vetores soltos fora das telas não aparecem.'); return; }
+    const origin = originOfParent(host.id);
+    const rel = (p?: { x: number; y: number } | null) => (p ? { x: Math.round((p.x - x0) * 100) / 100, y: Math.round((p.y - y0) * 100) / 100 } : null);
+    const points = pts.map((p) => ({ x: rel(p)!.x, y: rel(p)!.y, hin: rel(p.hin), hout: rel(p.hout) }));
+    const out = await run<{ created?: { id: string } }>('create_layer', {
+      type: 'path', parent_id: host.id,
+      props: { name: 'Vetor', x: Math.round(x0 - origin.x), y: Math.round(y0 - origin.y), w, h, vw: w, vh: h, points, closed,
+        fill: closed ? '#D9D9D9' : 'none', stroke: { color: '#111111', width: 2, style: 'solid', position: 'center', cap: 'round', join: 'round' } },
+    });
+    if (out?.created?.id) select([out.created.id]);
+  };
+
   // ---------------------------------------------------------------- ponteiro vindo das telas
   const onPointer = useCallback((p: BoardPointer) => {
     const s = S.current;
@@ -608,7 +633,7 @@ export function Canvas() {
       }
       return;
     }
-    if (s.tool === 'inspect') { select(p.hitId ? [p.hitId] : []); if (p.hitId) app.set({ panel: 'inspect' }); return; }
+    if (s.tool === 'inspect' || s.tool === 'node') { select(p.hitId ? [p.hitId] : []); if (p.hitId && s.tool === 'inspect') app.set({ panel: 'inspect' }); return; }
     if (SHAPE_TOOLS.includes(s.tool as ShapeTool)) { startDraw(e, s.tool as ShapeTool, p.hitId, p.boardId); return; }
     const id = resolveHit(p.hitId, e.ctrlKey || e.metaKey);
     if (s.bp) { select(id ? (e.shiftKey ? [...new Set([...s.selection, id])] : [id]) : []); return; }
@@ -649,7 +674,8 @@ export function Canvas() {
   // clicar no vazio do canvas (fora das telas)
   const onViewportDown = (e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && (S.current.spaceDown || S.current.tool === 'hand'))) { e.preventDefault(); startPan(e.nativeEvent); return; }
-    if (e.button !== 0 || e.target !== e.currentTarget && !(e.target as HTMLElement).classList.contains('canvas-world')) return;
+    const target = e.target as HTMLElement;
+    if (e.button !== 0 || !!target.closest('button, input, a')) return;
     const s = S.current;
     if (SHAPE_TOOLS.includes(s.tool as ShapeTool)) { startDraw(e.nativeEvent, s.tool as ShapeTool, null, ''); return; }
     if (s.tool === 'comment' || s.tool === 'inspect') { select([]); return; }
@@ -671,23 +697,31 @@ export function Canvas() {
   // distância (Alt) entre a seleção e a camada sob o ponteiro
   const measureTarget = altDown && !gesture && hover && !selection.includes(hover) && sel.length ? hover : null;
 
-  const cursorClass = gesture?.kind === 'pan' || spaceDown || tool === 'hand' ? 'grab' : SHAPE_TOOLS.includes(tool as ShapeTool) ? 'cross' : tool === 'comment' ? 'comment' : '';
+  const cursorClass = gesture?.kind === 'pan' || spaceDown || tool === 'hand' ? 'grab' : SHAPE_TOOLS.includes(tool as ShapeTool) ? 'cross' : tool === 'node' ? 'node-edit' : tool === 'comment' ? 'comment' : '';
+  const vectorNode = (tool === 'inspect' || tool === 'node') && selection.length === 1 ? nodeOf(selection[0]) : null;
+  const vectorBox = vectorNode?.type === 'path' ? oboxOf(vectorNode.id) : null;
+
+  const dotStep = 24 * zoom;
 
   if (!allBoards.length) {
     return (
-      <div className="canvas-area">
-        <div className="canvas-viewport">
+      <div className={`canvas-area ${cursorClass}`}>
+        <div
+          className="canvas-viewport"
+          ref={viewport}
+          onMouseDown={onViewportDown}
+          onContextMenu={onViewportContext}
+          style={{ backgroundSize: `${dotStep}px ${dotStep}px`, backgroundPosition: `${panX}px ${panY}px`, backgroundImage: zoom < 0.3 ? 'none' : undefined }}
+        >
           <div className="canvas-empty">
-            <h3>Esta página está vazia</h3>
-            <p className="muted">Crie uma tela para começar (tecla F e arraste no canvas). Um agente conectado também pode montar a estrutura para você.</p>
-            {editable && <button className="btn primary" onClick={() => void insert('screen')}><Icon name="plus" /> Criar uma tela</button>}
+            <h3>{t(language, 'canvas.empty')}</h3>
+            <p className="muted">{t(language, 'canvas.emptyHint')}</p>
+            {editable && <button className="btn primary" onClick={() => void insert('screen')}><Icon name="plus" /> {t(language, 'canvas.createScreen')}</button>}
           </div>
         </div>
       </div>
     );
   }
-
-  const dotStep = 24 * zoom;
 
   return (
     <div className={`canvas-area ${cursorClass}`}>
@@ -715,7 +749,9 @@ export function Canvas() {
             measureTarget={measureTarget}
             onResize={startResize} onRotate={startRotate}
           />
+          {editable && vectorNode && vectorBox && <VectorNodeOverlay node={vectorNode} box={vectorBox} zoom={zoom} worldFromClient={(x, y) => toWorld({ x, y })} onCommit={(points) => void setProps([vectorNode.id], { points })} />}
         </div>
+        {editable && !bp && (tool === 'pen' || tool === 'pencil') && <PenOverlay key={tool} mode={tool} zoom={zoom} panX={panX} panY={panY} toWorld={toWorld} onCancel={() => setTool('move')} onDone={(pts, closed) => void createPath(pts, closed)} />}
         {gesture && gesture.kind !== 'pan' && <div className="drag-shield" />}
         {rulers && <Rulers viewport={viewport} guides={page.guides ?? []} highlight={selUnion} />}
       </div>

@@ -19,8 +19,9 @@
  *  inclusive várias sombras) e <feDropShadow> viram sombras de verdade do editor. Fontes com nome "técnico"
  *  (PostScript, como o Illustrator exporta: "Poppins-Bold", "ArialMT") viram família + peso + itálico.
  *
- *  O que NÃO é importado (contamos e avisamos): outros filtros, máscaras, padrões, imagens embutidas, texto em curva,
- *  <use> para fora do arquivo, animações. Gradientes viram gradiente linear/radial aproximado (pela direção).
+ *  O que NÃO é importado (contamos e avisamos): máscaras de luminância, imagens embutidas, texto em curva,
+ *  <use> para fora do arquivo, animações e filtros que não sejam sombra. ClipPaths geométricos simples (path, rect,
+ *  circle, ellipse, polygon) viram máscaras editáveis do modelo. Gradientes viram gradiente linear/radial aproximado.
  *
  *  As funções de geometria (parsePathD, applyMatrix, parseTransform...) são PURAS e têm testes em tests/.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -278,9 +279,9 @@ export function parseColor(value) {
 
 /** Propriedades de estilo que nos interessam (e que são herdadas pelos filhos no SVG). */
 const STYLE_PROPS = ['fill', 'stroke', 'stroke-width', 'fill-opacity', 'stroke-opacity', 'opacity', 'fill-rule', 'display',
-  'visibility', 'stroke-dasharray', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'color'];
+  'visibility', 'stroke-dasharray', 'marker-start', 'marker-end', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'color'];
 /** `opacity` e `display` não são herdados (cada elemento tem o seu); o resto é. */
-const NOT_INHERITED = new Set(['opacity', 'display']);
+const NOT_INHERITED = new Set(['opacity', 'display', 'marker-start', 'marker-end']);
 
 /** Lê as regras de <style> mais simples (".classe", "tag", "#id" e listas separadas por vírgula). */
 function parseStyleSheets(doc) {
@@ -389,7 +390,33 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     return st;
   }
 
-  /** Preenchimento do editor a partir de "fill" (cor, none, currentColor, url(#gradiente)). */
+  /** Lê o subconjunto geométrico seguro de um <pattern>; não executa nem preserva markup arbitrário. */
+  function patternOf(el, opacity) {
+    if (!el || el.nodeName !== 'pattern') return null;
+    const n = (key, fallback) => { const value = parseFloat(el.getAttribute(key)); return Number.isFinite(value) ? value : fallback; };
+    const w = n('width', 0), h = n('height', 0);
+    if (!(w > 0 && h > 0)) return null;
+    const cells = [];
+    for (const child of el.children) {
+      const tag = child.nodeName;
+      const fill = parseColor(child.getAttribute('fill') || '#000000');
+      if (!fill || child.getAttribute('stroke') && child.getAttribute('stroke') !== 'none') continue;
+      const a = (key, fallback = 0) => {
+        const value = parseFloat(child.getAttribute(key));
+        return Number.isFinite(value) ? value : fallback;
+      };
+      if (tag === 'rect' && a('width') > 0 && a('height') > 0) cells.push({ tag, x: a('x'), y: a('y'), w: a('width'), h: a('height'), rx: a('rx'), ry: a('ry'), color: fill.color, opacity: round(fill.alpha * opacity) });
+      else if (tag === 'circle' && a('r') > 0) cells.push({ tag, cx: a('cx'), cy: a('cy'), r: a('r'), color: fill.color, opacity: round(fill.alpha * opacity) });
+      else if (tag === 'ellipse' && a('rx') > 0 && a('ry') > 0) cells.push({ tag, cx: a('cx'), cy: a('cy'), rx: a('rx'), ry: a('ry'), color: fill.color, opacity: round(fill.alpha * opacity) });
+      else if (tag === 'polygon' || tag === 'polyline') {
+        const points = String(child.getAttribute('points') || '').trim();
+        if (points) cells.push({ tag, points, color: fill.color, opacity: round(fill.alpha * opacity) });
+      }
+    }
+    return cells.length ? { width: w, height: h, cells } : null;
+  }
+
+  /** Preenchimento do editor a partir de "fill" (cor, none, currentColor, url(#gradiente/padrão)). */
   function fillOf(value, opacity, st) {
     if (value == null) value = '#000000'; // padrão do SVG: preto
     value = String(value).trim();
@@ -399,6 +426,8 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     if (url) {
       const g = gradientOf(byId.get(url[1]), opacity);
       if (g) return g;
+      const pattern = patternOf(byId.get(url[1]), opacity);
+      if (pattern) return { ...defaultFill(), type: 'pattern', pattern };
       skip('preenchimento com padrão');
       return { ...defaultFill(), type: 'solid', color: '#C4C4C4', opacity };
     }
@@ -430,7 +459,89 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     return { ...defaultFill(), type: 'linear', angle, stops };
   }
 
+  /** Geometria básica de um filho de clipPath; o modelo suporta uma máscara vetorial por grupo. */
+  function clipContours(el) {
+    if (!el) return null;
+    const tag = el.nodeName;
+    const n = (key) => { const v = parseFloat(el.getAttribute(key)); return Number.isFinite(v) ? v : 0; };
+    if (tag === 'path') return parsePathD(el.getAttribute('d'));
+    if (tag === 'rect' && n('width') > 0 && n('height') > 0) {
+      const rx = el.hasAttribute('rx') ? n('rx') : n('ry');
+      const ry = el.hasAttribute('ry') ? n('ry') : rx;
+      return rectContour(n('x'), n('y'), n('width'), n('height'), rx, ry);
+    }
+    if (tag === 'circle' && n('r') > 0) return ellipseContour(n('cx'), n('cy'), n('r'), n('r'));
+    if (tag === 'ellipse' && n('rx') > 0 && n('ry') > 0) return ellipseContour(n('cx'), n('cy'), n('rx'), n('ry'));
+    if (tag === 'polygon' || tag === 'polyline') return polyContour(el.getAttribute('points'), tag === 'polygon');
+    return null;
+  }
+
+  /** Converte um limite vetorial simples (clipPath ou mask) em uma máscara editável do modelo. */
+  function withVectorBoundary(node, el, m, attribute, kind) {
+    const attr = el.getAttribute(attribute) || '';
+    if (!attr) return node;
+    const id = (attr.match(/url\(\s*['"]?#([^'")]+)/) || [])[1];
+    const boundary = id && byId.get(id);
+    if (!boundary) { skip(kind); return node; }
+    if (kind === 'clipping path' && (boundary.getAttribute('clipPathUnits') || 'userSpaceOnUse') !== 'userSpaceOnUse') { skip('clipping path em objectBoundingBox'); return node; }
+    const source = [...boundary.children].find((child) => clipContours(child));
+    const contours = clipContours(source);
+    if (!contours?.length) { skip(`${kind} complexo`); return node; }
+    if (kind === 'máscara') {
+      const fill = parseColor(source.getAttribute('fill') || '#000000');
+      const opacity = parseFloat(source.getAttribute('opacity') || source.getAttribute('fill-opacity') || '1');
+      // Máscara SVG usa luminância: só tratamos uma geometria branca/opaca como recorte seguro.
+      if (!fill || fill.color.toUpperCase() !== '#FFFFFF' || fill.alpha * opacity <= 0) { skip('máscara não vetorial simples'); return node; }
+    }
+    const transformed = transformContours(contours, multiply(m, parseTransform(source.getAttribute('transform'))));
+    const b = contoursBounds(transformed);
+    if (!Number.isFinite(b.x0) || b.x1 <= b.x0 || b.y1 <= b.y0) { skip(`${kind} vazio`); return node; }
+    const shift = (p) => (p ? { x: round(p.x - b.x0), y: round(p.y - b.y0) } : null);
+    const local = transformed.map((c) => ({ closed: c.closed, points: c.points.map((p) => ({ ...shift(p), hin: shift(p.hin), hout: shift(p.hout) })) }));
+    const mask = createNode('path', { name: kind === 'máscara' ? 'Máscara vetorial' : 'Máscara de recorte', x: round(b.x0), y: round(b.y0), w: round(b.x1 - b.x0), h: round(b.y1 - b.y0), isMask: true, fill: { ...defaultFill('#000000'), type: 'solid' }, stroke: null });
+    mask.points = local[0].points; mask.closed = local[0].closed; mask.vw = mask.w; mask.vh = mask.h;
+    if (local.length > 1) mask.contours = local.slice(1);
+    if (source.getAttribute('clip-rule') === 'evenodd' || el.getAttribute('clip-rule') === 'evenodd') mask.fillRule = 'evenodd';
+    const gx = Math.min(node.x, mask.x), gy = Math.min(node.y, mask.y);
+    node.x = round(node.x - gx); node.y = round(node.y - gy);
+    mask.x = round(mask.x - gx); mask.y = round(mask.y - gy);
+    const group = createNode('group', { name: node.name, x: round(gx), y: round(gy) });
+    group.children = [mask, node];
+    group.w = round(Math.max(mask.x + mask.w, node.x + node.w));
+    group.h = round(Math.max(mask.y + mask.h, node.y + node.h));
+    return group;
+  }
+
+  function withClip(node, el, m) { return withVectorBoundary(node, el, m, 'clip-path', 'clipping path'); }
+  function withMask(node, el, m) { return withVectorBoundary(node, el, m, 'mask', 'máscara'); }
+
+  /** Aplica um clipPath declarado no grupo aos nós emitidos por seus filhos (padrão comum do Figma). */
+  function withClipChildren(nodes, el, m) {
+    if (!el.getAttribute('clip-path') || !nodes.length) return nodes;
+    const x = Math.min(...nodes.map((n) => n.x)), y = Math.min(...nodes.map((n) => n.y));
+    const group = createNode('group', { name: el.getAttribute('id') || 'Grupo recortado', x: round(x), y: round(y) });
+    group.children = nodes;
+    for (const child of nodes) { child.x = round(child.x - x); child.y = round(child.y - y); }
+    group.w = round(Math.max(...nodes.map((n) => n.x + n.w)));
+    group.h = round(Math.max(...nodes.map((n) => n.y + n.h)));
+    return [withClip(group, el, m)];
+  }
+
+  function withMaskChildren(nodes, el, m) {
+    if (!el.getAttribute('mask') || !nodes.length) return nodes;
+    const x = Math.min(...nodes.map((n) => n.x)), y = Math.min(...nodes.map((n) => n.y));
+    const group = createNode('group', { name: el.getAttribute('id') || 'Grupo mascarado', x: round(x), y: round(y) });
+    group.children = nodes;
+    for (const child of nodes) { child.x = round(child.x - x); child.y = round(child.y - y); }
+    group.w = round(Math.max(...nodes.map((n) => n.x + n.w)));
+    group.h = round(Math.max(...nodes.map((n) => n.y + n.h)));
+    return [withMask(group, el, m)];
+  }
+
   const out = []; // camadas geradas (em coordenadas finais)
+  // Evita que um SVG malformado com <use href="#a"><use href="#a">...</use></use>
+  // trave o editor durante a importação.
+  const useStack = new Set();
 
   /**
    * Lê um <filter> e devolve as SOMBRAS que ele descreve (ou null se for outro tipo de filtro).
@@ -466,6 +577,50 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     return shadows.length ? shadows : null;
   }
 
+  /** Importa filtros de cor/blur que têm correspondência direta no modelo editável. */
+  function filterEffectsOf(f) {
+    if (!f || f.nodeName !== 'filter') return null;
+    const fx = {};
+    let blur = 0, hasOffset = false, hasDropShadow = false;
+    for (const c of f.children) {
+      const n = c.nodeName;
+      if (n === 'feDropShadow') { hasDropShadow = true; continue; }
+      if (n === 'feOffset') { hasOffset = true; continue; }
+      if (n === 'feGaussianBlur') {
+        const value = parseFloat(c.getAttribute('stdDeviation'));
+        if (Number.isFinite(value) && !hasOffset && !hasDropShadow) blur = round(value * 2);
+        continue;
+      }
+      if (['feFlood', 'feBlend', 'feComposite', 'feColorMatrix', 'feMerge', 'feMergeNode', 'feMorphology'].includes(n)) {
+        if (n !== 'feColorMatrix') continue;
+        const type = c.getAttribute('type') || 'matrix';
+        const values = (c.getAttribute('values') || '').trim().split(/[\s,]+/).map(Number);
+        if (type === 'saturate' && Number.isFinite(values[0])) fx.saturate = round(values[0] * 100);
+        else if (type === 'hueRotate' && Number.isFinite(values[0])) fx.hue = round(values[0]);
+        else if (type === 'matrix' && values.length === 20 && values.every(Number.isFinite)) {
+          const diagonal = [values[0], values[6], values[12]];
+          const translation = [values[4], values[9], values[14]];
+          if (diagonal.every((v) => Math.abs(v - diagonal[0]) < 0.001) && translation.every((v) => Math.abs(v) < 0.001)) fx.brightness = round(diagonal[0] * 100);
+          else if (diagonal.every((v) => Math.abs(v - diagonal[0]) < 0.001) && translation.every((v) => Math.abs(v - (1 - diagonal[0]) / 2) < 0.001)) fx.contrast = round(diagonal[0] * 100);
+          else if (c.getAttribute('in') !== 'SourceAlpha') return null;
+        }
+      } else return null;
+    }
+    return { fx, blur };
+  }
+
+  /** Converte apenas marcadores geométricos comuns em marcadores seguros do editor. */
+  function markerKind(value) {
+    const id = String(value || '').match(/url\(\s*['"]?#([^'")]+)/)?.[1];
+    const marker = id && byId.get(id);
+    if (!marker || marker.nodeName !== 'marker') return null;
+    const child = [...marker.children].find((el) => ['path', 'circle', 'rect', 'polygon'].includes(el.nodeName));
+    if (!child) return null;
+    if (child.nodeName === 'circle') return 'circle';
+    if (child.nodeName === 'rect') return 'square';
+    return 'arrow';
+  }
+
   /** Uma forma (já em contornos no espaço do elemento) → vetor do editor. */
   function emitShape(contours, el, st, m) {
     if (!contours.length || !contours.some((c) => c.points.length > 1)) return;
@@ -486,6 +641,9 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     if (st.stroke && st.stroke !== 'none' && sw > 0) {
       const sc = parseColor(st.stroke === 'currentColor' ? currentColor : st.stroke) || { color: '#000000', alpha: 1 };
       node.stroke = { ...defaultStroke(), width: round(sw * scaleOf(m)), color: sc.color, opacity: round(sc.alpha * (st['stroke-opacity'] != null ? parseFloat(st['stroke-opacity']) : 1)), position: 'center', style: st['stroke-dasharray'] && st['stroke-dasharray'] !== 'none' ? 'dashed' : 'solid' };
+      const start = markerKind(st['marker-start']), end = markerKind(st['marker-end']);
+      if (start) node.stroke.markerStart = start;
+      if (end) node.stroke.markerEnd = end;
     } else node.stroke = null;
     if (st.opacity != null) node.opacity = round(parseFloat(st.opacity));
     // sombras vindas de um filtro (deste elemento ou de um grupo acima). Sombra INTERNA não existe para vetores no
@@ -495,7 +653,9 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
       node.shadows = st._shadows.filter((sh) => !sh.inset).map((sh) => ({ ...sh, x: round(sh.x * s), y: round(sh.y * s), blur: round(sh.blur * s), spread: round(sh.spread * s) }));
       if (node.shadows.length < st._shadows.length) skip('sombra interna');
     }
-    out.push(node);
+    if (st._fx && Object.keys(st._fx).length) node.fx = st._fx;
+    if (st._blur > 0) node.blur = st._blur;
+    out.push(withMask(withClip(node, el, m), el, m));
   }
 
   /** <text> simples (sem texto em curva) → camada de texto do editor. */
@@ -521,6 +681,8 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     if (c) node.fill = { ...defaultFill(), type: 'solid', color: c.color, opacity: c.alpha };
     node.w = round(Math.max(20, content.length * size * 0.6));
     node.h = round(size * 1.3);
+    if (st._fx && Object.keys(st._fx).length) node.fx = st._fx;
+    if (st._blur > 0) node.blur = st._blur;
     out.push(node);
   }
 
@@ -535,24 +697,63 @@ export function importSvg(text, { name, currentColor = '#111111', fill, size } =
     const a = (k, d = 0) => { const v = parseFloat(el.getAttribute(k)); return Number.isFinite(v) ? v : d; };
     // filtro: se for sombra, vira sombra de verdade (e vale para tudo dentro do grupo); outro filtro é ignorado
     st._shadows = parentStyle._shadows;
+    st._fx = parentStyle._fx;
+    st._blur = parentStyle._blur || 0;
     const filter = el.getAttribute('filter') || st.filter;
     if (filter && filter !== 'none') {
       const id = (filter.match(/url\(\s*['"]?#([^'")]+)/) || [])[1];
-      const sh = shadowsOf(byId.get(id));
+      const filterDef = byId.get(id);
+      const sh = shadowsOf(filterDef);
+      const effects = filterEffectsOf(filterDef);
       if (sh) st._shadows = sh;
-      else skip('filtro');
+      if (effects) {
+        st._fx = { ...(st._fx || {}), ...effects.fx };
+        if (effects.blur > 0) st._blur = effects.blur;
+      }
+      if (!sh && !effects) skip('filtro');
     }
-    if (el.getAttribute('mask')) skip('máscara'); // a forma em si entra
     switch (tag) {
       case 'svg': case 'g': case 'a': case 'switch':
         // um <svg> aninhado com x/y desloca o conteúdo
-        for (const c of el.children) walk(c, tag === 'svg' && depth ? multiply(mm, [1, 0, 0, 1, a('x'), a('y')]) : mm, st, depth + 1);
+        {
+          const start = out.length;
+          for (const c of el.children) walk(c, tag === 'svg' && depth ? multiply(mm, [1, 0, 0, 1, a('x'), a('y')]) : mm, st, depth + 1);
+          if (el.getAttribute('clip-path') && out.length > start) out.splice(start, out.length - start, ...withClipChildren(out.slice(start), el, mm));
+          if (el.getAttribute('mask') && out.length > start) out.splice(start, out.length - start, ...withMaskChildren(out.slice(start), el, mm));
+        }
         return;
       case 'use': {
-        const ref = byId.get((el.getAttribute('href') || el.getAttribute('xlink:href') || '').replace(/^#/, ''));
+        const href = el.getAttribute('href') || el.getAttribute('xlink:href') || '';
+        const refId = href.replace(/^#/, '');
+        const ref = byId.get(refId);
         if (!ref) { skip('referência a outro arquivo (<use>)'); return; }
         const holder = ref.nodeName === 'symbol' ? [...ref.children] : [ref];
-        for (const c of holder) walk(c, multiply(mm, [1, 0, 0, 1, a('x'), a('y')]), st, depth + 1);
+        if (useStack.has(refId)) { skip('referência circular (<use>)'); return; }
+        useStack.add(refId);
+        let useMatrix = multiply(mm, [1, 0, 0, 1, a('x'), a('y')]);
+        if (ref.nodeName === 'symbol') {
+          const symbolBox = String(ref.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+          const hasSymbolBox = symbolBox.length === 4 && symbolBox.every(Number.isFinite) && symbolBox[2] > 0 && symbolBox[3] > 0;
+          if (hasSymbolBox) {
+            const sw = len(el.getAttribute('width'), len(ref.getAttribute('width'), symbolBox[2]));
+            const sh = len(el.getAttribute('height'), len(ref.getAttribute('height'), symbolBox[3]));
+            const sx = sw / symbolBox[2], sy = sh / symbolBox[3];
+            const preserve = String(el.getAttribute('preserveAspectRatio') || ref.getAttribute('preserveAspectRatio') || 'xMidYMid meet').trim();
+            let map;
+            if (preserve.toLowerCase() === 'none') {
+              map = [sx, 0, 0, sy, -symbolBox[0] * sx, -symbolBox[1] * sy];
+            } else {
+              const s = Math.min(sx, sy);
+              const align = preserve.match(/x(Min|Mid|Max)Y(Min|Mid|Max)/i) || ['xMidYMid', 'Mid', 'Mid'];
+              const ax = align[1].toLowerCase() === 'min' ? 0 : align[1].toLowerCase() === 'max' ? sw - symbolBox[2] * s : (sw - symbolBox[2] * s) / 2;
+              const ay = align[2].toLowerCase() === 'min' ? 0 : align[2].toLowerCase() === 'max' ? sh - symbolBox[3] * s : (sh - symbolBox[3] * s) / 2;
+              map = [s, 0, 0, s, ax - symbolBox[0] * s, ay - symbolBox[1] * s];
+            }
+            useMatrix = multiply(useMatrix, map);
+          }
+        }
+        for (const c of holder) walk(c, useMatrix, st, depth + 1);
+        useStack.delete(refId);
         return;
       }
       case 'path': emitShape(parsePathD(el.getAttribute('d')), el, st, mm); return;

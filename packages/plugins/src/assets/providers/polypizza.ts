@@ -19,6 +19,7 @@ export const polypizza: AssetProvider = {
   id: 'polypizza',
   name: 'Poly Pizza',
   kinds: ['model3d'],
+  sourceUrl: 'https://poly.pizza/', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
   needsKey: { label: 'Chave da API do Poly Pizza (grátis)', signupUrl: 'https://poly.pizza/settings/api', envVar: 'POLYPIZZA_API_KEY' },
   licenseSummary: 'CC0 (sem crédito) ou CC BY (crédito ao autor obrigatório).',
   unverified: true,

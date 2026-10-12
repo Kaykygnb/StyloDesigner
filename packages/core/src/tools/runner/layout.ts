@@ -1,7 +1,7 @@
 /** Construção de árvores, vetores e ícones; cache por executor. */
 import { createNode, defaultFill } from '../../model.js';
 import { importSvg } from '../../svgimport.js';
-import { iconUrl, iconExists, searchIcons } from '../../icons.js';
+import { iconUrl, lucideIconUrl, iconExists, searchIcons } from '../../icons.js';
 import type { RunnerContext, ToolHandlers, ToolArgs } from './types.ts';
 import type { LayerNode } from '../../types.ts';
 import { applyProps, hex } from './properties.ts';
@@ -61,7 +61,17 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
   /** SVGs de ícones já baixados (não baixa o mesmo duas vezes). */
   const iconCache = new Map();
   /** Baixa o SVG de um ícone do Google (precisa de internet; depois de inserido, é um desenho do projeto). */
-  async function fetchIcon(name, style = 'outlined', filled = false) {
+  async function fetchIcon(name, style = 'outlined', filled = false, collection = 'Material Symbols') {
+    if (collection === 'Lucide') {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(String(name))) throw new Error(`Ícone Lucide "${name}" inválido.`);
+      const url = lucideIconUrl(name);
+      if (!iconCache.has(url)) {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`Não consegui baixar o ícone Lucide "${name}" (internet?).`);
+        iconCache.set(url, await r.text());
+      }
+      return iconCache.get(url);
+    }
     if (!iconExists(name)) {
       const like = searchIcons(name).slice(0, 5);
       throw new Error(`Ícone "${name}" não existe.${like.length ? ` Parecidos: ${like.join(', ')}.` : ' Use search_icons.'}`);
@@ -76,9 +86,18 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
     return iconCache.get(url);
   }
   /** Ícone (SVG já baixado) → camada de vetor, na cor e no tamanho pedidos. */
-  function iconNode(svg, { name, color = '#111111', size = 24 }) {
+  function iconNode(svg, { name, color = '#111111', size = 24, style = 'outlined', filled = false, collection = 'Material Symbols' }) {
     const c = hex(color) || '#111111';
     const { node } = importSvg(svg, { name, fill: c, currentColor: c, size: Math.max(8, Math.min(512, Number(size) || 24)) });
+    // Mantém a proveniência no documento mesmo depois de o SVG virar vetor editável.
+    Object.assign(node, {
+      iconCollection: collection,
+      iconSource: collection === 'Lucide' ? 'https://lucide.dev/icons' : `https://fonts.google.com/icons?icon.query=${encodeURIComponent(name)}`,
+      iconLicense: collection === 'Lucide' ? 'ISC' : 'Apache License 2.0',
+      iconLicenseUrl: collection === 'Lucide' ? 'https://lucide.dev/license' : 'https://www.apache.org/licenses/LICENSE-2.0',
+      iconStyle: style,
+      iconFilled: !!filled,
+    });
     return node as LayerNode;
   }
 
@@ -86,8 +105,8 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
   function buildSpec(spec, svgs, nested): LayerNode {
     const props = { ...(spec.props || {}) };
     if (spec.type === 'icon') {
-      const { name, color, size, style, filled, ...rest } = props;
-      const node = iconNode(svgs.get(`${name}|${style || 'outlined'}|${!!filled}`), { name, color, size });
+      const { name, color, size, style, filled, collection, ...rest } = props;
+      const node = iconNode(svgs.get(`${name}|${style || 'outlined'}|${!!filled}|${collection || 'Material Symbols'}`), { name, color, size, style, filled, collection });
       if (Object.keys(rest).length) applyProps(node, rest, { colorStyle, effectStyle, gradientStyle });
       return node;
     }
@@ -113,6 +132,27 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
   }
 
   return {
+    audit_svg({ svg, name, current_color, fill, size }) {
+      const imported: any = importSvg(svg, { name, currentColor: current_color, fill, size });
+      const counts: Record<string, number> = {};
+      const walk = (node: any) => {
+        if (!node || typeof node !== 'object') return;
+        if (typeof node.type === 'string') counts[node.type] = (counts[node.type] || 0) + 1;
+        if (Array.isArray(node.children)) node.children.forEach(walk);
+      };
+      walk(imported.node);
+      return {
+        valid: true,
+        dimensions: { width: imported.node.vw ?? imported.node.w ?? null, height: imported.node.vh ?? imported.node.h ?? null },
+        rootType: imported.node.type,
+        editableLayers: Object.values(counts).reduce((sum, count) => sum + count, 0),
+        types: counts,
+        skipped: imported.skipped,
+        ignored: imported.ignored,
+        canImport: true,
+        hint: imported.ignored.length ? 'Revise ignored antes de importar/exportar; os recursos listados não serão preservados como edição nativa.' : 'O SVG pode ser importado sem perdas reportadas.',
+      };
+    },
     create_layer({ type, parent_id, index, props = {} }) {
       if (!['frame', 'rect', 'ellipse', 'text', 'line', 'path', 'section', 'html'].includes(type)) throw new Error('type: frame, rect, ellipse, text, line, path, section ou html.');
       const parent = parent_id ? need(parent_id) : null;
@@ -135,8 +175,8 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
       // baixa todos os ícones ANTES de mexer no projeto (se um falhar, nada é criado pela metade)
       const svgs = new Map();
       await Promise.all(icons.map(async (ic) => {
-        const key = `${ic.name}|${ic.style || 'outlined'}|${!!ic.filled}`;
-        if (!svgs.has(key)) svgs.set(key, await fetchIcon(ic.name, ic.style, ic.filled));
+        const key = `${ic.name}|${ic.style || 'outlined'}|${!!ic.filled}|${ic.collection || 'Material Symbols'}`;
+        if (!svgs.has(key)) svgs.set(key, await fetchIcon(ic.name, ic.style, ic.filled, ic.collection));
       }));
       const root = buildSpec(tree, svgs, !!parent_id);
       if (!parent_id) placeBeside(root);
@@ -144,13 +184,27 @@ export function createLayoutTools(ctx: RunnerContext): ToolHandlers {
       store.setSelection([root.id]);
       return { created: summarize(root, 3), count, hint: 'Use os ids acima para ajustes finos (update_layer).' };
     },
-    async insert_icon({ name, parent_id, index, color, size, style, filled }) {
+    async insert_icon({ name, parent_id, index, color, size, style, filled, collection }) {
       const list = targetList(parent_id);
-      const node = iconNode(await fetchIcon(name, style, filled), { name, color, size });
+      const node = iconNode(await fetchIcon(name, style, filled, collection), { name, color, size, style, filled, collection });
       if (!parent_id) { const r = store.page().children; node.x = r.length ? Math.round(Math.max(...r.map((n) => n.x + n.w)) + 80) : 0; node.y = 0; }
       store.update(() => insertAt(list, node, index));
       store.setSelection([node.id]);
       return { created: summarize(node, 0) };
+    },
+    import_svg({ svg, name, parent_id, index, current_color, fill, size }) {
+      const list = targetList(parent_id);
+      const imported: any = importSvg(svg, { name, currentColor: current_color, fill, size });
+      if (parent_id) {
+        const parent = need(parent_id);
+        if (!parent.children) throw new Error(`“${parent.name}” não pode receber um SVG.`);
+        store.update(() => insertAt(list, imported.node, index));
+      } else {
+        placeBeside(imported.node);
+        store.update(() => list.push(imported.node));
+      }
+      store.setSelection([imported.node.id]);
+      return { created: summarize(imported.node, 3), skipped: imported.skipped, ignored: imported.ignored, hint: imported.ignored.length ? 'Alguns recursos SVG foram ignorados; revise a lista ignored antes de exportar.' : undefined };
     }
   };
 }

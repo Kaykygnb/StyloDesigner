@@ -27,20 +27,46 @@ test('conta mestre: o setup só funciona uma vez; login cria sessão; token erra
   const owner = await auth.setup({ email: 'Dono@X.com', name: 'Dono', password: 'senha-do-dono' });
   assert.equal(owner.role, 'OWNER');
   assert.equal(owner.email, 'dono@x.com');
+  const avatar = 'data:image/png;base64,' + 'a'.repeat(80);
+  const withAvatar = await auth.updateUser(owner.id, { avatar });
+  assert.equal(withAvatar.avatar, avatar);
+  const withPreferences = await auth.updateUser(owner.id, { preferences: { theme: 'light', accent: '#4c8dff', density: 'compact', language: 'pt-BR' } });
+  assert.deepEqual(withPreferences.preferences, { theme: 'light', accent: '#4c8dff', density: 'compact', language: 'pt-BR' });
+  await assert.rejects(auth.updateUser(owner.id, { avatar: 'javascript:alert(1)' }), /Avatar inválido/);
   await assert.rejects(auth.setup({ email: 'b@x.com', name: 'B', password: '12345678' }), /Já existe uma conta mestre/);
 
   await assert.rejects(auth.login('dono@x.com', 'errada'), /incorretos/);
+  for (let i = 0; i < 8; i++) await assert.rejects(auth.login('bloqueado@x.com', 'errada'), /incorretos/);
+  await assert.rejects(auth.login('bloqueado@x.com', 'errada'), /Muitas tentativas/);
   await assert.rejects(auth.login('ninguem@x.com', 'qualquer'), /incorretos/, 'mesma mensagem para e-mail inexistente');
   const { token } = await auth.login('DONO@x.com', 'senha-do-dono');
+  assert.equal((await auth.userFromToken(token))?.preferences.theme, 'light');
   assert.equal((await auth.userFromToken(token))?.name, 'Dono');
+  const second = await auth.login('dono@x.com', 'senha-do-dono');
+  assert.equal((await auth.sessions(owner.id, token)).length, 2);
+  const revoked = await auth.revokeAllSessions(owner.id);
+  assert.equal(revoked.count, 2);
+  assert.equal((await auth.userFromToken(token)), null);
+  assert.equal((await auth.userFromToken(second.token)), null);
+  const { token: activeToken } = await auth.login('dono@x.com', 'senha-do-dono');
   assert.equal(await auth.userFromToken('token-falso'), null);
   const stored = await db.session.findFirstOrThrow();
   assert.notEqual(stored.tokenHash, token, 'só o hash fica no banco');
-  await auth.logout(token);
-  assert.equal(await auth.userFromToken(token), null);
+  await auth.logout(activeToken);
+  assert.equal(await auth.userFromToken(activeToken), null);
+  const authEvents = await auth.authEvents(owner.id);
+  assert.ok(authEvents.some((e) => e.kind === 'login'));
+  assert.ok(authEvents.some((e) => e.kind === 'logout'));
 
   const member = await auth.createUser({ email: 'm@x.com', name: 'Membro', password: 'senha-membro' });
   assert.equal(member.role, 'MEMBER');
+  assert.equal(member.mustChangePassword, true, 'convite exige troca da senha temporária');
+  await auth.login('m@x.com', 'senha-membro');
+  const suspended = await auth.setSuspended(member.id, true);
+  assert.equal(suspended.suspended, true);
+  await assert.rejects(auth.login('m@x.com', 'senha-membro'), /incorretos/);
+  const active = await auth.setSuspended(member.id, false);
+  assert.equal(active.suspended, false);
   await assert.rejects(auth.createUser({ email: 'm@x.com', name: 'Outro', password: 'senha-membro' }), /Já existe uma conta/);
   assert.equal((await auth.users()).length, 2);
   await close();
@@ -58,11 +84,15 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
   assert.notEqual((await db.agent.findFirstOrThrow()).tokenHash, token);
   assert.equal((await agents.authenticate(token)).name, 'Claude Code');
   await assert.rejects(agents.authenticate('stylo_agt_falso'), /inválido/);
+  const rotated = await agents.rotate(agent.id);
+  assert.notEqual(rotated.token, token);
+  await assert.rejects(agents.authenticate(token), /inválido/);
+  assert.equal((await agents.authenticate(rotated.token)).id, agent.id);
 
   await agents.revoke(agent.id);
-  await assert.rejects(agents.authenticate(token), /revogado/);
+  await assert.rejects(agents.authenticate(rotated.token), /revogado/);
   await agents.approve(agent.id);
-  assert.equal((await agents.authenticate(token)).id, agent.id);
+  assert.equal((await agents.authenticate(rotated.token)).id, agent.id);
 
   // política aberta: registra sozinho pelo nome e reaproveita o mesmo agente depois
   const a1 = await agents.forClient(owner.id, 'Codex', 'open');
@@ -75,6 +105,13 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
   assert.equal(pending.status, 'PENDING');
   await agents.approve(pending.id);
   assert.equal((await agents.forClient(owner.id, 'Cursor', 'approval')).id, pending.id);
+  const project = await db.project.create({ data: { slug: 'privado.json', name: 'Privado', ownerId: owner.id, doc: doc('Privado'), size: JSON.stringify(doc('Privado')).length } });
+  assert.equal(await agents.projectAccess(agent.id, project.id), false);
+  await agents.grantProject(agent.id, project.id);
+  assert.equal(await agents.projectAccess(agent.id, project.id), true);
+  assert.equal((await agents.projects(agent.id)).length, 1);
+  await agents.revokeProject(agent.id, project.id);
+  assert.equal(await agents.projectAccess(agent.id, project.id), false);
   // política fechada: sem token não entra
   await assert.rejects(agents.forClient(owner.id, 'Novo', 'closed'), /só aceita agentes com token/);
   await close();
@@ -104,6 +141,14 @@ test('projetos: conflito por revisão, versões a cada intervalo com limite, pap
   const versions = await projects.versions(me, 'site.json');
   assert.equal(versions.length, 2, 'só as 2 versões mais novas ficam (keepVersions)');
   assert.ok(versions[0].size > 0);
+  await projects.labelVersion(me, 'site.json', versions[0].id, 'Antes da revisão final');
+  assert.equal((await projects.versions(me, 'site.json'))[0].label, 'Antes da revisão final');
+  const comparison = await projects.compareVersions(me, 'site.json', versions[0].id, versions[1].id);
+  assert.equal(comparison.same, false);
+  assert.ok(comparison.changed.includes('name'));
+  const copy = await projects.duplicateVersion(me, 'site.json', versions[0].id, 'copia da versão');
+  assert.equal(copy.file, 'copia-da-versao.json');
+  assert.equal((await projects.load(me, copy.file)).doc.name, 'v4');
 
   // papéis: quem não é membro nem vê; VIEWER lê mas não grava; EDITOR grava
   const stranger = { id: guest.id };

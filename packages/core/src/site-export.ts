@@ -149,12 +149,19 @@ export function inlineFontFaces(doc: any): string {
   return faces.join('\n');
 }
 
-/** Créditos dos assets usados (doc.credits): um arquivo de texto no pacote, para cumprir as licenças. */
+/** Créditos dos assets usados (doc.credits): arquivos legíveis e uma notice para distribuição. */
 export function addCredits(files: SiteFile[], doc: any): SiteFile[] {
   const credits: { text: string; license?: string }[] = Array.isArray(doc.credits) ? doc.credits : [];
   if (!credits.length) return files;
   const lines = credits.map((c) => `- ${c.text}${c.license && !c.text.includes(c.license) ? ` — ${c.license}` : ''}`);
-  return [...files, { path: 'CREDITS.txt', content: `Créditos dos assets usados neste site\n\n${lines.join('\n')}\n` }];
+  const body = `Créditos dos assets usados neste site\n\n${lines.join('\n')}\n`;
+  const markdown = `# Créditos dos assets\n\n${lines.join('\n')}\n`;
+  const notice = `THIRD-PARTY NOTICES\n\nEste pacote inclui recursos de terceiros. Consulte CREDITS.md para a origem, licença e atribuição de cada recurso.\n\n${lines.join('\n')}\n`;
+  return [...files,
+    { path: 'CREDITS.txt', content: body },
+    { path: 'CREDITS.md', content: markdown },
+    { path: 'THIRD-PARTY-NOTICES', content: notice },
+  ];
 }
 
 export function exportSite(doc, { assets = 'files', vendor = null, mediaRuntime = true }: { assets?: 'files' | 'inline'; vendor?: VendorProvider | null; mediaRuntime?: boolean } = {}): { files: SiteFile[]; warnings: string[] } {
@@ -163,7 +170,7 @@ export function exportSite(doc, { assets = 'files', vendor = null, mediaRuntime 
   const used = new Set();
   let files: SiteFile[] = boards.map((board, index) => ({
     path: index === 0 ? (used.add('index.html'), 'index.html') : uniqueHtmlPath(board.name, used),
-    content: withDocumentBreakpoints(doc, () => exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null, { selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)) } as any)),
+    content: withDocumentBreakpoints(doc, () => exportHtml(board, doc.assets || {}, board.name || 'Página', doc.styles || null, { selfHosted: new Set((doc.fonts || []).map((f: any) => f.family)), metadata: doc.site || null } as any)),
   }));
   const paths = new Map(files.map((file) => [file.path.toLowerCase(), file.path]));
   if (assets === 'files') files = externalizeAssets(files, doc.assets || {});

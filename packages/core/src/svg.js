@@ -88,6 +88,18 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     if (!fill || fill.type === 'none') return { attr: 'fill="none"' };
     if (fill.type === 'solid') return { attr: `fill="${rgba(fill.color, 1)}"${fill.opacity < 1 ? ` fill-opacity="${fill.opacity}"` : ''}` };
     if (fill.type === 'image') return { image: true };
+    if (fill.type === 'pattern' && fill.pattern?.cells?.length) {
+      const pid = id('p');
+      const cells = fill.pattern.cells.map((c) => {
+        const color = rgba(c.color, 1), opacity = c.opacity < 1 ? ` fill-opacity="${c.opacity}"` : '';
+        if (c.tag === 'rect') return `<rect x="${n2(c.x)}" y="${n2(c.y)}" width="${n2(c.w)}" height="${n2(c.h)}"${c.rx ? ` rx="${n2(c.rx)}"` : ''}${c.ry ? ` ry="${n2(c.ry)}"` : ''} fill="${color}"${opacity}/>`;
+        if (c.tag === 'circle') return `<circle cx="${n2(c.cx)}" cy="${n2(c.cy)}" r="${n2(c.r)}" fill="${color}"${opacity}/>`;
+        if (c.tag === 'ellipse') return `<ellipse cx="${n2(c.cx)}" cy="${n2(c.cy)}" rx="${n2(c.rx)}" ry="${n2(c.ry)}" fill="${color}"${opacity}/>`;
+        return `<${c.tag} points="${String(c.points).replace(/[<>"']/g, '')}" fill="${color}"${opacity}/>`;
+      }).join('');
+      defs.push(`<pattern id="${pid}" patternUnits="userSpaceOnUse" width="${n2(fill.pattern.width)}" height="${n2(fill.pattern.height)}">${cells}</pattern>`);
+      return { attr: `fill="url(#${pid})"` };
+    }
     if (fill.type === 'conic') { // o SVG não tem gradiente cônico: usa a cor da 1ª parada
       const first = [...fill.stops].sort((a, b) => a.pos - b.pos)[0];
       return { attr: `fill="${rgba(first.color, 1)}"${first.opacity < 1 ? ` fill-opacity="${first.opacity}"` : ''}` };
@@ -110,7 +122,18 @@ export function toSvg(root, { assets = {}, boxOf = (n) => ({ x: n.x, y: n.y, w: 
     if (!st || !(st.width > 0)) return '';
     // tracejado personalizado (stroke.dash) tem prioridade; pontilhado precisa de pontas redondas para virar bolinhas
     const dash = dashAttr(st) + (st.style === 'dotted' && !st.dash ? ' stroke-linecap="round"' : '');
-    return ` stroke="${rgba(st.color, 1)}" stroke-width="${st.width}"${st.opacity < 1 ? ` stroke-opacity="${st.opacity}"` : ''}${dash}`;
+    const marker = (kind, side) => {
+      if (!kind || kind === 'none' || !['arrow', 'circle', 'square'].includes(kind)) return '';
+      const mid = id(`m${side}`);
+      const shape = kind === 'arrow'
+        ? '<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>'
+        : kind === 'circle'
+          ? '<circle cx="5" cy="5" r="4" fill="currentColor"/>'
+          : '<rect x="1" y="1" width="8" height="8" fill="currentColor"/>';
+      defs.push(`<marker id="${mid}" viewBox="0 0 10 10" refX="${kind === 'arrow' ? (side === 'start' ? 0 : 10) : 5}" refY="5" markerWidth="${kind === 'arrow' ? 7 : 5}" markerHeight="${kind === 'arrow' ? 7 : 5}" orient="auto-start-reverse" markerUnits="strokeWidth" color="${rgba(st.color, 1)}">${shape}</marker>`);
+      return ` marker-${side}="url(#${mid})"`;
+    };
+    return ` stroke="${rgba(st.color, 1)}" stroke-width="${st.width}"${st.opacity < 1 ? ` stroke-opacity="${st.opacity}"` : ''}${dash}${marker(st.markerStart, 'start')}${marker(st.markerEnd, 'end')}`;
   }
 
   /**

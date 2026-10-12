@@ -1,15 +1,19 @@
 // Contorno: cor, espessura, estilo, posição (dentro/centro/fora), lados (só retângulo e frame) e, em vetores, ponta, quina e tracejado.
 import { defaultStroke } from '@stylo/core/model.js';
 import { colorGroups } from '../../lib/colors';
+import { useApp } from '../../lib/app';
+import { t } from '../../lib/i18n';
 import { ColorRow } from '../../ui/ColorPicker';
 import { Cap, IconBtn, Num, Row, Section, Sel, Seg, Txt } from '../../ui/Fields';
 import type { Ctx } from './ctx';
 
-type Stroke = { color: string; opacity: number; width: number; style: string; position: string; align?: string; cap?: string; join?: string; dash?: string; sides?: number[]; sidesCustom?: boolean };
+type Stroke = { color: string; opacity: number; width: number; style: string; position: string; align?: string; cap?: string; join?: string; dash?: string; markerStart?: string; markerEnd?: string; sides?: number[]; sidesCustom?: boolean };
 const SIDE_KEYS = ['top', 'right', 'bottom', 'left'];
 
 export function StrokeSection({ c }: { c: Ctx }) {
   const { n, doc } = c;
+  const language = useApp((s) => s.language);
+  const tr = (key: string) => t(language, key);
   const off = c.readOnly;
   const st = n.stroke as Stroke | null;
   const has = !!st;
@@ -34,34 +38,38 @@ export function StrokeSection({ c }: { c: Ctx }) {
   const mode = !sides ? 'all' : st?.sidesCustom ? 'custom' : 'sides';
 
   return (
-    <Section id="stroke" title="Contorno" right={!off ? <IconBtn icon={has ? 'minus' : 'plus'} title={has ? 'Remover contorno' : 'Adicionar contorno'} onClick={() => void c.set({ stroke: has ? null : defaultStroke() })} /> : undefined}>
+    <Section id="stroke" title={tr('inspector.stroke.title')} right={!off ? <IconBtn icon={has ? 'minus' : 'plus'} title={has ? tr('inspector.stroke.remove') : tr('inspector.stroke.add')} onClick={() => void c.set({ stroke: has ? null : defaultStroke() })} /> : undefined}>
       {has && st && (
         <>
           <ColorRow color={st.color} opacity={st.opacity ?? 1} groups={colorGroups(doc)} disabled={off} onChange={(hex, a) => setStroke({ color: hex, opacity: a })} />
           <Row>
-            <Cap label="Espessura" css="border-width">
+            <Cap label={tr('inspector.stroke.width')} css="border-width">
               <Num label="▭" value={st.width} min={0} step={0.5} decimals={1} disabled={off} onCommit={(v) => { const w = Math.max(0, v ?? 0); setStroke({ width: w, ...(sides ? { sides: sides.map((x) => (x > 0 ? w : 0)) } : {}) }); }} />
             </Cap>
-            {n.type !== 'text' && <Cap label="Estilo" css="border-style"><Sel value={st.style} options={[['solid', 'Sólido'], ['dashed', 'Tracejado'], ['dotted', 'Pontilhado']]} disabled={off} onChange={(v) => setStroke({ style: v })} /></Cap>}
+            {n.type !== 'text' && <Cap label={tr('inspector.stroke.style')} css="border-style"><Sel value={st.style} options={[['solid', tr('inspector.stroke.solid')], ['dashed', tr('inspector.stroke.dashed')], ['dotted', tr('inspector.stroke.dotted')]]} disabled={off} onChange={(v) => setStroke({ style: v })} /></Cap>}
           </Row>
           {n.type !== 'text' && !sides && (
             n.type === 'path'
-              ? <Cap label="Posição" css="stroke-position"><Sel value={st.align ?? 'center'} options={[['center', 'Centro'], ['inside', 'Dentro'], ['outside', 'Fora']]} disabled={off} onChange={(v) => setStroke({ align: v })} /></Cap>
-              : <Cap label="Posição" css="outline-offset"><Sel value={st.position} options={[['inside', 'Dentro'], ['center', 'Centro'], ['outside', 'Fora']]} disabled={off} onChange={(v) => setStroke({ position: v })} /></Cap>
+              ? <Cap label={tr('inspector.stroke.position')} css="stroke-position"><Sel value={st.align ?? 'center'} options={[['center', tr('inspector.stroke.center')], ['inside', tr('inspector.stroke.inside')], ['outside', tr('inspector.stroke.outside')]]} disabled={off} onChange={(v) => setStroke({ align: v })} /></Cap>
+              : <Cap label={tr('inspector.stroke.position')} css="outline-offset"><Sel value={st.position} options={[['inside', tr('inspector.stroke.inside')], ['center', tr('inspector.stroke.center')], ['outside', tr('inspector.stroke.outside')]]} disabled={off} onChange={(v) => setStroke({ position: v })} /></Cap>
           )}
           {n.type === 'path' && (
             <>
               <Row>
-                <Cap label="Extremidade" css="stroke-linecap"><Sel value={st.cap ?? 'round'} options={[['round', 'Redonda'], ['butt', 'Reta'], ['square', 'Quadrada']]} disabled={off} onChange={(v) => setStroke({ cap: v })} /></Cap>
-                <Cap label="Quina" css="stroke-linejoin"><Sel value={st.join ?? 'round'} options={[['round', 'Redonda'], ['miter', 'Pontuda'], ['bevel', 'Chanfrada']]} disabled={off} onChange={(v) => setStroke({ join: v })} /></Cap>
+                <Cap label={tr('inspector.stroke.cap')} css="stroke-linecap"><Sel value={st.cap ?? 'round'} options={[['round', tr('inspector.stroke.round')], ['butt', tr('inspector.stroke.butt')], ['square', tr('inspector.stroke.square')]]} disabled={off} onChange={(v) => setStroke({ cap: v })} /></Cap>
+                <Cap label={tr('inspector.stroke.join')} css="stroke-linejoin"><Sel value={st.join ?? 'round'} options={[['round', tr('inspector.stroke.round')], ['miter', tr('inspector.stroke.miter')], ['bevel', tr('inspector.stroke.bevel')]]} disabled={off} onChange={(v) => setStroke({ join: v })} /></Cap>
               </Row>
-              <Cap label="Tracejado" css="stroke-dasharray"><Txt value={st.dash ?? ''} mono placeholder="ex.: 8 4  ·  12 4 2 4" disabled={off} onCommit={(v) => setStroke({ dash: v.trim() || null })} /></Cap>
+              <Cap label={tr('inspector.stroke.dash')} css="stroke-dasharray"><Txt value={st.dash ?? ''} mono placeholder={tr('inspector.stroke.dashPlaceholder')} disabled={off} onCommit={(v) => setStroke({ dash: v.trim() || null })} /></Cap>
+              <Row>
+                <Cap label={tr('inspector.stroke.start')} css="marker-start"><Sel value={st.markerStart ?? 'none'} options={[['none', tr('inspector.stroke.none')], ['arrow', tr('inspector.stroke.arrow')], ['circle', tr('inspector.stroke.circle')], ['square', tr('inspector.stroke.square')]]} disabled={off} onChange={(v) => setStroke({ markerStart: v })} /></Cap>
+                <Cap label={tr('inspector.stroke.end')} css="marker-end"><Sel value={st.markerEnd ?? 'none'} options={[['none', tr('inspector.stroke.none')], ['arrow', tr('inspector.stroke.arrow')], ['circle', tr('inspector.stroke.circle')], ['square', tr('inspector.stroke.square')]]} disabled={off} onChange={(v) => setStroke({ markerEnd: v })} /></Cap>
+              </Row>
             </>
           )}
           {(n.type === 'rect' || n.type === 'frame') && (
-            <Cap label="Lados do contorno" css="border-top · right · bottom · left">
-              <Seg value={mode === 'all' ? 'all' : mode === 'custom' ? 'custom' : 'sides'} title="Lados do contorno"
-                options={[{ value: 'all', label: 'Todos', title: 'O contorno completo em volta da camada' }, { value: 'sides', label: 'Lados', title: 'Escolher quais lados têm linha' }, { value: 'custom', label: 'Por lado', title: 'Espessura diferente em cada lado' }]}
+            <Cap label={tr('inspector.stroke.sides')} css="border-top · right · bottom · left">
+              <Seg value={mode === 'all' ? 'all' : mode === 'custom' ? 'custom' : 'sides'} title={tr('inspector.stroke.sides')}
+                options={[{ value: 'all', label: tr('inspector.stroke.all'), title: tr('inspector.stroke.fullHint') }, { value: 'sides', label: tr('inspector.stroke.side'), title: tr('inspector.stroke.chooseSides') }, { value: 'custom', label: tr('inspector.stroke.bySide'), title: tr('inspector.stroke.customWidth') }]}
                 onChange={(v) => { if (v === 'sides') toggleSide(0); else sidePreset(v); }} />
               {mode !== 'all' && (
                 <div className="side-toggles">

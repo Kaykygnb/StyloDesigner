@@ -25,6 +25,8 @@ export const identidade = definePlugin({
   id: 'identidade',
   name: 'Identidade visual',
   description: 'Auxiliares que calculam paletas, contraste, harmonias e escalas. Não criam nada sozinhos.',
+  category: 'design',
+  version: '1.0.0', author: 'Stylo', license: 'MIT', repository: 'https://github.com/Kaykygnb/StyloDesigner', permissions: ['read'], dependencies: [],
   tools: [
     {
       def: defineTool({

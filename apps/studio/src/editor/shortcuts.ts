@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { canEdit, duplicateSelection, groupSelection, redo, removeSelection, undo, ungroupSelection, uploadImage } from '../lib/actions';
 import { getClip } from '../lib/clipboard';
 import { arrange, copyCss, copySelection, copyStyle, enterSelection, pasteClipboard, pasteStyle, selectAllSiblings, startRename, stepSelection, toggleFlag } from '../lib/editing';
-import { app, run, select, setRulers, setTool, setZoom, toast, type Tool } from '../lib/app';
+import { app, DEFAULT_SHORTCUTS, run, select, setRulers, setTool, setZoom, toast, type Tool } from '../lib/app';
 import { findNode, inFlow, pageOf, parentOf } from '../lib/doc';
 import { createShape } from '../lib/shapes';
 
@@ -48,7 +48,7 @@ async function pasteAnything() {
   } catch { toast('error', 'Não consegui ler a área de transferência (o navegador pediu permissão?).'); }
 }
 
-const TOOL_KEYS: Record<string, Tool> = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'move', l: 'line', c: 'comment', i: 'inspect' };
+const TOOL_KEYS: Record<string, Tool> = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line', n: 'node', c: 'comment', i: 'inspect' };
 
 export function handleShortcut(e: KeyboardEvent): void {
   trackModifiers(e);
@@ -72,6 +72,10 @@ export function handleShortcut(e: KeyboardEvent): void {
       if (code === 'KeyK') return act(() => arrange('create_component'));
       if (code === 'KeyB') return act(() => arrange('detach_instance'));
       if (code === 'KeyM') return act(() => arrange('toggle_mask'));
+      if (code === 'KeyU') return act(() => arrange('boolean_union'));
+      if (code === 'KeyI') return act(() => arrange('boolean_intersect'));
+      if (code === 'KeyX') return act(() => arrange('boolean_exclude'));
+      if (code === 'KeyS') return act(() => arrange('boolean_subtract'));
       if (code === 'Enter') return act(() => window.dispatchEvent(new Event('stylo:present')));
       return;
     }
@@ -133,7 +137,12 @@ export function handleShortcut(e: KeyboardEvent): void {
   if (key === 'arrowright') return act(() => nudge(step, 0));
   if (key === 'arrowup') return act(() => nudge(0, -step));
   if (key === 'arrowdown') return act(() => nudge(0, step));
-  if (!e.shiftKey && TOOL_KEYS[key]) return act(() => setTool(TOOL_KEYS[key]));
+  if (!e.shiftKey) {
+    const shortcuts = { ...DEFAULT_SHORTCUTS, ...(app.get().user?.preferences?.shortcuts || {}) };
+    const action = Object.keys(shortcuts).find((name) => shortcuts[name].toLowerCase() === key);
+    if (action && action in TOOL_KEYS) return act(() => setTool(TOOL_KEYS[action]));
+    if (TOOL_KEYS[key]) return act(() => setTool(TOOL_KEYS[key]));
+  }
 }
 
 export function useShortcuts() {

@@ -54,6 +54,7 @@ export const fontsource: AssetProvider = {
   id: 'fontsource',
   name: 'Google Fonts (via Fontsource)',
   kinds: ['font'],
+  sourceUrl: 'https://fontsource.org/fonts', licenseUrl: 'https://openfontlicense.org/',
   licenseSummary: 'Licenças livres (OFL, Apache): uso comercial permitido, sem crédito obrigatório.',
   cacheMs: DAY,
   async search({ query, page, category }, { getJson }) {

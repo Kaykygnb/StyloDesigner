@@ -10,6 +10,9 @@ import { MATERIAL_ICONS } from './data/material-icons.js';
 export const iconUrl = (name, style, filled) =>
   `https://fonts.gstatic.com/s/i/short-term/release/materialsymbols${style}/${name}/${filled ? 'fill1' : 'default'}/24px.svg`;
 
+/** URL estável do catálogo Lucide. O nome é validado no executor antes do download. */
+export const lucideIconUrl = (name) => `https://unpkg.com/lucide-static@0.468.0/icons/${String(name).toLowerCase()}.svg`;
+
 /** Os mais usados aparecem primeiro quando a busca está vazia. */
 const POPULAR = ['home', 'search', 'menu', 'close', 'settings', 'person', 'favorite', 'star', 'add', 'delete', 'edit', 'check',
   'arrow_forward', 'arrow_back', 'chevron_right', 'expand_more', 'shopping_cart', 'notifications', 'mail', 'call', 'chat',

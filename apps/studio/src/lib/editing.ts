@@ -68,13 +68,13 @@ export async function copyCss(): Promise<void> {
 }
 
 // ---------------------------------------------------------------- arranjo
-export type ArrangeAction = 'front' | 'forward' | 'backward' | 'back' | 'flip_h' | 'flip_v' | 'wrap_in_frame' | 'toggle_auto_layout' | 'create_component' | 'detach_instance' | 'toggle_mask';
+export type ArrangeAction = 'front' | 'forward' | 'backward' | 'back' | 'flip_h' | 'flip_v' | 'wrap_in_frame' | 'toggle_auto_layout' | 'create_component' | 'detach_instance' | 'toggle_mask' | 'boolean_union' | 'boolean_subtract' | 'boolean_intersect' | 'boolean_exclude';
 
 export async function arrange(action: ArrangeAction): Promise<void> {
   const ids = selectedTop();
   if (!ids.length || !canEdit()) return;
   const out = await run<{ selected?: string[] }>('arrange_layers', { ids, action });
-  if (out?.selected?.length && ['wrap_in_frame', 'create_component', 'toggle_mask'].includes(action)) select(out.selected);
+  if (out?.selected?.length && ['wrap_in_frame', 'create_component', 'toggle_mask', 'boolean_union', 'boolean_subtract', 'boolean_intersect', 'boolean_exclude'].includes(action)) select(out.selected);
 }
 
 /** Trava/destrava ou mostra/oculta: se alguma camada ainda não está assim, todas ficam; senão todas voltam. */

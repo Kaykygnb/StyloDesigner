@@ -14,18 +14,27 @@
 import { Hono } from 'hono';
 import { exportSite } from '@stylo/core/site-export.js';
 import { exportReact } from '@stylo/core/export-react.ts';
+import { auditReport, auditStatic } from '@stylo/core/audit.ts';
 import { vendorFiles } from '../services/vendor.ts';
 import { createZip } from '@stylo/core/zip.js';
 import { httpError } from '../http-error.js';
 import type { Services } from '../context.js';
 import type { Identity } from '../http/identity.js';
-import { checkName } from '../services/projects.js';
+import { checkName, fileNameFor } from '../services/projects.js';
 import { readObject } from '../http/guards.js';
 
 export function projectRoutes(s: Services, id: Identity) {
   const r = new Hono();
 
   r.get('/projects', async (c) => c.json(await s.projects.list(await id.userOf(c))));
+  r.post('/projects/import', async (c) => {
+    const user = await id.userOf(c);
+    const body: any = await c.req.json().catch(() => ({}));
+    if (!Array.isArray(body.doc?.pages)) throw httpError(400, 'O arquivo não contém um projeto válido.');
+    const file = fileNameFor(String(body.name || body.doc.name || 'projeto importado'));
+    const saved = await s.projects.write(user, file, body.doc, { base: {}, overwrite: false, by: 'import' });
+    return c.json({ ok: true, ...saved }, 201);
+  });
 
   r.get('/projects/:file', async (c) => {
     const { doc, modified, contentHash } = await s.projects.load(await id.userOf(c), checkName(c.req.param('file')));
@@ -79,6 +88,27 @@ export function projectRoutes(s: Services, id: Identity) {
     });
   });
 
+  r.post('/projects/:file/publish', async (c) => {
+    const user = await id.userOf(c);
+    const name = checkName(c.req.param('file'));
+    const { doc, id: projectId } = await s.projects.load(user, name);
+    const body: any = await readObject(c).catch(() => ({}));
+    const format = String(body.format || 'html').toLowerCase();
+    if (format !== 'html' && format !== 'react') throw httpError(400, 'Formato de publicação inválido.');
+    const version = await s.projects.snapshot(user, name, body.label == null ? `Publicação ${new Date().toLocaleString('pt-BR')}` : String(body.label));
+    const audit = auditReport(auditStatic(doc.pages || []));
+    const warnings = audit.issues.map((issue) => (issue.severity === 'erro' ? 'Erro: ' : 'Aviso: ') + issue.message);
+    const site = format === 'react' ? exportReact(doc) : exportSite(doc, { vendor: vendorFiles });
+    const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
+    const allWarnings = [...warnings, ...site.warnings];
+    const record = await s.db.publishRecord.create({ data: { projectId, format, status: allWarnings.length ? 'READY_WITH_WARNINGS' : 'READY', warnings: allWarnings as any } });
+    return c.json({ ok: true, id: record.id, version, format, bytes: zip.length, download: `/api/projects/${encodeURIComponent(name)}/${format === 'react' ? 'react' : 'site'}.zip`, warnings: allWarnings, audit: { errors: audit.errors, warnings: audit.warnings, truncated: audit.truncated } });
+  });
+  r.get('/projects/:file/publishing', async (c) => {
+    const { id: projectId } = await s.projects.load(await id.userOf(c), checkName(c.req.param('file')));
+    return c.json(await s.db.publishRecord.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' }, take: 30 }));
+  });
+
   // a imagem pelo hash (sha256): conteúdo imutável, então o navegador pode guardar para sempre
   r.get('/projects/:file/assets/:hash', async (c) => {
     const hash = c.req.param('hash');
@@ -115,11 +145,28 @@ export function projectRoutes(s: Services, id: Identity) {
   });
 
   r.get('/projects/:file/versions', async (c) => c.json(await s.projects.versions(await id.userOf(c), checkName(c.req.param('file')))));
+  r.get('/projects/:file/versions/compare', async (c) => c.json(await s.projects.compareVersions(await id.userOf(c), checkName(c.req.param('file')), String(c.req.query('left') || ''), String(c.req.query('right') || ''))));
+  r.put('/projects/:file/versions/:version', async (c) => { const { label } = await readObject(c); return c.json(await s.projects.labelVersion(await id.userOf(c), checkName(c.req.param('file')), c.req.param('version'), label == null ? null : String(label))); });
+  r.post('/projects/:file/versions/:version/duplicate', async (c) => { const { title } = await readObject(c); return c.json(await s.projects.duplicateVersion(await id.userOf(c), checkName(c.req.param('file')), c.req.param('version'), String(title || ''))); });
   r.get('/projects/:file/versions/:version', async (c) => c.json(await s.projects.readVersion(await id.userOf(c), checkName(c.req.param('file')), c.req.param('version'))));
+  r.post('/projects/:file/versions/:version/restore', async (c) => c.json({ ok: true, ...(await s.projects.restoreVersion(await id.userOf(c), checkName(c.req.param('file')), c.req.param('version'))) }));
+  r.post('/projects/:file/restore', async (c) => {
+    const body = await readObject(c);
+    const version = String(body.version || body.versionId || '').trim();
+    if (!version) throw httpError(400, 'Informe version ou versionId para restaurar o projeto.');
+    return c.json({ ok: true, ...(await s.projects.restoreVersion(await id.userOf(c), checkName(c.req.param('file')), version)) });
+  });
 
   r.get('/projects/:file/activity', async (c) => {
     const { id: projectId } = await s.projects.load(await id.userOf(c), checkName(c.req.param('file')));
-    return c.json(await s.operations.list(projectId, { limit: Number(c.req.query('limit')) || 50 }));
+    const actorType = c.req.query('actor') === 'USER' || c.req.query('actor') === 'AGENT' ? c.req.query('actor') as 'USER' | 'AGENT' : undefined;
+    return c.json(await s.operations.list(projectId, { limit: Number(c.req.query('limit')) || 50, agentId: c.req.query('agent') || undefined, userId: c.req.query('user') || undefined, tool: c.req.query('tool') || undefined, actorType }));
+  });
+  r.get('/projects/:file/presence', async (c) => {
+    const { id: projectId } = await s.projects.load(await id.userOf(c), checkName(c.req.param('file')));
+    const snap: any = s.presence.snapshotForProject ? s.presence.snapshotForProject(checkName(c.req.param('file'))) : s.presence.snapshot();
+    const sessions = new Set(s.workspace.sessionsForProject(projectId));
+    return c.json({ projectId, people: snap.people, agents: snap.agents.filter((a: any) => sessions.has(a.id)), locks: snap.agents.filter((a: any) => sessions.has(a.id)).flatMap((a: any) => a.locks || []), activity: await s.operations.list(projectId, { limit: 20 }) });
   });
 
   return r;

@@ -119,8 +119,8 @@ function Player() {
     const onKey = (e: KeyboardEvent) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName);
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
-      if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
-      else if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); goFwd(); }
+      if ((e.altKey || !typing) && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
+      else if ((e.altKey || !typing) && e.key === 'ArrowRight') { e.preventDefault(); goFwd(); }
       else if (!typing && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) restart();
       if (e.key !== 'Tab') e.stopPropagation();
     };
@@ -140,13 +140,13 @@ function Player() {
         <button className="present-ib" title="Voltar (Alt+←)" aria-label="Voltar" disabled={!back.length} onClick={goBack}><Icon name="chevron" size={16} /></button>
         <button className="present-ib" title="Avançar (Alt+→)" aria-label="Avançar" disabled={!fwd.length} onClick={goFwd}><Icon name="chevron" size={16} /></button>
         <button className="present-ib" title="Recarregar" aria-label="Recarregar" onClick={() => show(frame.id, 'instant', false)}><Icon name="rotate" size={16} /></button>
-        <label className="present-url"><Icon name="lock" size={13} /><span className="faint">stylo.local/</span><span>{slug}</span>
+        <label className="present-url"><Icon name="lock" size={13} /><span className="faint">stylo.local/</span><span className="present-title">{frame.name}</span><span className="faint present-slug">{slug}</span>
           <select aria-label="Ir para a tela" value={frame.id} onChange={(e) => show(e.target.value, 'dissolve')}>{boards.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
         <div className="present-tabs" role="tablist" aria-label="Telas">
           {boards.map((b) => <button key={b.id} role="tab" aria-selected={b.id === frame.id} className={`present-tab${b.id === frame.id ? ' on' : ''}`} onClick={() => show(b.id, 'dissolve')}>{b.name}</button>)}
         </div>
         <div className="present-widths" role="group" aria-label="Largura da janela">
-          {WIDTHS.map(([v, l]) => <button key={v} type="button" aria-pressed={width === v} onClick={() => setWidth(v)}>{l}</button>)}
+          {WIDTHS.map(([v, l]) => <button key={v} type="button" data-w={v} aria-pressed={width === v} onClick={() => setWidth(v)}>{l}</button>)}
         </div>
         <span className="present-size" aria-live="polite">{Math.round(size.w)} × {size.h}{size.k < 1 ? ` · ${Math.round(size.k * 100)}%` : ''}</span>
         <button className="present-ib" title="Abrir em nova aba do navegador" aria-label="Abrir em nova aba" onClick={openTab}><Icon name="link" size={16} /></button>

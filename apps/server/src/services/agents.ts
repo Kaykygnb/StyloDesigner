@@ -16,17 +16,17 @@ import { newToken, sha256 } from './auth.js';
 
 export type AgentPolicy = 'open' | 'approval' | 'closed';
 export const SCOPES = ['read', 'comment', 'write', 'export'] as const;
-export interface AgentIdentity { id: string; name: string; ownerId: string; scopes: string[] }
+export interface AgentIdentity { id: string; name: string; type: string; ownerId: string; scopes: string[] }
 
 const clean = (name: string) => String(name || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60) || 'Agente';
-const identity = (a: { id: string; name: string; ownerId: string; scopes: string[] }): AgentIdentity => ({ id: a.id, name: a.name, ownerId: a.ownerId, scopes: a.scopes });
+const identity = (a: { id: string; name: string; type: string; ownerId: string; scopes: string[] }): AgentIdentity => ({ id: a.id, name: a.name, type: a.type, ownerId: a.ownerId, scopes: a.scopes });
 
 export function createAgents(db: Db) {
   /** A conta mestre cria um agente já ativo e recebe o token (mostrado só agora). */
-  async function create(ownerId: string, input: { name: string; scopes?: string[] }) {
+  async function create(ownerId: string, input: { name: string; type?: string; scopes?: string[] }) {
     const scopes = (input.scopes?.length ? input.scopes : ['read', 'comment', 'write', 'export']).filter((s) => (SCOPES as readonly string[]).includes(s));
     const token = newToken('stylo_agt');
-    const agent = await db.agent.create({ data: { name: clean(input.name), ownerId, tokenHash: sha256(token), scopes, status: 'ACTIVE' } });
+    const agent = await db.agent.create({ data: { name: clean(input.name), type: clean(input.type || 'mcp'), ownerId, tokenHash: sha256(token), scopes, status: 'ACTIVE' } });
     return { agent: identity(agent), token };
   }
 
@@ -52,7 +52,7 @@ export function createAgents(db: Db) {
       return identity(found);
     }
     const status = policy === 'open' ? 'ACTIVE' : 'PENDING';
-    const agent = await db.agent.create({ data: { name, ownerId, tokenHash: sha256(newToken('stylo_agt')), scopes: ['read', 'comment', 'write', 'export'], status, lastSeenAt: new Date() } });
+    const agent = await db.agent.create({ data: { name, type: 'mcp', ownerId, tokenHash: sha256(newToken('stylo_agt')), scopes: ['read', 'comment', 'write', 'export'], status, lastSeenAt: new Date() } });
     if (status === 'PENDING') throw httpError(403, 'Agente registrado: aguarde a conta mestre aprovar.');
     return identity(agent);
   }
@@ -63,10 +63,39 @@ export function createAgents(db: Db) {
     return identity(agent);
   };
 
+  async function setScopes(id: string, scopes: string[]) {
+    const valid = [...new Set(scopes.filter((s) => (SCOPES as readonly string[]).includes(s)))];
+    if (!valid.length) throw httpError(400, 'Escolha pelo menos uma permissão.');
+    const agent = await db.agent.update({ where: { id }, data: { scopes: valid } }).catch(() => null);
+    if (!agent) throw httpError(404, 'Agente não encontrado.');
+    return identity(agent);
+  }
+  async function rotate(id: string) {
+    const token = newToken('stylo_agt');
+    const agent = await db.agent.update({ where: { id }, data: { tokenHash: sha256(token), status: 'ACTIVE' } }).catch(() => null);
+    if (!agent) throw httpError(404, 'Agente não encontrado.');
+    return { agent: identity(agent), token };
+  }
+
+  async function projectAccess(agentId: string, projectId: string) {
+    return !!(await db.agentProject.findUnique({ where: { agentId_projectId: { agentId, projectId } }, select: { agentId: true } }));
+  }
+  async function grantProject(agentId: string, projectId: string) {
+    await db.agentProject.upsert({ where: { agentId_projectId: { agentId, projectId } }, create: { agentId, projectId }, update: {} });
+    return { ok: true, agentId, projectId };
+  }
+  async function revokeProject(agentId: string, projectId: string) {
+    await db.agentProject.deleteMany({ where: { agentId, projectId } });
+    return { ok: true };
+  }
+  async function projects(agentId: string) {
+    return db.agentProject.findMany({ where: { agentId }, select: { projectId: true, createdAt: true }, orderBy: { createdAt: 'asc' } });
+  }
+
   const list = async (ownerId?: string) => (await db.agent.findMany({ where: ownerId ? { ownerId } : {}, orderBy: { createdAt: 'asc' } }))
     .map((a) => ({ ...identity(a), status: a.status, createdAt: a.createdAt, lastSeenAt: a.lastSeenAt }));
 
-  return { create, authenticate, forClient, approve: (id: string) => setStatus(id, 'ACTIVE'), revoke: (id: string) => setStatus(id, 'REVOKED'), list };
+  return { create, rotate, authenticate, forClient, approve: (id: string) => setStatus(id, 'ACTIVE'), revoke: (id: string) => setStatus(id, 'REVOKED'), setScopes, list, projectAccess, grantProject, revokeProject, projects };
 }
 
 export type Agents = ReturnType<typeof createAgents>;

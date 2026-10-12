@@ -1,11 +1,12 @@
 // Barra superior do editor: voltar aos projetos, tamanho de aparelho, desfazer/refazer, conferir e exportar.
 import { canEdit, redo, undo } from '../lib/actions';
-import { app, closeProject, runChecks, setDevice, setPanel, useApp } from '../lib/app';
+import { app, closeProject, dismissSyncNotice, runChecks, setDevice, setPanel, useApp } from '../lib/app';
 import { publishProject } from '../lib/api';
 import { toast } from '../lib/app';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
+import { t } from '../lib/i18n';
 
 export function TopBar() {
   const doc = useApp((s) => s.doc)!;
@@ -15,7 +16,10 @@ export function TopBar() {
   const panel = useApp((s) => s.panel);
   const presence = useApp((s) => s.presence);
   const live = useApp((s) => s.live);
+  const liveStatus = useApp((s) => s.liveStatus);
+  const language = useApp((s) => s.language);
   const issues = useApp((s) => s.issues);
+  const syncNotice = useApp((s) => s.syncNotice);
   const editable = canEdit();
   const bps = breakpointsOf(doc);
   const here = (presence?.agents.filter((a) => a.active).length ?? 0) + (presence?.people.length ?? 0);
@@ -29,15 +33,18 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      <button className="btn ghost" onClick={closeProject} title="Voltar aos projetos"><Icon name="home" size={16} /> Projetos</button>
+      <button className="btn ghost" onClick={closeProject} title={t(language, 'top.projects')}><Icon name="home" size={16} /> {t(language, 'top.projects')}</button>
       <span className="sep" />
       <div className="project-title">
         <b className="ellipsis">{doc.name || file}</b>
-        <span className="faint small">{busy > 0 ? <><span className="spinner" /> Salvando…</> : live ? 'Salvo no servidor' : 'Sem conexão ao vivo'}</span>
+        <span className="faint small">{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.live') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
       </div>
+      {syncNotice ? <button className="notice ok sync-notice" title={t(language, 'collab.dismissChange')} onClick={dismissSyncNotice}>
+        {t(language, 'collab.changedBy')} <b>{syncNotice.by}</b> · {t(language, 'collab.dismissChange')}
+      </button> : null}
 
       <div className="spacer" />
-      <div className="segmented devices" role="group" aria-label="Tamanho da tela">
+      <div className="segmented devices" role="group" aria-label={language === 'en-US' ? 'Screen size' : 'Tamanho da tela'}>
         <button className={device === 'desktop' ? 'on' : ''} onClick={() => setDevice('desktop')} title="Desktop"><Icon name="monitor" size={16} /><span>Desktop</span></button>
         {bps.map((b) => (
           <button key={b.id} className={device === b.id ? 'on' : ''} onClick={() => setDevice(b.id)} title={`${b.name} (${b.preview}px)`}>
@@ -47,24 +54,24 @@ export function TopBar() {
       </div>
       <div className="spacer" />
 
-      <button className="btn ghost icon" title="Desfazer (Ctrl+Z)" disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
-      <button className="btn ghost icon" title="Refazer (Ctrl+Shift+Z)" disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
+      <button className="btn ghost icon" aria-label={t(language, 'top.undo')} title={t(language, 'top.undo')} disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
+      <button className="btn ghost icon" aria-label={t(language, 'top.redo')} title={t(language, 'top.redo')} disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
       <span className="sep" />
       <button className={`btn ghost${panel === 'issues' ? ' active' : ''}`} title="Conferir o design" onClick={() => { setPanel('issues'); if (!issues) void runChecks(); }}>
-        <Icon name="alert" size={16} /> Conferir{issues?.length ? <span className={`badge ${issues.some((i) => i.severity === 'erro') ? 'error' : 'warn'}`}>{issues.length}</span> : null}
+        <Icon name="alert" size={16} /> {t(language, 'top.check')}{issues?.length ? <span className={`badge ${issues.some((i) => i.severity === 'erro') ? 'error' : 'warn'}`}>{issues.length}</span> : null}
       </button>
       <button className={`btn ghost${panel === 'agents' ? ' active' : ''}`} title="Agentes e atividade" onClick={() => setPanel('agents')}>
-        <Icon name="users" size={16} /> Agentes{here > 1 ? <span className="badge">{here}</span> : null}
+        <Icon name="users" size={16} /> {t(language, 'top.agents')}{here > 1 ? <span className="badge">{here}</span> : null}
       </button>
       <button className={`btn ghost${panel === 'versions' ? ' active' : ''}`} title="Histórico de versões" onClick={() => setPanel('versions')}>
-        <Icon name="history" size={15} /> Histórico
+        <Icon name="history" size={15} /> {t(language, 'top.history')}
       </button>
       <button className="btn ghost" title="Apresentar protótipo (Ctrl+Alt+Enter)" onClick={() => app.set({ presenting: true })}>
-        <Icon name="play" size={15} /> Apresentar
+        <Icon name="play" size={15} /> {t(language, 'top.present')}
       </button>
-      <button className="btn ghost" title="Publicar HTML" onClick={() => void publish('html')}><Icon name="upload" size={15} /> Publicar</button>
-      <button className="btn ghost icon" title="Publicar React" onClick={() => void publish('react')}><Icon name="code" size={15} /></button>
-      <button className="btn primary" onClick={() => setPanel('export')}><Icon name="download" size={15} /> Exportar</button>
+      <button className="btn ghost" title={`${t(language, 'top.publish')} HTML`} onClick={() => void publish('html')}><Icon name="upload" size={15} /> {t(language, 'top.publish')}</button>
+      <button className="btn ghost icon" aria-label={t(language, 'top.publishReact')} title={t(language, 'top.publishReact')} onClick={() => void publish('react')}><Icon name="code" size={15} /></button>
+      <button className="btn primary" onClick={() => setPanel('export')}><Icon name="download" size={15} /> {t(language, 'top.export')}</button>
       <AppearanceMenu />
     </header>
   );

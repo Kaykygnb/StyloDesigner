@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { hasLayout } from '@stylo/core/model.js';
 import { run, useApp } from '../../lib/app';
+import { t } from '../../lib/i18n';
 import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { scaleInto, union } from '../canvas/geometry';
@@ -20,10 +21,12 @@ const ASPECTS: [string, string][] = [
 export function SizeSection({ c }: { c: Ctx }) {
   const { n, single, bp, parent, flow } = c;
   const world = useApp((s) => s.worldBoxes);
+  const language = useApp((s) => s.language);
+  const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
   const [limitsOpen, setLimitsOpen] = useState(false);
   const off = c.readOnly;
 
-  if (!single && bp) return <Section id="size" title="Tamanho"><Hint>No modo Tablet/Celular, ajuste uma camada por vez.</Hint></Section>;
+  if (!single && bp) return <Section id="size" title={tr('inspector.size.title')}><Hint>{tr('inspector.size.singleHint')}</Hint></Section>;
 
   // várias camadas: W/H do conjunto (escala cada camada junto)
   if (!single) {
@@ -40,8 +43,8 @@ export function SizeSection({ c }: { c: Ctx }) {
       if (updates.length) await run('update_layers', { updates });
     };
     return (
-      <Section id="size" title="Tamanho">
-        <Cap label="Dimensões" css="width · height">
+      <Section id="size" title={tr('inspector.size.title')}>
+        <Cap label={tr('inspector.size.dimensions')} css="width · height">
           <Row>
             <Num label="W" value={box?.w} min={1} disabled={off || !box} onCommit={(v) => void scaleAll(v, null)} />
             <Num label="H" value={box?.h} min={1} disabled={off || !box} onCommit={(v) => void scaleAll(null, v)} />
@@ -56,9 +59,9 @@ export function SizeSection({ c }: { c: Ctx }) {
   const hShown = n.sizeY === 'fixed' || !measured ? n.h : measured.oh;
   const hasLayoutNode = n.type === 'frame' && hasLayout(n as never);
   const modes = (axis: 'sizeX' | 'sizeY'): [string, string][] => {
-    const o: [string, string][] = [['fixed', 'Fixo']];
-    if (n.type === 'text' || hasLayoutNode) o.push(['hug', 'Hug (conteúdo)']);
-    if (flow || (parent && c.parentLayout !== 'none' && axis)) o.push(['fill', 'Fill (preencher)']);
+    const o: [string, string][] = [['fixed', tr('inspector.size.fixed')]];
+    if (n.type === 'text' || hasLayoutNode) o.push(['hug', tr('inspector.size.hug')]);
+    if (flow || (parent && c.parentLayout !== 'none' && axis)) o.push(['fill', tr('inspector.size.fill')]);
     return o;
   };
   const isBoard = n.type === 'frame' && (!parent || parent.type === 'section');
@@ -76,42 +79,42 @@ export function SizeSection({ c }: { c: Ctx }) {
   })();
 
   return (
-    <Section id="size" title="Tamanho">
-      <Cap label="Dimensões" css="width · height">
+    <Section id="size" title={tr('inspector.size.title')}>
+      <Cap label={tr('inspector.size.dimensions')} css="width · height">
         <Row>
           <Num label="W" value={wShown} min={1} decimals={1} disabled={off} title="width" mixed={c.mixed((x) => x.w)} onCommit={(v) => void c.set({ w: v ?? 1 })} />
           <Num label="H" value={hShown} min={1} decimals={1} disabled={off || n.type === 'line'} title="height" mixed={c.mixed((x) => x.h)} onCommit={(v) => void c.set({ h: v ?? 1 })} />
-          {!bp && <IconBtn icon={n.lockRatio ? 'link' : 'unlink'} on={!!n.lockRatio} disabled={off} title="Travar proporção" onClick={() => void c.set({ lockRatio: !n.lockRatio })} />}
+          {!bp && <IconBtn icon={n.lockRatio ? 'link' : 'unlink'} on={!!n.lockRatio} disabled={off} title={tr('inspector.size.ratio')} onClick={() => void c.set({ lockRatio: !n.lockRatio })} />}
         </Row>
       </Cap>
       {(n.type === 'text' || hasLayoutNode || flow) && (
         <Row>
-          <Cap label="Largura" css="width"><Sel label="W" value={n.sizeX} options={modes('sizeX')} disabled={off} title="Modo da largura" onChange={(v) => void c.set({ sizeX: v })} /></Cap>
-          <Cap label="Altura" css="height"><Sel label="H" value={n.sizeY} options={modes('sizeY')} disabled={off} title="Modo da altura" onChange={(v) => void c.set({ sizeY: v })} /></Cap>
+          <Cap label={tr('inspector.size.width')} css="width"><Sel label="W" value={n.sizeX} options={modes('sizeX')} disabled={off} title={tr('inspector.size.width')} onChange={(v) => void c.set({ sizeX: v })} /></Cap>
+          <Cap label={tr('inspector.size.height')} css="height"><Sel label="H" value={n.sizeY} options={modes('sizeY')} disabled={off} title={tr('inspector.size.height')} onChange={(v) => void c.set({ sizeY: v })} /></Cap>
         </Row>
       )}
       {isBoard && !bp && (
         <>
-          <Sel value="" options={PRESETS} disabled={off} title="Tamanhos prontos" onChange={(v) => { if (!v) return; const [w, h] = v.split('x').map(Number); void c.set({ w, h, sizeY: 'fixed' }); }} />
-          <Check label="Largura fluida no site exportado" checked={!!n.fluid} disabled={off} title="width: 100%; max-width: a largura desenhada; margin: 0 auto" onChange={(v) => void c.set({ fluid: v || null })} />
+          <Sel value="" options={PRESETS} disabled={off} title={tr('inspector.size.presets')} onChange={(v) => { if (!v) return; const [w, h] = v.split('x').map(Number); void c.set({ w, h, sizeY: 'fixed' }); }} />
+          <Check label={tr('inspector.size.fluid')} checked={!!n.fluid} disabled={off} title="width: 100%; max-width: a largura desenhada; margin: 0 auto" onChange={(v) => void c.set({ fluid: v || null })} />
         </>
       )}
       {n.type !== 'group' && n.type !== 'line' && (
         <div className="fold">
           <button type="button" className="fold-head" aria-expanded={limitsOpen || limitsUsed} onClick={() => setLimitsOpen(!limitsOpen)}>
-            <Icon name={limitsOpen || limitsUsed ? 'chevrondown' : 'chevron'} size={12} /> Limites e proporção{limitsUsed && <span className="dot-on" />}
+          <Icon name={limitsOpen || limitsUsed ? 'chevrondown' : 'chevron'} size={12} /> {tr('inspector.size.limits')}{limitsUsed && <span className="dot-on" />}
           </button>
           {(limitsOpen || limitsUsed) && (
             <div className="fold-body">
-              <Row>{lim('Largura mín.', 'minW', 'min-width')}{lim('Largura máx.', 'maxW', 'max-width')}</Row>
-              <Row>{lim('Altura mín.', 'minH', 'min-height')}{lim('Altura máx.', 'maxH', 'max-height')}</Row>
+              <Row>{lim(tr('inspector.size.minWidth'), 'minW', 'min-width')}{lim(tr('inspector.size.maxWidth'), 'maxW', 'max-width')}</Row>
+              <Row>{lim(tr('inspector.size.minHeight'), 'minH', 'min-height')}{lim(tr('inspector.size.maxHeight'), 'maxH', 'max-height')}</Row>
               {n.type !== 'text' && (
-                <Cap label="Proporção" css="aspect-ratio">
-                  <Sel value={aspectVal} options={[...ASPECTS, ['custom', 'Personalizada']]} disabled={off} title="aspect-ratio"
+                <Cap label={tr('inspector.size.ratio')} css="aspect-ratio">
+                  <Sel value={aspectVal} options={[...ASPECTS.map(([value, label]) => [value, value === '' ? tr('inspector.size.free') : value === 'atual' ? tr('inspector.size.current') : label] as [string, string]), ['custom', tr('inspector.size.custom')]]} disabled={off} title="aspect-ratio"
                     onChange={(v) => { if (v === 'custom') return; void c.set({ aspect: v === '' ? null : v === 'atual' ? Math.round((n.w / n.h) * 10000) / 10000 : Number(v) }); }} />
                 </Cap>
               )}
-              {Number(n.aspect) > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed' && <Hint>Largura e altura estão fixas: o editor mantém a proporção ao redimensionar. Para o CSS aspect-ratio valer no código, deixe uma das medidas em Hug ou Fill.</Hint>}
+              {Number(n.aspect) > 0 && n.sizeX === 'fixed' && n.sizeY === 'fixed' && <Hint>{tr('inspector.size.ratioHint')}</Hint>}
             </div>
           )}
         </div>

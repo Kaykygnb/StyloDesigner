@@ -30,12 +30,12 @@ function fillOver(parent: LayerNode | null, base: string): string {
 }
 
 /** Pontos de um polígono regular (5 lados) ou estrela (5 pontas) que cabe em w × h. */
-export function shapePoints(kind: 'polygon' | 'star', w: number, h: number, sides = 5) {
+export function shapePoints(kind: 'polygon' | 'star', w: number, h: number, sides = 5, innerRatio = 0.45) {
   const n = kind === 'star' ? sides * 2 : sides;
   const pts: { x: number; y: number; hin: null; hout: null }[] = [];
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const r = kind === 'star' && i % 2 ? 0.45 : 1;
+    const r = kind === 'star' && i % 2 ? innerRatio : 1;
     pts.push({ x: Math.round((w / 2 + (Math.cos(a) * w * r) / 2) * 100) / 100, y: Math.round((h / 2 + (Math.sin(a) * h * r) / 2) * 100) / 100, hin: null, hout: null });
   }
   return pts;
@@ -82,7 +82,7 @@ export async function createShape(tool: ShapeTool, drawn: Drawn, parent: LayerNo
     case 'polygon': case 'star': {
       const pw = Math.max(8, Math.round(w)), ph = Math.max(8, Math.round(h));
       type = 'path';
-      Object.assign(props, { points: shapePoints(tool, pw, ph), closed: true, vw: pw, vh: ph, w: pw, h: ph, fill: fillOver(parent, '#D9D9D9'), stroke: null });
+      Object.assign(props, { points: shapePoints(tool, pw, ph), closed: true, vw: pw, vh: ph, w: pw, h: ph, shape: { kind: tool, sides: 5, innerRatio: tool === 'star' ? 0.45 : 1 }, fill: fillOver(parent, '#D9D9D9'), stroke: null });
       break;
     }
   }
@@ -96,11 +96,11 @@ export async function createShape(tool: ShapeTool, drawn: Drawn, parent: LayerNo
   return id;
 }
 
-export const isContainer = (n: LayerNode | null | undefined) => !!n && (n.type === 'frame' || n.type === 'group');
+export const isContainer = (n: LayerNode | null | undefined) => !!n && (n.type === 'frame' || n.type === 'group' || n.type === 'section');
 
 /** O frame/grupo mais fundo que contém a camada (ou ela mesma, se for um): onde uma forma desenhada ali deve entrar. */
 export function parentFor(rootChildren: LayerNode[], hitId: string | null): LayerNode | null {
   let n = hitId ? findNode(rootChildren, hitId) : null;
-  while (n && !(n.type === 'frame' || n.type === 'group')) n = parentOf(rootChildren, n.id) ?? null;
+  while (n && !(n.type === 'frame' || n.type === 'group' || n.type === 'section')) n = parentOf(rootChildren, n.id) ?? null;
   return n;
 }

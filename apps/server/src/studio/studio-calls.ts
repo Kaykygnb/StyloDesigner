@@ -28,7 +28,7 @@ export interface StudioCallInput {
 
 export function createStudioCaller({ workspace, presence, events }: { workspace: Workspace; presence: any; events: Events }) {
   /** Mostra na lista de atividade o que a pessoa fez (as pessoas não são "agentes", então não entram em presence.done). */
-  const log = (user: PublicUser, text: string) => presence.log?.(user.name, user.color || colorFor(user.name), text);
+  const log = (user: PublicUser, text: string, projectFile = '') => presence.log?.(user.name, user.color || colorFor(user.name), text, projectFile);
 
   async function call(user: PublicUser, input: StudioCallInput, signal?: AbortSignal): Promise<any> {
     const { sid, tool, args = {}, pageId } = input;
@@ -56,7 +56,7 @@ export function createStudioCaller({ workspace, presence, events }: { workspace:
         if (current && current.pageId !== pageId) await workspace.call('switch_page', { id: pageId }, { sid, actor, signal });
       }
       const out = await workspace.call(tool, args, { sid, actor, signal });
-      if (def?.write && !out?.error && !out?.refused) log(user, out?._summary || `usou ${tool}`);
+      if (def?.write && !out?.error && !out?.refused) log(user, out?._summary || `usou ${tool}`, workspace.snapshot(sid)?.file || '');
       return out;
     } finally {
       // sem janela depois da edição: quem edita no painel não deve fazer o agente esperar (nem esperar o agente) à toa

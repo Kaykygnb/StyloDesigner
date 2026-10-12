@@ -6,6 +6,16 @@ import { exportHtml, generateCode } from '@stylo/core/css.js';
 import { sanitizeHtml, safeUrl, scopeSelector, scopePageCss, safePageCss, lintCss, htmlAttrs, cleanId, cleanClasses } from '@stylo/core/html.js';
 import { applyLayerCss, lintLayerCss, layerCssText, parseColor } from '@stylo/core/cssedit.js';
 
+test('exportHtml inclui metadata SEO/Open Graph segura', () => {
+  const board = createNode('frame', { name: 'Início', w: 320, h: 200 });
+  const html = exportHtml(board, {}, 'Início', null, { metadata: { description: 'Descrição do site', canonical: 'https://example.com/', image: 'https://example.com/og.png', favicon: 'javascript:alert(1)', lang: 'en-US' } });
+  assert.match(html, /<html lang="en-US">/);
+  assert.match(html, /name="description" content="Descrição do site"/);
+  assert.match(html, /property="og:image" content="https:\/\/example\.com\/og\.png"/);
+  assert.match(html, /rel="canonical" href="https:\/\/example\.com\/"/);
+  assert.doesNotMatch(html, /javascript:alert/);
+});
+
 test('sanitizeHtml remove script, on*, javascript: e iframe sem https', () => {
   const { html, removed } = sanitizeHtml(`<div onclick="x()"><script>alert(1)</script><p>Oi</p>
 <a href="javascript:alert(1)">a</a><a href="JaVa\tScRiPt:alert(1)">b</a><a href="https://ok.dev" target="_blank">c</a>

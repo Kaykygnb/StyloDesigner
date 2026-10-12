@@ -160,7 +160,7 @@ export const defaultFill = (color = '#D9D9D9'): Fill => ({
  * tamanho da caixa — por isso trocar a espessura não "empurra" os vizinhos num auto layout.
  * `position`: 'inside' | 'center' | 'outside' controla o `outline-offset`.
  */
-export const defaultStroke = (): Stroke => ({ color: '#000000', opacity: 1, width: 1, style: 'solid', position: 'inside' });
+export const defaultStroke = (): Stroke => ({ color: '#000000', opacity: 1, width: 1, style: 'solid', position: 'inside', markerStart: 'none', markerEnd: 'none' });
 
 /** Sombra (vira `box-shadow`; em textos vira `text-shadow`). `inset` = sombra interna. */
 export const defaultShadow = (): Shadow => ({ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 0.25, inset: false });
@@ -325,6 +325,8 @@ export function createNode(type: LayerType, props: Partial<LayerNode> = {}): Lay
     node.mediaAutoplay = false;
     node.mediaLoop = false;
     node.mediaMuted = false;
+    node.mediaPoster = '';
+    node.mediaFallback = '';
   } else if (type === 'ellipse') {
     node.fill = defaultFill('#D9D9D9');
   } else if (type === 'html') {

@@ -73,3 +73,9 @@ test('applyProps: opções de mídia só valem em camada de mídia e precisam se
   assert.throws(() => applyProps(m, { mediaLoop: 'sim' }), /true ou false/);
   assert.throws(() => applyProps(createNode('rect'), { mediaLoop: true }), /só vale para camadas de mídia/);
 });
+
+test('vídeo exporta poster seguro e fallback textual', () => {
+  const html = exportHtml(createNode('media', { mediaKind: 'video', mediaAssetId: 'a1', mediaPoster: 'https://cdn.example/poster.png', mediaFallback: '<script>alert(1)</script>' }), { a1: tiny });
+  assert.match(html, /poster="https:\/\/cdn\.example\/poster\.png"/);
+  assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+});

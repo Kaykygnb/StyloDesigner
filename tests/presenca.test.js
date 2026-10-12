@@ -53,6 +53,25 @@ test('snapshot: pessoas, agentes com suas travas e atividade', () => {
   assert.equal(p.snapshot().people.length, 0);
 });
 
+test('snapshotForProject não vaza pessoas de outro projeto', () => {
+  const p = createPresence({ now: () => 0 });
+  p.addPerson('aba-a', 'Pessoa A', null, 'a.json');
+  p.addPerson('aba-b', 'Pessoa B', null, 'b.json');
+  p.touchAgent('agent-a', 'Agente A', 'a.json');
+  p.touchAgent('agent-b', 'Agente B', 'b.json');
+  p.done('agent-a', 'create_layer', 'criou uma camada');
+  assert.deepEqual(p.snapshotForProject('a.json').people.map((person) => person.name), ['Pessoa A']);
+  assert.deepEqual(p.snapshotForProject('b.json').people.map((person) => person.name), ['Pessoa B']);
+  assert.deepEqual(p.snapshotForProject('vazio.json').people, []);
+  assert.deepEqual(p.snapshotForProject('a.json').agents.map((agent) => agent.name), ['Agente A']);
+  assert.deepEqual(p.snapshotForProject('b.json').agents.map((agent) => agent.name), ['Agente B']);
+  assert.deepEqual(p.snapshotForProject('vazio.json').agents, []);
+  assert.equal(p.snapshotForProject('a.json').activity[0].who, 'Agente A');
+  assert.deepEqual(p.snapshotForProject('a.json').activity.map((item) => item.who), ['Agente A', 'Agente A', 'Pessoa A']);
+  assert.deepEqual(p.snapshotForProject('b.json').activity.map((item) => item.who), ['Agente B', 'Pessoa B']);
+  assert.deepEqual(p.snapshotForProject('vazio.json').activity, []);
+});
+
 test('duas chamadas paralelas da mesma sessão MCP são donas distintas da trava', () => {
   const p = createPresence({ now: () => 1000 });
   p.touchAgent('sessao', 'Claude Code');

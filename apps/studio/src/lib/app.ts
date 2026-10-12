@@ -13,8 +13,11 @@ export type StateName = 'hover' | 'active' | 'focus';
 /** Caixa de uma camada no "mundo" (px do projeto): x/y/w/h visuais (com rotação) e ow/oh sem girar. */
 export interface WorldBox { x: number; y: number; w: number; h: number; ow: number; oh: number }
 export type Theme = 'light' | 'dark' | 'system';
+export type Density = 'comfortable' | 'compact';
+export type Language = 'pt-BR' | 'en-US';
+export const DEFAULT_SHORTCUTS: Record<string, string> = { move: 'v', frame: 'f', rect: 'r', ellipse: 'e', text: 't', hand: 'h', comment: 'c', inspect: 'i', node: 'n' };
 /** A ferramenta do canvas: mover/selecionar, mão (arrastar a vista) ou uma forma para desenhar. */
-export type Tool = 'move' | 'hand' | 'frame' | 'section' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'text' | 'html' | 'comment' | 'inspect';
+export type Tool = 'move' | 'hand' | 'frame' | 'section' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'text' | 'html' | 'comment' | 'inspect' | 'node' | 'pen' | 'pencil';
 
 export interface AppState {
   boot: 'loading' | 'ready' | 'error';
@@ -34,8 +37,10 @@ export interface AppState {
   zoom: number;
   busy: number;
   toast: { id: number; kind: 'error' | 'ok'; text: string } | null;
+  syncNotice: { by: string; at: number } | null;
   presence: Presence | null;
   live: boolean;
+  liveStatus: 'connected' | 'reconnecting';
   panel: Panel;
   worldBoxes: Record<string, WorldBox>;
   /** estado (hover, pressionado, foco) cujas sobrescritas o painel está editando; null = Normal */
@@ -58,6 +63,8 @@ export interface AppState {
   issuesNote: string | null;
   theme: Theme;
   accent: string;
+  density: Density;
+  language: Language;
   menu: MenuState | null;
   dialog: DialogState | null;
   /** camada cujo nome está sendo editado na lista */
@@ -76,10 +83,10 @@ export interface AppState {
 
 export const ACCENTS = ['#4c8dff', '#7c5cff', '#0f9d8a', '#2f9e44', '#d9822b', '#d6409f', '#e5484d', '#8b8d98'];
 
-function readPref<T>(key: string, fallback: T): T {
+export function readPref<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
 }
-function writePref(key: string, value: unknown) {
+export function writePref(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* sem armazenamento: a preferência vale só nesta aba */ }
 }
 
@@ -88,10 +95,10 @@ export const app = createStore<AppState>({
   screen: 'home', projects: null, projectsError: null,
   file: null, doc: null, pageId: null, role: 'OWNER',
   selection: [], hover: null, device: 'desktop', zoom: 1,
-  busy: 0, toast: null, presence: null, live: false, panel: 'design',
+  busy: 0, toast: null, syncNotice: null, presence: null, live: false, liveStatus: 'reconnecting', panel: 'design',
   worldBoxes: {}, editState: null, leftTab: 'layers', colorMode: null, panelsHidden: false, picker: null, dock: null, commentDraft: null, activeComment: null, help: false, settings: false, presenting: false,
   issues: null, issuesRunning: false, issuesNote: null,
-  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]),
+  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]), density: readPref<Density>('stylo.density', 'comfortable'), language: readPref<Language>('stylo.language', 'pt-BR'),
   menu: null, dialog: null, renaming: null, tool: 'move',
   panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
   rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
@@ -101,13 +108,30 @@ export const useApp = <T,>(selector: (s: AppState) => T): T => useStore(app, sel
 
 // ---------------------------------------------------------------- aparência (preferência pessoal, fora do projeto)
 export function applyPrefs() {
-  const { theme, accent } = app.get();
+  const { theme, accent, density } = app.get();
   const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.dataset.density = density;
 }
 export function setTheme(theme: Theme) { app.set({ theme }); writePref('stylo.theme', theme); applyPrefs(); }
 export function setAccent(accent: string) { app.set({ accent }); writePref('stylo.accent', accent); applyPrefs(); }
+export function setDensity(density: Density) { app.set({ density }); writePref('stylo.density', density); applyPrefs(); }
+export function setLanguage(language: Language) { app.set({ language }); writePref('stylo.language', language); }
+function hydrateAccountPreferences(user: PublicUser | null) {
+  const p = user?.preferences;
+  if (!p) return;
+  const next: Partial<AppState> = {};
+  if (p.theme) next.theme = p.theme;
+  if (p.accent) next.accent = p.accent;
+  if (p.density) next.density = p.density;
+  if (p.language) next.language = p.language;
+  if (Object.keys(next).length) { app.set(next); applyPrefs(); }
+}
+export function persistAccountPreferences(patch: PublicUser['preferences']) {
+  const user = app.get().user;
+  if (user) void api.updateMe({ preferences: { ...(user.preferences || {}), ...patch } }).then((updated) => app.set({ user: updated })).catch(() => undefined);
+}
 
 // ---------------------------------------------------------------- avisos
 let toastId = 0;
@@ -119,6 +143,7 @@ export function toast(kind: 'error' | 'ok', text: string) {
   toastTimer = window.setTimeout(() => { if (app.get().toast?.id === id) app.set({ toast: null }); }, kind === 'error' ? 8000 : 3000);
 }
 export const dismissToast = () => app.set({ toast: null });
+export const dismissSyncNotice = () => app.set({ syncNotice: null });
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 // ---------------------------------------------------------------- documento
@@ -143,8 +168,9 @@ export async function openProject(file: string): Promise<void> {
     app.set({ busy: app.get().busy + 1 });
     await api.tool('open_project', { file });
     lastDocKey = '';
-    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null });
+    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null, syncNotice: null });
     await refreshDoc();
+    reconnectLiveForProject(file);
     history.replaceState(null, '', `#/p/${encodeURIComponent(file)}`);
   } catch (e) { toast('error', messageOf(e)); } finally { app.set({ busy: app.get().busy - 1 }); }
 }
@@ -154,8 +180,9 @@ export async function createProject(name: string): Promise<void> {
     app.set({ busy: app.get().busy + 1 });
     const out = await api.tool<{ file: string }>('new_project', { name: name.trim() || 'Sem título' });
     lastDocKey = '';
-    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null });
+    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null, syncNotice: null });
     await refreshDoc();
+    reconnectLiveForProject(app.get().file);
     history.replaceState(null, '', `#/p/${encodeURIComponent(out.file)}`);
     void loadProjects();
   } catch (e) { toast('error', messageOf(e)); } finally { app.set({ busy: app.get().busy - 1 }); }
@@ -163,7 +190,7 @@ export async function createProject(name: string): Promise<void> {
 
 export function closeProject() {
   const { file, doc, pageId, busy } = app.get();
-  app.set({ screen: 'home', selection: [], hover: null });
+  app.set({ screen: 'home', selection: [], hover: null, syncNotice: null });
   history.replaceState(null, '', '#/');
   // guarda a miniatura da primeira tela e só então recarrega a lista (para ela já aparecer)
   const thumb = file && doc && busy === 0 ? saveThumbnail(file, doc, pageId) : Promise.resolve();
@@ -191,6 +218,11 @@ export async function run<T = any>(toolName: string, args: Record<string, unknow
 
 // ---------------------------------------------------------------- seleção e visão
 export function select(ids: string[]) { app.set({ selection: ids }); }
+/** Seleciona a camada a partir de um painel e pede ao canvas para enquadrá-la. */
+export function selectAndReveal(ids: string[]) {
+  select(ids);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('stylo:reveal-selection'));
+}
 export const setTool = (tool: Tool) => app.set({ tool });
 export const hoverLayer = (id: string | null) => { if (app.get().hover !== id) app.set({ hover: id }); };
 export const setDevice = (device: Device) => app.set({ device });
@@ -212,6 +244,12 @@ export async function runChecks(): Promise<void> {
 
 // ---------------------------------------------------------------- partida
 let stopLive: (() => void) | null = null;
+let liveUserName = 'Pessoa';
+let liveHandlers: api.LiveHandlers | null = null;
+function reconnectLiveForProject(file: string | null) {
+  stopLive?.();
+  if (liveHandlers) stopLive = api.connectLive(liveUserName, liveHandlers, file);
+}
 let refreshTimer: number | undefined;
 
 export async function boot(): Promise<void> {
@@ -220,6 +258,7 @@ export async function boot(): Promise<void> {
   try {
     const auth = await api.authState();
     app.set({ auth, user: auth.user });
+    hydrateAccountPreferences(auth.user);
     if (auth.mode === 'accounts' && !auth.user) { app.set({ boot: 'ready' }); return; }
     await afterLogin(auth.user);
   } catch (e) { app.set({ boot: 'error', bootError: messageOf(e) }); }
@@ -227,18 +266,21 @@ export async function boot(): Promise<void> {
 
 export async function afterLogin(user: PublicUser | null): Promise<void> {
   app.set({ user });
-  stopLive?.();
-  stopLive = api.connectLive(user?.name || 'Pessoa', {
+  hydrateAccountPreferences(user);
+  liveUserName = user?.name || 'Pessoa';
+  liveHandlers = {
     onPresence: (presence) => app.set({ presence }),
-    onState: (live) => app.set({ live }),
+    onState: (live) => app.set({ live, liveStatus: live ? 'connected' : 'reconnecting' }),
     onProject: (event) => {
       const s = app.get();
       if (s.screen === 'editor' && event.file === s.file) {
+        app.set({ syncNotice: { by: event.by || 'outra sessão', at: Date.now() } });
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => { if (app.get().busy === 0) void refreshDoc().catch(() => {}); }, 250);
       }
     },
-  });
+  };
+  stopLive = api.connectLive(liveUserName, liveHandlers, app.get().file);
   await loadProjects();
   app.set({ boot: 'ready' });
   window.addEventListener('hashchange', onHashChange);

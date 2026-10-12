@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { addPage, canEdit, removePage, rename, renamePage } from '../lib/actions';
 import { toggleFlag } from '../lib/editing';
-import { app, run, select, setPage, useApp, hoverLayer } from '../lib/app';
+import { app, run, select, selectAndReveal, setPage, useApp, hoverLayer } from '../lib/app';
 import { findNode, flatten as flatList, pageOf, parentOf, TYPE_LABEL } from '../lib/doc';
 import type { LayerNode } from '../lib/types';
 import { confirmDialog } from '../ui/Dialog';
@@ -114,11 +114,11 @@ export function LayersTab() {
     if (e.shiftKey && anchor.current) {
       const ids = rows.map((r) => r.node.id);
       const a = ids.indexOf(anchor.current), b = ids.indexOf(node.id);
-      if (a >= 0 && b >= 0) { select(ids.slice(Math.min(a, b), Math.max(a, b) + 1)); return; }
+      if (a >= 0 && b >= 0) { selectAndReveal(ids.slice(Math.min(a, b), Math.max(a, b) + 1)); return; }
     }
-    if (e.ctrlKey || e.metaKey) { select(selection.includes(node.id) ? selection.filter((x) => x !== node.id) : [...selection, node.id]); anchor.current = node.id; return; }
+    if (e.ctrlKey || e.metaKey) { selectAndReveal(selection.includes(node.id) ? selection.filter((x) => x !== node.id) : [...selection, node.id]); anchor.current = node.id; return; }
     anchor.current = node.id;
-    select([node.id]);
+    selectAndReveal([node.id]);
   };
 
   const total = useMemo(() => flatList(page.children).length, [page]);
@@ -189,8 +189,8 @@ export function LayersTab() {
               {layout && layout !== 'none' && <span className="layout-chip">{layout === 'grid' ? 'grid' : 'flex'}</span>}
               {editable && (
                 <>
-                  <button className={`btn ghost icon sm vis${node.locked ? ' shown' : ''}`} title={node.locked ? 'Destravar' : 'Travar'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('locked'); }}><Icon name={node.locked ? 'lock' : 'unlock'} size={13} /></button>
-                  <button className={`btn ghost icon sm vis${node.visible === false ? ' shown' : ''}`} title={node.visible === false ? 'Mostrar' : 'Esconder'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('visible'); }}><Icon name={node.visible === false ? 'eyeoff' : 'eye'} size={13} /></button>
+                  <button className={`btn ghost icon sm layer-action layer-lock${node.locked ? ' shown' : ''}`} title={node.locked ? 'Destravar' : 'Travar'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('locked'); }}><Icon name={node.locked ? 'lock' : 'unlock'} size={13} /></button>
+                  <button className={`btn ghost icon sm layer-action vis${node.visible === false ? ' shown' : ''}`} title={node.visible === false ? 'Mostrar' : 'Esconder'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('visible'); }}><Icon name={node.visible === false ? 'eyeoff' : 'eye'} size={13} /></button>
                 </>
               )}
             </div>

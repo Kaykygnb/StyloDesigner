@@ -39,7 +39,8 @@ export function createToolCaller({ workspace, presence, events }: { workspace: W
     const sid = session.id;
     session.activeCalls++;
     session.lastSeen = Date.now();
-    presence.touchAgent(sid, session.name);
+    const currentFile = typeof (workspace as any).snapshot === 'function' ? (workspace as any).snapshot(sid)?.file || '' : '';
+    presence.touchAgent(sid, session.name, currentFile);
     const def: any = toolByName(tool);
     const locking = def?.write && !def.noLock;
     const writeTargets = locking ? targetsOf(args) : [];

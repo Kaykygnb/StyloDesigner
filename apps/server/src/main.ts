@@ -6,13 +6,13 @@
  * Monta os serviços (configuração, banco, contas, agentes, projetos, workspace, renderizador), a aplicação HTTP (Hono)
  * e o servidor MCP, e entrega o editor. Variáveis: PORT, DESIGNER_CONFIG (arquivo de configuração), DATABASE_URL
  * (Postgres; sem ela, PGlite embutido), DESIGNER_DB_DIR, STYLO_AUTH=accounts (login com contas), STYLO_DEV=1 (força o Vite).
- * Segurança: escuta só em 127.0.0.1; ver http/guards.ts (Host/Origin locais, limites de corpo).
+ * Segurança: escuta na rede local; ver http/guards.ts (Host/Origin privados, limites de corpo).
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import './dom-polyfill.js';
 import { createServer } from 'node:http';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRequestListener } from '@hono/node-server';
 import { VERSION } from '@stylo/core/version.js';
@@ -44,6 +44,7 @@ import { createApp } from './app.js';
 import { createWebHandler } from './web.js';
 import { createStudioCaller } from './studio/studio-calls.js';
 import type { Services } from './context.js';
+import { applyPendingRestore, createBackups } from './services/backups.js';
 
 const here = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const root = resolve(here, '..', '..', '..');
@@ -53,11 +54,63 @@ const configFile = resolve(process.env.DESIGNER_CONFIG || join(root, 'designer.c
 const accountFile = configFile.replace(/(\.config)?\.json$/i, '') + '.account.json';
 
 const config = createConfigStore(configFile, await loadConfig(configFile));
-const dbDir = defaultDbDir(configFile);
-const { db, close: closeDb } = await openDb({ dir: dbDir });
+let dbDir = defaultDbDir(configFile);
+if (!process.env.DATABASE_URL) await applyPendingRestore(dbDir);
+
+async function recoveryCandidates(dir: string) {
+  const parent = dirname(resolve(dir));
+  const base = basename(resolve(dir));
+  const entries = await readdir(parent, { withFileTypes: true }).catch(() => []);
+  const prefix = [`${base}.before-migrations-`, `${base}.backup-`, `stylo-backup-${base}-`];
+  const candidates = entries
+    .filter((entry) => entry.isDirectory() && entry.name !== base && prefix.some((item) => entry.name.startsWith(item)))
+    .map((entry) => join(parent, entry.name));
+  return (await Promise.all(candidates.map(async (candidate) => ({ candidate, mtime: (await stat(candidate)).mtimeMs })))).sort((a, b) => b.mtime - a.mtime).map((item) => item.candidate);
+}
+
+async function openWithRecovery(dir: string) {
+  try {
+    return await openDb({ dir });
+  } catch (error) {
+    const text = error instanceof Error ? error.message : String(error);
+    if (!/Aborted\(\)|RuntimeError|corrupt|invalid|malformed/i.test(text)) throw error;
+    for (const candidate of await recoveryCandidates(dir)) {
+      try {
+        const recovered = await openDb({ dir: candidate });
+        await recovered.db.$queryRaw`SELECT 1`;
+        console.error(`Banco PGlite ilegível em ${dir}; usando backup íntegro ${candidate}. O original foi preservado.`);
+        dbDir = candidate;
+        return recovered;
+      } catch {
+        // Tenta o próximo snapshot sem mascarar o erro original.
+      }
+    }
+    throw error;
+  }
+}
+const opened = await (async () => {
+  try {
+    return await openWithRecovery(dbDir);
+  } catch (error) {
+    const text = error instanceof Error ? error.message : String(error);
+    if (/mutex|lock|locked|timeout/i.test(text)) {
+      console.error('Não foi possível abrir o banco PGlite em uso por outro processo. Feche o outro Stylo ou defina DESIGNER_DB_DIR para outro diretório. (' + dbDir + ')');
+    } else if (/Aborted\(\)|RuntimeError|corrupt|invalid|malformed/i.test(text)) {
+      console.error('O banco PGlite não pôde ser lido. Preserve a pasta e restaure um backup ou use DESIGNER_DB_DIR com uma cópia recuperada. (' + dbDir + ')');
+    } else {
+      console.error('Não foi possível iniciar o banco do Stylo: ' + text);
+    }
+    process.exit(1);
+  }
+})();
+const { db, close: closeDb } = opened;
 
 const auth = createAuth(db);
-const authMode = process.env.STYLO_AUTH === 'accounts' ? 'accounts' : 'local';
+// O servidor sempre inicia com autenticação por contas. O modo local não é mais o padrão de produção;
+// STYLO_AUTH=local continua reservado para testes/desenvolvimento explícito.
+const authMode = process.env.STYLO_AUTH === 'local' ? 'local' : 'accounts';
+/** 0.0.0.0 mantém acesso pela rede local; 127.0.0.1 bloqueia interfaces remotas explicitamente. */
+const bindHost = process.env.STYLO_HOST === '127.0.0.1' || process.env.STYLO_HOST === 'localhost' ? '127.0.0.1' : '0.0.0.0';
 const localUser = await auth.localUser();
 const presence = createPresence();
 const events = createEvents({ presence });
@@ -79,9 +132,11 @@ const blobs = createBlobStore(process.env.STYLO_BLOB_DIR || dbDir.replace(/\.db$
 const library = createLibrary({ db, blobs });
 const secrets = createSecrets(db, await loadSecretKey(configFile.replace(/(\.config)?\.json$/i, '') + '.secret'));
 const assetServices = createAssetServices({ library, secrets, sources: createAssetSources(db), config });
-const plugins = createPlugins({ plugins: builtinPlugins, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
+const plugins = createPlugins({ plugins: builtinPlugins, enabled: config.get().plugins?.enabled, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
+const agents = createAgents(db);
+const backups = createBackups({ dbDir, db, postgres: !!process.env.DATABASE_URL });
 workspace = createWorkspace({
-  projects, notes, sharing, operations, plugins, presence: () => presence.snapshot(),
+  projects, notes, sharing, operations, agentProjectAccess: (agentId, projectId) => authMode === 'local' ? Promise.resolve(true) : agents.projectAccess(agentId, projectId), grantAgentProject: (agentId, projectId) => agents.grantProject(agentId, projectId), plugins, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale, opts) => renderer.render(node, doc, scale, opts),
   inspectLayout: (root, doc, opts) => renderer.inspect(root, doc, opts),
   measureLayout: (roots, doc) => renderer.measure(roots, doc),
@@ -93,8 +148,8 @@ workspace = createWorkspace({
 });
 
 const services: Services = {
-  port, root, here, config, accountFile, db, auth, agents: createAgents(db), operations, notes, sharing, projects, renderer,
-  workspace, events, authMode, localUser, presence, library, secrets,
+  port, root, here, config, accountFile, db, auth, agents, operations, notes, sharing, projects, renderer,
+  workspace, events, authMode, localUser, presence, library, secrets, backups, plugins,
 };
 const identity = createIdentity(services);
 const caller = createToolCaller({ workspace, presence, events });
@@ -112,7 +167,9 @@ const httpServer = createServer((req, res) => {
   if (/^\/(api(\/|$)|mcp\b)/.test(url)) return void api(req, res);
   if (url === '/studio') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
   // a entrada é o painel novo; o editor antigo continua em /index.html (ou /?editor)
-  if (url === '/') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
+  // Compatibilidade explícita: os testes e o editor legado usam /?editor.
+  // A raiz sem esse sinal continua levando ao painel novo.
+  if (url === '/' || url === '') { res.writeHead(302, { Location: '/studio/' }).end(); return; }
   let path: string;
   try { path = decodeURIComponent(new URL(url, 'http://x').pathname); } catch { res.writeHead(404).end('Not found'); return; }
   (path.startsWith('/studio/') ? studioWeb : web)(req, res, path).catch((err: any) => {
@@ -141,9 +198,11 @@ async function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-// escuta só em 127.0.0.1 (localhost): ninguém na sua rede consegue acessar o servidor
-httpServer.listen(port, '127.0.0.1', () => {
+// Rede local ativa por padrão; a autenticação continua obrigatória fora do modo de testes.
+httpServer.listen(port, bindHost, () => {
   console.log(`\n  Stylo rodando em  http://localhost:${port}/studio/`);
+  console.log(`  Acesso pela rede local      http://<IP-da-maquina>:${port}/studio/`);
   console.log(`  Banco de dados               ${process.env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : 'PGlite em ' + dbDir}`);
-  console.log(`  Acesso                       ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'}\n`);
+  console.log(`  Acesso                       ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'}`);
+  console.log(`  Interface                   ${bindHost}${bindHost === '127.0.0.1' ? ' (somente este computador)' : ' (rede local habilitada)'}\n`);
 });

@@ -11,6 +11,7 @@ export const material: AssetProvider = {
   id: 'material-symbols',
   name: 'Material Symbols (Google)',
   kinds: ['icon'],
+  sourceUrl: 'https://fonts.google.com/icons', licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0',
   licenseSummary: 'Apache 2.0: uso comercial livre, sem crédito obrigatório.',
   async search({ query, page }) {
     const all: string[] = searchIcons(query);

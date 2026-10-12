@@ -14,8 +14,19 @@ import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace } from '../apps/server/src/workspace/index.ts';
 import { createPlugins } from '../apps/server/src/plugins.ts';
 import { builtinPlugins } from '@stylo/plugins/index.ts';
+import { lucide } from '@stylo/plugins/assets/providers/lucide.ts';
+import { lucideIconUrl } from '@stylo/core/icons.ts';
 
 const near = (a: number, b: number, tol: number, msg?: string) => assert.ok(Math.abs(a - b) <= tol, `${msg ?? ''} ${a} ≉ ${b} (±${tol})`);
+
+test('Lucide: catálogo entrega preview, licença ISC e URL estável para o editor', async () => {
+  const result = await lucide.search({ kind: 'icon', query: 'activity', page: 1 }, { key: null, getJson: async () => ({}) });
+  assert.ok(result.results.some((item) => item.title === 'activity'));
+  const item = result.results.find((entry) => entry.title === 'activity')!;
+  assert.equal(item.license.name, 'ISC');
+  assert.equal(item.preview_url, lucideIconUrl('activity'));
+  assert.match(item.download?.url || '', /lucide-static@.*\/icons\/activity\.svg$/);
+});
 
 test('cor: contraste WCAG conhecido (preto/branco = 21; #777 no branco ≈ 4.48; #767676 passa AA)', () => {
   const white = parseHex('#fff')!, black = parseHex('#000')!;
@@ -90,6 +101,32 @@ test('definePlugin recusa id/nome inválidos, ferramenta repetida e escrita sem 
   assert.throws(() => definePlugin({ id: 'ok', name: 'x', tools: [tool('altera_algo', { write: true })] }), /não declara projeto/);
   assert.ok(definePlugin({ id: 'ok', name: 'x', tools: [tool('so_calcula')] }));
   assert.throws(() => registerPluginTools([tool('get_document').def]), /repetida/);
+});
+
+test('plugins respeitam dependências ao ativar e desativar', () => {
+  const dep = { id: 'dep', name: 'Dependência', tools: [] };
+  const child = { id: 'child', name: 'Filho', dependencies: ['dep'], tools: [] };
+  const plugins = createPlugins({ plugins: [dep, child] });
+  assert.throws(() => plugins.setEnabled('dep', false), /usado por child/);
+  plugins.setEnabled('child', false);
+  plugins.setEnabled('dep', false);
+  assert.throws(() => plugins.setEnabled('child', true), /dependências desativadas/);
+});
+
+test('catálogo de plugins identifica categoria e origem sem confundir asset providers com ferramentas', () => {
+  const byId = Object.fromEntries(builtinPlugins.map((plugin) => [plugin.id, plugin]));
+  assert.equal(byId.assets.category, 'asset-provider');
+  assert.equal(byId.assets.sourceUrl, 'https://github.com/Kaykygnb/StyloDesigner');
+  assert.equal(byId.tailwind.category, 'exporter');
+  assert.equal(byId.acessibilidade.category, 'quality');
+});
+
+test('configuração inicial não ativa plugin sem dependência habilitada', () => {
+  const dep = { id: 'dep', name: 'Dependência', tools: [] };
+  const child = { id: 'child', name: 'Filho', dependencies: ['dep'], tools: [] };
+  const plugins = createPlugins({ plugins: [dep, child], enabled: ['child'] });
+  assert.equal(plugins.isEnabled('dep'), false);
+  assert.equal(plugins.isEnabled('child'), false);
 });
 
 async function setup() {

@@ -8,17 +8,17 @@ const SIMPLE = [
   'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor',
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
-  'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted',
+  'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted', 'mediaPoster', 'mediaFallback',
   'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
-  'flowStart', 'isMask', 'noteInCode', 'fillRule', 'customCss',
+  'flowStart', 'isMask', 'noteInCode', 'fillRule', 'customCss', 'shape',
   'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
 /** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
 const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart'];
 /** Campos opcionais: `null` apaga (a chave some do projeto, como no editor). */
-const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'wordSpacing', 'flowStart'];
+const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'shape', 'wordSpacing', 'flowStart', 'mediaPoster', 'mediaFallback'];
 const NUMBERS = ['skewX', 'skewY', 'order'];
-const STRINGS = ['customCss', 'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
+const STRINGS = ['customCss', 'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap', 'mediaPoster', 'mediaFallback'];
 const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
 const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
 const FX_KEYS = ['brightness', 'contrast', 'saturate', 'grayscale', 'hue'];
@@ -73,6 +73,12 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     if (NUMBERS.includes(k) && !Number.isFinite(v)) throw new Error(`${k} precisa ser um número.`);
     if (STRINGS.includes(k) && typeof v !== 'string') throw new Error(`${k} precisa ser um texto (use "" para limpar).`);
     if (k === 'html' && (node.type !== 'html' || v.length > 200000)) throw new Error('html só vale para camadas de código HTML (type "html") e vai até 200.000 caracteres.');
+    if (k === 'shape') {
+      if (v === null && CLEARABLE.includes(k)) { delete node[k]; continue; }
+      if (node.type !== 'path' || typeof v !== 'object' || Array.isArray(v) || !['polygon', 'star'].includes(v.kind) || !Number.isInteger(v.sides) || v.sides < 3 || v.sides > 24 || !Number.isFinite(v.innerRatio) || v.innerRatio <= 0 || v.innerRatio > 1) throw new Error('shape só vale para path e usa {kind:"polygon"|"star", sides:3..24, innerRatio:0..1}.');
+      node[k] = { kind: v.kind, sides: v.sides, innerRatio: v.innerRatio };
+      continue;
+    }
     if (['text'].includes(k) && node.type !== 'text') throw new Error('text só vale para camadas de texto.');
     if (MEDIA_FLAGS.includes(k)) {
       if (node.type !== 'media') throw new Error(`${k} só vale para camadas de mídia (vídeo, áudio, 3D, Lottie).`);

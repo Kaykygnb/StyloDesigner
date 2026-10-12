@@ -22,6 +22,7 @@ export const openverse: AssetProvider = {
   id: 'openverse',
   name: 'Openverse',
   kinds: ['image', 'audio'],
+  sourceUrl: 'https://openverse.org/', licenseUrl: 'https://creativecommons.org/share-your-work/cclicenses/',
   licenseSummary: 'Creative Commons e domínio público, só uso comercial; atribuição conforme a licença de cada item.',
   cacheMs: 10 * 60_000,
   async search({ kind, query, page, orientation }, { getJson }) {

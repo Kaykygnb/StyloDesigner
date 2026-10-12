@@ -38,11 +38,35 @@ export function createArrangeTools(ctx: RunnerContext): ToolHandlers {
           if (nodes.length < 2 && parent?.type !== 'group') throw new Error('Máscara: selecione duas ou mais camadas, ou uma camada que já esteja dentro de um grupo.');
           commands.toggleMask();
         },
+        boolean_union: () => commands.booleanOp('union'),
+        boolean_subtract: () => commands.booleanOp('subtract'),
+        boolean_intersect: () => commands.booleanOp('intersect'),
+        boolean_exclude: () => commands.booleanOp('exclude'),
       };
       if (action === 'toggle_auto_layout' && nodes.some((n) => n.type === 'section')) throw new Error('Seções não têm layout automático.');
       if (action === 'wrap_in_frame' && nodes.every((n) => n.type === 'section')) throw new Error('Seções não podem ser envolvidas num frame.');
-      withSelection(ctx, list, true, run[action]);
+      const result = withSelection(ctx, list, true, run[action]);
+      if (action.startsWith('boolean_') && result?.error) throw new Error(result.error);
       return { action, selected: ids().slice(0, 20), selectedCount: ids().length };
+    },
+    shape_builder({ ids: list, mode = 'add', points }: ToolArgs) {
+      const nodes = target(ctx, list);
+      store.setSelection(nodes.map((n) => n.id));
+      const result = commands.shapeBuilder(mode, points);
+      if (result?.error) throw new Error(result.error);
+      return {
+        created: result?.node ? { id: result.node.id, name: result.node.name } : undefined,
+        mode,
+        regionCount: result?.regionCount || 0,
+        sourceIds: result?.sourceIds || nodes.map((n) => n.id),
+      };
+    },
+    edit_boolean_source({ id, source_index, dx, dy, scale, contour_index, point_index, x, y, hin_x, hin_y, hout_x, hout_y, clear_hin, clear_hout, mode }: ToolArgs) {
+      const node = need(id);
+      if (!node.boolean?.sources?.length) throw new Error(`“${node.name}” não é uma operação booleana editável.`);
+      const result = commands.editBooleanSource(id, source_index, { dx, dy, scale, contourIndex: contour_index, pointIndex: point_index, x, y, hinX: hin_x, hinY: hin_y, houtX: hout_x, houtY: hout_y, clearHin: clear_hin, clearHout: clear_hout, mode });
+      if (result?.error) throw new Error(result.error);
+      return { id, source_index, updated: true, selected: [id] };
     },
     set_guides({ page_id, guides }: ToolArgs) {
       const page = page_id ? store.state.doc.pages.find((p: any) => p.id === page_id) : store.page();

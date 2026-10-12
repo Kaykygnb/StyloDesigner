@@ -145,16 +145,31 @@ createRoot(document.getElementById('root')).render(
 `,
   });
 
-  const title = String(doc.name || 'Projeto').replace(/[<>&"]/g, '');
+  const metadata = doc.site || {};
+  const safe = (value: unknown) => String(value ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] || c));
+  const title = safe(metadata.title || doc.name || 'Projeto');
+  const description = safe(metadata.description || '');
+  const lang = /^[a-z]{2}(?:-[A-Z]{2})?$/.test(String(metadata.lang || 'pt-BR')) ? String(metadata.lang || 'pt-BR') : 'pt-BR';
+  const canonical = /^https:\/\//.test(String(metadata.canonical || '')) ? safe(metadata.canonical) : '';
+  const image = /^(https:\/\/|data:image\/)/.test(String(metadata.image || '')) ? safe(metadata.image) : '';
+  const favicon = /^(https:\/\/|data:image\/)/.test(String(metadata.favicon || '')) ? safe(metadata.favicon) : '';
+  const meta = [
+    `    <meta name="description" content="${description}" />` ,
+    `    <meta property="og:description" content="${description}" />`,
+    `    <meta property="og:title" content="${title}" />`,
+    image ? `    <meta property="og:image" content="${image}" />` : '',
+    canonical ? `    <link rel="canonical" href="${canonical}" />` : '',
+    favicon ? `    <link rel="icon" href="${favicon}" />` : '',
+  ].filter(Boolean).join('\n');
   out.push({
     path: 'index.html',
     content: `<!doctype html>
-<html lang="pt-BR">
+<html lang="${lang}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${title}</title>
-${[...headLinks].map((l) => `    ${l}`).join('\n')}${headLinks.size ? '\n' : ''}  </head>
+${meta}${meta ? '\n' : ''}${[...headLinks].map((l) => `    ${l}`).join('\n')}${headLinks.size ? '\n' : ''}  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
@@ -192,14 +207,14 @@ npm run build   # versão final em dist/
 - Cada página tem seu CSS Module (\`*.module.css\`): as classes não colidem entre páginas.
 - \`src/styles/\`: reset, fontes hospedadas e tokens do design (cores, textos, tamanhos${tokens.trim() ? '' : ' — este projeto ainda não tem'}).
 - \`public/\`: imagens (\`assets/\`) e fontes (\`fonts/\`), servidas na raiz do site.
-- Os créditos dos assets estão em \`CREDITS.txt\` (se houver): mantenha-os no site publicado.
+- Os créditos dos assets estão em \`CREDITS.txt\`, \`CREDITS.md\` e \`THIRD-PARTY-NOTICES\` (se houver): mantenha-os no site publicado.
 `,
   });
 
   // arquivos do site que continuam: imagens/mídia/fontes vão para public/, créditos na raiz
   for (const f of rest) {
     if (/^(assets|fonts)\//.test(f.path)) out.push({ path: `public/${f.path}`, content: f.content });
-    else if (f.path === 'CREDITS.txt') out.push(f);
+    else if (f.path === 'CREDITS.txt' || f.path === 'CREDITS.md' || f.path === 'THIRD-PARTY-NOTICES') out.push(f);
   }
   return { files: out, warnings: [...new Set(warnings)] };
 }

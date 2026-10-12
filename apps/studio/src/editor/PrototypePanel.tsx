@@ -2,11 +2,11 @@
 // As interações são uma propriedade da camada (update_layer.interactions); a tela inicial do fluxo é flowStart.
 import { canEdit } from '../lib/actions';
 import { app, run, toast, useApp } from '../lib/app';
+import { t } from '../lib/i18n';
 import { boardsOf, findNode, isBoard, pageOf, topLevel } from '../lib/doc';
 import { Check, Cap, Hint, IconBtn, Row, Section, Sel, Txt } from '../ui/Fields';
 import { Icon } from '../ui/Icon';
 
-export const TRANSITIONS: [string, string][] = [['instant', 'Instantâneo'], ['dissolve', 'Dissolver'], ['slide-left', 'Deslizar ← (entra pela direita)'], ['slide-right', 'Deslizar → (entra pela esquerda)'], ['slide-up', 'Deslizar ↑'], ['slide-down', 'Deslizar ↓']];
 interface Interaction { trigger: string; action: string; target?: string; transition?: string; url?: string }
 
 export function PrototypePanel() {
@@ -14,6 +14,9 @@ export function PrototypePanel() {
   const pageId = useApp((s) => s.pageId);
   const selection = useApp((s) => s.selection);
   const editable = canEdit();
+  const language = useApp((s) => s.language);
+  const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
+  const transitions: [string, string][] = [['instant', tr('prototype.instant')], ['dissolve', tr('prototype.dissolve')], ['slide-left', tr('prototype.slideLeft')], ['slide-right', tr('prototype.slideRight')], ['slide-up', tr('prototype.slideUp')], ['slide-down', tr('prototype.slideDown')]];
   const page = pageOf(doc, pageId);
   const ids = topLevel(page.children, selection);
   const n = ids.length === 1 ? findNode(page.children, ids[0]) : null;
@@ -32,27 +35,27 @@ export function PrototypePanel() {
 
   return (
     <div className="side-panel proto-panel">
-      <button className="btn primary block" onClick={() => { if (!frames.length) toast('error', 'Crie pelo menos um frame para apresentar.'); else app.set({ presenting: true }); }}><Icon name="play" size={13} /> Apresentar (Ctrl+Alt+Enter)</button>
-      <Hint>Escolha uma camada, adicione uma interação e aponte para outra tela. Depois clique em Apresentar.</Hint>
-      {!n && <p className="muted small">Selecione uma camada para criar interações.</p>}
+      <button className="btn primary block" onClick={() => { if (!frames.length) toast('error', tr('prototype.noFrame')); else app.set({ presenting: true }); }}><Icon name="play" size={13} /> {tr('prototype.present')}</button>
+      <Hint>{tr('prototype.hint')}</Hint>
+      {!n && <p className="muted small">{tr('prototype.selectLayer')}</p>}
       {n && isBoard(page.children, n) && (
-        <Check label="Ponto de partida do fluxo" checked={!!n.flowStart} disabled={!editable} onChange={(v) => void setStart(v)} />
+        <Check label={tr('prototype.startPoint')} checked={!!n.flowStart} disabled={!editable} onChange={(v) => void setStart(v)} />
       )}
       {n && (
-        <Section id="proto" title="Interações" right={editable ? <IconBtn icon="plus" title="Adicionar interação" onClick={() => save([...list, { trigger: 'click', action: 'navigate', target: '', transition: 'dissolve' }])} /> : undefined}>
-          {!list.length && <Hint>Esta camada ainda não tem interações.</Hint>}
+        <Section id="proto" title={tr('prototype.interactions')} right={editable ? <IconBtn icon="plus" title={tr('prototype.add')} onClick={() => save([...list, { trigger: 'click', action: 'navigate', target: '', transition: 'dissolve' }])} /> : undefined}>
+          {!list.length && <Hint>{tr('prototype.empty')}</Hint>}
           {list.map((it, i) => (
             <div className="effect-card" key={i}>
               <Row>
-                <Sel value={it.trigger ?? 'click'} options={[['click', 'Ao clicar'], ['hover', 'Ao passar o mouse']]} disabled={!editable} title="Gatilho" onChange={(v) => set(i, { trigger: v })} />
-                {editable && <IconBtn icon="minus" title="Remover interação" onClick={() => save(list.filter((_, k) => k !== i))} />}
+                <Sel value={it.trigger ?? 'click'} options={[['click', tr('prototype.click')], ['hover', tr('prototype.hover')]]} disabled={!editable} title={tr('prototype.trigger')} onChange={(v) => set(i, { trigger: v })} />
+                {editable && <IconBtn icon="minus" title={tr('prototype.remove')} onClick={() => save(list.filter((_, k) => k !== i))} />}
               </Row>
-              <Sel value={it.action} options={[['navigate', 'Navegar para'], ['back', 'Voltar'], ['url', 'Abrir link']]} disabled={!editable} title="Ação" onChange={(v) => set(i, { action: v })} />
-              {it.action === 'url' && <Cap label="Endereço"><Txt value={it.url ?? ''} placeholder="https://…" disabled={!editable} onCommit={(v) => set(i, { url: v })} /></Cap>}
+              <Sel value={it.action} options={[['navigate', tr('prototype.navigate')], ['back', tr('prototype.back')], ['url', tr('prototype.url')]]} disabled={!editable} title={tr('prototype.action')} onChange={(v) => set(i, { action: v })} />
+              {it.action === 'url' && <Cap label={tr('prototype.address')}><Txt value={it.url ?? ''} placeholder="https://…" disabled={!editable} onCommit={(v) => set(i, { url: v })} /></Cap>}
               {it.action === 'navigate' && (
                 <>
-                  <Sel value={it.target ?? ''} options={[['', 'Escolha a tela…'], ...frames.map(({ f, page: p }) => [f.id, `${f.name}${doc.pages.length > 1 ? ` (${p.name})` : ''}`] as [string, string])]} disabled={!editable} title="Destino" onChange={(v) => set(i, { target: v })} />
-                  <Sel value={it.transition ?? 'dissolve'} options={TRANSITIONS} disabled={!editable} title="Transição" onChange={(v) => set(i, { transition: v })} />
+                  <Sel value={it.target ?? ''} options={[['', tr('prototype.chooseScreen')], ...frames.map(({ f, page: p }) => [f.id, `${f.name}${doc.pages.length > 1 ? ` (${p.name})` : ''}`] as [string, string])]} disabled={!editable} title={tr('prototype.destination')} onChange={(v) => set(i, { target: v })} />
+                  <Sel value={it.transition ?? 'dissolve'} options={transitions} disabled={!editable} title={tr('prototype.transition')} onChange={(v) => set(i, { transition: v })} />
                 </>
               )}
             </div>

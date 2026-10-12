@@ -115,6 +115,19 @@ test('exportReact: sem Lottie/3D as dependências não aparecem; sem tela dá er
   assert.ok(bruto.files.some((f) => f.path === 'src/pages/Home.css'));
 });
 
+test('exportReact: preserva metadados SEO seguros no index.html', () => {
+  const doc: any = makeDoc();
+  doc.name = 'Site';
+  doc.site = { title: 'Loja & Casa', description: 'Descrição da loja', lang: 'pt-BR', canonical: 'https://example.com/', image: 'https://example.com/og.png', favicon: 'https://example.com/favicon.png' };
+  doc.pages[0].children.push(createNode('frame', { name: 'Home', w: 300, h: 100 }));
+  const html = String(exportReact(doc).files.find((file) => file.path === 'index.html')?.content);
+  assert.match(html, /<html lang="pt-BR">/);
+  assert.match(html, /<title>Loja &amp; Casa<\/title>/);
+  assert.match(html, /name="description" content="Descrição da loja"/);
+  assert.match(html, /rel="canonical" href="https:\/\/example\.com\//);
+  assert.match(html, /property="og:image"/);
+});
+
 test('applyMeasured: grava só onde o tamanho não é fixo (hug/fill, auto layout ou limites) e conta o que mudou', async () => {
   const { applyMeasured, rootsOf } = await import('../apps/server/src/workspace/measure.ts');
   const board: any = createNode('frame', { name: 'T', w: 500, h: 10 }); board.sizeY = 'hug'; board.layout.mode = 'column';

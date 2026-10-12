@@ -15,6 +15,7 @@ import { projectRoutes } from './routes/projects.js';
 import { systemRoutes } from './routes/system.js';
 import { legacyRoutes } from './routes/legacy.js';
 import { libraryRoutes } from './routes/library.js';
+import { pluginRoutes } from './routes/plugins.js';
 import { studioRoutes } from './routes/studio.js';
 import type { StudioCaller } from './studio/studio-calls.js';
 import type { AssetServices } from '@stylo/plugins/assets/types.ts';
@@ -37,13 +38,14 @@ export function createApp(s: Services, identity: Identity, mcp: McpGateway, asse
   // escritas na API exigem JSON, exceto o envio de arquivo da biblioteca (os bytes do arquivo são o corpo)
   const jsonOnly = localOnly(s.port, { requireJson: true });
   const binaryOk = localOnly(s.port, { requireJson: false });
-  app.use('/api/*', (c, next) => (c.req.method === 'POST' && c.req.path === '/api/library' ? binaryOk(c, next) : jsonOnly(c, next)));
+  app.use('/api/*', (c, next) => (c.req.method === 'POST' && (c.req.path === '/api/library' || /^\/api\/library\/[^/]+\/replace$/.test(c.req.path)) ? binaryOk(c, next) : jsonOnly(c, next)));
   app.use('/api/*', (c, next) => limit(bodyLimitFor(c.req.method, c.req.path))(c, next));
   app.route('/api', authRoutes(s, identity));
   app.route('/api', projectRoutes(s, identity));
-  app.route('/api', systemRoutes(s));
+  app.route('/api', systemRoutes(s, identity));
   app.route('/api', legacyRoutes(s));
   app.route('/api', libraryRoutes(s, identity, assetServices));
+  app.route('/api', pluginRoutes(s, identity, assetServices));
   app.route('/api', studioRoutes(s, identity, studio));
 
   app.use('/mcp', localOnly(s.port, { originAlways: true }), limit(MAX_MEDIUM));

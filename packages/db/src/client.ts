@@ -9,7 +9,7 @@
  * `applyMigrations` roda os mesmos arquivos.
  */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { cp, readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PrismaClient } from './generated/client.ts';
@@ -25,6 +25,15 @@ async function migrationFiles(): Promise<{ name: string; sql: string }[]> {
   return Promise.all(dirs.map(async (name) => ({ name, sql: await readFile(join(migrationsDir, name, 'migration.sql'), 'utf8') })));
 }
 
+async function backupBeforeMigrations(dir: string, pending: string[]) {
+  if (!pending.length) return null;
+  try { await stat(dir); } catch { return null; }
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').replace(/\.\d{3}Z$/, '');
+  const target = `${dir}.before-migrations-${stamp}`;
+  await cp(dir, target, { recursive: true, errorOnExist: true });
+  return target;
+}
+
 export async function createDb(options: DbOptions): Promise<{ db: Db; close: () => Promise<void> }> {
   if ('url' in options) {
     const { PrismaPg } = await import('@prisma/adapter-pg');
@@ -38,7 +47,10 @@ export async function createDb(options: DbOptions): Promise<{ db: Db; close: () 
   // marca as migrações já aplicadas para poder abrir o mesmo diretório de novo
   await client.exec('CREATE TABLE IF NOT EXISTS "_stylo_migrations" (name text PRIMARY KEY)');
   const done = new Set((await client.query<{ name: string }>('SELECT name FROM "_stylo_migrations"')).rows.map((r) => r.name));
-  for (const m of await migrationFiles()) {
+  const migrations = await migrationFiles();
+  const pending = migrations.filter((m) => !done.has(m.name));
+  await backupBeforeMigrations(options.pglite.dir || '', pending.map((m) => m.name));
+  for (const m of migrations) {
     if (done.has(m.name)) continue;
     await client.exec(m.sql);
     await client.query('INSERT INTO "_stylo_migrations" (name) VALUES ($1)', [m.name]);

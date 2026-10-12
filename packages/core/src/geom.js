@@ -296,6 +296,33 @@ export function flattenContour(points, closed, tol = 0.5) {
   return out;
 }
 
+/**
+ * Simplifica um contorno Bézier aberto sem achatá-lo definitivamente.
+ * A amostragem alimenta o RDP e o resultado volta a ser ajustado como curvas cúbicas,
+ * portanto o documento continua editável por nós e alças. Para contornos fechados,
+ * o ponto inicial é repetido durante o ajuste e a alça de entrada do ponto repetido
+ * é costurada de volta ao primeiro nó, mantendo a curva de fechamento.
+ */
+export function simplifyBezierContour(points, closed, tolerance = 1) {
+  if (!Array.isArray(points) || points.length < 3) return null;
+  const sampled = flattenContour(points, closed, Math.max(0.05, tolerance / 3));
+  const ring = closed ? [...sampled, sampled[0]] : sampled;
+  const reduced = rdp(ring, tolerance);
+  if (reduced.length < (closed ? 4 : 2)) return null;
+  const fitted = fitCurve(reduced, Math.max(0.1, tolerance / 2));
+  const closing = closed ? fitted.at(-1) : null;
+  const result = closed ? fitted.slice(0, -1) : fitted;
+  if (result.length < (closed ? 3 : 2) || result.length >= points.length) return null;
+  if (closed && closing) result[0].hin = closing.hin ? { ...closing.hin } : null;
+  return result.map((p) => ({
+    x: p.x,
+    y: p.y,
+    hin: p.hin ? { x: p.hin.x, y: p.hin.y } : null,
+    hout: p.hout ? { x: p.hout.x, y: p.hout.y } : null,
+    ...(p.mode ? { mode: p.mode } : {}),
+  }));
+}
+
 /** Área com sinal do polígono (positiva = sentido horário na tela, com y para baixo). */
 export function polygonArea(poly) {
   let s = 0;

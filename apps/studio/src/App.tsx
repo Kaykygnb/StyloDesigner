@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { boot, dismissToast, useApp } from './lib/app';
 import { Editor } from './editor/Editor';
 import { Home } from './screens/Home';
-import { Login } from './screens/Login';
+import { Login, RequiredPasswordChange } from './screens/Login';
 import { MenuHost } from './ui/ContextMenu';
 import { DialogHost } from './ui/Dialog';
 import { ImagePickerHost } from './ui/ImagePicker';
@@ -29,6 +29,7 @@ export function App() {
       </div>
     );
   } else if (auth?.mode === 'accounts' && !user) content = <Login />;
+  else if (user?.mustChangePassword) content = <RequiredPasswordChange />;
   else content = screen === 'editor' ? <Editor /> : <Home />;
 
   return (

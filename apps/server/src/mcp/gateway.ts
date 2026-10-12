@@ -100,7 +100,7 @@ export function createMcpGateway({ s, identity, caller, instructions, version }:
       onsessioninitialized: (id) => {
         session.id = id;
         sessions.set(id, { session, server, transport });
-        s.presence.touchAgent(id, session.name);
+        s.presence.touchAgent(id, session.name, '');
         s.events.broadcastPresence();
       },
       onsessionclosed: (id) => closeSession(id),

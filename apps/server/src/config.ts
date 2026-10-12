@@ -15,6 +15,7 @@ export interface Config {
   imageai?: Record<string, unknown>;
   agent?: { keys?: Record<string, string> };
   mcp?: { agentPolicy?: 'open' | 'approval' | 'closed' };
+  plugins?: { enabled?: string[] };
   [extra: string]: unknown;
 }
 

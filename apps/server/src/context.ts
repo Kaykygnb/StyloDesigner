@@ -16,6 +16,8 @@ import type { Library } from './services/library.js';
 import type { Secrets } from './services/secrets.js';
 import type { Workspace } from './workspace/index.js';
 import type { Events } from './events.js';
+import type { Backups } from './services/backups.js';
+import type { Plugins } from './plugins.js';
 
 export type AuthMode = 'local' | 'accounts';
 
@@ -44,4 +46,6 @@ export interface Services {
   /** Usuário técnico que age no lugar da pessoa no modo local. */
   localUser: PublicUser;
   presence: ReturnType<typeof import('./presence.js').createPresence>;
+  backups: Backups;
+  plugins: Plugins;
 }

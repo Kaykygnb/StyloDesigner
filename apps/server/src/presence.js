@@ -69,20 +69,20 @@ export function createPresence({ now = Date.now } = {}) {
   const locks = new Map(); // id da camada → { owner, name, until }
   const activity = []; // últimas ações: { at, who, color, text }
 
-  const record = (who, color, text) => {
-    activity.unshift({ at: now(), who, color, text: pastTense(text) });
+  const record = (who, color, text, projectFile = '') => {
+    activity.unshift({ at: now(), who, color, text: pastTense(text), projectFile: String(projectFile || '') });
     activity.length = Math.min(activity.length, 40);
   };
 
   return {
     /** Uma sessão MCP apareceu ou chamou algo. */
-    touchAgent(id, name) {
+    touchAgent(id, name, projectFile = '') {
       const a = agents.get(id);
-      if (a) { a.lastSeen = now(); if (name && name !== a.name) { a.name = name; a.color = colorFor(name); } return a; }
+      if (a) { a.lastSeen = now(); if (projectFile !== undefined) a.projectFile = String(projectFile || ''); if (name && name !== a.name) { a.name = name; a.color = colorFor(name); } return a; }
       const n = name || 'IA externa';
-      const fresh = { id, name: n, color: colorFor(n), since: now(), lastSeen: now(), lastTool: null, calls: 0 };
+      const fresh = { id, name: n, color: colorFor(n), since: now(), lastSeen: now(), lastTool: null, calls: 0, projectFile: String(projectFile || '') };
       agents.set(id, fresh);
-      record(n, fresh.color, 'conectou pelo MCP');
+      record(n, fresh.color, 'conectou pelo MCP', fresh.projectFile);
       return fresh;
     },
     agent: (id) => agents.get(id) || null,
@@ -96,18 +96,18 @@ export function createPresence({ now = Date.now } = {}) {
       return true;
     },
     /** Uma aba do editor conectou (pessoa). */
-    addPerson(id, name, color) {
+    addPerson(id, name, color, projectFile = '') {
       const n = String(name || 'Pessoa').slice(0, 40);
-      const p = { id, name: n, color: /^#[0-9a-f]{6}$/i.test(color || '') ? color : colorFor(n), since: now() };
+      const p = { id, name: n, color: /^#[0-9a-f]{6}$/i.test(color || '') ? color : colorFor(n), since: now(), projectFile: String(projectFile || '') };
       people.set(id, p);
-      record(n, p.color, 'abriu o editor');
+      record(n, p.color, 'abriu o editor', p.projectFile);
       return p;
     },
     removePerson(id) {
       const p = people.get(id);
       if (!p) return;
       people.delete(id);
-      record(p.name, p.color, 'saiu');
+      record(p.name, p.color, 'saiu', p.projectFile);
     },
     /**
      * Tenta travar as camadas para a sessão. Devolve { ok: true } ou { ok: false, id, by } se outra sessão está
@@ -136,13 +136,13 @@ export function createPresence({ now = Date.now } = {}) {
       for (const id of ids) { const lock = locks.get(id); if (lock?.owner === owner) lock.until = until; }
     },
     /** Registra uma ação na lista de atividade (usado pelo painel web, onde quem age é uma pessoa e não um agente MCP). */
-    log(who, color, text) { record(who, color, text); },
+    log(who, color, text, projectFile = '') { record(who, color, text, projectFile); },
     /** Uma ferramenta terminou: guarda na atividade. */
     done(owner, tool, summary, ok = true) {
       const a = agents.get(owner);
       if (!a) return;
       a.lastTool = tool; a.calls++; a.lastSeen = now();
-      if (summary) record(a.name, a.color, ok ? summary : `não conseguiu: ${summary}`);
+      if (summary) record(a.name, a.color, ok ? summary : `não conseguiu: ${summary}`, a.projectFile);
     },
     /** Retrato para a tela (sem travas vencidas nem agentes parados há muito). */
     snapshot() {
@@ -154,6 +154,11 @@ export function createPresence({ now = Date.now } = {}) {
         agents: [...agents.values()].map((a) => ({ ...a, active: t - a.lastSeen < 15000, locks: [...locks].filter(([, l]) => l.agentId === a.id).map(([id]) => id) })),
         activity: activity.slice(0, 20),
       };
+    },
+    snapshotForProject(projectFile) {
+      const all = this.snapshot();
+      const file = String(projectFile || '');
+      return { ...all, people: all.people.filter((p) => p.projectFile === file), agents: all.agents.filter((a) => a.projectFile === file), activity: all.activity.filter((item) => item.projectFile === file) };
     },
   };
 }

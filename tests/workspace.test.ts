@@ -48,6 +48,7 @@ test('new_project cria no banco, create_layer altera, grava e o log registra que
   const log = await t.operations.list(saved.id);
   assert.ok(log.some((o) => o.tool === 'create_layer' && o.who === 'Claude Code' && o.actorType === 'AGENT'), 'o log mostra o agente e a ferramenta');
   assert.ok(log.find((o) => o.tool === 'create_layer')!.layerIds.length >= 1);
+  assert.ok((await t.operations.list(saved.id, { agentId: a.agentId, tool: 'create_layer', actorType: 'AGENT' })).every((o) => o.tool === 'create_layer' && o.actorType === 'AGENT'), 'filtros de atividade por agente, ferramenta e ator');
   const site = await t.workspace.call('export_site', { includeContent: true }, { sid: 'a', actor: a });
   assert.equal(site.error, undefined, site.error);
   await t.close();

@@ -26,10 +26,15 @@ export function Rulers({ viewport, guides, highlight }: { viewport: React.RefObj
   useEffect(() => {
     const el = viewport.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
-    ro.observe(el);
-    setSize({ w: el.clientWidth, h: el.clientHeight });
-    return () => ro.disconnect();
+    const measure = () => setSize((prev) => {
+      const next = { w: el.clientWidth, h: el.clientHeight };
+      return prev.w === next.w && prev.h === next.h ? prev : next;
+    });
+    const onWindowResize = () => measure();
+    window.addEventListener('resize', onWindowResize);
+    const timer = window.setInterval(measure, 250);
+    measure();
+    return () => { window.removeEventListener('resize', onWindowResize); window.clearInterval(timer); };
   }, [viewport]);
 
   useEffect(() => {
@@ -76,6 +81,7 @@ export function Rulers({ viewport, guides, highlight }: { viewport: React.RefObj
   }, [zoom, panX, panY, size, highlight, theme]);
 
   const save = (next: Guide[]) => run('set_guides', { page_id: pageId, guides: next });
+  const remove = (index: number) => { if (!editable) return; void save(guides.filter((_, i) => i !== index)); };
 
   /** Começa a arrastar: uma guia nova (de uma régua) ou uma existente (index). */
   const begin = (axis: 'x' | 'y', index: number | null) => (e: React.MouseEvent) => {
@@ -110,7 +116,15 @@ export function Rulers({ viewport, guides, highlight }: { viewport: React.RefObj
     const p = g.axis === 'x' ? g.pos * zoom + panX : g.pos * zoom + panY;
     return (
       <div key={key} className={`guide ${g.axis}${dragging ? ' dragging' : ''}`} style={g.axis === 'x' ? { left: p, top: R } : { top: p, left: R }}>
-        {!dragging && index != null && <div className="guide-hit" onMouseDown={begin(g.axis, index)} title="Arraste para mover; solte sobre a régua para apagar" />}
+        {!dragging && index != null && <button
+          type="button"
+          className="guide-hit"
+          aria-label={`${g.axis === 'x' ? 'Guia vertical' : 'Guia horizontal'} em ${g.pos}px`}
+          title="Arraste para mover; Delete remove; clique direito remove"
+          onMouseDown={begin(g.axis, index)}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); remove(index); }}
+          onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(index); } }}
+        />}
         {dragging && <span className="guide-pos">{g.pos}</span>}
       </div>
     );

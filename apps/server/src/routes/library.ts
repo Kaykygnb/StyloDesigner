@@ -31,6 +31,27 @@ export function libraryRoutes(s: Services, id: Identity, assetServices: AssetSer
     const list = await s.library.list(user.id, { kind: kind ?? undefined, query: c.req.query('q'), tag: c.req.query('tag') });
     return c.json({ assets: list, usage: await s.library.usage(user.id) });
   });
+  r.get('/library/usage-detail', async (c) => {
+    const user = await id.userOf(c);
+    const assets = await s.library.list(user.id);
+    const projects = await s.db.project.findMany({ where: { OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] }, select: { id: true, slug: true, name: true, doc: true } });
+    const result = assets.map((asset) => {
+      const usedProjects: Array<{ id: string; file: string; name: string }> = [];
+      for (const project of projects) {
+        let used = false;
+        const walk = (value: unknown) => {
+          if (used) return;
+          if (typeof value === 'string') { used = value === asset.id; return; }
+          if (Array.isArray(value)) { for (const item of value) walk(item); return; }
+          if (value && typeof value === 'object') for (const item of Object.values(value)) walk(item);
+        };
+        walk(project.doc);
+        if (used) usedProjects.push({ id: project.id, file: project.slug, name: project.name || project.slug });
+      }
+      return { assetId: asset.id, useCount: usedProjects.length, projectIds: usedProjects.map((project) => project.id), projects: usedProjects, orphan: usedProjects.length === 0 };
+    });
+    return c.json({ assets: result });
+  });
 
   r.post('/library', limit(MAX_UPLOAD), async (c) => {
     const user = await id.userOf(c);
@@ -59,7 +80,34 @@ export function libraryRoutes(s: Services, id: Identity, assetServices: AssetSer
     });
   });
 
+  r.delete('/library', async (c) => {
+    const body = await readObject(c);
+    if (!Array.isArray(body.ids)) throw httpError(400, 'ids precisa ser uma lista.');
+    if (body.ids.length > 100) throw httpError(400, 'Remova no máximo 100 assets por vez.');
+    return c.json(await s.library.removeMany((await id.userOf(c)).id, body.ids));
+  });
   r.delete('/library/:id', async (c) => c.json(await s.library.remove((await id.userOf(c)).id, c.req.param('id'))));
+  r.put('/library/:id', async (c) => {
+    const body = await readObject(c);
+    const changes: any = {};
+    if (body.name !== undefined) changes.name = String(body.name);
+    if (body.credit !== undefined) changes.credit = body.credit == null ? null : String(body.credit);
+    if (body.tags !== undefined) {
+      if (!Array.isArray(body.tags)) throw httpError(400, 'tags precisa ser uma lista.');
+      changes.tags = body.tags.map(String);
+    }
+    if (body.license !== undefined) {
+      if (body.license !== null && (typeof body.license !== 'object' || typeof body.license.name !== 'string' || typeof body.license.commercial !== 'boolean')) throw httpError(400, 'license precisa conter name e commercial.');
+      changes.license = body.license;
+    }
+    return c.json(await s.library.update((await id.userOf(c)).id, c.req.param('id'), changes));
+  });
+  r.post('/library/:id/replace', limit(MAX_UPLOAD), async (c) => {
+    const name = decodeURIComponent(c.req.header('x-name') || '').trim();
+    const bytes = new Uint8Array(await c.req.arrayBuffer());
+    if (!bytes.length) throw httpError(400, 'Arquivo vazio.');
+    return c.json(await s.library.replace((await id.userOf(c)).id, c.req.param('id'), { bytes, name, mimeHint: (c.req.header('content-type') || '').split(';')[0] }));
+  });
 
   r.get('/providers', async (c) => c.json({ providers: await providerStatuses((await id.userOf(c)).id, assetServices) }));
 

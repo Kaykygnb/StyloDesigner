@@ -75,6 +75,7 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
   // outra pessoa não enxerga o projeto
   await call('POST', '/api/users', { email: 'amigo@x.com', name: 'Amigo', password: 'senha-do-amigo' }, session);
   const friend = await (await call('POST', '/api/auth/login', { email: 'amigo@x.com', password: 'senha-do-amigo' })).json();
+  await call('POST', '/api/me/password', { current: 'senha-do-amigo', next: 'senha-amigo-nova' }, friend.token);
   assert.deepEqual(await (await call('GET', '/api/projects', null, friend.token)).json(), []);
   assert.equal((await call('GET', '/api/projects/do-agente.json', null, friend.token)).status, 404);
   assert.equal((await call('GET', '/api/agents', null, friend.token)).status, 403, 'só a conta mestre lista agentes');

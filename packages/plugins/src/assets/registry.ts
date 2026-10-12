@@ -9,6 +9,7 @@
 
 import { fontsource } from './providers/fontsource.ts';
 import { material } from './providers/material.ts';
+import { lucide } from './providers/lucide.ts';
 import { openverse } from './providers/openverse.ts';
 import { pexels } from './providers/pexels.ts';
 import { pixabay } from './providers/pixabay.ts';
@@ -16,7 +17,7 @@ import { polypizza } from './providers/polypizza.ts';
 import { searchCustom } from './custom.ts';
 import type { AssetKindTool, AssetProvider, AssetResult, AssetServices, SearchParams } from './types.ts';
 
-export const BUILTIN_PROVIDERS: AssetProvider[] = [openverse, pexels, pixabay, polypizza, fontsource, material];
+export const BUILTIN_PROVIDERS: AssetProvider[] = [openverse, pexels, pixabay, polypizza, fontsource, material, lucide];
 
 const REF_TTL = 60 * 60_000;
 const refs = new Map<string, { at: number; result: AssetResult }>();
@@ -48,17 +49,17 @@ const jsonFetcher = (services: AssetServices) => async (url: string, init: { hea
   return res.json();
 };
 
-export interface ProviderStatus { id: string; name: string; kinds: AssetKindTool[]; custom: boolean; ready: boolean; needsKey: AssetProvider['needsKey'] | null; hasKey: boolean; unverified: boolean; licenseSummary: string }
+export interface ProviderStatus { id: string; name: string; kinds: AssetKindTool[]; custom: boolean; ready: boolean; needsKey: AssetProvider['needsKey'] | null; hasKey: boolean; unverified: boolean; licenseSummary: string; sourceUrl?: string; licenseUrl?: string }
 
 /** Todos os provedores desta conta (embutidos + cadastrados) e se estão prontos para uso. */
 export async function providerStatuses(userId: string, services: AssetServices): Promise<ProviderStatus[]> {
   const out: ProviderStatus[] = [];
   for (const p of BUILTIN_PROVIDERS) {
     const hasKey = p.needsKey ? !!(await services.keyFor(userId, p.id)) : true;
-    out.push({ id: p.id, name: p.name, kinds: p.kinds, custom: false, ready: hasKey, needsKey: p.needsKey ?? null, hasKey, unverified: !!p.unverified, licenseSummary: p.licenseSummary });
+    out.push({ id: p.id, name: p.name, kinds: p.kinds, custom: false, ready: hasKey, needsKey: p.needsKey ?? null, hasKey, unverified: !!p.unverified, licenseSummary: p.licenseSummary, sourceUrl: p.sourceUrl, licenseUrl: p.licenseUrl });
   }
   for (const s of (await services.customSources?.(userId)) ?? []) {
-    out.push({ id: `custom:${s.name}`, name: s.name, kinds: s.kinds, custom: true, ready: true, needsKey: null, hasKey: true, unverified: false, licenseSummary: `${s.license.name} (informada por você)` });
+    out.push({ id: `custom:${s.name}`, name: s.name, kinds: s.kinds, custom: true, ready: true, needsKey: null, hasKey: true, unverified: false, licenseSummary: `${s.license.name} (informada por você)`, sourceUrl: s.searchUrl, licenseUrl: s.license.url });
   }
   return out;
 }

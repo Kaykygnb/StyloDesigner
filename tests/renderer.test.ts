@@ -84,7 +84,7 @@ test('render: uma camada "hug" sai inteira (não cortada pela altura guardada) q
   assert.deepEqual(size(png(await renderer.render(board, doc, 1))), { w: 300, h: 300 });
 });
 
-test('STYLO_CHROMIUM_PATH: usa o Chromium indicado; caminho inválido dá erro claro que cita a variável', async (t) => {
+test('STYLO_CHROMIUM_PATH: usa o Chromium indicado; caminho inválido dá erro claro que cita a variável', { concurrency: false }, async (t) => {
   const { chromium } = await import('playwright-core');
   const { existsSync } = await import('node:fs');
   const real = process.env.STYLO_CHROMIUM_PATH || chromium.executablePath();

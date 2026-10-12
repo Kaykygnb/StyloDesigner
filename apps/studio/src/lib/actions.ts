@@ -1,6 +1,7 @@
 // As ações do editor: cada uma é UMA ferramenta do MCP (ou um pequeno conjunto), nunca uma alteração direta do documento.
 import { app, run, select, toast } from './app';
 import { findNode, pageOf, parentOf } from './doc';
+import { shapePoints } from './shapes';
 import type { LayerNode } from './types';
 
 const state = () => app.get();
@@ -9,7 +10,7 @@ const page = () => { const s = state(); return s.doc ? pageOf(s.doc, s.pageId) :
 /** Camadas que o painel pode mudar: pessoas com papel de leitura só olham. */
 export const canEdit = () => state().role !== 'VIEWER';
 
-export type InsertKind = 'frame' | 'text' | 'rect' | 'ellipse' | 'line' | 'screen';
+export type InsertKind = 'frame' | 'section' | 'text' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'html' | 'screen';
 
 const DEFAULTS: Record<Exclude<InsertKind, 'screen'>, Record<string, unknown>> = {
   frame: { name: 'Caixa', w: 320, h: 200, fill: '#FFFFFF', radius: 12 },
@@ -17,9 +18,13 @@ const DEFAULTS: Record<Exclude<InsertKind, 'screen'>, Record<string, unknown>> =
   rect: { name: 'Retângulo', w: 160, h: 100, fill: '#D9D9D9' },
   ellipse: { name: 'Elipse', w: 120, h: 120, fill: '#D9D9D9' },
   line: { name: 'Linha', w: 160, h: 2 },
+  section: { name: 'Seção', w: 800, h: 600 },
+  polygon: { name: 'Polígono', w: 120, h: 120, fill: '#D9D9D9' },
+  star: { name: 'Estrela', w: 120, h: 120, fill: '#D9D9D9' },
+  html: { name: 'Código HTML', w: 320, h: 160 },
 };
 
-const isContainer = (n: LayerNode) => n.type === 'frame' || n.type === 'group';
+const isContainer = (n: LayerNode) => n.type === 'frame' || n.type === 'group' || n.type === 'section';
 
 /** Onde uma camada nova entra: dentro da caixa selecionada; ao lado de uma camada selecionada; ou na página. */
 function insertionParent(): LayerNode | null {
@@ -44,11 +49,19 @@ export async function insert(kind: InsertKind): Promise<void> {
     if (out?.created?.id) select([out.created.id]);
     return;
   }
-  const parent = insertionParent();
+  // Seção é sempre uma organização da raiz; se o usuário estiver com uma tela
+  // selecionada, nunca tente colocá-la dentro do frame (o servidor recusa isso).
+  const parent = kind === 'section' ? null : insertionParent();
   const props: Record<string, unknown> = { ...DEFAULTS[kind] };
   const free = !parent || (parent.layout?.mode ?? 'none') === 'none';
   if (free) { props.x = parent ? 40 : 80; props.y = parent ? 40 : 80; }
-  const out = await run<{ created?: { id: string } }>('create_layer', { type: kind, ...(parent ? { parent_id: parent.id } : {}), props });
+  const type = kind === 'polygon' || kind === 'star' ? 'path' : kind;
+  if (kind === 'polygon' || kind === 'star') {
+    const w = Number(props.w) || 120;
+    const h = Number(props.h) || 120;
+    Object.assign(props, { points: shapePoints(kind, w, h), closed: true, vw: w, vh: h, shape: { kind, sides: 5, innerRatio: kind === 'star' ? 0.45 : 1 } });
+  }
+  const out = await run<{ created?: { id: string } }>('create_layer', { type, ...(parent ? { parent_id: parent.id } : {}), props });
   if (out?.created?.id) select([out.created.id]);
 }
 
@@ -125,6 +138,20 @@ export const renamePage = (id: string, name: string) => run('rename_page', { id,
 export async function uploadImage(file: File): Promise<void> {
   if (!canEdit()) return;
   if (file.size > 16 * 1024 * 1024) { toast('error', 'A imagem passa de 16 MB: use uma menor.'); return; }
+  if (file.type === 'image/svg+xml' || /\.svg$/i.test(file.name || '')) {
+    try {
+      const svg = await file.text();
+      const parent = insertionParent();
+      const out = await run<{ created?: { id: string }; ignored?: string[] }>('import_svg', {
+        svg,
+        name: file.name.replace(/\.svg$/i, '') || 'SVG importado',
+        ...(parent ? { parent_id: parent.id } : {}),
+      });
+      if (out?.created?.id) select([out.created.id]);
+      if (out?.ignored?.length) toast('ok', `SVG importado; recursos não suportados: ${out.ignored.join(', ')}.`);
+      return;
+    } catch (error) { toast('error', `Não consegui importar o SVG: ${error instanceof Error ? error.message : String(error)}`); return; }
+  }
   const dataUrl: string = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));

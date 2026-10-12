@@ -7,11 +7,12 @@ import { AutoLayoutSection, FlowItemSection } from './inspector/AutoLayoutSectio
 import { EffectsSection } from './inspector/EffectsSection';
 import { FillSection } from './inspector/FillSection';
 import { BpBanner, Header } from './inspector/Header';
-import { ComponentSection, CssSection, ExportSection, GridsSection, HtmlSection, NoteSection, StatesSection, VectorSection } from './inspector/MoreSections';
+import { BooleanSection, BooleanSourcesSection, ComponentSection, CssSection, ExportSection, GridsSection, HtmlSection, NoteSection, StatesSection, VectorSection } from './inspector/MoreSections';
 import { PositionSection } from './inspector/PositionSection';
 import { SizeSection } from './inspector/SizeSection';
 import { StrokeSection } from './inspector/StrokeSection';
 import { TextSection } from './inspector/TextSection';
+import { MediaSection } from './inspector/MediaSection';
 import { useInspector } from './inspector/ctx';
 import { Icon } from '../ui/Icon';
 
@@ -48,13 +49,16 @@ export function Inspector() {
       <PositionSection c={c} />
       <SizeSection c={c} />
       {isText && <TextSection c={c} />}
+      <MediaSection c={c} />
       {n.type === 'frame' && !c.editState && <AutoLayoutSection c={c} />}
       {!c.editState && <FlowItemSection c={c} />}
       <AppearanceSection c={c} />
-      {n.type !== 'group' && n.type !== 'section' && <FillSection c={c} />}
+      {n.type !== 'group' && <FillSection c={c} />}
       {n.type !== 'group' && <StrokeSection c={c} />}
       {n.type !== 'group' && <EffectsSection c={c} />}
       <StatesSection c={c} />
+      <BooleanSection c={c} />
+      <BooleanSourcesSection c={c} />
       <VectorSection c={c} />
       <GridsSection c={c} />
       <HtmlSection c={c} />

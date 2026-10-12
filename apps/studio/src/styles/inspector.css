@@ -128,6 +128,9 @@ select.field { appearance: none; -webkit-appearance: none; padding-right: 20px; 
 .effect-card { display: flex; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
 .effect-foot { display: flex; align-items: center; gap: 8px; }
 .effect-foot > .colorrow { flex: 1; }
+.effect-presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.effect-presets .btn { flex: 1 1 auto; min-width: 0; }
+.effect-clear { width: 100%; margin-top: 8px; }
 .stop-row { display: flex; align-items: center; gap: 6px; }
 .stop-row > .num { flex: 0 0 66px; }
 .stop-row > .colorrow { flex: 1; }

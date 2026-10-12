@@ -27,8 +27,8 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' },
-    stdio: 'ignore',
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' },
+    stdio: 'inherit',
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
@@ -59,12 +59,21 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
     d.dispatchEvent(ev('mouseup', cx + dx, cy + dy));
   }, { id, dx, dy });
   const resizeBy = (handle, dx, dy) => page.evaluate(async ({ handle, dx, dy }) => {
-    const h = document.querySelector(`.handle.h-${handle}`); const z = window.__stylo.get().zoom;
-    const ev = (type, x, y, el) => el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, screenX: Math.round(500 + x * z), screenY: Math.round(300 + y * z), button: 0, buttons: type === 'mouseup' ? 0 : 1 }));
+    const h = document.querySelector(`.handle.h-${handle}`); const z = window.__stylo.get().zoom; const hr = h.getBoundingClientRect(); const ox = hr.left + hr.width / 2, oy = hr.top + hr.height / 2;
+    const ev = (type, x, y, el) => el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: ox + x * z, clientY: oy + y * z, button: 0, buttons: type === 'mouseup' ? 0 : 1 }));
     ev('mousedown', 0, 0, h);
     for (let i = 1; i <= 6; i++) { ev('mousemove', (dx / 6) * i, (dy / 6) * i, document); await new Promise((res) => setTimeout(res, 25)); }
     ev('mouseup', dx, dy, document);
   }, { handle, dx, dy });
+
+  // desenhar dentro de uma tela: eventos de mouse enviados por script (o mouse nativo sobre iframe derruba o Chromium automatizado)
+  const drawInBoard = (x0, y0, x1, y1) => page.evaluate(async ({ x0, y0, x1, y1 }) => {
+    const d = document.querySelector('iframe.board-frame').contentDocument; const z = window.__stylo.get().zoom;
+    const ev = (type, x, y) => new MouseEvent(type, { bubbles: true, cancelable: true, view: d.defaultView, clientX: x, clientY: y, screenX: Math.round(500 + x * z), screenY: Math.round(300 + y * z), button: 0, buttons: type === 'mouseup' ? 0 : 1 });
+    d.querySelector('[data-node-id]').dispatchEvent(ev('mousedown', x0, y0));
+    for (let i = 1; i <= 6; i++) { d.dispatchEvent(ev('mousemove', x0 + ((x1 - x0) / 6) * i, y0 + ((y1 - y0) / 6) * i)); await new Promise((res) => setTimeout(res, 25)); }
+    d.dispatchEvent(ev('mouseup', x1, y1));
+  }, { x0, y0, x1, y1 });
 
   // ---- projeto novo, tela livre
   await page.goto(base + '/', { waitUntil: 'load' });
@@ -74,20 +83,28 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   await page.getByRole('button', { name: 'Criar', exact: true }).click();
   await page.waitForSelector('.editor');
   await page.locator('.insert-bar').getByTitle('Nova tela').click();
+  await wait(250);
+  assert.equal(await page.locator('.board-frame').count(), 0, 'clicar na ferramenta não cria uma tela');
+  const emptyViewport = await page.locator('.canvas-viewport').boundingBox();
+  await page.mouse.move(emptyViewport.x + 160, emptyViewport.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(emptyViewport.x + 460, emptyViewport.y + 370, { steps: 8 });
+  await page.mouse.up();
   await page.waitForSelector('.board-frame');
   await wait(900);
   const tela = (await layers()).find((n) => n.type === 'frame');
-  assert.deepEqual([tela.w, tela.h, tela.layout.mode], [1440, 900, 'none'], 'tela de 1440×900 com layout livre');
+  assert.deepEqual([tela.w, tela.h, tela.layout.mode], [300, 250, 'none'], 'tela usa o tamanho desenhado');
 
   // ---- retângulo: inserir, mover, redimensionar
   await page.locator('.insert-bar').getByTitle(/^Retângulo/).click();
+  await drawInBoard(50, 50, 170, 170);
   await wait(900);
   let rect = await lastNamed('Retângulo');
-  assert.deepEqual([rect.x, rect.y], [40, 40], 'retângulo entra solto dentro da tela');
+  assert.ok(Math.abs(rect.x - 50) <= 4 && Math.abs(rect.y - 50) <= 4, `retângulo nasce no ponto desenhado (${rect.x},${rect.y})`);
   await dragNode(rect.id, 120, 70);
   await wait(1500);
   rect = await lastNamed('Retângulo');
-  assert.ok(Math.abs(rect.x - 160) <= 4 && Math.abs(rect.y - 110) <= 4, `arrastar moveu o retângulo (agora ${rect.x},${rect.y})`);
+  assert.ok(Math.abs(rect.x - 170) <= 6 && Math.abs(rect.y - 120) <= 6, `arrastar moveu o retângulo (pode encaixar no centro da tela) (agora ${rect.x},${rect.y})`);
   const [w0, h0] = [rect.w, rect.h];
   await resizeBy('se', 60, 40);
   await wait(1500);
@@ -109,10 +126,10 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   await eye.click(); await wait(1000);
   assert.notEqual((await lastNamed('Caixa verde')).visible, false, 'mostrada de novo');
 
-  // ---- texto: inserir e editar direto na tela (duplo clique)
-  await page.locator('.insert-bar').getByTitle(/^Texto/).click(); await wait(900);
+  // ---- texto: clicar na tela cria o texto já em edição
+  await page.locator('.insert-bar').getByTitle(/^Texto/).click(); await drawInBoard(20, 200, 20, 200); await wait(900);
   const frame = page.frameLocator('iframe.board-frame').first();
-  await frame.locator('[data-node-id]').filter({ hasText: /^Texto$/ }).last().dblclick(); await wait(300);
+  // o texto recém-criado já entra em edição: é só digitar
   await page.keyboard.press('Control+A'); await page.keyboard.type('Olá, mundo!'); await page.keyboard.press('Enter'); await wait(1500);
   assert.ok((await layers()).some((n) => n.type === 'text' && n.text === 'Olá, mundo!'), 'texto editado na tela chegou ao servidor');
 

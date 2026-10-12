@@ -7,8 +7,11 @@
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
-import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from '@stylo/core/model.js';
-import { createInstance, makeComponent, syncInstances } from '@stylo/core/components.js';
+// As suítes E2E são executadas como processos Node independentes (sem o alias
+// do Vite). Aponte para o TypeScript-fonte para o loader tsx resolver .js/.ts
+// de modo determinístico em Windows e Linux.
+import { createNode, makeDoc, defaultFill, defaultShadow, defaultStroke } from '../../packages/core/src/model.ts';
+import { createInstance, makeComponent, syncInstances } from '../../packages/core/src/components.ts';
 
 /** Atalho para criar uma camada de texto: o nome da camada é o início do próprio texto. */
 const text = (t, props = {}) => createNode('text', { name: t.slice(0, 24), text: t, ...props });

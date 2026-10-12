@@ -1,8 +1,10 @@
 // Tudo que se desenha POR CIMA das telas, no espaço do "mundo": caixas de seleção com alças e giro, nome e tamanho, contorno ao passar o
 // mouse, linhas de encaixe, medidas (Alt), caixa de seleção, prévia do que está sendo desenhado e onde uma camada vai cair.
 // O tamanho de traços, alças e textos usa `--inv` (1 ÷ zoom) para parecer sempre do mesmo tamanho na tela.
+import { useEffect, useState } from 'react';
 import { measures, union, type Box, type SnapGuide } from './canvas/geometry';
 import type { ShapeTool } from '../lib/shapes';
+import type { LayerNode } from '../lib/types';
 
 export interface ObBox extends Box { rot: number }
 type Handle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -113,7 +115,7 @@ export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox,
                   <div key={`r${z.h}`} className={`rot-zone rz-${z.h}`} style={{ left: `${z.x}%`, top: `${z.y}%` }} onMouseDown={onRotate} />
                 ))}
                 {handleList(box).map((h) => (
-                  <div key={h.h} className="handle" style={{ left: `${h.x}%`, top: `${h.y}%`, cursor: handleCursor(h.h, box.rot) }} onMouseDown={onResize(h.h)} />
+                  <div key={h.h} className={`handle h-${h.h}`} style={{ left: `${h.x}%`, top: `${h.y}%`, cursor: handleCursor(h.h, box.rot) }} onMouseDown={onResize(h.h)} />
                 ))}
               </div>
             )}
@@ -128,7 +130,7 @@ export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox,
           {pillAt(group, `${px(group.w)} × ${px(group.h)}`)}
           {showHandles && (
             <div className="sel-handles" style={{ left: group.x, top: group.y, width: group.w, height: group.h }}>
-              {handleList(group).map((h) => <div key={h.h} className="handle" style={{ left: `${h.x}%`, top: `${h.y}%`, cursor: handleCursor(h.h, 0) }} onMouseDown={onResize(h.h)} />)}
+              {handleList(group).map((h) => <div key={h.h} className={`handle h-${h.h}`} style={{ left: `${h.x}%`, top: `${h.y}%`, cursor: handleCursor(h.h, 0) }} onMouseDown={onResize(h.h)} />)}
             </div>
           )}
         </>
@@ -163,4 +165,68 @@ export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox,
       {gesture?.kind === 'draw' && gesture.box.w > 0 && pillAt(gesture.box, `${px(gesture.box.w)} × ${px(gesture.box.h)}`)}
     </>
   );
+}
+
+/** Nós e alças do path selecionado. Fica fora do iframe e só aparece no modo Inspecionar. */
+export function VectorNodeOverlay({ node, box, zoom, worldFromClient, onCommit }: {
+  node: LayerNode; box: ObBox; zoom: number; worldFromClient: (x: number, y: number) => { x: number; y: number };
+  onCommit: (points: NonNullable<LayerNode['points']>) => void;
+}) {
+  const [draft, setDraft] = useState(node.points ?? []);
+  const [selectedNodes, setSelectedNodes] = useState<Set<number>>(new Set());
+  useEffect(() => setDraft(node.points ?? []), [node.id, node.points]);
+  useEffect(() => setSelectedNodes(new Set()), [node.id]);
+  if (node.type !== 'path' || !draft.length) return null;
+  const vw = Number(node.vw || node.w || 1), vh = Number(node.vh || node.h || 1);
+  const px = (p: { x: number; y: number }) => ({ left: box.x + p.x / vw * box.w, top: box.y + p.y / vh * box.h });
+  const movePoint = (p: NonNullable<LayerNode['points']>[number], dx: number, dy: number) => ({
+    ...p, x: p.x + dx, y: p.y + dy,
+    ...(p.hin ? { hin: { x: p.hin.x + dx, y: p.hin.y + dy } } : {}),
+    ...(p.hout ? { hout: { x: p.hout.x + dx, y: p.hout.y + dy } } : {}),
+  });
+  const nudge = (index: number, dx: number, dy: number) => {
+    const active = selectedNodes.has(index) ? selectedNodes : new Set([index]);
+    setSelectedNodes(active);
+    const next = draft.map((p, i) => active.has(i) ? movePoint(p, dx, dy) : p);
+    setDraft(next); onCommit(next);
+  };
+  const onNodeKey = (index: number) => (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 10 : 1;
+    const delta = e.key === 'ArrowLeft' ? { x: -step, y: 0 } : e.key === 'ArrowRight' ? { x: step, y: 0 } : e.key === 'ArrowUp' ? { x: 0, y: -step } : e.key === 'ArrowDown' ? { x: 0, y: step } : null;
+    if (!delta) return;
+    e.preventDefault(); e.stopPropagation(); nudge(index, delta.x, delta.y);
+  };
+  const begin = (index: number, field: 'point' | 'hin' | 'hout') => (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const active = field === 'point'
+      ? (e.shiftKey ? new Set([...selectedNodes, index]) : selectedNodes.has(index) ? new Set(selectedNodes) : new Set([index]))
+      : new Set([index]);
+    setSelectedNodes(active);
+    const start = draft[index];
+    const origin = field === 'point' ? start : start[field] || start;
+    let latest = draft;
+    const move = (ev: MouseEvent) => {
+      const w = worldFromClient(ev.clientX, ev.clientY);
+      const x = Math.max(-100000, Math.min(100000, (w.x - box.x) / box.w * vw));
+      const y = Math.max(-100000, Math.min(100000, (w.y - box.y) / box.h * vh));
+      const delta = { x: x - origin.x, y: y - origin.y };
+      const next = node.points!.map((p, i) => {
+        if (!active.has(i)) return p;
+        if (field === 'point') return movePoint(p, delta.x, delta.y);
+        return { ...p, [field]: { x, y } };
+      });
+      latest = next;
+      setDraft(next);
+    };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); if (latest !== draft) onCommit(latest); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up, { once: true });
+  };
+  return <div className="vector-node-overlay" style={{ left: box.x, top: box.y, width: box.w, height: box.h, transform: box.rot ? `rotate(${box.rot}deg)` : undefined }}>
+    <svg className="vector-handle-lines" width="100%" height="100%" viewBox={`0 0 ${box.w} ${box.h}`} preserveAspectRatio="none" aria-hidden="true">
+      {draft.map((p, i) => (['hin', 'hout'] as const).map((field) => p[field] && (() => { const a = px(p); const b = px(p[field]!); return <line key={`${field}-line-${i}`} x1={a.left - box.x} y1={a.top - box.y} x2={b.left - box.x} y2={b.top - box.y} />; })()))}
+    </svg>
+    {draft.map((p, i) => <button type="button" key={`n${i}`} className={`vector-node${selectedNodes.has(i) ? ' selected' : ''}`} style={px(p)} onMouseDown={begin(i, 'point')} onKeyDown={onNodeKey(i)} aria-pressed={selectedNodes.has(i)} aria-label={`Nó ${i + 1}`} title={`Nó ${i + 1}: Shift seleciona vários; setas movem 1px, Shift+setas 10px`} />)}
+    {draft.map((p, i) => (['hin', 'hout'] as const).map((field) => p[field] && <button type="button" key={`${field}${i}`} className={`vector-handle ${field}`} style={px(p[field]!)} onMouseDown={begin(i, field)} aria-label={`${field === 'hin' ? 'Alça de entrada' : 'Alça de saída'} ${i + 1}`} title={`${field === 'hin' ? 'Alça de entrada' : 'Alça de saída'} ${i + 1}`} />))}
+  </div>;
 }

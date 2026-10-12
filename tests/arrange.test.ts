@@ -17,7 +17,7 @@ function fixture() {
   store.update((page) => page.children.push(a, b)); store.commit();
   const commands = createCommands(store, createModelCanvas(store));
   const runner = createRunner({ store, commands, approve: async () => true });
-  return { store, runner, a, b, kids };
+  return { store, runner, commands, a, b, kids };
 }
 const order = (f: ReturnType<typeof fixture>) => f.store.get(f.a.id).children.map((n: any) => n.name).join(',');
 
@@ -65,6 +65,114 @@ test('arrange_layers: auto layout liga deduzindo a direção e desliga mantendo 
   assert.equal(f.store.get(f.a.id).layout.mode, 'row', 'filhos lado a lado → linha');
   await f.runner.run('arrange_layers', { ids: [f.a.id], action: 'toggle_auto_layout' });
   assert.equal(f.store.get(f.a.id).layout.mode, 'none');
+});
+
+test('arrange_layers: booleanas ficam disponíveis pelo mesmo contrato do editor', async () => {
+  const f = fixture();
+  const r = createNode('rect', { name: 'Base', x: 0, y: 0, w: 100, h: 100 });
+  const e = createNode('ellipse', { name: 'Sobreposição', x: 50, y: 50, w: 100, h: 100 });
+  f.a.children.push(r, e);
+  f.store.commit();
+  const out = await f.runner.run('arrange_layers', { ids: [r.id, e.id], action: 'boolean_union' });
+  assert.equal(out.ok, true, out.error);
+  assert.equal(f.store.get(r.id), null);
+  assert.equal(f.store.get(e.id), null);
+  assert.equal(f.store.get(out.selected[0]).type, 'path');
+  f.store.undo();
+  assert.equal(f.store.get(r.id).type, 'rect');
+  assert.equal(f.store.get(e.id).type, 'ellipse');
+});
+
+test('booleana preserva fontes e recalcula sem destruir o resultado', async () => {
+  const f = fixture();
+  const r = createNode('rect', { name: 'Base', x: 0, y: 0, w: 100, h: 100 });
+  const e = createNode('ellipse', { name: 'Fonte', x: 50, y: 50, w: 100, h: 100 });
+  f.a.children.push(r, e);
+  f.store.commit();
+  const out = await f.runner.run('arrange_layers', { ids: [r.id, e.id], action: 'boolean_union' });
+  assert.equal(out.ok, true, out.error);
+  const result = f.store.get(out.selected[0]);
+  assert.equal(result.boolean.op, 'union');
+  assert.equal(result.boolean.sources.length, 2);
+  assert.equal(result.boolean.sources[0].name, 'Base');
+  assert.equal(result.boolean.sources[0].type, 'rect');
+  assert.equal(result.boolean.sources[1].name, 'Fonte');
+  const before = result.w;
+  const applied = await f.runner.run('edit_boolean_source', { id: result.id, source_index: 1, dx: 40 });
+  assert.equal(applied.ok, true, applied.error);
+  assert.equal(applied.id, result.id);
+  assert.ok(f.store.get(result.id).w > before, `largura não aumentou: ${before} → ${f.store.get(result.id).w}`);
+  f.store.undo();
+  assert.equal(f.store.get(result.id).w, before);
+  assert.equal(f.store.get(result.id).boolean.sources.length, 2);
+  const sourcePoint = f.store.get(result.id).boolean.sources[0].rings[0][0];
+  const pointEdit = await f.runner.run('edit_boolean_source', { id: result.id, source_index: 0, contour_index: 0, point_index: 0, x: sourcePoint.x + 7 });
+  assert.equal(pointEdit.ok, true, pointEdit.error);
+  assert.equal(f.store.get(result.id).boolean.sources[0].rings[0][0].x, sourcePoint.x + 7);
+  f.store.undo();
+  assert.equal(f.store.get(result.id).boolean.sources[0].rings[0][0].x, sourcePoint.x);
+});
+
+test('booleana preserva contornos Bézier estruturados das fontes', async () => {
+  const f = fixture();
+  const curve = createNode('path', {
+    name: 'Curva', x: 20, y: 20, w: 180, h: 180, vw: 180, vh: 180, closed: true,
+    points: [
+      { x: 0, y: 0, hin: null, hout: { x: 70, y: 0 } },
+      { x: 180, y: 0, hin: { x: 110, y: 0 }, hout: null },
+      { x: 180, y: 180, hin: null, hout: null },
+      { x: 0, y: 180, hin: null, hout: null },
+    ],
+  });
+  const rect = createNode('rect', { name: 'Sobreposição', x: 80, y: 60, w: 120, h: 100 });
+  f.a.children.push(curve, rect);
+  f.store.commit();
+  const out = await f.runner.run('arrange_layers', { ids: [curve.id, rect.id], action: 'boolean_union' });
+  assert.equal(out.ok, true, out.error);
+  const result = f.store.get(out.selected[0]);
+  const source = result.boolean.sources[0];
+  assert.ok(source.contours?.[0]?.points?.some((p: any) => p.hout || p.hin), 'a fonte curva deve manter suas alças');
+  const before = JSON.parse(JSON.stringify(source.contours));
+  const edited = await f.runner.run('edit_boolean_source', { id: result.id, source_index: 0, dx: 12 });
+  assert.equal(edited.ok, true, edited.error);
+  assert.notDeepEqual(f.store.get(result.id).boolean.sources[0].contours, before);
+  assert.ok(f.store.get(result.id).boolean.sources[0].contours[0].points[0].hout, 'a alça continua editável após mover a fonte');
+  f.store.undo();
+  assert.deepEqual(f.store.get(result.id).boolean.sources[0].contours, before);
+});
+
+test('booleana recompõe a geometria a partir de alças Bézier editadas', async () => {
+  const f = fixture();
+  const curve = createNode('path', {
+    name: 'Curva editável', x: 0, y: 0, w: 180, h: 160, vw: 180, vh: 160, closed: true,
+    points: [
+      { x: 0, y: 40, hin: null, hout: { x: 75, y: -40 } },
+      { x: 180, y: 40, hin: { x: 105, y: -40 }, hout: null },
+      { x: 180, y: 160, hin: null, hout: null },
+      { x: 0, y: 160, hin: null, hout: null },
+    ],
+  });
+  const rect = createNode('rect', { name: 'Recorte', x: 40, y: 20, w: 100, h: 100 });
+  f.a.children.push(curve, rect);
+  f.store.commit();
+  const out = await f.runner.run('arrange_layers', { ids: [curve.id, rect.id], action: 'boolean_union' });
+  assert.equal(out.ok, true, out.error);
+  const result = f.store.get(out.selected[0]);
+  const source = result.boolean.sources[0];
+  const oldHandle = source.contours[0].points[0].hout;
+  const oldRings = JSON.stringify(source.rings);
+  const oldResult = JSON.stringify(result.points);
+  const edited = await f.runner.run('edit_boolean_source', {
+    id: result.id, source_index: 0, contour_index: 0, point_index: 0,
+    hout_x: oldHandle.x + 28, hout_y: oldHandle.y + 22,
+  });
+  assert.equal(edited.ok, true, edited.error);
+  const next = f.store.get(result.id);
+  assert.equal(next.boolean.sources[0].contours[0].points[0].hout.x, oldHandle.x + 28);
+  assert.notEqual(JSON.stringify(next.boolean.sources[0].rings), oldRings, 'o kernel não pode usar anéis antigos');
+  assert.notEqual(JSON.stringify(next.points), oldResult, 'o resultado visual deve ser recalculado');
+  f.store.undo();
+  assert.deepEqual(f.store.get(result.id).boolean.sources[0].contours[0].points[0].hout, oldHandle);
 });
 
 test('paste_layers: copia para outro frame ou ao lado do original; recusa pai que não é frame', async () => {

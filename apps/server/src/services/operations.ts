@@ -27,9 +27,9 @@ export function createOperations(db: Db) {
   const idle = async () => { await Promise.allSettled([...inflight]); };
 
   /** Atividade recente do projeto (mais nova primeiro). */
-  async function list(projectId: string, { limit = 50, agentId }: { limit?: number; agentId?: string } = {}) {
+  async function list(projectId: string, { limit = 50, agentId, userId, tool, actorType }: { limit?: number; agentId?: string; userId?: string; tool?: string; actorType?: 'USER' | 'AGENT' } = {}) {
     const rows = await db.operation.findMany({
-      where: { projectId, ...(agentId ? { agentId } : {}) },
+      where: { projectId, ...(agentId ? { agentId } : {}), ...(userId ? { userId } : {}), ...(tool ? { tool } : {}), ...(actorType ? { actorType } : {}) },
       orderBy: { id: 'desc' }, take: Math.min(Math.max(limit, 1), 200),
       include: { agent: { select: { name: true } }, user: { select: { name: true } } },
     });

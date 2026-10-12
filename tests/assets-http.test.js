@@ -18,7 +18,7 @@ test('projeto com imagem: ler devolve data URL e a imagem sai por /assets/<sha25
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory' }, stdio: 'ignore',
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }, stdio: 'ignore',
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
@@ -28,6 +28,10 @@ test('projeto com imagem: ler devolve data URL e a imagem sai por /assets/<sha25
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
+  const qr = await fetch(`${base}/api/network/qr?value=${encodeURIComponent(base + '/studio/')}`);
+  assert.equal(qr.status, 200);
+  assert.match(qr.headers.get('content-type') || '', /image\/svg\+xml/);
+  assert.match(await qr.text(), /<svg/);
   const dataUrl = `data:image/png;base64,${PNG_B64}`;
   const doc = { name: 'Com foto', pages: [{ id: 'p1', name: 'P', children: [] }], assets: { foto: dataUrl }, styles: { colors: [], texts: [] } };
   const put = await fetch(base + '/api/projects/com-foto.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc) });

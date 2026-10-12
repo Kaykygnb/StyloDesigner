@@ -6,7 +6,7 @@
 import type { Db } from '@stylo/db/client.ts';
 import { httpError } from '../http-error.js';
 
-export type MemberRole = 'EDITOR' | 'VIEWER';
+export type MemberRole = 'EDITOR' | 'COMMENTER' | 'VIEWER';
 
 export function createSharing(db: Db) {
   async function ownedBy(userId: string, projectId: string) {

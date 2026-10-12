@@ -37,6 +37,7 @@ const PATHS: Record<string, ReactElement> = {
   code: <path d="M8 8l-4 4 4 4M16 8l4 4-4 4" />,
   spark: <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />,
   cursor: <path d="M5 3l14 7-6 2-2 6z" />,
+  node: <><path d="M6 18C6 9 14 15 18 6" /><rect x="3.5" y="16" width="5" height="5" /><rect x="15.5" y="3.5" width="5" height="5" /></>,
   alignleft: <path d="M4 3v18M8 7h12M8 14h8" />,
   aligncenter: <path d="M12 3v18M5 7h14M7 14h10" />,
   alignright: <path d="M20 3v18M4 7h12M8 14h8" />,

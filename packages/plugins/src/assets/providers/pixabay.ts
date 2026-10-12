@@ -13,6 +13,7 @@ export const pixabay: AssetProvider = {
   id: 'pixabay',
   name: 'Pixabay',
   kinds: ['image', 'video'],
+  sourceUrl: 'https://pixabay.com/', licenseUrl: 'https://pixabay.com/service/license-summary/',
   needsKey: { label: 'Chave da API do Pixabay (grátis)', signupUrl: 'https://pixabay.com/api/docs/', envVar: 'PIXABAY_API_KEY' },
   licenseSummary: 'Pixabay Content License: uso comercial livre, sem atribuição obrigatória (mostramos a origem).',
   cacheMs: 24 * 60 * 60_000, // exigência do Pixabay

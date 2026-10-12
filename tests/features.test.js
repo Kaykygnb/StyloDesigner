@@ -361,7 +361,7 @@ test('peso e trilhas sincronizam: peso do filho vem do principal; peso da raiz �
 });
 
 // ---------------------------------------------------------------- comentários nas camadas
-import { addComment, addReply, setResolved, removeComment, forNode, openCount, pruneComments, timeAgo, commentsOf } from '@stylo/core/comments.js';
+import { addComment, addReply, editText, extractMentions, setResolved, removeComment, forNode, openCount, pruneComments, timeAgo, commentsOf } from '@stylo/core/comments.js';
 
 const docWith = () => {
   const a = createNode('rect', { name: 'A' });
@@ -379,23 +379,31 @@ test('comentários: criar, responder, resolver, filtrar por camada e apagar', ()
   assert.deepEqual([c1.rx, c1.ry], [1, 0]); // 0..1
   assert.equal(c1.author, 'Ana');
   assert.equal(c1.resolved, false);
+  assert.deepEqual(extractMentions('avisar @Ana e @review.bot e @ana'), ['Ana', 'review.bot']);
+  const mentioned = addComment(doc, { nodeId: a.id, text: 'Revisar com @Ana' });
+  assert.deepEqual(mentioned.mentions, ['Ana']);
+  assert.equal(editText(mentioned, 'Revisar com @Bia'), true);
+  assert.deepEqual(mentioned.mentions, ['Bia']);
+  assert.equal(mentioned.history.length, 1);
   assert.equal(addComment(doc, { nodeId: a.id, text: '   ' }), null); // vazio não cria
   const c2 = addComment(doc, { nodeId: b.id, text: 'Aumentar o raio' });
   assert.equal(c2.author, 'Eu');
-  assert.equal(openCount(doc), 2);
-  assert.equal(openCount(doc, a.id), 1);
+  assert.equal(openCount(doc), 3);
+  assert.equal(openCount(doc, a.id), 2);
   assert.deepEqual(forNode(doc, b.id).map((c) => c.text), ['Aumentar o raio']);
   const r = addReply(c1, { text: 'Feito!', author: 'Bia' });
   assert.equal(c1.replies.length, 1);
   assert.equal(r.author, 'Bia');
   assert.equal(addReply(c1, { text: '' }), null);
   setResolved(c1, true);
-  assert.equal(openCount(doc), 1);
-  setResolved(c1, false);
+  assert.equal(c1.history.at(-1).type, 'resolve');
   assert.equal(openCount(doc), 2);
+  setResolved(c1, false);
+  assert.equal(c1.history.at(-1).type, 'reopen');
+  assert.equal(openCount(doc), 3);
   assert.equal(removeComment(doc, c1.id), true);
   assert.equal(removeComment(doc, 'nao-existe'), false);
-  assert.equal(commentsOf(doc).length, 1);
+  assert.equal(commentsOf(doc).length, 2);
 });
 
 test('pruneComments remove só os comentários de camadas que não existem mais', () => {

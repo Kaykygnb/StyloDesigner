@@ -73,11 +73,13 @@ interface Doc {
   measuring: Promise<void> | null;
 }
 
-export function createWorkspace({ projects, notes, sharing, operations, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, inspectLayout = null, fetchImage = null, imageOps = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
+export function createWorkspace({ projects, notes, sharing, operations, agentProjectAccess = null, grantAgentProject = null, plugins = null, renderImage = null, measureLayout = null, auditLayout = null, inspectLayout = null, fetchImage = null, imageOps = null, presence = () => ({}), baseUrl = () => 'http://localhost:5173', onOperation = () => {} }: {
   projects: Projects;
   notes: Notes;
   sharing: Sharing;
   operations: Operations;
+  agentProjectAccess?: ((agentId: string, projectId: string) => Promise<boolean>) | null;
+  grantAgentProject?: ((agentId: string, projectId: string) => Promise<unknown>) | null;
   /** Plugins ligados (ferramentas extras); sem ele só valem as ferramentas do núcleo. */
   plugins?: Plugins | null;
   /** Desenha uma camada como PNG base64 (services/renderer.ts). Sem ele, `get_image` explica que não há renderizador. */
@@ -120,6 +122,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
 
   async function open(actor: Actor, file: string) {
     const loaded = await projects.load({ id: actor.userId }, file);
+    if (actor.type === 'AGENT' && actor.agentId && agentProjectAccess && !(await agentProjectAccess(actor.agentId, loaded.id))) throw new Error('Este agente não está autorizado neste projeto. Peça ao administrador para liberar o acesso.');
     if (!Array.isArray(loaded.doc?.pages) || !loaded.doc.pages.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
     const entry = docs.get(loaded.id) ?? mount(loaded.id, file, loaded.ownerId, loaded.doc, { hash: loaded.contentHash });
     return { entry, role: loaded.role };
@@ -187,6 +190,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       const doc = makeDoc();
       if (name) doc.name = String(name).slice(0, 80);
       const saved = await projects.write({ id: actor.userId }, file, doc, { overwrite: true, by: 'workspace' });
+      if (actor.type === 'AGENT' && actor.agentId && grantAgentProject) await grantAgentProject(actor.agentId, saved.projectId);
       const { entry, role } = await open(actor, file);
       current.set(sid, { id: entry.id, role });
       onOperation({ projectId: saved.projectId, actor, tool: 'new_project', args: { name }, summary: `criou o projeto "${doc.name}"`, layerIds: [], ok: true });
@@ -253,7 +257,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
     async list_members(_a: any, sid: string) { return { members: await sharing.members(here(sid).entry.id) }; },
     async share_project({ email, role }: any, sid: string, actor: Actor) {
       const { entry } = here(sid);
-      return { ok: true, member: await sharing.share(actor.userId, entry.id, email, role === 'viewer' ? 'VIEWER' : 'EDITOR') };
+      return { ok: true, member: await sharing.share(actor.userId, entry.id, email, role === 'viewer' ? 'VIEWER' : role === 'commenter' ? 'COMMENTER' : 'EDITOR') };
     },
     async unshare_project({ email }: any, sid: string, actor: Actor) {
       const { entry } = here(sid);
@@ -295,7 +299,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         let project = null as any, doc: Doc | null = null;
         if (plug.needsProject) {
           const cur = need(sid);
-          if (pdef.write && cur.role === 'VIEWER') throw new Error('Você só pode ler este projeto.');
+          if (pdef.write && (cur.role === 'VIEWER' || cur.role === 'COMMENTER')) throw new Error('Você só pode ler ou comentar este projeto.');
           if (needs === 'owner' && cur.role !== 'OWNER') throw new Error('Só o dono do projeto faz isto.');
           doc = cur.entry;
           doc.lastUsed = Date.now();
@@ -331,7 +335,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       }
       const { entry, role } = need(sid);
       if (def?.write) {
-        if (role === 'VIEWER') throw new Error('Você só pode ler este projeto.');
+        if (role === 'VIEWER' || role === 'COMMENTER') throw new Error('Você só pode ler ou comentar este projeto.');
         if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
       } else if (!has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
       entry.lastUsed = Date.now();
@@ -382,6 +386,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
       entry.lastUsed = Date.now();
       return { file: entry.file, id: entry.id, role: cur!.role, pageId: entry.store.page().id as string, doc: entry.store.state.doc };
     },
+    sessionsForProject: (projectId: string) => [...current.entries()].filter(([, c]) => c.id === projectId).map(([sid]) => sid),
     /** Gravação imediata de tudo que está pendente (desligar o servidor). */
     flushAll: () => Promise.all([...docs.values()].map((e) => e.store.saveNow())),
     /** Projetos abertos agora. */

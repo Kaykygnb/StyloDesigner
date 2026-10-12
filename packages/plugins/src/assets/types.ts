@@ -63,6 +63,9 @@ export interface AssetProvider {
   id: string;
   name: string;
   kinds: AssetKindTool[];
+  /** URLs oficiais exibidas ao usuário para conferir origem e termos. */
+  sourceUrl?: string;
+  licenseUrl?: string;
   /** Precisa de chave de API? Quando sim, onde pegar. */
   needsKey?: { label: string; signupUrl: string; envVar: string };
   /** Resumo da licença dos resultados. */

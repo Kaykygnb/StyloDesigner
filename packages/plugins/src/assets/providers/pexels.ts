@@ -20,6 +20,7 @@ export const pexels: AssetProvider = {
   id: 'pexels',
   name: 'Pexels',
   kinds: ['image', 'video'],
+  sourceUrl: 'https://www.pexels.com/', licenseUrl: 'https://www.pexels.com/license/',
   needsKey: { label: 'Chave da API do Pexels (grátis)', signupUrl: 'https://www.pexels.com/api/', envVar: 'PEXELS_API_KEY' },
   licenseSummary: 'Licença Pexels: uso comercial livre; crédito ao autor e link para o Pexels recomendados.',
   cacheMs: 10 * 60_000,

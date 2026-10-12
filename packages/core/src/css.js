@@ -590,6 +590,35 @@ export function pathData(points, closed, tx = (x) => x, ty = (y) => y) {
 }
 
 /**
+ * Efeito não destrutivo de cantos arredondados. Só transforma cantos sem alças;
+ * curvas Bézier existentes continuam sendo a fonte de verdade original.
+ */
+export function roundPathCorners(points, closed, radius) {
+  const r = Number(radius);
+  if (!Array.isArray(points) || points.length < (closed ? 3 : 2) || !Number.isFinite(r) || r <= 0) return points;
+  const out = [];
+  const first = closed ? 0 : 1;
+  const last = closed ? points.length : points.length - 1;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const eligible = i >= first && i < last && !p.hin && !p.hout;
+    if (!eligible) { out.push({ ...p }); continue; }
+    const prev = points[(i - 1 + points.length) % points.length];
+    const next = points[(i + 1) % points.length];
+    const aLen = Math.hypot(prev.x - p.x, prev.y - p.y);
+    const bLen = Math.hypot(next.x - p.x, next.y - p.y);
+    if (!aLen || !bLen) { out.push({ ...p }); continue; }
+    const d = Math.min(r, aLen / 2, bLen / 2);
+    const a = { x: p.x + ((prev.x - p.x) / aLen) * d, y: p.y + ((prev.y - p.y) / aLen) * d };
+    const b = { x: p.x + ((next.x - p.x) / bLen) * d, y: p.y + ((next.y - p.y) / bLen) * d };
+    const c = 2 / 3;
+    out.push({ ...a, hin: null, hout: { x: a.x + (p.x - a.x) * c, y: a.y + (p.y - a.y) * c } });
+    out.push({ ...b, hin: { x: b.x + (p.x - b.x) * c, y: b.y + (p.y - b.y) * c }, hout: null });
+  }
+  return out;
+}
+
+/**
  * `d` COMPLETO de um vetor: o contorno principal (`points`) + os contornos extras (`contours`), se houver.
  * Contornos extras existem em desenhos importados de SVG (ícones com "furos", letras como "o", várias formas
  * num só vetor). A regra de preenchimento (`fillRule`: 'nonzero' | 'evenodd') decide o que vira furo.
@@ -598,9 +627,12 @@ export function pathData(points, closed, tx = (x) => x, ty = (y) => y) {
  * @param {(y:number)=>number} [ty]
  */
 export function nodePathData(node, tx, ty) {
-  let d = pathData(node.points, node.closed, tx, ty);
+  const effect = node.pathEffect?.kind === 'round-corners' ? node.pathEffect : null;
+  const points = effect ? roundPathCorners(node.points, node.closed, effect.radius) : node.points;
+  let d = pathData(points, node.closed, tx, ty);
   for (const c of node.contours || []) {
-    const cd = pathData(c.points, c.closed, tx, ty);
+    const contourPoints = effect ? roundPathCorners(c.points, c.closed, effect.radius) : c.points;
+    const cd = pathData(contourPoints, c.closed, tx, ty);
     if (cd) d += (d ? ' ' : '') + cd;
   }
   return d;
@@ -615,6 +647,16 @@ function svgPaint(fill, id, assets) {
   if (!fill || fill.type === 'none') return { paint: 'none', defs: '' };
   if (fill.type === 'solid') return { paint: rgba(fill.color, 1), opacity: fill.opacity, defs: '' };
   if (fill.type === 'image') return { paint: '#c4c4c4', defs: '' };
+  if (fill.type === 'pattern' && fill.pattern?.cells?.length) {
+    const cells = fill.pattern.cells.map((c) => {
+      const color = rgba(c.color, 1), opacity = c.opacity < 1 ? ` fill-opacity="${finiteOr(c.opacity, 1)}"` : '';
+      if (c.tag === 'rect') return `<rect x="${num(c.x)}" y="${num(c.y)}" width="${num(c.w)}" height="${num(c.h)}"${c.rx ? ` rx="${num(c.rx)}"` : ''}${c.ry ? ` ry="${num(c.ry)}"` : ''} fill="${color}"${opacity}/>`;
+      if (c.tag === 'circle') return `<circle cx="${num(c.cx)}" cy="${num(c.cy)}" r="${num(c.r)}" fill="${color}"${opacity}/>`;
+      if (c.tag === 'ellipse') return `<ellipse cx="${num(c.cx)}" cy="${num(c.cy)}" rx="${num(c.rx)}" ry="${num(c.ry)}" fill="${color}"${opacity}/>`;
+      return `<${c.tag} points="${String(c.points).replace(/[<>"']/g, '')}" fill="${color}"${opacity}/>`;
+    }).join('');
+    return { paint: `url(#p-${id})`, defs: `<pattern id="p-${id}" patternUnits="userSpaceOnUse" width="${num(fill.pattern.width)}" height="${num(fill.pattern.height)}">${cells}</pattern>` };
+  }
   if (fill.type === 'conic') { // o SVG não tem gradiente cônico: vetor usa a cor da 1ª parada
     const first = [...fill.stops].sort((a, b) => a.pos - b.pos)[0];
     return { paint: rgba(first.color, 1), opacity: first.opacity, defs: '' };
@@ -649,15 +691,31 @@ export function pathSvg(node, assets = {}) {
   // que cai dentro da forma; máscara = só o que cai fora)
   const sw = align === 'center' ? w : w * 2;
   const dash = !w ? '' : dashAttr(st, w);
+  const marker = (kind, side) => {
+    if (!kind || kind === 'none') return { attr: '', defs: '' };
+    const safe = ['arrow', 'circle', 'square'].includes(kind) ? kind : 'none';
+    if (safe === 'none') return { attr: '', defs: '' };
+    const mid = `mk-${node.id}-${side}`;
+    const shape = safe === 'arrow'
+      ? '<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>'
+      : safe === 'circle'
+        ? '<circle cx="5" cy="5" r="4" fill="currentColor"/>'
+        : '<rect x="1" y="1" width="8" height="8" fill="currentColor"/>';
+    return {
+      attr: ` marker-${side}="url(#${mid})"`,
+      defs: `<marker id="${mid}" viewBox="0 0 10 10" refX="${safe === 'arrow' ? (side === 'start' ? 0 : 10) : 5}" refY="5" markerWidth="${safe === 'arrow' ? 7 : 5}" markerHeight="${safe === 'arrow' ? 7 : 5}" orient="auto-start-reverse" markerUnits="strokeWidth" color="${rgba(st.color, 1)}">${shape}</marker>`,
+    };
+  };
+  const ms = marker(st?.markerStart, 'start'), me = marker(st?.markerEnd, 'end');
   const stroke = w
-    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${finiteOr(st.opacity, 1)}" stroke-width="${sw}" stroke-linecap="${safeIdent(st.cap, 'round')}" stroke-linejoin="${safeIdent(st.join, 'round')}"${st.join === 'miter' && st.miter ? ` stroke-miterlimit="${num(st.miter)}"` : ''}${dash}`
+    ? ` stroke="${rgba(st.color, 1)}" stroke-opacity="${finiteOr(st.opacity, 1)}" stroke-width="${sw}" stroke-linecap="${safeIdent(st.cap, 'round')}" stroke-linejoin="${safeIdent(st.join, 'round')}"${st.join === 'miter' && st.miter ? ` stroke-miterlimit="${num(st.miter)}"` : ''}${dash}${ms.attr}${me.attr}`
     : '';
   const fo = opacity != null && opacity < 1 ? ` fill-opacity="${opacity}"` : '';
   const fillAttr = node.closed || paint !== 'none' ? paint : 'none';
   const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${num(node.vw)} ${num(node.vh)}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;overflow:visible">`;
   const hit = `<path d="${d}" fill="none" stroke="transparent" stroke-width="12" vector-effect="non-scaling-stroke" data-hit="1"/>`;
   if (align === 'center') {
-    return head + `${defs ? `<defs>${defs}</defs>` : ''}` +
+    return head + `${defs || ms.defs || me.defs ? `<defs>${defs}${ms.defs}${me.defs}</defs>` : ''}` +
       `<path d="${d}" fill="${fillAttr}"${fo}${rule}${stroke} vector-effect="non-scaling-stroke" data-vis="1"/>` + hit + `</svg>`;
   }
   const cid = `sk-${node.id}`;
@@ -665,7 +723,7 @@ export function pathSvg(node, assets = {}) {
     ? `<clipPath id="${cid}"><path d="${d}"${rule.replace('fill-rule', 'clip-rule')}/></clipPath>`
     : `<mask id="${cid}" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff"/><path d="${d}"${rule} fill="#000"/></mask>`;
   const ref = align === 'inside' ? `clip-path="url(#${cid})"` : `mask="url(#${cid})"`;
-  return head + `<defs>${defs}${cut}</defs>` +
+  return head + `<defs>${defs}${ms.defs}${me.defs}${cut}</defs>` +
     `<path d="${d}" fill="${fillAttr}"${fo}${rule} data-vis="1"/>` +
     `<path d="${d}" fill="none"${stroke} ${ref} vector-effect="non-scaling-stroke" data-vis="2"/>` + hit + `</svg>`;
 }
@@ -1004,7 +1062,9 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       if (kind === 'audio') return `${noteHtml}${creditHtml}${pad}<audio${attrs}${mediaAttrs} src="${escapeHtml(safeSrc)}"></audio>`;
       if (kind === 'model3d') return `${noteHtml}${creditHtml}${pad}<model-viewer${attrs} src="${escapeHtml(safeSrc)}"${node.mediaControls !== false ? ' camera-controls' : ''}></model-viewer>`;
       if (kind === 'lottie') return `${noteHtml}${creditHtml}${pad}<div${attrs} data-lottie-src="${escapeHtml(safeSrc)}"${node.mediaAutoplay ? ' data-autoplay' : ''}${node.mediaLoop ? ' data-loop' : ''}></div>`;
-      return `${noteHtml}${creditHtml}${pad}<video${attrs}${mediaAttrs} src="${escapeHtml(safeSrc)}"></video>`;
+      const poster = typeof node.mediaPoster === 'string' && (node.mediaPoster.startsWith('data:image/') || node.mediaPoster.startsWith('https://') || node.mediaPoster.startsWith('./') || node.mediaPoster.startsWith('assets/')) ? node.mediaPoster : '';
+      const fallback = typeof node.mediaFallback === 'string' ? escapeHtml(node.mediaFallback) : '';
+      return `${noteHtml}${creditHtml}${pad}<video${attrs}${mediaAttrs}${poster ? ` poster="${escapeHtml(poster)}"` : ''} src="${escapeHtml(safeSrc)}">${fallback}</video>`;
     }
     // CÓDIGO HTML escrito à mão: vai limpo (html.js → sanitizeHtml) dentro da caixa da camada
     if (node.type === 'html') {
@@ -1132,7 +1192,7 @@ fieldset { border: 0; min-width: 0; }`;
  * Documento HTML COMPLETO e independente (um único arquivo, sem dependências) com a camada e seus filhos.
  * Abre direto no navegador; o CSS fica num <style> no <head>.
  */
-export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false, selfHosted = null } = {}) {
+export function exportHtml(node, assets, title = 'Design', styles = null, { ids = false, selfHosted = null, metadata = null } = {}) {
   const gen = generateCode([node], null, assets, { root: true, styles, ids });
   const html = gen.html;
   // CSS DA PÁGINA (escrito à mão na aba Código → Página): vem depois das regras das camadas, então vence na cascata
@@ -1141,12 +1201,20 @@ export function exportHtml(node, assets, title = 'Design', styles = null, { ids 
   // (famílias hospedadas no próprio projeto — doc.fonts — NÃO vão para o CDN do Google: o site exportado leva os arquivos)
   const fontsUrl = googleFontsUrl(usedFonts([node]).filter((family) => !selfHosted?.has(family)));
   const fontLink = fontsUrl ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fontsUrl}">\n` : '';
+  const meta = metadata && typeof metadata === 'object' ? metadata : {};
+  const description = typeof meta.description === 'string' ? meta.description.trim().slice(0, 320) : '';
+  const canonical = typeof meta.canonical === 'string' && /^https:\/\//i.test(meta.canonical) ? meta.canonical : '';
+  const socialImage = typeof meta.image === 'string' && /^(?:https:\/\/|assets\/|data:image\/)/i.test(meta.image) ? meta.image : '';
+  const favicon = typeof meta.favicon === 'string' && /^(?:https:\/\/|assets\/|data:image\/)/i.test(meta.favicon) ? meta.favicon : '';
+  const extraMeta = [description && `<meta name="description" content="${escapeHtml(description)}">`, canonical && `<link rel="canonical" href="${escapeHtml(canonical)}">`, socialImage && `<meta property="og:image" content="${escapeHtml(socialImage)}">`, description && `<meta property="og:description" content="${escapeHtml(description)}">`, `<meta property="og:title" content="${escapeHtml(title)}">`, favicon && `<link rel="icon" href="${escapeHtml(favicon)}">`].filter(Boolean).join('\n');
+  const lang = typeof meta.lang === 'string' && /^[a-z]{2}(?:-[A-Z]{2})?$/.test(meta.lang) ? meta.lang : 'pt-BR';
   return `<!doctype html>
-<html lang="pt-BR">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
+${extraMeta}
 ${fontLink}<style>
 ${EXPORT_RESET}
 body { min-height: 100vh; background: #fff; }
