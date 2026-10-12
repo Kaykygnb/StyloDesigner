@@ -34,6 +34,12 @@ export function describeCall(tool: string, args: ToolArgs, store) {
     case 'distribute_layers': return `Distribuir ${(args.ids || []).length} camadas (${args.axis})`;
     case 'group_layers': return `Agrupar ${(args.ids || []).length} camadas`;
     case 'ungroup_layers': return `Desagrupar ${(args.ids || []).length} grupos/seções`;
+    case 'arrange_layers': {
+      const what = { front: 'Trazer para a frente', forward: 'Avançar uma camada', backward: 'Recuar uma camada', back: 'Enviar para trás', flip_h: 'Espelhar na horizontal', flip_v: 'Espelhar na vertical', wrap_in_frame: 'Envolver em frame', toggle_auto_layout: 'Alternar auto layout de', create_component: 'Criar componente de', detach_instance: 'Desanexar instância de', toggle_mask: 'Alternar máscara em' }[args.action] || args.action;
+      return `${what} ${(args.ids || []).map(nm).join(', ')}`;
+    }
+    case 'paste_layers': return `Colar cópia de ${(args.ids || []).map(nm).join(', ')}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ''}`;
+    case 'paste_style': return `Colar a aparência de ${nm(args.source_id)} em ${(args.ids || []).map(nm).join(', ')}`;
     case 'reorder_layer': return `Mover camada ${args.id} ao índice ${args.index}`;
     case 'rename_page': return `Renomear página ${args.id} para ${args.name}`;
     case 'reorder_page': return `Mover página ${args.id} ao índice ${args.index}`;

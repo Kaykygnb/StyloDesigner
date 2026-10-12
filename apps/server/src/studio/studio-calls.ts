@@ -10,7 +10,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { toolByName } from '@stylo/core/tools/schema.js';
-import { colorFor, targetsOf, DOCUMENT_LOCK } from '../presence.js';
+import { colorFor, targetsOf, DOCUMENT_LOCK, DOCUMENT_WIDE_TOOLS } from '../presence.js';
 import type { PublicUser } from '../services/auth.js';
 import type { Actor, Workspace } from '../workspace/index.js';
 import type { Events } from '../events.js';
@@ -37,6 +37,7 @@ export function createStudioCaller({ workspace, presence, events }: { workspace:
     const actor: Actor = { type: 'USER', userId: user.id, name: user.name };
     const locking = !!def?.write && !def.noLock;
     const targets = locking ? targetsOf(args) : [];
+    if (locking && DOCUMENT_WIDE_TOOLS.includes(tool)) targets.push(DOCUMENT_LOCK);
     const lockTargets = locking ? (targets.length ? targets : [DOCUMENT_LOCK]) : [];
     const lockId = randomUUID();
     let locked = false;

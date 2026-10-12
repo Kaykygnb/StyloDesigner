@@ -25,6 +25,9 @@ export const AGENT_IDLE_MS = 10 * 60 * 1000;
 /** Recurso compartilhado por operações que mudam a estrutura ou o estado inteiro do projeto. */
 export const DOCUMENT_LOCK = '__document__';
 
+/** Ferramentas que mexem na estrutura (pais, ordem, páginas): reservam o documento inteiro, não só as camadas citadas. */
+export const DOCUMENT_WIDE_TOOLS = ['update_design_resource', 'delete_design_resource', 'align_layers', 'distribute_layers', 'group_layers', 'ungroup_layers', 'reorder_layer', 'rename_page', 'reorder_page', 'arrange_layers', 'paste_layers', 'paste_style'];
+
 /** ids de camadas que uma ferramenta vai alterar (para as travas). */
 export function targetsOf(args = {}) {
   const ids = [];
@@ -38,6 +41,19 @@ export function targetsOf(args = {}) {
   return [...new Set(ids)];
 }
 
+const IRREGULAR = { desfazer: 'desfez', refazer: 'refez' };
+/**
+ * As descrições das ferramentas começam pelo verbo no infinitivo ("Alterar “Botão”: x, y"); na lista de atividade
+ * lê-se "Fulano <texto>", então o verbo vai para o passado ("Fulano alterou “Botão”: x, y").
+ */
+export function pastTense(text) {
+  const m = /^([A-ZÀ-Ú][a-zà-ú]+?)(ar|er|ir)\b(.*)$/s.exec(String(text ?? ''));
+  if (!m) return text;
+  const verb = (m[1] + m[2]).toLowerCase();
+  const done = IRREGULAR[verb] ?? m[1].toLowerCase() + (m[2] === 'ar' ? 'ou' : m[2] === 'er' ? 'eu' : 'iu');
+  return `${done}${m[3].replace(/ \((Ctrl|Cmd)[^)]*\)$/, '')}`;
+}
+
 /**
  * Cria o registro de presença.
  * @param {{ now?: () => number }} [opts]  relógio (os testes passam um falso)
@@ -49,7 +65,7 @@ export function createPresence({ now = Date.now } = {}) {
   const activity = []; // últimas ações: { at, who, color, text }
 
   const record = (who, color, text) => {
-    activity.unshift({ at: now(), who, color, text });
+    activity.unshift({ at: now(), who, color, text: pastTense(text) });
     activity.length = Math.min(activity.length, 40);
   };
 

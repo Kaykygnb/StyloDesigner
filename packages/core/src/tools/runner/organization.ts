@@ -76,7 +76,7 @@ function validateName(name: string) {
 }
 
 /** Comandos legados são síncronos; o runner faz o commit único ao término. */
-function withSelection(ctx: RunnerContext, ids: string[], keepSelection: boolean, action: () => any) {
+export function withSelection(ctx: RunnerContext, ids: string[], keepSelection: boolean, action: () => any) {
   const { store } = ctx;
   const previous = [...store.state.ui.selection];
   const commit = store.commit;

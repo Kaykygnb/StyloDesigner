@@ -9,10 +9,19 @@ const SIMPLE = [
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
   'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted',
+  'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
+  'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
+/** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
+const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink'];
+const NUMBERS = ['skewX', 'skewY', 'order'];
+const STRINGS = ['htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
+const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
+const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
+const FX_KEYS = ['brightness', 'contrast', 'saturate', 'grayscale', 'hue'];
 const MEDIA_FLAGS = ['mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted'];
 /** Campos com tratamento próprio (ver applyProps). */
-const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag'];
+const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag', 'constraints', 'fx'];
 /** Tudo que update_layer / create_layer aceitam. */
 export const PROPS = [...SIMPLE, ...SPECIAL];
 /** Valores válidos de alguns campos (o resto é conferido pelo tipo). */
@@ -51,6 +60,9 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
   for (const [k, v] of Object.entries(props)) {
     if (!SIMPLE.includes(k)) continue;
     if (ENUMS[k] && !ENUMS[k].includes(v)) throw new Error(`${k} precisa ser um destes: ${ENUMS[k].join(', ')}.`);
+    if (BOOLEANS.includes(k) && typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);
+    if (NUMBERS.includes(k) && !Number.isFinite(v)) throw new Error(`${k} precisa ser um número.`);
+    if (STRINGS.includes(k) && typeof v !== 'string') throw new Error(`${k} precisa ser um texto (use "" para limpar).`);
     if (['text'].includes(k) && node.type !== 'text') throw new Error('text só vale para camadas de texto.');
     if (MEDIA_FLAGS.includes(k)) {
       if (node.type !== 'media') throw new Error(`${k} só vale para camadas de mídia (vídeo, áudio, 3D, Lottie).`);
@@ -103,6 +115,21 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     } else if (typeof s === 'object') node.stroke = { ...(node.stroke || defaultStroke()), ...s, ...(s.color ? { color: hex(s.color) || s.color } : {}) };
   }
   if ('radius' in props) node.radius = four(props.radius, 'radius').map((x) => Math.max(0, x));
+  if ('constraints' in props) {
+    const c = props.constraints || {};
+    if (typeof c !== 'object' || Array.isArray(c) || Object.keys(c).some((k) => !['h', 'v'].includes(k))) throw new Error('constraints: use {h, v}.');
+    if ('h' in c && !CONSTRAINT_H.includes(c.h)) throw new Error(`constraints.h: ${CONSTRAINT_H.join(', ')}.`);
+    if ('v' in c && !CONSTRAINT_V.includes(c.v)) throw new Error(`constraints.v: ${CONSTRAINT_V.join(', ')}.`);
+    node.constraints = { ...(node.constraints || { h: 'left', v: 'top' }), ...c };
+  }
+  if ('fx' in props) {
+    const f = props.fx;
+    if (f === null) delete node.fx;
+    else {
+      if (typeof f !== 'object' || Array.isArray(f) || Object.keys(f).some((k) => !FX_KEYS.includes(k) || !Number.isFinite(f[k]))) throw new Error(`fx: use null ou um objeto com números em ${FX_KEYS.join(', ')} (brightness/contrast/saturate/grayscale em %, hue em graus).`);
+      if (Object.keys(f).length) node.fx = { ...f }; else delete node.fx;
+    }
+  }
   if ('margin' in props) node.margin = four(props.margin, 'margin');
   if ('shadows' in props) {
     if (!Array.isArray(props.shadows)) throw new Error('shadows precisa ser uma lista de sombras.');

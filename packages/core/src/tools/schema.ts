@@ -13,6 +13,7 @@
 
 import { z } from 'zod';
 import { ORGANIZATION_TOOLS } from './organization-schema.ts';
+import { ARRANGE_TOOLS } from './arrange-schema.ts';
 import { DESIGN_RESOURCE_TOOLS } from './design-resources-schema.ts';
 import { MAX_LAYER_UPDATES } from './runner/batch.ts';
 
@@ -29,7 +30,8 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - mídia (vídeo/áudio/3D/Lottie, criada por library_use): mediaAutoplay, mediaControls, mediaLoop, mediaMuted (true/false). Navegadores só tocam sozinho com mediaMuted:true
 - texto: text, fontFamily, fontSize, fontWeight, fontStyle, lineHeight (multiplicador, ex.: 1.4), letterSpacing (px), textAlign, textDecoration, textTransform, truncate ("ellipsis"|"clamp"), lines
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
-- HTML: tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
+- transformar: flipX/flipY (espelhar), skewX/skewY (inclinação em graus), lockRatio (trava a proporção ao redimensionar), constraints {h:"left"|"right"|"leftright"|"center"|"scale", v:"top"|"bottom"|"topbottom"|"center"|"scale"} (só em frames sem layout), fx {brightness,contrast,saturate,grayscale (%), hue (graus)} (filtros de cor; null limpa), order e shrink (item de flex)
+- HTML: htmlId (id), classes (classes extras separadas por espaço), title, role, lang, target/rel (links), buttonType, dateTime, cite; tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
 
 type Shape = z.ZodObject<any, any>;
 export interface ToolDef<S extends Shape = Shape> {
@@ -65,6 +67,7 @@ export function defineTool<S extends Shape>(def: Omit<ToolDef<S>, 'inputSchema'>
 export const AGENT_TOOLS: ToolDef[] = [
   ...DESIGN_RESOURCE_TOOLS.map(defineTool),
   ...ORGANIZATION_TOOLS.map(defineTool),
+  ...ARRANGE_TOOLS.map(defineTool),
   defineTool({
     name: 'get_document',
     write: false,
