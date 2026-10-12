@@ -19,6 +19,7 @@ import { createRunner } from '@stylo/core/tools/runner.ts';
 import type { ImageOperations } from '@stylo/core/image-edit.ts';
 import type { InspectLayout } from '@stylo/core/layout-inspection.ts';
 import { boundLayoutResponse } from '@stylo/core/tools/runner/layout-inspection.ts';
+import { boundPagedItems } from '@stylo/core/tools/runner/response-budget.ts';
 import { boundFindResponse } from '@stylo/core/tools/runner/search.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
@@ -261,6 +262,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
 
   /** Camadas que a chamada mexeu (para o log): ids nos argumentos e na resposta. */
   const layerIdsOf = (tool: string, args: any, out: any): string[] => {
+    if (['update_design_resource', 'delete_design_resource'].includes(tool)) return [];
     const ids = new Set<string>();
     const take = (v: unknown) => { if (typeof v === 'string' && v) ids.add(v); };
     take(args?.id); take(args?.parent_id);
@@ -345,6 +347,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
+      if (tool === 'list_design_resources' && !out.error) return boundPagedItems(out, args?.maxBytes ?? 8192, 'Um recurso não cabe no limite de resposta. Aumente maxBytes até 65536.', 'resources');
       if (tool === 'inspect_layout' && !out.error) return boundLayoutResponse(out, args?.maxBytes);
       if (tool === 'find_layers' && !out.error) return boundFindResponse(out, args?.maxBytes);
       return out;

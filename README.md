@@ -9,7 +9,7 @@ O editor visual em `apps/web` é legado e está congelado; sua reformulação fi
 
 **Branch deste trabalho: [`limpeza`](https://github.com/Kaykygnb/StyloDesigner/tree/limpeza).**
 A `main` contém a versão antiga. Estado documentado em **2026-10-12**:
-**81 ferramentas anunciadas** (63 do núcleo + 8 de identidade + 10 de assets),
+**84 ferramentas anunciadas** (66 do núcleo + 8 de identidade + 10 de assets),
 com uma ferramenta generativa ainda indisponível no servidor.
 
 ## Começar
@@ -64,11 +64,14 @@ para hospedagem pública; as decisões de acesso e hospedagem estão em [PASSAGE
 | Conferir em texto | `inspect_layout`: medidas reais, espaçamentos e fonte aplicada na largura escolhida, sem precisar entregar imagens ao modelo. |
 | Conferir problemas | `check_design`: vazamento horizontal por breakpoint, contraste, texto pequeno, descrição de imagens, títulos e alvos clicáveis. |
 | Receber imagem | `get_image`: PNG da tela, inclusive no celular/tablet, quando o cliente consegue mostrar imagens ao agente. |
+| Manter recursos | `list_design_resources`, `update_design_resource`, `delete_design_resource`: seis tipos, IDs preservados e remoção com desligamento explícito quando em uso. |
 | Organizar identidade | Estilos de cor/texto/sombra/gradiente, modos de cor, variáveis de tamanho, componentes e instâncias. |
 | Ajustar responsivo e estados | `set_responsive`, `set_state` e interações de protótipo. Protótipo não garante funcionalidade de aplicativo. |
 | Trabalhar com assets | Biblioteca, busca de ícones/assets, fontes hospedadas, créditos e camadas de mídia. Integrações têm ressalvas abaixo. |
 | Editar fotos localmente | `edit_image`: giro, espelhamento, recorte, filtros, ajustes, fundo simples, redução, formatos e restauração da original. |
 | Exportar | HTML/site ZIP, projeto React com Vite e tokens em CSS/JSON/Tailwind. |
+
+Renomear recursos não reescreve CSS manual. Remover cor com `detach:true` preserva valores padrão/locais, mas perde variações por modo; sem detach a remoção em uso é recusada.
 
 O catálogo por grupo, os limites e as melhorias pendentes estão em [FERRAMENTAS.md](FERRAMENTAS.md).
 As ferramentas fazem alterações no documento do Stylo; elas não implementam automaticamente
@@ -158,13 +161,13 @@ O orçamento inclui JSON formatado e avisos, exclui o envelope MCP e **não mede
 
 ## Verificação
 
-Última verificação de código, em **2026-10-12**: **507 testes passaram, 0 falhas e 0 pulados**,
+Última verificação de código, em **2026-10-12**: **519 testes passaram, 0 falhas e 0 pulados**,
 com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` passou.
 
 O cliente oficial MCP conferiu busca paginada, ajustes em lote, medidas desktop/mobile,
 correção de saída horizontal e ausência de alteração do projeto salvo durante a inspeção.
 Testes com Chromium também conferiram isolamento e proteção contra HTML que falsificava identificadores de camadas.
-A última implementação não verificou composição estética, provedores com chave real ou exportação;
+A última implementação também conferiu manutenção dos seis tipos de recurso, componentes/instâncias, exclusão/undo e exportação de tokens. Não verificou composição estética, provedores com chave real, exportação do site ou compilação React;
 checagens de exportação em blocos anteriores e demais ressalvas estão em [PASSAGEM.md](PASSAGEM.md)
 e [decisoes.md](decisoes.md).
 

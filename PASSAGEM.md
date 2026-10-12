@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **507 testes, 507 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **519 testes, 519 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** `inspect_layout` oferece inspeção textual de medidas reais por largura/breakpoint, com posição/tamanho, padding/gaps, tipografia e indicadores geométricos. Renderiza a tela inteira; devolve só o escopo/profundidade solicitados, paginado e limitado a 8KiB/até 20 linhas por padrão; não grava medidas nos dados base. Agora 81 ferramentas (63 do núcleo + 18 de plugins). MCP real: CSS desktop/mobile (fonte 32→18), posição 36/36, padding 16, 34 camadas paginadas sob 4096 bytes sem perdas, saída horizontal identificada/corrigida e projeto salvo intacto durante leituras. Servidor encerrado. Não verificados neste bloco: editor, provedores reais, exportação e composição estética. Não mede tokens/cobrança, oclusão ou reprodução de mídia/estados; recursos remotos bloqueados, fontes não hospedadas podem ser substituídas. PDF/slides seguem propostas. Próximo grupo técnico: manutenção dos estilos/componentes ou ampliar auditoria textual.
+**Último bloco:** etapa1 do PLANO-MCP, manutenção de seis tipos de recurso com três ferramentas novas (84 anunciadas). Listagem paginada/limitada, atualizar/renomear por ID e remover com detach explícito em uso; preserva valores literais e trata base/bps/states/snapshots. Um desfazer e trava de documento. MCP real: seis tipos atualizados, componente/instância propagados,36 recursos paginados sob1024 bytes, remoção recusada sem detach, preservação/undo e tokens renomeados. CSS manual não é reescrito; cor desligada perde modos. Próxima etapa: organização. Editor/provedores reais/composição estética não verificados.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -28,9 +28,9 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # última suíte: 507 testes; ~5 min na nuvem
+npm test                             # última suíte: 519 testes; ~5 min na nuvem
 ```
-Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **81 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
+Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **84 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 
 **O melhor jeito de entender o produto em 10 minutos:** conecte um agente e peça "monte uma landing page para uma loja de plantas, confira
 no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa melhorar (foi assim que se achou boa parte do que está em `decisoes.md`).
@@ -39,7 +39,7 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 
 | Área | Estado |
 |---|---|
-| Servidor, MCP (SDK oficial, sessões, 81 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
+| Servidor, MCP (SDK oficial, sessões, 84 ferramentas), contas, agentes com token/escopos, presença, log, notas, compartilhamento | ✅ |
 | Projetos no Postgres/PGlite com revisão, versões, miniaturas; imagens/fontes/áudio fora do JSON (por sha256) | ✅ |
 | Construir: `build_layout`, `create_layer`, `update_layer`, componentes, responsivo (`set_responsive`), estados, interações | ✅ |
 | Localizar por propriedades: `find_layers`, página/subárvore, filtros, IDs/resumo e paginação | ✅ — até 20 itens/8KiB por padrão; valores base |
@@ -116,7 +116,7 @@ inspeção textual por largura também concluída; próximo grupo sugerido, manu
 1. **Dividir os arquivos grandes**, **sem mudar comportamento**, sob a suíte atual. **Executor concluído:** `tools/runner.ts` coordena módulos TypeScript em `tools/runner/`; `runner.js` é só uma fachada de compatibilidade. **Restam:** `css.js` ~1150 linhas e `commands.js` ~1250. É a regra mais repetida da pessoa dona ("não um arquivo com mil coisas"). Converta para `.ts` os que mexer.
 2. **Mídia grande fora do documento:** guardar só a referência no `doc` e os bytes nos blobs, e então remover o limite de 25 MB por mídia (`assertFitsProject` em `plugins/assets/index.ts`). Pontos: a exportação (`site-export.ts`) é pura — injetar `readMedia(hash)`; o servidor lê dos blobs.
 3. **Paleta a partir de imagem** sem dependência nova: reutilizar o codec de imagens isolado (`services/image-codec.ts`, `renderer.withImagePage`) e agrupar as cores em `plugins/identidade`. **Edição local `edit_image` no servidor concluída**, sem depender do editor; paleta ainda não foi implementada.
-4. **Ferramentas de remover/renomear** estilos, modos e variáveis (hoje só se cria e se liga).
+4. **Manutenção de estilos, modos e variáveis concluída no MCP**: list/update/delete por ID; limitações de modos/CSS manual acima.
 5. **`check_design` mais completo** (`core/audit.ts`): cores fora dos estilos, ordem de foco, área de toque de 44 px no celular, medida de tamanhos por breakpoint também em `get_layer`.
 6. **Verificação real dos provedores** quando houver chaves; conferir a API oficial do **Poly Pizza** (`plugins/assets/providers/polypizza.ts`, hoje `unverified`).
 7. **Arquivo de licenças dentro do zip exportado** (players de 3D/Lottie e fontes) — pendência do `NOTICE`.

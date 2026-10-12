@@ -12,6 +12,7 @@
  */
 
 import { z } from 'zod';
+import { DESIGN_RESOURCE_TOOLS } from './design-resources-schema.ts';
 import { MAX_LAYER_UPDATES } from './runner/batch.ts';
 
 z.config(z.locales.pt());
@@ -61,6 +62,7 @@ export function defineTool<S extends Shape>(def: Omit<ToolDef<S>, 'inputSchema'>
 
 /** As ferramentas. */
 export const AGENT_TOOLS: ToolDef[] = [
+  ...DESIGN_RESOURCE_TOOLS.map(defineTool),
   defineTool({
     name: 'get_document',
     write: false,

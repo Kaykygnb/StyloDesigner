@@ -1,7 +1,7 @@
 # Ferramentas do Stylo — capacidades e próximos passos
 
 Mapa em 2026-10-12. O foco é o **servidor e o MCP**; o editor legado está congelado.
-São **81 ferramentas anunciadas**: 63 do núcleo, 8 de identidade e 10 de assets. Uma delas,
+São **84 ferramentas anunciadas**: 66 do núcleo, 8 de identidade e 10 de assets. Uma delas,
 `generate_image_edit`, continua indisponível pelo MCP do servidor. Contagem não significa que todas
 as integrações foram verificadas com serviços reais: veja as ressalvas de `PASSAGEM.md`.
 
@@ -56,9 +56,15 @@ Não é preciso criar uma ferramenta para cada propriedade: `update_layer` já r
 `create_size_variables`, `bind_variable`, `font_pairs`, `color_scale`, `color_contrast`,
 `color_harmony`, `color_text_on`, `design_scale`.
 
-**Melhorar:** editar, renomear e remover estilos/modos/variáveis com tratamento dos vínculos;
-mostrar onde cada estilo é usado; obter uma paleta de uma imagem. Os auxiliares calculam e sugerem,
+**Melhorar:** ampliar localização das camadas usuárias dos recursos; obter uma paleta de uma imagem. Os auxiliares calculam e sugerem,
 sem criar uma identidade automaticamente.
+
+**Manutenção implementada:** `list_design_resources`, `update_design_resource` e
+`delete_design_resource` cobrem cor/texto/sombra/gradiente, variáveis e modos. IDs preservados,
+campos estritos por tipo, nomes sem colisão; lista até20 itens/8KiB com paginação. Remoção em uso
+recusa por padrão; `detach:true` desliga vínculos estruturados mantendo valores literais base/locais
+e snapshots. Cor desligada perde variações por modo. CSS manual não é reescrito. Alterações
+reservam o documento inteiro e são um passo de desfazer.
 
 ## 5. Reutilizar componentes
 
@@ -142,7 +148,7 @@ as decisões da pessoa dona em `PASSAGEM.md`.
 
 1. Edição local de fotos no servidor e correção das instruções antigas dos agentes — implementadas neste bloco.
 2. Ajustes em lote e busca por propriedades com respostas limitadas — implementados.
-3. Completar manutenção dos estilos e ações de componentes já existentes no núcleo.
+3. Manutenção dos estilos/variáveis/modos implementada; completar ações de componentes quando houver necessidade.
 4. Inspeção textual por largura implementada; ampliar auditoria, controles e testes de entrega a partir de telas reais pelo MCP.
 5. Avaliar PDF/apresentações quando a pessoa dona fechar os novos formatos. Editor, licença e decisões de negócio não entram por autorização implícita.
 

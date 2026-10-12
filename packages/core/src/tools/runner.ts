@@ -1,5 +1,6 @@
 import { toolByName, validateToolArgs } from './schema.js';
 import type { RunnerDependencies, ToolHandlers, RunOptions, ToolArgs } from './runner/types.ts';
+import { createDesignResourceTools, prepareDesignResourceUpdate } from './runner/design-resources.ts';
 import { createRunnerContext } from './runner/context.ts';
 import { createReadTools } from './runner/read.ts';
 import { createInspectionTools } from './runner/inspection.ts';
@@ -20,8 +21,9 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   const ctx = createRunnerContext({ store, commands, approve, saving, folder, renderImage, auditLayout, inspectLayout, fetchImage, imageOps, vendor });
   const { need, targetList } = ctx;
   const { tools: imageTools, imageLayer } = createImageTools(ctx);
-  const READ: ToolHandlers = { ...createReadTools(ctx), ...createInspectionTools(ctx), ...createExportTools(ctx) };
-  const WRITE: ToolHandlers = { ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
+  const resourceTools = createDesignResourceTools(ctx);
+  const READ: ToolHandlers = { list_design_resources: resourceTools.list_design_resources, ...createReadTools(ctx), ...createInspectionTools(ctx), ...createExportTools(ctx) };
+  const WRITE: ToolHandlers = { update_design_resource: resourceTools.update_design_resource, delete_design_resource: resourceTools.delete_design_resource, ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
   /**
    * Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
    * @param {string} tool
@@ -42,6 +44,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
       if (!def.write) return await READ[tool](args || {});
       // alteração: confere o pedido ANTES de perguntar (não adianta pedir permissão para algo que vai falhar)
       if (tool === 'update_layer' || tool === 'move_layer') need(args?.id);
+      if (tool === 'update_design_resource' || tool === 'delete_design_resource') prepareDesignResourceUpdate(ctx, args, tool === 'update_design_resource' ? 'update' : 'delete');
       if (tool === 'update_layers') prepareLayerUpdates(ctx, args.updates);
       if (tool === 'delete_layers') (args?.ids || []).forEach(need);
       if (tool === 'set_project_css' && typeof args?.css !== 'string') throw new Error('css precisa ser uma string com a folha completa do projeto.');

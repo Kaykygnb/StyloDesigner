@@ -95,7 +95,7 @@ padrão = modo local sem login) · `STYLO_DEV=1` (força o Vite) · `STYLO_BLOB_
 | `tokens.ts`, `media-runtime.ts` | tokens (CSS/JSON/Tailwind) · players de 3D/Lottie para o zip |
 | `audit.ts` | regras do `check_design` (contraste, texto pequeno, alt, títulos, alvo clicável, vazamento) |
 | `plugin.ts` | contrato de plugin (`definePlugin`, `PluginTool`, `registerPluginTools`) |
-| `tools/schema.ts` | **as 63 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
+| `tools/schema.ts` | **as 66 ferramentas do núcleo** (nome, descrição, entrada Zod) + `AGENT_INSTRUCTIONS` + validação (`validateToolArgs`: recusa argumento desconhecido) |
 | `tools/runner.ts`, `tools/runner.js` | executor central: validação, aprovação, cancelamento, commit e restauração sem apagar alterações concorrentes; `.js` só reexporta para compatibilidade |
 | `tools/runner/*` | módulos TypeScript por responsabilidade: `read`, `search`, `inspection`, `layout-inspection`, `export`, `layout`, `layers`, `batch`, `styles`, `projects`, `images`; helpers em `context`, `properties`, `presentation` e contratos em `types`. `batch` prepara cópias e publica uma atualização para `update_layers`; `search` filtra e pagina `find_layers`; `layout-inspection` organiza `inspect_layout`; ambos usam `response-budget` para limitar JSON UTF-8. Renderizador, auditoria, download, edição de imagem e players continuam injetados |
 | `tools/content.ts` | divide conteúdo grande em trechos UTF-8 |
@@ -211,3 +211,7 @@ restauração de falha parcial e preservação de edição concorrente. `tools/r
 ## Plano atual de ferramentas MCP
 
 A pessoa dona aprovou executar o [PLANO-MCP.md](PLANO-MCP.md): manutenção de estilos/variáveis/modos, organização, auditoria textual e conferência de entrega. A cada etapa, atualizar este contexto e o diário, validar e enviar à limpeza. Editor e decisões de negócio seguem fora do alcance. O plano distingue teste do protocolo MCP de validação individual dos aplicativos clientes.
+
+### Etapa 1 do plano MCP — recursos de design
+
+Módulos `tools/design-resources-schema.ts` e `tools/runner/design-resources.ts`: listagem limitada de seis tipos de recurso, atualização por ID e remoção com desligamento explícito. Validação antes e após aprovação; alterações reservam documento inteiro. Vínculos incluem base/bps/states e snapshots de componentes; CSS manual não é reescrito e desligar cor perde seus modos. Lista compartilha orçamento JSON/avisos com consultas de camadas. IDs de recursos ficam nos argumentos do log, não são apresentados como IDs de camadas afetadas.

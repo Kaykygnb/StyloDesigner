@@ -16,8 +16,8 @@ PDF, apresentações, geração de imagens, licença e decisões de negócio fic
 
 | Etapa | Trabalho | Conclusão esperada | Estado |
 |---|---|---|---|
-| 0 | Registrar este plano e os critérios | Documentos e plano enviados à limpeza | Em andamento |
-| 1 | Manutenção de estilos, variáveis e modos | Listar sem resposta enorme; atualizar/renomear por ID; remover com tratamento explícito dos vínculos, sem referências quebradas ou alteração parcial; histórico e exportação coerentes | Pendente |
+| 0 | Registrar este plano e os critérios | Documentos e plano enviados à limpeza | Concluída — 8b9c61c |
+| 1 | Manutenção de estilos, variáveis e modos | Listar sem resposta enorme; atualizar/renomear por ID; remover com tratamento explícito dos vínculos, sem referências quebradas ou alteração parcial; histórico e exportação coerentes | Concluída — 519 testes e MCP real |
 | 2 | Organização de camadas e páginas | Alinhar/distribuir/agrupar/desagrupar/ordenar com regras claras para fluxo, pais e seleção; renomear/ordenar páginas; rejeitar operações sem efeito ou inválidas com orientação | Pendente |
 | 3 | Auditoria textual ampliada | Melhorar avisos de consistência e área de toque; usar medidas por largura quando necessário; apresentar camada, problema, sugestão e limites da conferência; respostas limitadas | Pendente |
 | 4 | Entrega e tarefas completas | Conferir rotas ZIP e conteúdo entregue, registrar limitações; executar uma tarefa de construir → revisar → corrigir → exportar pelo MCP | Pendente |

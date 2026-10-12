@@ -30,6 +30,8 @@ export function summarize(n, depth = 0): ToolArgs {
 export function describeCall(tool: string, args: ToolArgs, store) {
   const nm = (id) => { const n = id && store.get(id); return n ? `“${n.name}”` : `(camada ${id})`; };
   switch (tool) {
+    case 'update_design_resource': return `Atualizar recurso ${args.kind} ${args.id}: ${Object.keys(args.changes || {}).join(', ')}`;
+    case 'delete_design_resource': return `Remover recurso ${args.kind} ${args.id}${args.detach ? ' desligando seus vínculos' : ''}`;
     case 'update_layer': {
       const keys = Object.entries(args.props || {}).map(([k, v]) => (k === 'layout' && v && typeof v === 'object' ? Object.keys(v).map((x) => `layout.${x}`).join(', ') : k));
       return `Alterar ${nm(args.id)}: ${keys.join(', ') || '(nada)'}`;
