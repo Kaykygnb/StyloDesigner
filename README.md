@@ -191,3 +191,5 @@ Contribuições e continuidade deste trabalho ficam na **`limpeza`**. Não mexer
 na `main` ou nas decisões de licença/negócio sem instrução da pessoa dona.
 
 Conferência do plano MCP (2026-10-12): fluxo construir → auditar → corrigir → exportar e baixar ZIPs HTML/React passou pelo SDK oficial. React de exemplo compilou e renderizou em Chromium. Exportação respeita larguras personalizadas por projeto. Codex CLI0.159.2 foi tentado, mas bloqueado por autenticação expirada; Claude Code/OpenCode/Kimi ausentes. Compatibilidade individual desses clientes continua sem comprovação aqui.
+
+O planejamento do painel, login, contas, projetos e conexões MCP está em [ACESSO-WEB.md](ACESSO-WEB.md). É uma proposta para instalação própria, com estado atual e decisões pendentes explícitos; acesso pela rede e editor novo ainda não foram implementados.
