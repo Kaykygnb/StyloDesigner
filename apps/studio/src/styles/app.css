@@ -383,3 +383,5 @@ button.res-row:hover { background: var(--surface-2); border-color: var(--border)
 .segmented.devices { flex: none; }
 @media (max-width: 1199px) { .topbar { overflow-x: auto; scrollbar-width: none; } .topbar > * { flex: none; } .topbar .project-title { max-width: 110px; } .topbar .btn:not(.primary):not(.icon) { padding-inline: 8px; } }
 @media (max-width: 1199px) { .zoom-controls { bottom: 64px; } .toolbar { max-width: calc(100% - 24px); } }
+.project-title-btn { background: none; border: 0; text-align: left; color: inherit; cursor: pointer; border-radius: var(--radius-s); padding: 2px 6px; }
+.project-title-btn:hover { background: var(--hover, rgba(127,127,127,.12)); }

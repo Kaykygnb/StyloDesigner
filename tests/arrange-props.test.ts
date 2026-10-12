@@ -91,3 +91,30 @@ test('update_layer: interações do protótipo, ponto de partida e crédito de f
   assert.equal(f.store.get(id).photoCredit.sourceUrl, '', 'só http(s) vale');
   assert.equal(f.store.get(id).photoCredit.authorUrl, 'https://pexels.com/ana');
 });
+
+test('update_layer: points, closed e vw/vh trocam os nós de um vetor (arrastar nó no painel) e recusam lixo', async () => {
+  const f = fixture();
+  const v = createNode('path', { name: 'V', x: 0, y: 0, w: 100, h: 50, vw: 100, vh: 50, points: [{ x: 0, y: 0 }, { x: 100, y: 0 }], closed: false });
+  f.store.update((page) => page.children[0].children.push(v)); f.store.commit();
+  const ok = await f.runner.run('update_layer', { id: v.id, props: { points: [{ x: 0, y: 0, hin: null, hout: { x: 10, y: 0 } }, { x: 120.1234, y: 40, mode: 'smooth' }], closed: true } });
+  assert.equal(ok.ok, true, ok.error);
+  const n = f.store.get(v.id);
+  assert.deepEqual(n.points, [{ x: 0, y: 0, hout: { x: 10, y: 0 } }, { x: 120.123, y: 40, mode: 'smooth' }]);
+  assert.equal(n.closed, true);
+  for (const bad of [{ points: [] }, { points: [{ x: 'a', y: 1 }] }, { points: [{ x: 1, y: 1, mode: 'zigzag' }] }, { vw: -3 }, { closed: 'sim' }]) {
+    const out = await f.runner.run('update_layer', { id: v.id, props: bad });
+    assert.ok(out.error, `recusa ${JSON.stringify(bad)}`);
+  }
+  const rect = await f.runner.run('update_layer', { id: f.kid.id, props: { points: [{ x: 0, y: 0 }] } });
+  assert.match(rect.error, /path/);
+});
+
+test('update_layer: mediaKind troca o tipo de uma camada de mídia e recusa valores e camadas errados', async () => {
+  const f = fixture();
+  const m = createNode('media', { name: 'M', x: 0, y: 0, w: 100, h: 60 });
+  f.store.update((page) => page.children[0].children.push(m)); f.store.commit();
+  assert.equal((await f.runner.run('update_layer', { id: m.id, props: { mediaKind: 'lottie' } })).ok, true);
+  assert.equal(f.store.get(m.id).mediaKind, 'lottie');
+  assert.ok((await f.runner.run('update_layer', { id: m.id, props: { mediaKind: 'gif' } })).error);
+  assert.match((await f.runner.run('update_layer', { id: f.kid.id, props: { mediaKind: 'video' } })).error, /media/);
+});

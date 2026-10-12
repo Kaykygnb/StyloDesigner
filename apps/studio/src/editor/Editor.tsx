@@ -14,6 +14,7 @@ import { PrototypePanel } from './PrototypePanel';
 import { HelpDialog, SettingsDialog } from './Dialogs';
 import { Presentation } from './Presentation';
 import { VersionsPanel } from './VersionsPanel';
+import { ProjectDialog } from './ProjectDialog';
 import { useShortcuts } from './shortcuts';
 import { TopBar } from './TopBar';
 import { t } from '../lib/i18n';
@@ -110,6 +111,7 @@ export function Editor() {
       )}
       {!hidden && !leftCollapsed && <div className="panel-resizer left-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={180} aria-valuemax={460} aria-valuenow={leftWidth} aria-label="Redimensionar painel esquerdo" onPointerDown={() => resize('left')} onKeyDown={(event) => resizerKeyDown('left', event)} />}
       {!hidden && !rightCollapsed && <div className="panel-resizer right-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={240} aria-valuemax={520} aria-valuenow={rightWidth} aria-label="Redimensionar painel direito" onPointerDown={() => resize('right')} onKeyDown={(event) => resizerKeyDown('right', event)} />}
+      <ProjectDialog />
       <HelpDialog />
       <SettingsDialog />
     </div>

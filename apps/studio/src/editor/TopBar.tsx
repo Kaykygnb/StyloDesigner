@@ -6,6 +6,7 @@ import { toast } from '../lib/app';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
+import { openProjectDialog } from './ProjectDialog';
 import { t } from '../lib/i18n';
 
 export function TopBar() {
@@ -35,10 +36,10 @@ export function TopBar() {
     <header className="topbar">
       <button className="btn ghost" onClick={closeProject} title={t(language, 'top.projects')}><Icon name="home" size={16} /> {t(language, 'top.projects')}</button>
       <span className="sep" />
-      <div className="project-title">
+      <button className="project-title project-title-btn" title="Brief, notas e pessoas do projeto" onClick={() => openProjectDialog()}>
         <b className="ellipsis">{doc.name || file}</b>
         <span className="faint small">{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.live') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
-      </div>
+      </button>
       {syncNotice ? <button className="notice ok sync-notice" title={t(language, 'collab.dismissChange')} onClick={dismissSyncNotice}>
         {t(language, 'collab.changedBy')} <b>{syncNotice.by}</b> · {t(language, 'collab.dismissChange')}
       </button> : null}

@@ -140,9 +140,11 @@ export function LayersTab() {
                 onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingPage(null); }} />
             ) : <span className="ellipsis grow">{p.name}</span>}
             <span className="faint">{p.children.length}</span>
-            {doc.pages.length > 1 && editable && p.id === page.id && (
+            {doc.pages.length > 1 && editable && p.id === page.id && (<>
+              <button className="btn ghost icon sm" title="Mover a página para cima" disabled={doc.pages.indexOf(p) === 0} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) - 1 }); }}>↑</button>
+              <button className="btn ghost icon sm" title="Mover a página para baixo" disabled={doc.pages.indexOf(p) === doc.pages.length - 1} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) + 1 }); }}>↓</button>
               <button className="btn ghost icon sm danger" title="Apagar página" onClick={(e) => { e.stopPropagation(); void confirmDialog(`Apagar a página “${p.name}”?`, 'Tudo que há nela será apagado (dá para desfazer).', { okLabel: 'Apagar', danger: true }).then((ok) => { if (ok) void removePage(p.id); }); }}><Icon name="trash" size={14} /></button>
-            )}
+            </>)}
           </div>
         ))}
       </div>

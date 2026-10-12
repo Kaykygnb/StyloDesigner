@@ -31,6 +31,8 @@ const CURSORS = ['ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize'];
 export const handleCursor = (h: Handle, rot: number) => CURSORS[Math.round((((BASE_ANGLE[h] + rot) % 180) + 180) % 180 / 45) % 4];
 
 interface Props {
+  /** modo "editar nós": só o contorno, sem alças de tamanho (elas se confundem com os pontos do vetor) */
+  nodeMode?: boolean;
   zoom: number;
   gesture: Gesture | null;
   selection: string[];
@@ -48,7 +50,7 @@ interface Props {
 
 const px = (n: number) => Math.round(n);
 
-export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox, oboxOf, aabbOf, nameOf, lockedOf, measureTarget, onResize, onRotate }: Props) {
+export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox, oboxOf, aabbOf, nameOf, lockedOf, measureTarget, onResize, onRotate, nodeMode }: Props) {
   const inv = 1 / zoom;
   const moving = gesture?.kind === 'move' ? gesture : null;
   const resizing = gesture?.kind === 'resize' ? gesture : null;
@@ -68,7 +70,7 @@ export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox,
   const group = items.length > 1 ? (resizing ? resizing.box : union(items.map((i) => i.ob))) : null;
   const locked = !!single && lockedOf(single.id);
   const sizeOf = (b: Box) => Math.min(b.w, b.h) * zoom;
-  const showHandles = editable && !gesture?.kind?.match(/move|draw|marquee|pan/) && !locked;
+  const showHandles = editable && !nodeMode && !gesture?.kind?.match(/move|draw|marquee|pan/) && !locked;
   const handleList = (b: Box) => (sizeOf(b) < 14 ? [] : sizeOf(b) < 44 ? HANDLES.filter((h) => CORNERS.includes(h.h)) : HANDLES);
 
   // linha de medida (Alt)
@@ -178,7 +180,8 @@ export function VectorNodeOverlay({ node, box, zoom, worldFromClient, onCommit }
   useEffect(() => setSelectedNodes(new Set()), [node.id]);
   if (node.type !== 'path' || !draft.length) return null;
   const vw = Number(node.vw || node.w || 1), vh = Number(node.vh || node.h || 1);
-  const px = (p: { x: number; y: number }) => ({ left: box.x + p.x / vw * box.w, top: box.y + p.y / vh * box.h });
+  // relativo ao contêiner (que já está em box.x/box.y)
+  const px = (p: { x: number; y: number }) => ({ left: p.x / vw * box.w, top: p.y / vh * box.h });
   const movePoint = (p: NonNullable<LayerNode['points']>[number], dx: number, dy: number) => ({
     ...p, x: p.x + dx, y: p.y + dy,
     ...(p.hin ? { hin: { x: p.hin.x + dx, y: p.hin.y + dy } } : {}),

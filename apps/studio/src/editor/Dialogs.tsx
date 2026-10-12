@@ -20,7 +20,7 @@ const SHORTCUTS: [string, [string, string][]][] = [
   ['Outros', [[`${M} ⇧ C`, 'Copiar CSS'], [`${M} Alt Enter`, 'Apresentar o protótipo'], [`${M} ,`, 'Configurações'], ['?', 'Esta ajuda']]],
 ];
 
-function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
     window.addEventListener('keydown', esc, true);

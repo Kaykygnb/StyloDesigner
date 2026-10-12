@@ -203,7 +203,11 @@ export async function loadProjects(): Promise<void> {
 }
 
 /** Executa uma ferramenta que ALTERA o projeto e mostra o resultado. Em caso de erro, avisa e ressincroniza com o servidor. */
+/** Quando esta aba gravou algo por último: o aviso "projeto atualizado por…" é só para mudanças de OUTRA sessão. */
+let lastLocalWrite = 0;
+
 export async function run<T = any>(toolName: string, args: Record<string, unknown> = {}): Promise<T | undefined> {
+  lastLocalWrite = Date.now();
   app.set({ busy: app.get().busy + 1 });
   try {
     const out = await api.tool<T>(toolName, args, app.get().pageId ?? undefined);
@@ -213,7 +217,7 @@ export async function run<T = any>(toolName: string, args: Record<string, unknow
     toast('error', messageOf(e));
     await refreshDoc().catch(() => {});
     return undefined;
-  } finally { app.set({ busy: app.get().busy - 1 }); }
+  } finally { lastLocalWrite = Date.now(); app.set({ busy: app.get().busy - 1 }); }
 }
 
 // ---------------------------------------------------------------- seleção e visão
@@ -274,7 +278,7 @@ export async function afterLogin(user: PublicUser | null): Promise<void> {
     onProject: (event) => {
       const s = app.get();
       if (s.screen === 'editor' && event.file === s.file) {
-        app.set({ syncNotice: { by: event.by || 'outra sessão', at: Date.now() } });
+        if (s.busy === 0 && Date.now() - lastLocalWrite > 3000) app.set({ syncNotice: { by: event.by || 'outra sessão', at: Date.now() } });
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => { if (app.get().busy === 0) void refreshDoc().catch(() => {}); }, 250);
       }

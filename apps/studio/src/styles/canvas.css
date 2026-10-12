@@ -94,3 +94,5 @@
 .btn.danger-solid { background: var(--danger); border-color: var(--danger); color: #fff; }
 .pen-overlay { position: absolute; inset: 0; z-index: 8; cursor: crosshair; }
 .pen-overlay svg { display: block; overflow: visible; pointer-events: none; }
+.pen-hint { position: absolute; left: 50%; top: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: translateX(-50%); max-width: calc(100% - 40px); padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border-strong, var(--border)); color: var(--text-2); font-size: 12px; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.pen-hint b { color: var(--text); font-weight: 600; }

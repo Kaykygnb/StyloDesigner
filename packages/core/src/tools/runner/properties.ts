@@ -24,7 +24,7 @@ const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
 const FX_KEYS = ['brightness', 'contrast', 'saturate', 'grayscale', 'hue'];
 const MEDIA_FLAGS = ['mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted'];
 /** Campos com tratamento próprio (ver applyProps). */
-const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag', 'constraints', 'fx', 'transition', 'grids', 'photoCredit', 'interactions'];
+const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag', 'constraints', 'fx', 'transition', 'grids', 'photoCredit', 'interactions', 'points', 'closed', 'vw', 'vh', 'mediaKind'];
 const TRIGGERS = ['click', 'hover'];
 const ACTIONS = ['navigate', 'back', 'url'];
 const TRANSITIONS = ['instant', 'dissolve', 'slide-left', 'slide-right', 'slide-up', 'slide-down'];
@@ -178,6 +178,32 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
         ...(x.action === 'url' ? { url: /^https?:\/\//i.test(x.url ?? '') ? String(x.url).slice(0, 500) : '' } : {}),
       }));
     }
+  }
+  if ('mediaKind' in props) {
+    if (node.type !== 'media') throw new Error('mediaKind só vale em camadas do tipo media.');
+    if (!['video', 'audio', 'lottie', 'model3d'].includes(props.mediaKind)) throw new Error('mediaKind precisa ser video, audio, lottie ou model3d.');
+    node.mediaKind = props.mediaKind;
+  }
+  // vetores: pontos (com alças), fechamento e viewBox. O painel usa isto ao arrastar nós e ao editar a lista de pontos.
+  if ('points' in props || 'closed' in props || 'vw' in props || 'vh' in props) {
+    if (node.type !== 'path') throw new Error('points, closed, vw e vh só valem em camadas do tipo path.');
+    if ('points' in props) {
+      const list = props.points;
+      if (!Array.isArray(list) || list.length < 1 || list.length > 5000) throw new Error('points precisa ser uma lista de 1 a 5000 pontos {x, y, hin?, hout?}.');
+      const num = (v: any, what: string) => { if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > 1e6) throw new Error(`${what} precisa ser um número finito.`); return Math.round(v * 1000) / 1000; };
+      const handle = (h: any, what: string) => (h === null || h === undefined ? null : { x: num(h.x, `${what}.x`), y: num(h.y, `${what}.y`) });
+      node.points = list.map((q: any, i: number) => {
+        if (!q || typeof q !== 'object') throw new Error(`points[${i}] precisa ser {x, y}.`);
+        const out: any = { x: num(q.x, `points[${i}].x`), y: num(q.y, `points[${i}].y`) };
+        const hin = handle(q.hin, `points[${i}].hin`), hout = handle(q.hout, `points[${i}].hout`);
+        if (hin) out.hin = hin;
+        if (hout) out.hout = hout;
+        if (q.mode !== undefined && q.mode !== null) { if (!['corner', 'smooth', 'symmetric', 'free'].includes(q.mode)) throw new Error(`points[${i}].mode precisa ser corner, smooth, symmetric ou free.`); out.mode = q.mode; }
+        return out;
+      });
+    }
+    if ('closed' in props) { if (typeof props.closed !== 'boolean') throw new Error('closed precisa ser true ou false.'); node.closed = props.closed; }
+    for (const k of ['vw', 'vh'] as const) if (k in props) { const v = props[k]; if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v > 1e5) throw new Error(`${k} precisa ser um número positivo.`); node[k] = v; }
   }
   if ('photoCredit' in props) {
     const pc = props.photoCredit;

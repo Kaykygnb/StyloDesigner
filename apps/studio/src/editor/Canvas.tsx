@@ -565,6 +565,18 @@ export function Canvas() {
     });
   };
 
+  /** Bordas e centros de todas as camadas (mais as guias da página): onde a caneta gruda. */
+  const penTargets = () => {
+    const s = S.current;
+    const x: number[] = [], y: number[] = [];
+    for (const n of flatten(s.page.children).slice(0, 600)) {
+      const r = aabbOf(n.id);
+      if (r) { x.push(r.x, r.x + r.w / 2, r.x + r.w); y.push(r.y, r.y + r.h / 2, r.y + r.h); }
+    }
+    for (const g of s.page.guides ?? []) (g.axis === 'x' ? x : y).push(g.pos);
+    return { x, y };
+  };
+
   /** Cria o vetor desenhado com a caneta/lápis (pontos em coordenadas do mundo) dentro da tela onde ele começa. */
   const createPath = async (pts: PenPoint[], closed: boolean) => {
     const s = S.current;
@@ -747,11 +759,11 @@ export function Canvas() {
             pageGuides={showGuides && rulers ? page.guides ?? [] : []}
             oboxOf={oboxOf} aabbOf={aabbOf} nameOf={(id) => nodeOf(id)?.name ?? ''} lockedOf={(id) => !!nodeOf(id)?.locked}
             measureTarget={measureTarget}
-            onResize={startResize} onRotate={startRotate}
+            onResize={startResize} onRotate={startRotate} nodeMode={tool === 'node' && !!vectorBox}
           />
           {editable && vectorNode && vectorBox && <VectorNodeOverlay node={vectorNode} box={vectorBox} zoom={zoom} worldFromClient={(x, y) => toWorld({ x, y })} onCommit={(points) => void setProps([vectorNode.id], { points })} />}
         </div>
-        {editable && !bp && (tool === 'pen' || tool === 'pencil') && <PenOverlay key={tool} mode={tool} zoom={zoom} panX={panX} panY={panY} toWorld={toWorld} onCancel={() => setTool('move')} onDone={(pts, closed) => void createPath(pts, closed)} />}
+        {editable && !bp && (tool === 'pen' || tool === 'pencil') && <PenOverlay key={tool} mode={tool} zoom={zoom} panX={panX} panY={panY} toWorld={toWorld} targets={tool === 'pen' ? penTargets() : undefined} onCancel={() => setTool('move')} onDone={(pts, closed) => void createPath(pts, closed)} />}
         {gesture && gesture.kind !== 'pan' && <div className="drag-shield" />}
         {rulers && <Rulers viewport={viewport} guides={page.guides ?? []} highlight={selUnion} />}
       </div>
