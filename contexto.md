@@ -207,3 +207,7 @@ restauração de falha parcial e preservação de edição concorrente. `tools/r
 - O servidor só aceita Host/Origin locais e escuta em 127.0.0.1: **ainda não está pronto para a internet** (ver `PASSAGEM.md`).
 - Os tamanhos medidos valem para o desktop (e para o breakpoint pedido em `get_image`/`check_design`); `get_layer` mostra o do desktop.
 - Veja `PASSAGEM.md §5b` para a lista completa do que foi pulado de propósito.
+
+## Plano atual de ferramentas MCP
+
+A pessoa dona aprovou executar o [PLANO-MCP.md](PLANO-MCP.md): manutenção de estilos/variáveis/modos, organização, auditoria textual e conferência de entrega. A cada etapa, atualizar este contexto e o diário, validar e enviar à limpeza. Editor e decisões de negócio seguem fora do alcance. O plano distingue teste do protocolo MCP de validação individual dos aplicativos clientes.

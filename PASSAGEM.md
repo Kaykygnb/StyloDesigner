@@ -187,3 +187,7 @@ Faxina do repositório e remoção do agente embutido → MCP headless (workspac
 projetos com revisão e versões → Hono + SDK oficial do MCP → ferramentas em Zod → colaboração (notas, atividade, compartilhar) → `get_image` →
 imagens fora do JSON → contrato de plugins + identidade visual → assets (biblioteca, provedores, fontes, créditos, mídia) → tokens, estilos de texto/sombra/gradiente,
 modos, variáveis → exportador React → **dogfooding** (agente construindo uma página): medida real de layout, `get_image` por breakpoint, `check_design`, argumentos estritos.
+
+## Plano aprovado em execução
+
+A pessoa dona pediu planejamento e execução dos próximos grupos de ferramentas, com documentação a cada passo. Estado detalhado e critérios em [PLANO-MCP.md](PLANO-MCP.md). Primeiro bloco: manutenção de estilos, variáveis e modos com referências seguras; depois organização, auditoria textual e entrega. Sem alterações no editor ou decisões de negócio.
