@@ -4,9 +4,9 @@
 (3) `decisoes.md` — o diário do porquê (só se acrescenta no fim; nunca reescreva uma entrada antiga).
 
 Estado em **2026-10-12**. Branch **`limpeza`**. `C:\Users\LENOVO\Desktop\Blbla\StyloDesigner` é o clone Windows da pessoa dona; o trabalho atual do agente acontece num clone descartável na nuvem.
-**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **537 testes, 537 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
+**O trabalho está no GitHub, na branch `limpeza`** (enviada em 2026-10-11 por decisão da pessoa dona; o repositório é **PÚBLICO** e a licença é **MIT**). A `main` e a `stylo-2.0-planning` de lá são versões antigas e **não foram tocadas**. Nenhum PR aberto. Última verificação na nuvem: **550 testes, 550 passando, 0 falhas, 0 pulados**, com `STYLO_CHROMIUM_PATH=/usr/bin/chromium`; `npm run typecheck` limpo.
 
-**Último bloco:** etapa2 do PLANO-MCP, sete tools de organização (91 anunciadas). Alinhar/distribuir, agrupar/desagrupar grupos/seções preserváveis, reordenar camadas e renomear/reordenar páginas. Valida pais/página/seleção, recusa mudanças que perderiam ordem/posições responsivas/efeitos/semântica e protege telas raiz na exportação. Geometria base, resultados até20 IDs, um desfazer e trava documento. MCP real conferiu medidas0/50/100, group/ungroup, undo/redo, ordem, páginas e recusas de responsivo/efeitos/rootframes. Próxima etapa: auditoria textual ampliada. Sem editor, cliente individual/provedor real ou revisão estética.
+**Último bloco:** etapa3 do PLANO-MCP: auditoria opcional de estilos e área clicável real em check_design. Relatório paginado20/8KiB, checked e notas de conferências ausentes; limite200 alvos, falha descarta medição parcial. MCP real verificou avisos/correções e botão com área zero por CSS. 550 testes e tipos limpos. Próxima etapa: entrega ZIP e cliente individual. Sem editor ou certificação de acessibilidade.
 
 **Sobre a pessoa dona:** não é programadora de formação; delega as decisões técnicas, quer entender o porquê e quer tudo em módulos
 pequenos. Conversa em português. As decisões de **negócio** (seção 3) são dela: apresente opções com recomendação e espere a resposta.
@@ -28,7 +28,7 @@ npx playwright install chromium      # para get_image, check_design (vazamento) 
 npm run typecheck                    # deve passar sem erro
 npm start                            # http://localhost:5173 — servidor + editor legado; PGlite local; sem login
 claude mcp add --transport http stylo http://localhost:5173/mcp   # conecta um agente (Claude Code)
-npm test                             # última suíte: 537 testes; ~5 min na nuvem
+npm test                             # última suíte: 550 testes; ~5 min na nuvem
 ```
 Preparação em clone limpo conferida em 2026-10-11. Na versão atual, o MCP lista **91 ferramentas**; os blocos de uso real do SDK oficial conferiram criação/montagem, auditoria, imagem/exportação e, mais recentemente, busca/lote e inspeção textual por largura. As verificações de cada bloco e suas ressalvas estão no fim de `decisoes.md`.
 

@@ -163,3 +163,5 @@ as decisões da pessoa dona em `PASSAGEM.md`.
 
 As propostas acima são um roteiro revisável, não promessa de suporte já existente.
 Resultados de testes e uso real ficam em `PASSAGEM.md` e no fim de `decisoes.md`.
+
+Auditoria ampliada implementada: check_design com checks styles/touch opcionais, paginação20/8KiB e checked. Área medida por largura com Chromium; ausência/falha não vira sucesso. Diretrizes24px/44px não são certificação de acessibilidade.

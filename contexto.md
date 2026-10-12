@@ -219,3 +219,7 @@ Módulos `tools/design-resources-schema.ts` e `tools/runner/design-resources.ts`
 ### Etapa 2 do plano MCP — organização
 
 `tools/organization-schema.ts` e `tools/runner/organization.ts` expõem sete operações de organização. Reutilizam comandos síncronos legados com commit suprimido apenas no escopo try/finally; o executor publica um passo. Validação pré/pós aprovação, trava de documento, respostas de até20 IDs. Agrupamento requer irmãs consecutivas e casos sem sobrescritas posicionais; protege telas raiz/exportação e listas HTML. Desagrupa somente grupos/seções sem efeitos/recorte/interações/variações e sem desmontar frames. Estrutura de instâncias é alterada no componente principal. Páginas são renomeadas/reordenadas sem mudar a ativa. Geometria é do modelo; inspect_layout confere CSS real.
+
+### Etapa 3 do plano MCP — auditoria ampliada
+
+check_design aceita checks styles/touch opcionais. Estilos conferem vínculos inexistentes e sugerem vincular literais equivalentes; área clicável usa tag e medidas CSS reais por largura. Relatório paginado20/8KiB, contagens totais, checked e notas explícitas quando uma conferência falta. Limite200 alvos padrão; falha descarta medição parcial. Zero área também recebe aviso. Referências e medidas vêm de snapshots, sem gravar alterações. Diretriz24px/44px não certifica acessibilidade, espaçamento, sobreposição ou controles internos de HTML manual.

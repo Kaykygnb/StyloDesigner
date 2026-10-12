@@ -430,10 +430,15 @@ ${PROP_HELP}`,
   defineTool({
     name: 'check_design',
     write: false,
-    description: 'AUDITA o design e diz o que consertar: conteúdo que VAZA da tela em cada breakpoint (texto que não quebra linha, largura fixa grande no celular), contraste de texto abaixo do WCAG, texto menor que 12px e imagens sem alt. Cada problema traz a camada, onde acontece e como corrigir. Rode ao terminar uma tela e depois de set_responsive. Sem id, confere todas as telas da página atual. O vazamento exige o navegador do servidor (o resto funciona sem).',
+    description: 'Relatório paginado: padrão20/8KiB, limit até60, offset:nextOffset enquanto hasMore, totais completos. checked informa o que foi conferido; sem medições não afirma sucesso completo. checks opcionais styles/touch: sugere vínculos existentes na paleta/tipografia e mede links/botões por largura (44px até640px,24px acima), sem certificar WCAG. Touch requer tela raiz, usa Chromium no contexto inteiro, maxTargets padrão200/até1000; ao exceder ou falhar avisa NÃO conferido. Não verifica oclusão, exceções nem botões internos do HTML manual. Recomece paginação após alterações. AUDITA o design e diz o que consertar: conteúdo que VAZA da tela em cada breakpoint (texto que não quebra linha, largura fixa grande no celular), contraste de texto abaixo do WCAG, texto menor que 12px e imagens sem alt. Cada problema traz a camada, onde acontece e como corrigir. Rode ao terminar uma tela e depois de set_responsive. Sem id, confere todas as telas da página atual. O vazamento exige o navegador do servidor (o resto funciona sem).',
     input: z.object({
       id: z.string().describe('id de uma tela (opcional)').optional(),
-      breakpoints: z.array(z.string()).describe('ids de breakpoints a conferir além do desktop (padrão: todos do projeto)').optional(),
+      breakpoints: z.array(z.string()).max(10).describe('ids de breakpoints a conferir além do desktop (padrão: todos do projeto)').optional(),
+      checks: z.array(z.enum(['styles','touch'])).max(2).refine(values => new Set(values).size === values.length, 'Não repita checks.').optional(),
+      limit: z.number().int().min(1).max(60).optional(),
+      offset: z.number().int().nonnegative().optional(),
+      maxBytes: z.number().int().min(1024).max(65536).optional(),
+      maxTargets: z.number().int().min(1).max(1000).optional(),
     }),
   }),
   defineTool({

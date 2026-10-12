@@ -385,3 +385,8 @@ renderizador usar um Chromium já instalado (comum em nuvem) em vez de baixar ou
 **Uso real:** SDK oficial listou91 tools; posições reais0/50/100 após alinhar/distribuir; group/ungroup preservaram medidas; undo/redo e ordem conferidos, página renomeada/reordenada manteve ativa. Recusas de rootframes, variação responsiva e efeitos conferidas. Geometria base não resolve CSS manual; conferir com inspect_layout. Sem editor/provedores/clientes individuais nesta etapa.
 
 **Verificação final da etapa 2:** 537 testes passaram (0 falhas/0 pulados), typecheck limpo. Acrescentados18 testes de organização, casos recusados, contexto/resposta e trava de documento. SDK oficial real descrito acima; servidor encerrado. Documentos atualizados; editor/licença/negócio intactos.
+
+### 2026-10-12 — Plano MCP, etapa 3: auditoria ampliada
+
+**Implementação:** checks styles/touch opcionais em check_design, sem novas ferramentas (91). Estilos verificam referências explícitas e equivalência dos campos efetivamente compartilhados, incluindo itálico. Touch mede tag/tamanho real em snapshots por largura, lotes de100 IDs e limite200 alvos padrão. Zero área recebe aviso; ausência/falha/limite excedido informa NÃO verificado, sem resultados parciais. checked separa conferências; paginação20/8KiB com contagens totais e orçamento aplicado após avisos do workspace.
+**Verificação:** 550 testes passaram, zero falhas/pulados; typecheck limpo. MCP real detectou estilo sem vínculo e botão mobile30×30; vínculo e44×44 corrigiram avisos; CSS real0×20 foi detectado. Não certifica acessibilidade, exceções de espaçamento/oclusão, HTML manual interno ou estética. Cliente individual ainda não conferido nesta etapa. Editor e negócio intactos.

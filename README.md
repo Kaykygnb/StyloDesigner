@@ -62,7 +62,7 @@ para hospedagem pública; as decisões de acesso e hospedagem estão em [PASSAGE
 | Localizar alvos | `find_layers`: busca por texto, tipo, página/subárvore e propriedades como fonte, cor e vínculos com estilos. |
 | Ajustar juntos | `update_layers`: até 100 IDs únicos, validação antes da escrita e um passo de desfazer/refazer. |
 | Conferir em texto | `inspect_layout`: medidas reais, espaçamentos e fonte aplicada na largura escolhida, sem precisar entregar imagens ao modelo. |
-| Conferir problemas | `check_design`: vazamento horizontal por breakpoint, contraste, texto pequeno, descrição de imagens, títulos e alvos clicáveis. |
+| Conferir problemas | `check_design`: vazamento horizontal por breakpoint, contraste, texto pequeno, descrição de imagens, títulos e alvos clicáveis. `checks: ["styles", "touch"]` acrescenta vínculos de estilos e medidas reais por largura; relatório paginado e conferências ausentes explícitas. |
 | Receber imagem | `get_image`: PNG da tela, inclusive no celular/tablet, quando o cliente consegue mostrar imagens ao agente. |
 | Manter recursos | `list_design_resources`, `update_design_resource`, `delete_design_resource`: seis tipos, IDs preservados e remoção com desligamento explícito quando em uso. |
 | Organizar identidade | Estilos de cor/texto/sombra/gradiente, modos de cor, variáveis de tamanho, componentes e instâncias. |

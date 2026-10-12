@@ -4,6 +4,7 @@ export interface LayoutBox { x: number; y: number; w: number; h: number }
 export interface LayoutRow {
   id: string;
   parentId: string | null;
+  tag?: string;
   rendered: boolean;
   visible: boolean;
   box: LayoutBox | null;

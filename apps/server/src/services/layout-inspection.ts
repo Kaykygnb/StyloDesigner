@@ -50,7 +50,7 @@ export async function inspectPage(page: any, rootId: string, ids: string[], widt
       const parentRect = parent?.getBoundingClientRect();
       const hasText = Array.from(element.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && !!node.textContent?.trim());
       return {
-        id, parentId, rendered, visible,
+        id, parentId, tag: element.tagName.toLowerCase(), rendered, visible,
         box: { x: rect.x - origin.x, y: rect.y - origin.y, w: rect.width, h: rect.height },
         layout: { display: style.display, direction: style.flexDirection, rowGap: style.rowGap, columnGap: style.columnGap, padding: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft] },
         ...(hasText ? { typography: { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight } } : {}),

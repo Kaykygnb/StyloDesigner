@@ -5,7 +5,7 @@ import { contrast } from './color.js';
 
 export interface Issue {
   severity: 'erro' | 'aviso';
-  type: 'contraste' | 'texto-pequeno' | 'sem-alt' | 'vazamento' | 'titulos' | 'alvo-pequeno';
+  type: 'contraste' | 'texto-pequeno' | 'sem-alt' | 'vazamento' | 'titulos' | 'alvo-pequeno' | 'estilo-inexistente' | 'estilo-sem-vinculo';
   layerId: string;
   layerName: string;
   where?: string;

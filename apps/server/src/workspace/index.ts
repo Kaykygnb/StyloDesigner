@@ -18,6 +18,7 @@ import { createCommands } from '@stylo/core/commands.js';
 import { createRunner } from '@stylo/core/tools/runner.ts';
 import type { ImageOperations } from '@stylo/core/image-edit.ts';
 import type { InspectLayout } from '@stylo/core/layout-inspection.ts';
+import { boundAuditResponse } from '@stylo/core/tools/runner/design-audit.ts';
 import { boundLayoutResponse } from '@stylo/core/tools/runner/layout-inspection.ts';
 import { boundPagedItems } from '@stylo/core/tools/runner/response-budget.ts';
 import { boundFindResponse } from '@stylo/core/tools/runner/search.ts';
@@ -347,6 +348,7 @@ export function createWorkspace({ projects, notes, sharing, operations, plugins 
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }
       if (entry.notices.length) out.notice = entry.notices.splice(0).join(' ');
+      if (tool === 'check_design' && !out.error) return boundAuditResponse(out, args?.maxBytes);
       if (tool === 'list_design_resources' && !out.error) return boundPagedItems(out, args?.maxBytes ?? 8192, 'Um recurso não cabe no limite de resposta. Aumente maxBytes até 65536.', 'resources');
       if (tool === 'inspect_layout' && !out.error) return boundLayoutResponse(out, args?.maxBytes);
       if (tool === 'find_layers' && !out.error) return boundFindResponse(out, args?.maxBytes);

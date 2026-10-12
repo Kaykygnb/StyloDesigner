@@ -1,7 +1,7 @@
 /** Imagem do design e auditoria estática ou medida pelo renderizador injetado. */
 import { inspectLayoutReport } from './layout-inspection.ts';
 import { BREAKPOINTS } from '../../model.js';
-import { auditStatic, overflowIssues, auditReport } from '../../audit.ts';
+import { checkDesign } from './design-audit.ts';
 import { fromBase64 } from '../../image-size.js';
 import type { RunnerContext, ToolHandlers } from './types.ts';
 
@@ -9,29 +9,7 @@ export function createInspectionTools(ctx: RunnerContext): ToolHandlers {
   const { store, need, auditLayout, renderImage } = ctx;
   return {
     inspect_layout(args) { return inspectLayoutReport(ctx, args); },
-    async check_design({ id, breakpoints } = {}) {
-      const doc = store.state.doc;
-      const boards = id ? [need(id)] : store.page().children.flatMap((n) => (n.type === 'section' ? n.children : [n])).filter((n) => n.type === 'frame' && n.visible !== false);
-      if (!boards.length) throw new Error('Não há telas para conferir nesta página (crie um frame na raiz).');
-      const all = doc.breakpoints?.length ? doc.breakpoints : BREAKPOINTS;
-      const chosen = breakpoints?.length ? breakpoints.map((b) => all.find((x) => x.id === b) || (() => { throw new Error(`Breakpoint "${b}" não existe. Disponíveis: ${all.map((x) => x.id).join(', ')}.`); })()) : all;
-      const issues = auditStatic(boards);
-      const widths = boards.flatMap((b) => [{ rootId: b.id, label: `desktop (${Math.round(b.w)}px)`, width: b.w }, ...chosen.map((bp) => ({ rootId: b.id, label: `${bp.name.toLowerCase()} (${bp.preview}px)`, width: bp.preview }))]);
-      let overflowChecked = false;
-      if (auditLayout) {
-        try {
-          const found = await auditLayout(boards, doc, widths);
-          issues.push(...overflowIssues(found, (nid) => store.get(nid)));
-          overflowChecked = true;
-        } catch { /* sem navegador: segue só com as regras estáticas */ }
-      }
-      const report = auditReport(issues);
-      return {
-        screens: boards.map((b) => b.name), widths: [...new Set(widths.map((w) => w.label))], ...report,
-        ...(overflowChecked ? {} : { note: 'Vazamento horizontal NÃO foi conferido (o servidor não tem o navegador de desenho). Use get_image com breakpoint para ver.' }),
-        ...(report.issues.length ? {} : { ok: 'Nenhum problema encontrado nas regras conferidas.' }),
-      };
-    },
+    check_design(args = {}) { return checkDesign(ctx, args); },
     async get_image({ id, scale = 1, breakpoint } = {}) {
       if (!renderImage) throw new Error('get_image precisa de um navegador para desenhar o design: não está disponível neste servidor. Use get_code / export_html para ler o resultado.');
       const sel = store.ui.selection.map((s) => store.get(s)).filter(Boolean);
