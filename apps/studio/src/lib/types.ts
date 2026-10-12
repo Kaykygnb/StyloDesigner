@@ -20,7 +20,7 @@ export interface ProjectInfo {
   thumb: number;
 }
 
-export interface PublicUser { id: string; email: string; name: string; role: 'OWNER' | 'MEMBER'; color: string | null }
+export interface PublicUser { id: string; email: string; name: string; role: 'OWNER' | 'ADMIN' | 'EDITOR' | 'COMMENTER' | 'VIEWER' | 'MEMBER'; color: string | null; suspended: boolean; mustChangePassword: boolean }
 
 export interface AuthState { mode: 'local' | 'accounts'; hasAccounts: boolean; user: PublicUser | null }
 

@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import { ORGANIZATION_TOOLS } from './organization-schema.ts';
 import { ARRANGE_TOOLS } from './arrange-schema.ts';
+import { CODE_TOOLS } from './code-schema.ts';
 import { DESIGN_RESOURCE_TOOLS } from './design-resources-schema.ts';
 import { MAX_LAYER_UPDATES } from './runner/batch.ts';
 
@@ -31,6 +32,10 @@ export const PROP_HELP = `Propriedades aceitas (nomes do modelo do editor; o CSS
 - texto: text, fontFamily, fontSize, fontWeight, fontStyle, lineHeight (multiplicador, ex.: 1.4), letterSpacing (px), textAlign, textDecoration, textTransform, truncate ("ellipsis"|"clamp"), lines
 - comportamento: sticky (px do topo: position sticky, só item em fluxo), pointerEvents ("none"), cursor ("pointer", "text"...)
 - transformar: flipX/flipY (espelhar), skewX/skewY (inclinação em graus), lockRatio (trava a proporção ao redimensionar), constraints {h:"left"|"right"|"leftright"|"center"|"scale", v:"top"|"bottom"|"topbottom"|"center"|"scale"} (só em frames sem layout), fx {brightness,contrast,saturate,grayscale (%), hue (graus)} (filtros de cor; null limpa), order e shrink (item de flex)
+- opcionais: mande null para APAGAR (minW, maxW, minH, maxH, aspect, overflow, sticky, cursor, pointerEvents, skewX/Y, order, shrink, grow, margin, note, href, alt, whiteSpace, wordBreak, textWrap, truncate, lines, customCss, htmlId, classes…)
+- mais: isMask (máscara; camada dentro de um grupo), noteInCode, fillRule ("nonzero"|"evenodd", vetor), customCss (declarações CSS livres, uma por linha), transition {duration ms, easing}, grids [{type:"columns"|"rows"|"grid", count, gutter, margin, size, color, opacity}] (grades de layout só de guia, em frames)
+- protótipo: interactions [{trigger:"click"|"hover", action:"navigate"|"back"|"url", target (id da tela), transition ("instant"|"dissolve"|"slide-left"|"slide-right"|"slide-up"|"slide-down"), url}] (substitui a lista; null apaga), flowStart (true na tela onde a apresentação começa)
+- photoCredit {provider, author, authorUrl, sourceUrl, license, licenseUrl, attribution, attributionRequired} (crédito de uma foto de banco de imagens; vai para o CREDITS.txt do site; null apaga)
 - código HTML escrito à mão (camada type "html"): html (o texto HTML; é limpo ao exibir e exportar: sem <script> nem on*)
 - HTML: htmlId (id), classes (classes extras separadas por espaço), title, role, lang, target/rel (links), buttonType, dateTime, cite; tag (etiqueta: p, h1..h6, span, a, button, label, li para texto; div, section, header, footer, nav, main, aside, article, ul, ol, li, button, a, form para caixas), href (link), alt (descrição para leitor de tela)`;
 
@@ -69,6 +74,7 @@ export const AGENT_TOOLS: ToolDef[] = [
   ...DESIGN_RESOURCE_TOOLS.map(defineTool),
   ...ORGANIZATION_TOOLS.map(defineTool),
   ...ARRANGE_TOOLS.map(defineTool),
+  ...CODE_TOOLS.map(defineTool),
   defineTool({
     name: 'get_document',
     write: false,
@@ -490,7 +496,8 @@ ${PROP_HELP}`,
     input: z.object({
       id: z.string(),
       breakpoint: z.string().describe('id do breakpoint (ex.: "tablet", "mobile" ou um personalizado listado em get_document)'),
-      props: z.record(z.string(), z.any()),
+      props: z.record(z.string(), z.any()).optional(),
+      reset: z.boolean().describe('true APAGA todos os ajustes desta camada neste breakpoint (volta a herdar do Desktop); props é ignorado').optional(),
     }),
   }),
   defineTool({
@@ -500,7 +507,8 @@ ${PROP_HELP}`,
     input: z.object({
       id: z.string(),
       state: z.enum(['hover', 'active', 'focus']),
-      props: z.record(z.string(), z.any()),
+      props: z.record(z.string(), z.any()).optional(),
+      reset: z.boolean().describe('true APAGA as sobrescritas deste estado (a camada volta ao normal nele); props é ignorado').optional(),
     }),
   }),
   defineTool({
@@ -549,6 +557,8 @@ ${PROP_HELP}`,
     input: z.object({
       id: z.string(),
       text: z.string(),
+      rx: z.number().min(0).max(1).describe('onde o pino fica na largura da camada (0 = esquerda, 1 = direita; padrão 1)').optional(),
+      ry: z.number().min(0).max(1).describe('onde o pino fica na altura da camada (0 = topo, 1 = base; padrão 0)').optional(),
     }),
   }),
   defineTool({
@@ -706,10 +716,10 @@ ${PROP_HELP}`,
   defineTool({
     name: 'share_project',
     write: true, noLock: true, needs: 'owner',
-    description: 'Compartilha o projeto aberto com uma pessoa que já tem conta (só o dono). role "editor" altera; "viewer" só lê e comenta.',
+    description: 'Compartilha o projeto aberto com uma pessoa que já tem conta (só o dono). role "editor" altera; "commenter" comenta; "viewer" só lê.',
     input: z.object({
       email: z.string(),
-      role: z.enum(['editor', 'viewer']).optional(),
+      role: z.enum(['editor', 'commenter', 'viewer']).optional(),
     }),
   }),
   defineTool({

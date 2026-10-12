@@ -2,6 +2,7 @@ import { toolByName, validateToolArgs } from './schema.js';
 import type { RunnerDependencies, ToolHandlers, RunOptions, ToolArgs } from './runner/types.ts';
 import { createOrganizationTools, prepareOrganization } from './runner/organization.ts';
 import { createArrangeTools } from './runner/arrange.ts';
+import { createCodeTools } from './runner/code.ts';
 import { createDesignResourceTools, prepareDesignResourceUpdate } from './runner/design-resources.ts';
 import { createRunnerContext } from './runner/context.ts';
 import { createReadTools } from './runner/read.ts';
@@ -25,7 +26,7 @@ export function createRunner({ store, commands, approve, saving = null, folder =
   const { tools: imageTools, imageLayer } = createImageTools(ctx);
   const resourceTools = createDesignResourceTools(ctx);
   const READ: ToolHandlers = { list_design_resources: resourceTools.list_design_resources, ...createReadTools(ctx), ...createInspectionTools(ctx), ...createExportTools(ctx) };
-  const WRITE: ToolHandlers = { ...createOrganizationTools(ctx), ...createArrangeTools(ctx), update_design_resource: resourceTools.update_design_resource, delete_design_resource: resourceTools.delete_design_resource, ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
+  const WRITE: ToolHandlers = { ...createOrganizationTools(ctx), ...createArrangeTools(ctx), ...createCodeTools(ctx), update_design_resource: resourceTools.update_design_resource, delete_design_resource: resourceTools.delete_design_resource, ...createLayoutTools(ctx), ...createLayersTools(ctx), ...createBatchTools(ctx), ...createStylesTools(ctx), ...createProjectsTools(ctx), ...imageTools };
   /**
    * Roda uma ferramenta e devolve o resultado (objeto JSON). Nunca lança: erros voltam como { error }.
    * @param {string} tool

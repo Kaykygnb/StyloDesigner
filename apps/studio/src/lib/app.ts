@@ -7,7 +7,11 @@ import type { MenuState } from '../ui/ContextMenu';
 import type { DialogState } from '../ui/Dialog';
 import type { AuthState, DesignIssue, Device, Doc, Presence, ProjectInfo, PublicUser } from './types';
 
-export type Panel = 'issues' | 'agents' | 'export' | null;
+export type Panel = 'design' | 'prototype' | 'code' | 'comments' | 'inspect' | 'issues' | 'agents' | 'versions' | 'export';
+export type LeftTab = 'layers' | 'assets' | 'icons';
+export type StateName = 'hover' | 'active' | 'focus';
+/** Caixa de uma camada no "mundo" (px do projeto): x/y/w/h visuais (com rotação) e ow/oh sem girar. */
+export interface WorldBox { x: number; y: number; w: number; h: number; ow: number; oh: number }
 export type Theme = 'light' | 'dark' | 'system';
 /** A ferramenta do canvas: mover/selecionar, mão (arrastar a vista) ou uma forma para desenhar. */
 export type Tool = 'move' | 'hand' | 'frame' | 'section' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'text' | 'html' | 'comment' | 'inspect';
@@ -33,6 +37,22 @@ export interface AppState {
   presence: Presence | null;
   live: boolean;
   panel: Panel;
+  worldBoxes: Record<string, WorldBox>;
+  /** estado (hover, pressionado, foco) cujas sobrescritas o painel está editando; null = Normal */
+  editState: StateName | null;
+  leftTab: LeftTab;
+  /** modo de cor do projeto (escuro...) em edição; null = o padrão */
+  colorMode: string | null;
+  panelsHidden: boolean;
+  /** editor de código grande embaixo do canvas (a aba que ele mostra) */
+  dock: 'css' | 'html' | 'page' | null;
+  /** rascunho de comentário: camada e ponto (0..1) onde o pino vai */
+  commentDraft: { nodeId: string; rx: number; ry: number } | null;
+  activeComment: string | null;
+  help: boolean;
+  settings: boolean;
+  presenting: boolean;
+  picker: { resolve: (v: { assetId: string; w: number; h: number } | null) => void } | null;
   issues: DesignIssue[] | null;
   issuesRunning: boolean;
   issuesNote: string | null;
@@ -54,7 +74,7 @@ export interface AppState {
   guides: boolean;
 }
 
-export const ACCENTS = ['#5b5bd6', '#2f7de1', '#0f9d8a', '#2f9e44', '#d9822b', '#d6409f', '#c2410c', '#6b7280'];
+export const ACCENTS = ['#4c8dff', '#7c5cff', '#0f9d8a', '#2f9e44', '#d9822b', '#d6409f', '#e5484d', '#8b8d98'];
 
 function readPref<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
@@ -68,9 +88,10 @@ export const app = createStore<AppState>({
   screen: 'home', projects: null, projectsError: null,
   file: null, doc: null, pageId: null, role: 'OWNER',
   selection: [], hover: null, device: 'desktop', zoom: 1,
-  busy: 0, toast: null, presence: null, live: false, panel: null,
+  busy: 0, toast: null, presence: null, live: false, panel: 'design',
+  worldBoxes: {}, editState: null, leftTab: 'layers', colorMode: null, panelsHidden: false, picker: null, dock: null, commentDraft: null, activeComment: null, help: false, settings: false, presenting: false,
   issues: null, issuesRunning: false, issuesNote: null,
-  theme: readPref<Theme>('stylo.theme', 'system'), accent: readPref<string>('stylo.accent', ACCENTS[0]),
+  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]),
   menu: null, dialog: null, renaming: null, tool: 'move',
   panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
   rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
@@ -122,7 +143,7 @@ export async function openProject(file: string): Promise<void> {
     app.set({ busy: app.get().busy + 1 });
     await api.tool('open_project', { file });
     lastDocKey = '';
-    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: null });
+    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null });
     await refreshDoc();
     history.replaceState(null, '', `#/p/${encodeURIComponent(file)}`);
   } catch (e) { toast('error', messageOf(e)); } finally { app.set({ busy: app.get().busy - 1 }); }
@@ -133,7 +154,7 @@ export async function createProject(name: string): Promise<void> {
     app.set({ busy: app.get().busy + 1 });
     const out = await api.tool<{ file: string }>('new_project', { name: name.trim() || 'Sem título' });
     lastDocKey = '';
-    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: null });
+    app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null });
     await refreshDoc();
     history.replaceState(null, '', `#/p/${encodeURIComponent(out.file)}`);
     void loadProjects();
@@ -176,7 +197,7 @@ export const setDevice = (device: Device) => app.set({ device });
 export const setZoom = (zoom: number) => app.set({ zoom: Math.min(16, Math.max(0.02, zoom)) });
 export const setRulers = (rulers: boolean) => { app.set({ rulers }); writePref('stylo.rulers', rulers); };
 export const setGuides = (guides: boolean) => { app.set({ guides }); writePref('stylo.guides', guides); };
-export const setPanel = (panel: Panel) => app.set({ panel: app.get().panel === panel ? null : panel });
+export const setPanel = (panel: Panel) => app.set({ panel });
 export function setPage(id: string) { app.set({ pageId: id, selection: [], hover: null }); }
 
 // ---------------------------------------------------------------- conferência do design

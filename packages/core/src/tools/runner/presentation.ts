@@ -38,6 +38,8 @@ export function describeCall(tool: string, args: ToolArgs, store) {
       const what = { front: 'Trazer para a frente', forward: 'Avançar uma camada', backward: 'Recuar uma camada', back: 'Enviar para trás', flip_h: 'Espelhar na horizontal', flip_v: 'Espelhar na vertical', wrap_in_frame: 'Envolver em frame', toggle_auto_layout: 'Alternar auto layout de', create_component: 'Criar componente de', detach_instance: 'Desanexar instância de', toggle_mask: 'Alternar máscara em' }[args.action] || args.action;
       return `${what} ${(args.ids || []).map(nm).join(', ')}`;
     }
+    case 'set_layer_css': return `Aplicar CSS em ${nm(args.id)}`;
+    case 'manage_comment': return `${({ reply: 'Responder a um comentário', edit: 'Editar um comentário', resolve: 'Resolver um comentário', reopen: 'Reabrir um comentário', delete: 'Apagar um comentário' })[args.action] || 'Mexer num comentário'}`;
     case 'set_guides': return `Definir ${(args.guides || []).length} guia(s) de régua`;
     case 'move_layers': return `Mover ${(args.moves || []).slice(0, 5).map((m) => nm(m.id)).join(', ')}${(args.moves || []).length > 5 ? '…' : ''}`;
     case 'paste_layers': return `Colar cópia de ${(args.ids || []).map(nm).join(', ')}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ''}`;
@@ -68,8 +70,8 @@ export function describeCall(tool: string, args: ToolArgs, store) {
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
     case 'set_project_css': return `${String(args.css || '').trim() ? 'Substituir' : 'Limpar'} CSS global do projeto (${String(args.css || '').length} caracteres)`;
-    case 'set_responsive': return `No ${(store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS).find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
-    case 'set_state': return `No estado ${args.state}, alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`;
+    case 'set_responsive': return `No ${(store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS).find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, ${args.reset ? `apagar os ajustes de ${nm(args.id)}` : `alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`}`;
+    case 'set_state': return `No estado ${args.state}, ${args.reset ? `apagar as sobrescritas de ${nm(args.id)}` : `alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`}`;
     case 'create_component': return `Transformar ${nm(args.id)} em componente`;
     case 'create_instance': return `Criar uma cópia do componente ${nm(args.component_id)}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'duplicate_layers': return `Duplicar ${(args.ids || []).map(nm).join(', ')}`;

@@ -26,7 +26,7 @@ export function layerMenuItems(): MenuItem[] {
     { label: 'Copiar propriedades', hint: `${MOD}+Alt+C`, disabled: !has, onClick: () => copyStyle() },
     { label: 'Colar propriedades', hint: `${MOD}+Alt+V`, disabled: !getStyleSource() || !edit, onClick: () => void pasteStyle() },
     { label: 'Copiar CSS', hint: `${MOD}+⇧+C`, icon: 'code', disabled: !has, onClick: () => void copyCss() },
-    { label: 'Comentar', hint: 'C', icon: 'comment', disabled: sel.length !== 1, onClick: () => void commentOn(n.id) },
+    { label: 'Comentar', hint: 'C', icon: 'comment', disabled: sel.length !== 1, onClick: () => commentOn(n.id) },
     { label: n?.note ? 'Editar nota' : 'Adicionar nota', icon: 'note', disabled: sel.length !== 1 || !canEdit(), onClick: () => void noteOn(n.id) },
     'sep',
     { label: 'Agrupar', hint: `${MOD}+G`, icon: 'group', disabled: sel.length < 2 || !canEdit(), onClick: () => void groupSelection() },

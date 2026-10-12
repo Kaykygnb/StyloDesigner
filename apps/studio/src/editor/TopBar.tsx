@@ -1,6 +1,8 @@
 // Barra superior do editor: voltar aos projetos, tamanho de aparelho, desfazer/refazer, conferir e exportar.
 import { canEdit, redo, undo } from '../lib/actions';
-import { closeProject, runChecks, setDevice, setPanel, useApp } from '../lib/app';
+import { app, closeProject, runChecks, setDevice, setPanel, useApp } from '../lib/app';
+import { publishProject } from '../lib/api';
+import { toast } from '../lib/app';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
@@ -17,6 +19,13 @@ export function TopBar() {
   const editable = canEdit();
   const bps = breakpointsOf(doc);
   const here = (presence?.agents.filter((a) => a.active).length ?? 0) + (presence?.people.length ?? 0);
+  const publish = async (format: 'html' | 'react') => {
+    try {
+      const result = await publishProject(file, format);
+      toast('ok', `${format === 'html' ? 'HTML' : 'React'} publicado (${Math.ceil(result.bytes / 1024)} KB).`);
+      window.open(result.download, '_blank', 'noopener,noreferrer');
+    } catch (e) { toast('error', String(e)); }
+  };
 
   return (
     <header className="topbar">
@@ -47,6 +56,14 @@ export function TopBar() {
       <button className={`btn ghost${panel === 'agents' ? ' active' : ''}`} title="Agentes e atividade" onClick={() => setPanel('agents')}>
         <Icon name="users" size={16} /> Agentes{here > 1 ? <span className="badge">{here}</span> : null}
       </button>
+      <button className={`btn ghost${panel === 'versions' ? ' active' : ''}`} title="Histórico de versões" onClick={() => setPanel('versions')}>
+        <Icon name="history" size={15} /> Histórico
+      </button>
+      <button className="btn ghost" title="Apresentar protótipo (Ctrl+Alt+Enter)" onClick={() => app.set({ presenting: true })}>
+        <Icon name="play" size={15} /> Apresentar
+      </button>
+      <button className="btn ghost" title="Publicar HTML" onClick={() => void publish('html')}><Icon name="upload" size={15} /> Publicar</button>
+      <button className="btn ghost icon" title="Publicar React" onClick={() => void publish('react')}><Icon name="code" size={15} /></button>
       <button className="btn primary" onClick={() => setPanel('export')}><Icon name="download" size={15} /> Exportar</button>
       <AppearanceMenu />
     </header>

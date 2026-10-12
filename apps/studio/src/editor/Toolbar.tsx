@@ -2,6 +2,7 @@
 import { useRef } from 'react';
 import { canEdit, uploadImage } from '../lib/actions';
 import { setTool, useApp, type Tool } from '../lib/app';
+import { commentOn } from '../lib/editing';
 import { Icon } from '../ui/Icon';
 
 const TOOLS: ({ tool: Tool; icon: string; label: string; key: string } | 'sep')[] = [
@@ -18,7 +19,6 @@ const TOOLS: ({ tool: Tool; icon: string; label: string; key: string } | 'sep')[
   { tool: 'star', icon: 'star', label: 'Estrela', key: '' },
   'sep',
   { tool: 'text', icon: 'text', label: 'Texto', key: 'T' },
-  { tool: 'html', icon: 'code', label: 'Código HTML (escrito à mão)', key: '⇧E' },
   'sep',
   { tool: 'comment', icon: 'comment', label: 'Comentar', key: 'C' },
   { tool: 'inspect', icon: 'inspect', label: 'Inspecionar (como o F12)', key: 'I' },
@@ -26,6 +26,7 @@ const TOOLS: ({ tool: Tool; icon: string; label: string; key: string } | 'sep')[
 
 export function Toolbar() {
   const tool = useApp((s) => s.tool);
+  const selection = useApp((s) => s.selection);
   const file = useRef<HTMLInputElement>(null);
   const editable = canEdit();
   return (
@@ -34,7 +35,7 @@ export function Toolbar() {
         ? <span key={i} className="tb-sep" />
         : (
           <button key={t.tool} className={`tb-btn${tool === t.tool ? ' on' : ''}`} aria-pressed={tool === t.tool} disabled={!editable && t.tool !== 'move' && t.tool !== 'hand' && t.tool !== 'inspect'}
-            title={`${t.label}${t.key ? ` (${t.key})` : ''}`} onClick={() => setTool(t.tool)}>
+            title={`${t.label}${t.key ? ` (${t.key})` : ''}`} onClick={() => { if (t.tool === 'comment' && selection.length === 1) commentOn(selection[0]); else setTool(t.tool); }}>
             <Icon name={t.icon} size={18} />
           </button>
         ))}

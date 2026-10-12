@@ -55,7 +55,11 @@ export async function insert(kind: InsertKind): Promise<void> {
 /** Muda propriedades das camadas. Em tablet/celular a mudança vale só naquele breakpoint (set_responsive). */
 export async function setProps(ids: string[], props: Record<string, unknown>): Promise<void> {
   if (!ids.length || !canEdit()) return;
-  const { device } = state();
+  const { device, editState } = state();
+  if (editState && device === 'desktop') {
+    for (const id of ids) await run('set_state', { id, state: editState, props });
+    return;
+  }
   if (device !== 'desktop') {
     for (const id of ids) await run('set_responsive', { id, breakpoint: device, props });
     return;

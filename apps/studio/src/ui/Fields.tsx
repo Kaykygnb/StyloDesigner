@@ -1,124 +1,224 @@
-// Campos do painel de propriedades. Cada um mostra o valor atual e só "confirma" (chama onCommit) ao sair do campo, apertar Enter
-// ou escolher: assim cada mudança vira UMA chamada de ferramenta, não uma por tecla digitada.
+// Campos do painel de propriedades. Cada um mostra o valor atual e só "confirma" (chama onCommit/onChange) ao sair do campo,
+// apertar Enter ou escolher: assim cada mudança vira UMA chamada de ferramenta, não uma por tecla digitada.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
-export function Section({ title, children, open = true, right }: { title: string; children: ReactNode; open?: boolean; right?: ReactNode }) {
-  const [isOpen, setOpen] = useState(open);
+// ---------------------------------------------------------------- estrutura
+function readOpen(id: string, fallback: boolean): boolean {
+  try { const v = localStorage.getItem(`stylo.sec.${id}`); return v == null ? fallback : v === '1'; } catch { return fallback; }
+}
+
+/** Seção recolhível do painel; lembra se estava aberta. `right` = botões à direita do título. */
+export function Section({ id, title, children, right, defaultOpen = true, badge }: { id: string; title: string; children: ReactNode; right?: ReactNode; defaultOpen?: boolean; badge?: ReactNode }) {
+  const [open, setOpen] = useState(() => readOpen(id, defaultOpen));
+  const toggle = () => { setOpen(!open); try { localStorage.setItem(`stylo.sec.${id}`, open ? '0' : '1'); } catch { /* sem armazenamento */ } };
   return (
-    <section className="insp-section">
-      <header onClick={() => setOpen(!isOpen)}>
-        <Icon name={isOpen ? 'chevrondown' : 'chevron'} size={14} />
+    <section className={`insp-section${open ? '' : ' closed'}`} data-section={id}>
+      <header onClick={toggle}>
         <h4>{title}</h4>
+        {badge}
         <span className="spacer" />
-        {right && <span onClick={(e) => e.stopPropagation()}>{right}</span>}
+        {right && <span className="sec-right" onClick={(e) => e.stopPropagation()}>{right}</span>}
+        <span className="chev"><Icon name={open ? 'chevrondown' : 'chevron'} size={14} /></span>
       </header>
-      {isOpen && <div className="insp-body">{children}</div>}
+      {open && <div className="insp-body">{children}</div>}
     </section>
   );
 }
 
-export function Labeled({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
+export const Row = ({ children, wide }: { children: ReactNode; wide?: boolean }) => <div className={`frow${wide ? ' wide' : ''}`}>{children}</div>;
+
+/** Legenda de um grupo de campos, com o nome da propriedade CSS correspondente ao lado (em fonte mono). */
+export function Cap({ label, css, children, right, tip }: { label: string; css?: string; children: ReactNode; right?: ReactNode; tip?: string }) {
   return (
-    <label className={`labeled${wide ? ' wide' : ''}`}>
-      <span className="faint">{label}</span>
+    <div className="cap-group" title={tip}>
+      <div className="cap"><span>{label}</span><span className="cap-right">{css && <span className="cap-css">{css}</span>}{right}</span></div>
       {children}
-    </label>
+    </div>
   );
 }
 
-const fmt = (n: number) => String(Math.round(n * 100) / 100);
+export const Hint = ({ children, warn }: { children: ReactNode; warn?: boolean }) => <p className={`hint${warn ? ' warn' : ''}`}>{children}</p>;
 
-export function NumField({ label, value, onCommit, min, max, step = 1, disabled, suffix, placeholder }: {
-  label: string; value: number | undefined; onCommit: (v: number) => void; min?: number; max?: number; step?: number; disabled?: boolean; suffix?: string; placeholder?: string;
-}) {
-  const [draft, setDraft] = useState<string>(value === undefined ? '' : fmt(value));
+export function IconBtn({ icon, title, onClick, on, disabled, size = 14, label }: { icon: string; title: string; onClick: () => void; on?: boolean; disabled?: boolean; size?: number; label?: string }) {
+  return (
+    <button type="button" className={`ibtn${on ? ' on' : ''}`} title={title} aria-label={title} aria-pressed={on} disabled={disabled} onClick={onClick}>
+      <Icon name={icon} size={size} />{label}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------- números
+/** Conta simples ("100/3", "24+8", "50%"): só números e + − × ÷ ( ). Devolve null se não entender. */
+export function evalExpr(text: string, base = 0): number | null {
+  const src = text.replace(/\s+/g, '').replace(/,/g, '.').replace(/×/g, '*').replace(/÷/g, '/');
+  if (!src || !/^[0-9+\-*/().%]+$/.test(src)) return null;
+  let i = 0;
+  const peek = () => src[i];
+  const number = (): number => {
+    if (peek() === '(') { i++; const v = sum(); if (peek() === ')') i++; return v; }
+    const m = /^\d*\.?\d+|^\d+\.?/.exec(src.slice(i));
+    if (!m) throw new Error('x');
+    i += m[0].length;
+    let v = Number(m[0]);
+    if (peek() === '%') { i++; v = (base * v) / 100; }
+    return v;
+  };
+  const unary = (): number => { if (peek() === '-') { i++; return -unary(); } if (peek() === '+') { i++; return unary(); } return number(); };
+  const product = (): number => { let v = unary(); while (peek() === '*' || peek() === '/') { const op = src[i++]; const r = unary(); v = op === '*' ? v * r : v / r; } return v; };
+  const sum = (): number => { let v = product(); while (peek() === '+' || peek() === '-') { const op = src[i++]; const r = product(); v = op === '+' ? v + r : v - r; } return v; };
+  try { const v = sum(); return i === src.length && Number.isFinite(v) ? v : null; } catch { return null; }
+}
+
+const fmt = (n: number, decimals: number) => String(Number(n.toFixed(decimals)));
+
+export interface NumProps {
+  label?: string;
+  value: number | null | undefined;
+  onCommit: (v: number | null) => void;
+  min?: number; max?: number; step?: number; decimals?: number;
+  unit?: string; nullable?: boolean; placeholder?: string; disabled?: boolean; title?: string; mixed?: boolean;
+}
+
+/** Campo numérico: digitar (aceita contas), setas ↑↓ (Shift ×10, Alt ÷10) e arrastar o rótulo para a esquerda/direita. */
+export function Num({ label, value, onCommit, min, max, step = 1, decimals = 1, unit, nullable, placeholder, disabled, title, mixed }: NumProps) {
+  const shown = (v: number | null | undefined) => (v == null || Number.isNaN(v) ? '' : fmt(v, decimals));
+  const [draft, setDraft] = useState(shown(value));
   const editing = useRef(false);
-  useEffect(() => { if (!editing.current) setDraft(value === undefined ? '' : fmt(value)); }, [value]);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (!editing.current) setDraft(mixed ? '' : shown(value)); }, [value, mixed, decimals]); // eslint-disable-line react-hooks/exhaustive-deps
+  const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
+
   const commit = (text: string) => {
     editing.current = false;
-    const n = Number(text.replace(',', '.'));
-    if (text.trim() === '' || !Number.isFinite(n)) { setDraft(value === undefined ? '' : fmt(value)); return; }
-    const v = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
-    setDraft(fmt(v));
-    if (v !== value) onCommit(v);
+    if (!text.trim()) { if (nullable) onCommit(null); setDraft(shown(value)); return; }
+    const n = evalExpr(text, value ?? 0);
+    if (n == null) { setDraft(shown(value)); return; }
+    const c = clamp(n);
+    setDraft(shown(c));
+    if (c !== value) onCommit(c);
   };
+
+  // arrastar o rótulo
+  const scrub = (e: React.MouseEvent) => {
+    if (disabled || e.button !== 0) return;
+    e.preventDefault();
+    const start = e.clientX;
+    const base = value ?? 0;
+    let moved = false, cur = base;
+    const move = (ev: MouseEvent) => {
+      const d = ev.clientX - start;
+      if (!moved && Math.abs(d) < 2) return;
+      moved = true;
+      const mult = ev.shiftKey ? 10 : ev.altKey ? 0.1 : 1;
+      cur = clamp(Number((base + d * step * mult).toFixed(decimals)));
+      editing.current = true;
+      setDraft(shown(cur));
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      document.body.classList.remove('scrubbing');
+      editing.current = false;
+      if (moved && cur !== base) onCommit(cur); else input.current?.focus();
+    };
+    document.body.classList.add('scrubbing');
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
   return (
-    <label className="num">
-      <span className="faint">{label}</span>
+    <div className={`num${disabled ? ' disabled' : ''}`} title={title}>
+      {label != null && <span className="num-label" onMouseDown={scrub}>{label}</span>}
       <input
-        className="field" inputMode="decimal" value={draft} disabled={disabled} placeholder={placeholder}
-        onFocus={(e) => { editing.current = true; e.currentTarget.select(); }}
-        onChange={(e) => setDraft(e.target.value)}
+        ref={input} className="field" inputMode="decimal" value={draft} disabled={disabled}
+        placeholder={mixed ? 'Misto' : placeholder}
+        onFocus={(e) => { editing.current = true; e.target.select(); }}
+        onChange={(e) => { editing.current = true; setDraft(e.target.value); }}
         onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.currentTarget.blur(); }
-          else if (e.key === 'Escape') { editing.current = false; setDraft(value === undefined ? '' : fmt(value)); e.currentTarget.blur(); }
+          e.stopPropagation();
+          if (e.key === 'Enter') { commit(draft); input.current?.blur(); }
+          else if (e.key === 'Escape') { editing.current = false; setDraft(shown(value)); input.current?.blur(); }
           else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
-            const base = Number(draft.replace(',', '.'));
-            const next = (Number.isFinite(base) ? base : 0) + (e.key === 'ArrowUp' ? 1 : -1) * step * (e.shiftKey ? 10 : 1);
-            setDraft(fmt(next));
+            const dir = e.key === 'ArrowUp' ? 1 : -1;
+            const cur = evalExpr(draft, value ?? 0) ?? value ?? 0;
+            const mult = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
+            const next = clamp(Number((cur + dir * step * mult).toFixed(decimals)));
+            editing.current = true;
+            setDraft(shown(next));
+            onCommit(next);
+            editing.current = false;
           }
         }}
       />
-      {suffix && <span className="suffix faint">{suffix}</span>}
-    </label>
+      {unit && <span className="num-unit">{unit}</span>}
+    </div>
   );
 }
 
-export function TextField({ value, onCommit, placeholder, multiline, disabled }: { value: string; onCommit: (v: string) => void; placeholder?: string; multiline?: boolean; disabled?: boolean }) {
-  const [draft, setDraft] = useState(value);
-  const editing = useRef(false);
-  useEffect(() => { if (!editing.current) setDraft(value); }, [value]);
-  const common = {
-    className: 'field', value: draft, disabled, placeholder,
-    onFocus: () => { editing.current = true; },
-    onChange: (e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => setDraft(e.target.value),
-    onBlur: () => { editing.current = false; if (draft !== value) onCommit(draft); },
-  };
-  return multiline
-    ? <textarea {...common} rows={3} />
-    : <input {...common} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setDraft(value); e.currentTarget.blur(); } }} />;
-}
+// ---------------------------------------------------------------- escolhas
+export type Option = [string | number, string];
 
-export function SelectField({ value, options, onCommit, disabled }: { value: string; options: { value: string; label: string }[]; onCommit: (v: string) => void; disabled?: boolean }) {
-  const known = options.some((o) => o.value === value);
+export function Sel({ value, options, onChange, title, disabled, mixed, label }: { value: string | number | null | undefined; options: Option[]; onChange: (v: string) => void; title?: string; disabled?: boolean; mixed?: boolean; label?: string }) {
   return (
-    <select className="field" value={value} disabled={disabled} onChange={(e) => onCommit(e.target.value)}>
-      {!known && <option value={value}>{value || '—'}</option>}
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+    <div className="sel" title={title}>
+      {label && <span className="num-label">{label}</span>}
+      <select className="field" value={mixed ? '__mixed' : String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)} aria-label={title}>
+        {mixed && <option value="__mixed" disabled>Misto</option>}
+        {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
+      </select>
+    </div>
   );
 }
 
-export function Segmented<T extends string>({ value, options, onCommit, disabled }: { value: T | undefined; options: { value: T; label: ReactNode; title?: string }[]; onCommit: (v: T) => void; disabled?: boolean }) {
+export function Seg({ options, value, onChange, title, disabled }: { options: { value: string; icon?: string; label?: string; title?: string }[]; value: string | null | undefined; onChange: (v: string) => void; title?: string; disabled?: boolean }) {
   return (
-    <div className="segmented" role="group">
+    <div className="segmented wide" role="group" aria-label={title}>
       {options.map((o) => (
-        <button key={o.value} type="button" title={o.title} disabled={disabled} className={value === o.value ? 'on' : ''} onClick={() => onCommit(o.value)}>{o.label}</button>
+        <button key={o.value} type="button" className={value === o.value ? 'on' : ''} aria-pressed={value === o.value} title={o.title ?? o.label} disabled={disabled} onClick={() => onChange(o.value)}>
+          {o.icon && <Icon name={o.icon} size={15} />}{o.label}
+        </button>
       ))}
     </div>
   );
 }
 
-const HEX = /^#[0-9a-f]{6}$/i;
-
-export function ColorField({ value, onCommit, onClear, disabled }: { value: string | undefined; onCommit: (hex: string) => void; onClear?: () => void; disabled?: boolean }) {
-  const [draft, setDraft] = useState(value ?? '');
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => setDraft(value ?? ''), [value]);
-  const push = (hex: string) => { window.clearTimeout(timer.current); timer.current = window.setTimeout(() => { if (HEX.test(hex) && hex.toLowerCase() !== (value ?? '').toLowerCase()) onCommit(hex.toUpperCase()); }, 250); };
+export function Check({ label, checked, onChange, title, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; title?: string; disabled?: boolean }) {
   return (
-    <div className="colorfield">
-      <input type="color" disabled={disabled} value={HEX.test(draft) ? draft : '#000000'} onChange={(e) => { setDraft(e.target.value); push(e.target.value); }} aria-label="Escolher cor" />
-      <input
-        className="field" value={draft} placeholder="Sem cor" disabled={disabled} spellCheck={false}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => { if (HEX.test(draft)) { if (draft.toLowerCase() !== (value ?? '').toLowerCase()) onCommit(draft.toUpperCase()); } else setDraft(value ?? ''); }}
-        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-      />
-      {onClear && value && <button type="button" className="btn ghost icon sm" title="Remover" onClick={onClear} disabled={disabled}><Icon name="close" size={14} /></button>}
-    </div>
+    <label className={`check${disabled ? ' disabled' : ''}`} title={title}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+// ---------------------------------------------------------------- texto
+export function Txt({ value, onCommit, placeholder, mono, disabled, label }: { value: string; onCommit: (v: string) => void; placeholder?: string; mono?: boolean; disabled?: boolean; label?: string }) {
+  const [draft, setDraft] = useState(value);
+  const editing = useRef(false);
+  useEffect(() => { if (!editing.current) setDraft(value); }, [value]);
+  const commit = () => { editing.current = false; if (draft !== value) onCommit(draft); };
+  return (
+    <input
+      className={`field${mono ? ' mono' : ''}`} value={draft} placeholder={placeholder} disabled={disabled} aria-label={label}
+      onFocus={() => { editing.current = true; }} onChange={(e) => { editing.current = true; setDraft(e.target.value); }} onBlur={commit}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { editing.current = false; setDraft(value); (e.target as HTMLInputElement).blur(); } }}
+    />
+  );
+}
+
+export function Area({ value, onCommit, rows = 4, placeholder, mono, label }: { value: string; onCommit: (v: string) => void; rows?: number; placeholder?: string; mono?: boolean; label?: string }) {
+  const [draft, setDraft] = useState(value);
+  const editing = useRef(false);
+  useEffect(() => { if (!editing.current) setDraft(value); }, [value]);
+  return (
+    <textarea
+      className={`field${mono ? ' mono' : ''}`} rows={rows} value={draft} placeholder={placeholder} spellCheck={false} aria-label={label}
+      onFocus={() => { editing.current = true; }} onChange={(e) => { editing.current = true; setDraft(e.target.value); }}
+      onBlur={() => { editing.current = false; if (draft !== value) onCommit(draft); }}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') { editing.current = false; setDraft(value); (e.target as HTMLTextAreaElement).blur(); } }}
+    />
   );
 }

@@ -10,18 +10,26 @@ const SIMPLE = [
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
   'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted',
   'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
+  'flowStart', 'isMask', 'noteInCode', 'fillRule', 'customCss',
   'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
 /** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
-const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink'];
+const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart'];
+/** Campos opcionais: `null` apaga (a chave some do projeto, como no editor). */
+const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'wordSpacing', 'flowStart'];
 const NUMBERS = ['skewX', 'skewY', 'order'];
-const STRINGS = ['html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
+const STRINGS = ['customCss', 'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap'];
 const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
 const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
 const FX_KEYS = ['brightness', 'contrast', 'saturate', 'grayscale', 'hue'];
 const MEDIA_FLAGS = ['mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted'];
 /** Campos com tratamento próprio (ver applyProps). */
-const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag', 'constraints', 'fx'];
+const SPECIAL = ['w', 'h', 'fill', 'stroke', 'radius', 'margin', 'shadows', 'effectStyleId', 'layout', 'tag', 'constraints', 'fx', 'transition', 'grids', 'photoCredit', 'interactions'];
+const TRIGGERS = ['click', 'hover'];
+const ACTIONS = ['navigate', 'back', 'url'];
+const TRANSITIONS = ['instant', 'dissolve', 'slide-left', 'slide-right', 'slide-up', 'slide-down'];
+const EASINGS = ['ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear'];
+const GRID_KINDS = ['columns', 'rows', 'grid'];
 /** Tudo que update_layer / create_layer aceitam. */
 export const PROPS = [...SIMPLE, ...SPECIAL];
 /** Valores válidos de alguns campos (o resto é conferido pelo tipo). */
@@ -59,6 +67,7 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
   if (unknown.length) throw new Error(`Propriedade desconhecida: ${unknown.join(', ')}. Aceitas: ${PROPS.join(', ')}.`);
   for (const [k, v] of Object.entries(props)) {
     if (!SIMPLE.includes(k)) continue;
+    if (v === null && CLEARABLE.includes(k)) { delete node[k]; continue; }
     if (ENUMS[k] && !ENUMS[k].includes(v)) throw new Error(`${k} precisa ser um destes: ${ENUMS[k].join(', ')}.`);
     if (BOOLEANS.includes(k) && typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);
     if (NUMBERS.includes(k) && !Number.isFinite(v)) throw new Error(`${k} precisa ser um número.`);
@@ -71,6 +80,8 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     }
     node[k] = v;
   }
+  // mexer na tipografia à mão solta o estilo de texto (como no editor)
+  if (node.textStyleId && ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing'].some((k) => k in props)) delete node.textStyleId;
   if ('w' in props || 'h' in props) {
     const w = 'w' in props ? Number(props.w) : node.w, h = 'h' in props ? Number(props.h) : node.h;
     if (!(w > 0) || !(h > 0)) throw new Error('w e h precisam ser números maiores que zero.');
@@ -102,6 +113,7 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     } else if (typeof f === 'object') {
       const next = { ...(node.fill || defaultFill()), ...f };
       if (f.color) next.color = hex(f.color) || next.color;
+      for (const k of ['styleId', 'gradientId']) if (next[k] === null) delete next[k]; // null desliga o estilo
       node.fill = next;
     }
   }
@@ -113,7 +125,10 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
       const c = hex(s);
       if (!c) throw new Error('stroke: use uma cor "#RRGGBB", null ou um objeto {color, width, style, position}.');
       node.stroke = { ...(node.stroke || defaultStroke()), color: c };
-    } else if (typeof s === 'object') node.stroke = { ...(node.stroke || defaultStroke()), ...s, ...(s.color ? { color: hex(s.color) || s.color } : {}) };
+    } else if (typeof s === 'object') {
+      node.stroke = { ...(node.stroke || defaultStroke()), ...s, ...(s.color ? { color: hex(s.color) || s.color } : {}) };
+      for (const k of Object.keys(node.stroke)) if (node.stroke[k] === null) delete node.stroke[k]; // null apaga o campo opcional (sides, dash...)
+    }
   }
   if ('radius' in props) node.radius = four(props.radius, 'radius').map((x) => Math.max(0, x));
   if ('constraints' in props) {
@@ -131,7 +146,47 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
       if (Object.keys(f).length) node.fx = { ...f }; else delete node.fx;
     }
   }
-  if ('margin' in props) node.margin = four(props.margin, 'margin');
+  if ('transition' in props) {
+    const t = props.transition;
+    if (t === null || (t && t.duration === 0)) delete node.transition;
+    else {
+      if (typeof t !== 'object' || !(t.duration >= 0 && t.duration <= 5000) || (t.easing && !EASINGS.includes(t.easing))) throw new Error(`transition: use null ou {duration: 0..5000 (ms), easing: ${EASINGS.join(' | ')}}.`);
+      node.transition = { duration: Math.round(t.duration), easing: t.easing || node.transition?.easing || 'ease' };
+    }
+  }
+  if ('grids' in props) {
+    if (node.type !== 'frame') throw new Error('grids (grades de layout) só valem para frames.');
+    const g = props.grids;
+    if (g !== null && (!Array.isArray(g) || g.length > 8 || g.some((x) => !x || !GRID_KINDS.includes(x.type)))) throw new Error(`grids: use null ou uma lista (até 8) de {type: ${GRID_KINDS.join(' | ')}, count, gutter, margin, size, color, opacity}.`);
+    node.grids = (g || []).map((x) => ({ type: x.type, count: Math.max(1, Math.round(Number(x.count) || 12)), gutter: Math.max(0, Number(x.gutter) || 0), margin: Math.max(0, Number(x.margin) || 0), size: Math.max(2, Number(x.size) || 8), color: hex(x.color) || '#FF3D3D', opacity: Math.min(1, Math.max(0, Number(x.opacity ?? 0.12))) }));
+  }
+  if ('interactions' in props) {
+    const list = props.interactions;
+    if (list === null) delete node.interactions;
+    else {
+      if (!Array.isArray(list) || list.length > 20 || list.some((x) => !x || !TRIGGERS.includes(x.trigger ?? 'click') || !ACTIONS.includes(x.action))) throw new Error(`interactions: use null ou uma lista (até 20) de {trigger: ${TRIGGERS.join(' | ')}, action: ${ACTIONS.join(' | ')}, target (id do frame), transition: ${TRANSITIONS.join(' | ')}, url}.`);
+      node.interactions = list.map((x) => ({
+        trigger: x.trigger ?? 'click', action: x.action,
+        target: x.action === 'navigate' ? String(x.target ?? '') : '',
+        transition: TRANSITIONS.includes(x.transition) ? x.transition : 'dissolve',
+        ...(x.action === 'url' ? { url: /^https?:\/\//i.test(x.url ?? '') ? String(x.url).slice(0, 500) : '' } : {}),
+      }));
+    }
+  }
+  if ('photoCredit' in props) {
+    const pc = props.photoCredit;
+    if (pc === null) delete node.photoCredit;
+    else {
+      if (typeof pc !== 'object' || Array.isArray(pc)) throw new Error('photoCredit: use null ou {provider, author, authorUrl, sourceUrl, license, licenseUrl, attribution, attributionRequired}.');
+      const text = (v, max = 300) => (typeof v === 'string' ? v.slice(0, max) : '');
+      const url = (v) => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v.slice(0, 500) : '');
+      node.photoCredit = { provider: text(pc.provider, 60), author: text(pc.author, 120), authorUrl: url(pc.authorUrl), sourceUrl: url(pc.sourceUrl), license: text(pc.license, 80), licenseUrl: url(pc.licenseUrl), attribution: text(pc.attribution, 400), attributionRequired: !!pc.attributionRequired };
+    }
+  }
+  if ('margin' in props) {
+    if (props.margin === null) delete node.margin;
+    else { node.margin = four(props.margin, 'margin'); if (node.margin.every((x) => !x)) delete node.margin; }
+  }
   if ('shadows' in props) {
     if (!Array.isArray(props.shadows)) throw new Error('shadows precisa ser uma lista de sombras.');
     node.shadows = props.shadows.map((s) => ({ x: 0, y: 4, blur: 16, spread: 0, ...{ color: '#000000' }, opacity: 0.25, inset: false, ...s, color: hex(s.color) || '#000000' }));
@@ -157,6 +212,7 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     }
     for (const [k, v] of Object.entries(L)) {
       if (k === 'mode') continue;
+      if ((k === 'colsTemplate' || k === 'rowsTemplate') && !v) { delete node.layout[k]; continue; }
       node.layout[k] = k === 'padding' ? four(v, 'layout.padding') : v;
     }
   }

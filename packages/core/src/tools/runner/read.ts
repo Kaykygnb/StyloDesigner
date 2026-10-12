@@ -1,4 +1,5 @@
 /** Consultas do projeto, catálogos e seleção, sem gravar o documento. */
+import { layerCssText } from '../../cssedit.ts';
 import { tagOf, walk, DEFAULT_BREAKPOINTS } from '../../model.js';
 import { generateCode, joinCss } from '../../css.js';
 import { withDocumentBreakpoints } from '../../document-breakpoints.ts';
@@ -66,7 +67,7 @@ export function createReadTools(ctx: RunnerContext): ToolHandlers {
       // O CSS legado aceita styles, mas sua anotação JS descreve apenas root.
       const options = { styles: doc.styles };
       const gen = withDocumentBreakpoints(doc, () => generateCode([n], store.parentOf(id), doc.assets, options as Parameters<typeof generateCode>[3]));
-      return { html: gen.html, css: joinCss([gen]) };
+      return { html: gen.html, css: joinCss([gen]), declarations: layerCssText(n, store.parentOf(id), doc.assets) };
     },
     find_layers(args = {}) { return findLayers(store.state.doc, args); },
     get_selection() {

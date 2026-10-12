@@ -28,19 +28,28 @@ export function createLayersTools(ctx: RunnerContext): ToolHandlers {
       if (store.parentOf(id) !== target) throw new Error('Não deu para mover para lá (uma camada não entra dentro dela mesma, e seções só guardam frames).');
       return { moved: summarize(n, 0), parent: target ? target.id : 'root' };
     },
-    set_responsive({ id, breakpoint, props }) {
+    set_responsive({ id, breakpoint, props, reset }) {
       const n = need(id);
       const breakpoints = store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS;
       if (!breakpoints.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${breakpoints.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
+      if (reset) {
+        store.update(() => { if (n.bps) { delete n.bps[breakpoint]; if (!Object.keys(n.bps).length) delete n.bps; } });
+        return { updated: n.id, breakpoint, reset: true };
+      }
+      if (!props) throw new Error('Mande props (ou reset: true para apagar os ajustes deste breakpoint).');
       const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
       if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
       store.update(() => withDocumentBreakpoints(store.state.doc, () => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle }))));
       return { updated: n.id, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
     },
-    set_state({ id, state, props = {} }) {
+    set_state({ id, state, props = {}, reset }) {
       const n = need(id);
       if (!['hover', 'active', 'focus'].includes(state)) throw new Error('state: "hover", "active" ou "focus".');
       if (!canHaveStates(n)) throw new Error('Grupos, seções e linhas não têm estados.');
+      if (reset) {
+        store.update(() => { if (n.states) { delete n.states[state]; if (!Object.keys(n.states).length) delete n.states; } });
+        return { updated: n.id, state, reset: true };
+      }
       const bad = Object.keys(props).filter((k) => !STATE_KEYS.includes(k));
       if (bad.length) throw new Error(`Estados aceitam só: ${STATE_KEYS.join(', ')}.`);
       const { scale, ...rest } = props;
@@ -77,10 +86,10 @@ export function createLayersTools(ctx: RunnerContext): ToolHandlers {
       store.update(() => { (n.interactions ||= []).push({ trigger: 'click', action, target: action === 'navigate' ? target_id : '', transition, ...(action === 'url' ? { url } : {}) }); });
       return { interactions: n.interactions };
     },
-    add_comment({ id, text }, client) {
+    add_comment({ id, text, rx, ry }, client) {
       need(id);
       let c: ReturnType<typeof addComment> = null;
-      store.update(() => { c = addComment(store.state.doc, { nodeId: id, text, author: client }); });
+      store.update(() => { c = addComment(store.state.doc, { nodeId: id, text, author: client, ...(rx !== undefined ? { rx } : {}), ...(ry !== undefined ? { ry } : {}) }); });
       const comment = c as ReturnType<typeof addComment>;
       if (!comment) throw new Error('Comentário vazio.');
       return { comment: { id: comment.id, text: comment.text } };

@@ -23,7 +23,12 @@ export function parentOf(list: LayerNode[], id: string, parent: LayerNode | null
 
 /** As telas da página: frames na raiz, ou dentro de uma seção. */
 export const boardsOf = (page: Page): LayerNode[] =>
-  page.children.flatMap((n) => (n.type === 'section' ? n.children ?? [] : [n])).filter((n) => n.type === 'frame' && n.visible !== false);
+  page.children.flatMap((n) => {
+    if (n.type !== 'section') return [n];
+    // Uma seção vazia também precisa ser uma superfície desenhável no canvas.
+    // Quando ela contém frames, os frames continuam sendo as telas individuais.
+    return (n.children ?? []).some((c) => c.type === 'frame') ? n.children ?? [] : [n];
+  }).filter((n) => (n.type === 'frame' || n.type === 'section') && n.visible !== false);
 
 /** A tela (raiz) que contém a camada. */
 export function boardContaining(page: Page, id: string): LayerNode | null {

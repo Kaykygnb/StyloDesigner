@@ -90,9 +90,9 @@ export async function toggleFlag(flag: 'locked' | 'visible'): Promise<void> {
 
 export const startRename = (id: string) => app.set({ renaming: id });
 
-export async function commentOn(id: string): Promise<void> {
-  const text = await askText('Comentar', '', { multiline: true, okLabel: 'Comentar', message: 'O comentário fica preso a esta camada; agentes e pessoas do projeto o leem.' });
-  if (text?.trim()) { await run('add_comment', { id, text: text.trim() }); toast('ok', 'Comentário adicionado.'); }
+/** Abre o painel Comentários com um rascunho preso à camada (e ao ponto dado, ou ao canto superior direito). */
+export function commentOn(id: string, at: { rx: number; ry: number } = { rx: 1, ry: 0 }): void {
+  app.set({ commentDraft: { nodeId: id, ...at }, panel: 'comments', panelsHidden: false });
 }
 
 export async function noteOn(id: string): Promise<void> {

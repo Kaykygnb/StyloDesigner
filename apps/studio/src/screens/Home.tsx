@@ -6,6 +6,7 @@ import * as api from '../lib/api';
 import { connectCommand } from '../editor/Panels';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Icon } from '../ui/Icon';
+import { WorkspacePanel } from './WorkspacePanel';
 
 const pretty = (file: string) => file.replace(/\.json$/i, '').replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
@@ -28,6 +29,7 @@ export function Home() {
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
+  const [area, setArea] = useState<'projects' | 'library' | 'agents' | 'admin' | 'account'>('projects');
 
   const shown = useMemo(() => (projects ?? []).filter((p) => (p.name || pretty(p.file)).toLowerCase().includes(query.trim().toLowerCase())), [projects, query]);
   const cmd = connectCommand();
@@ -44,6 +46,9 @@ export function Home() {
       <header className="home-top">
         <div className="brand"><span className="logo">S</span> Stylo</div>
         <span className="spacer" />
+        <nav className="home-nav" aria-label="Área de trabalho">
+          {([['projects', 'Projetos'], ['library', 'Biblioteca'], ['agents', 'Conexões MCP'], ['admin', 'Administração'], ['account', 'Minha conta']] as const).map(([id, label]) => <button key={id} className={`btn ghost${area === id ? ' active' : ''}`} onClick={() => setArea(id)}>{label}</button>)}
+        </nav>
         {presence && presence.agents.length > 0 && <span className="badge"><span className="dot" style={{ background: 'var(--ok)' }} /> {presence.agents.length} agente(s) conectado(s)</span>}
         <AppearanceMenu />
         {auth?.mode === 'accounts' && user && (
@@ -52,6 +57,7 @@ export function Home() {
       </header>
 
       <main className="home-main">
+        {area !== 'projects' ? <WorkspacePanel tab={area} /> : <>
         <div className="home-title">
           <div>
             <h1>Projetos</h1>
@@ -106,6 +112,7 @@ export function Home() {
           <p className="muted">Qualquer agente que fale MCP (Claude Code, Codex, Cursor…) pode criar e editar projetos aqui. Rode este comando no computador onde o agente está:</p>
           <div className="codebox"><code>{cmd}</code><button className="btn ghost icon sm" title="Copiar" onClick={() => navigator.clipboard.writeText(cmd).then(() => toast('ok', 'Copiado.'), () => toast('error', 'Não consegui copiar.'))}><Icon name="copy" size={14} /></button></div>
         </section>
+        </>}
       </main>
     </div>
   );

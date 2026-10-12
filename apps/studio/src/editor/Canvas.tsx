@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { canEdit, insert, setProps } from '../lib/actions';
 import { commentOn } from '../lib/editing';
-import { app, hoverLayer, run, select, setTool, useApp } from '../lib/app';
+import { app, hoverLayer, run, select, setTool, useApp, type WorldBox } from '../lib/app';
 import { boardContaining, boardsOf, findNode, flatten, inFlow, isAncestor, isBoard, pageOf, parentOf, topLevel } from '../lib/doc';
 import { createShape, parentFor, SHAPE_TOOLS, type Drawn, type ShapeTool } from '../lib/shapes';
 import type { LayerNode } from '../lib/types';
@@ -75,6 +75,17 @@ export function Canvas() {
     setSizes((prev) => (prev[id]?.h === size.h && prev[id]?.w === size.w ? prev : { ...prev, [id]: size }));
   }, []);
   const onBoxes = useCallback((boardId: string, b: Record<string, RawBox>) => setBoxes((prev) => ({ ...prev, [boardId]: b })), []);
+
+  // publica as caixas medidas (no mundo) para o painel de propriedades e as outras telas
+  const boardsKey = boards.map((b) => `${b.id}:${b.x}:${b.y}`).join('|');
+  useEffect(() => {
+    const out: Record<string, WorldBox> = {};
+    for (const b of S.current.boards) {
+      const inner = boxes[b.id];
+      if (inner) for (const [id, r] of Object.entries(inner)) out[id] = { x: b.x + r.x, y: b.y + r.y, w: r.w, h: r.h, ow: r.ow, oh: r.oh };
+    }
+    app.set({ worldBoxes: out });
+  }, [boxes, boardsKey]);
 
   // ---------------------------------------------------------------- coordenadas
   const vpRect = () => viewport.current?.getBoundingClientRect() ?? { left: 0, top: 0, width: 800, height: 600 };
@@ -585,8 +596,19 @@ export function Canvas() {
     if (p.type !== 'down' || e.button !== 0) return;
     if (document.activeElement && document.activeElement !== document.body) (document.activeElement as HTMLElement).blur?.();
     if (s.spaceDown || s.tool === 'hand') { startPan(e); return; }
-    if (s.tool === 'comment') { const id = resolveHit(p.hitId, true); setTool('move'); if (id) { select([id]); void commentOn(id); } return; }
-    if (s.tool === 'inspect') { select(p.hitId ? [p.hitId] : []); return; }
+    if (s.tool === 'comment') {
+      const id = resolveHit(p.hitId, true);
+      setTool('move');
+      const b = id ? aabbOf(id) : null;
+      if (id && b) {
+        const w = toWorld(toParent(e));
+        const clamp = (v: number) => Math.max(0, Math.min(1, v));
+        select([id]);
+        commentOn(id, { rx: clamp((w.x - b.x) / (b.w || 1)), ry: clamp((w.y - b.y) / (b.h || 1)) });
+      }
+      return;
+    }
+    if (s.tool === 'inspect') { select(p.hitId ? [p.hitId] : []); if (p.hitId) app.set({ panel: 'inspect' }); return; }
     if (SHAPE_TOOLS.includes(s.tool as ShapeTool)) { startDraw(e, s.tool as ShapeTool, p.hitId, p.boardId); return; }
     const id = resolveHit(p.hitId, e.ctrlKey || e.metaKey);
     if (s.bp) { select(id ? (e.shiftKey ? [...new Set([...s.selection, id])] : [id]) : []); return; }

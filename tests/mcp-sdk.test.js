@@ -18,7 +18,7 @@ async function startServer(t) {
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory' }, stdio: 'ignore',
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }, stdio: 'ignore',
   });
   t.after(() => child.kill());
   const base = `http://127.0.0.1:${port}`;
@@ -38,7 +38,7 @@ async function connect(base, name = 'Claude Code') {
 }
 const text = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 
-test('cliente oficial: initialize traz as instruções, tools/list as 96 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
+test('cliente oficial: initialize traz as instruções, tools/list as 98 ferramentas, e uma sessão trabalha de ponta a ponta', async (t) => {
   const base = await startServer(t);
   const client = await connect(base);
   t.after(() => client.close());
@@ -46,7 +46,7 @@ test('cliente oficial: initialize traz as instruções, tools/list as 96 ferrame
   assert.equal(client.getServerVersion().name, 'projeto-designer');
   assert.match(client.getInstructions(), /new_project/);
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 96, "78 do núcleo + 8 de identidade + 10 de assets");
+  assert.equal(tools.length, 98, "80 do núcleo + 8 de identidade + 10 de assets");
   assert.ok(tools.find((x) => x.name === 'get_document').annotations.readOnlyHint);
   assert.ok(tools.find((x) => x.name === 'delete_layers').annotations.destructiveHint);
 

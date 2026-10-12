@@ -11,7 +11,7 @@ export type LayerType = 'frame' | 'rect' | 'ellipse' | 'text' | 'group' | 'line'
 export interface GradientStop { color: string; opacity: number; pos: number }
 
 export interface Fill {
-  type: 'solid' | 'linear' | 'radial' | 'image' | 'none';
+  type: 'solid' | 'linear' | 'radial' | 'conic' | 'image' | 'none';
   color: string;
   opacity: number;
   stops: GradientStop[];
@@ -110,7 +110,7 @@ export interface Doc {
   pages: Page[];
   /** Imagens ficam FORA das páginas (data URLs), para o histórico não carregar megabytes. */
   assets: Record<string, string>;
-  styles: { colors: ColorStyle[]; texts: TextStyle[] };
+  styles: { colors: ColorStyle[]; texts: TextStyle[]; effects?: { id: string; name: string; [extra: string]: any }[]; gradients?: { id: string; name: string; [extra: string]: any }[]; modes?: { id: string; name: string; [extra: string]: any }[]; vars?: { id: string; name: string; value: number; [extra: string]: any }[]; [extra: string]: any };
   comments: unknown[];
   [extra: string]: any;
 }
