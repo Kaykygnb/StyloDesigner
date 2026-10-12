@@ -429,3 +429,12 @@ renderizador usar um Chromium já instalado (comum em nuvem) em vez de baixar ou
 **Histórico:** undo conservador somente última transação elegível da mesma sessão, bloqueado por escrita posterior; redo com revisão e autoria. Não usar snapshot antigo para desfazer sobre trabalho de outro. Snapshot atual legado é parcial e em memória; contrato novo cobre campos persistidos/arquivos e durabilidade. Leitura medida vira dado derivado, não escrita na base.
 **Interface:** contexto explícito, preview local de gesto→uma transação, Misto em seleção múltipla, paleta pessoal testada/temas e cache por conta; cor livre adiada. Documento resolve decisões técnicas, não licença/negócio/cadastro/direito administrativo de conteúdo. Não autoriza por inferência substituir editor em produção.
 **Verificação:** leitura workspace/store/executor/packageweb, diffs/links de documentação. Sem código/testes novos ou apps/web alterado; suíte anterior555 e tipos limpos não validam arquitetura futura.
+
+## 2026-10-12 — Duas versões do produto; licença da versão base; prioridade é estabilidade
+A pessoa dona esclareceu o modelo: (1) **versão BASE** (a que se constrói agora): qualquer pessoa baixa do GitHub e roda na própria máquina; foco em ser **estável e funcionar**; (2) **versão PAGA
+hospedada**, no servidor dela, é **outro produto**, uma evolução muito maior, para depois. **Licença pretendida da base:** baixar e usar é livre (ela e a pequena equipe), **mas ninguém pode lançar e lucrar com a
+ferramenta**. Isso resolve a contradição que existia entre `ACESSO-WEB.md` (instalação própria) e as decisões D5–D7 (serviço hospedado e cobrado): D5, D7, D12-serviço e a nova D16 foram **adiadas**
+para a versão paga; ficam para a base D1 (licença), D15 (limite da "pequena equipe"), D2, D3, D4, D6, D8–D14. **Recomendação registrada para D1:** PolyForm Shield 1.0.0 (a FSL vira MIT/Apache
+após 2 anos, o oposto do desejado); como a pessoa dona é a única titular do código, ela segue livre para vender a versão paga. **Não é decisão final**: falta a escolha dela e revisão jurídica. O trecho de
+MIT já enviado ao GitHub continua MIT para quem copiou. Prioridades da base: instalar fácil, versões numeradas com changelog, atualizar sem perder dados, backup/restauração, não perder trabalho, seguro por padrão,
+testado em CI, documentação de uso (lista completa em `PASSAGEM.md` seção 4, "Meta: estável").

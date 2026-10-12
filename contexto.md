@@ -11,7 +11,7 @@ verdade: cada camada vira HTML/CSS. Um **servidor fica ligado**; qualquer agente
 **MCP**, cria um projeto, trabalha nele, **vê** o que fez (imagem), **audita** (acessibilidade, responsivo) e **exporta**: um
 zip de HTML estruturado, um projeto React (Vite), tokens do design (CSS/JSON/Tailwind), ou puxa o código para construir o resto.
 Pessoas usam um editor visual no navegador, no mesmo projeto, ao mesmo tempo (hoje um editor legado; será refeito).
-Vai rodar localmente e também **hospedado e cobrado** — por isso Postgres, contas, tokens de agente, cotas.
+Há **duas versões** (2026-10-12): a **base**, que qualquer pessoa baixa e roda na própria máquina (**é a que se constrói agora, com foco em estabilidade**), e a **paga hospedada**, outro produto bem maior, para depois. Contas, tokens de agente e Postgres existem para a instalação e para a futura versão paga.
 
 **Foco atual: as ferramentas e o MCP, não o editor.** O editor (`apps/web`) é legado e será reconstruído depois.
 

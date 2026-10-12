@@ -75,7 +75,7 @@ dizendo exatamente o que vai acontecer.
 **Stylo** é um "Figma" para **agentes de IA e pessoas** criarem sites e aplicativos juntos. O desenho é CSS de verdade (cada camada vira HTML/CSS). Um **servidor
 fica ligado**; qualquer agente (Claude Code, Codex, Cursor...) conecta pelo **MCP** (o "protocolo de ferramentas" para IAs), cria um projeto, monta as telas,
 **vê** o resultado (imagem), **audita** (responsivo, contraste, acessibilidade) e **exporta**: zip de HTML, projeto React (Vite) ou tokens do design (CSS/JSON/Tailwind).
-Pessoas usam um editor no navegador no mesmo projeto. Vai rodar localmente e também **hospedado e cobrado** (por isso banco Postgres, contas, tokens de agente).
+Pessoas usam um editor no navegador no mesmo projeto. **Há duas versões (decisão de 2026-10-12):** a **BASE**, que qualquer pessoa baixa do GitHub e roda na própria máquina (**é a que construímos agora; a prioridade é ser ESTÁVEL**), e a **PAGA hospedada**, outro produto, bem maior, **para depois: não trabalhe nela**.
 
 **Estado:** há 91 ferramentas MCP anunciadas (73 do núcleo + 18 de plugins); `generate_image_edit` continua indisponível pelo MCP do servidor. O estado e os números da última suíte estão em `PASSAGEM.md`. O **editor visual é legado e será refeito** — **não mexa nele**.
 O foco é ter **todas as ferramentas e o MCP completos** primeiro, **o editor depois**.
@@ -91,7 +91,7 @@ mapa do código, receitas) → `decisoes.md` (o porquê de cada decisão; **só 
 - **Ferramentas de identidade só calculam e sugerem**; quem decide é o agente/pessoa (nada de criar sozinho).
 - **JavaScript de DOM só ao apresentar**, isolado; nunca no editor nem no servidor. O que entra (HTML/CSS) **nunca é confiável**.
 - **Assets gratuitos seguindo cada licença**, com crédito registrado; biblioteca é da conta; chaves de provedores por conta (BYOK).
-- **Licença: ainda em decisão** (a pessoa quer "source-available"; hoje o repositório está em MIT). **Não altere `LICENSE`.**
+- **Licença: ainda em decisão** (`PASSAGEM.md` D1/D15). A intenção: **baixar e usar é livre (a pessoa e a pequena equipe dela), mas ninguém pode lançar nem lucrar vendendo a ferramenta**. Hoje o repositório está em MIT. **Não altere `LICENSE`.**
 
 ## 4. O que você precisa saber FAZER
 

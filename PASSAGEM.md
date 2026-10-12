@@ -13,6 +13,18 @@ pequenos. Conversa em português. As decisões de **negócio** (seção 3) são 
 
 ---
 
+## 0. O produto em duas versões (decisão da pessoa dona, 2026-10-12)
+
+**Versão BASE — é esta que estamos construindo agora.** Qualquer pessoa **baixa o Stylo do GitHub e roda na própria máquina** (a "instalação"): ela guarda os projetos, serve o painel, o editor e o MCP.
+O primeiro acesso cria uma conta de administrador; o administrador pode liberar contas para uma **pequena equipe** (mesma rede). **A prioridade é uma ferramenta ESTÁVEL que funcione**, não ter muitas coisas.
+**Licença pretendida da versão base:** baixar e usar é livre (você e sua pequena equipe, inclusive para criar sites e apps com ela), **mas ninguém pode lançá-la como produto próprio nem lucrar vendendo a ferramenta**. (A licença ainda não foi escolhida: veja D1 e D15.)
+
+**Versão PAGA hospedada — outro produto, para DEPOIS.** Roda no servidor da pessoa dona e é uma evolução muito maior desta. **Não trabalhe nela agora**: nada de cobrança, planos, multiusuário em nuvem, S3/R2 ou domínio. O que ela exigir (D5, D7, D12-serviço, D16) está separado na seção 3 para não contaminar a versão base.
+
+**Consequência prática para quem programa:** em dúvida entre "mais um recurso" e "mais estabilidade", escolha estabilidade (a lista do que isso significa está na seção 4, "Meta: estável").
+
+---
+
 ## 1. Comece aqui (verificado num clone limpo, 2026-10-11)
 
 **De onde vem o código:** a branch **`limpeza`** do GitHub (`Kaykygnb/StyloDesigner`, repositório público). **A `main` de lá é a versão ANTIGA: nunca use a `main`.**
@@ -53,7 +65,7 @@ no celular e exporte em React". Onde ele tropeçar é onde a ferramenta precisa 
 | Exportar: zip HTML (imagens/fontes/players/créditos como arquivos) e **projeto React (Vite)** | ✅ |
 | Editor visual | 🟡 legado (`apps/web`), a ser refeito; **não mexa** |
 | React Native, TypeScript no React, JS de protótipo, paleta de imagem | ❌ |
-| Exposição segura na internet (HTTPS, limites, login no editor) | ❌ — o servidor só aceita local |
+| Acesso pela **rede local** com login (versão base) | 🟡 planejado em `ACESSO-WEB.md`; hoje o servidor só aceita local. **Internet pública não faz parte da versão base** |
 
 Atenção: `generate_image_edit` continua anunciado, mas **não funciona pelo MCP do servidor**. `edit_image` agora funciona quando há Chromium. Capacidades e propostas por grupo: `FERRAMENTAS.md`.
 
@@ -61,33 +73,44 @@ Atenção: `generate_image_edit` continua anunciado, mas **não funciona pelo MC
 
 ## 3. Decisões que dependem do DONO (não decida por ela)
 
-Cada uma traz minha recomendação e o que fica travado enquanto não houver resposta. **Bloqueiam o lançamento** = D1–D7, D12.
+Cada uma traz minha recomendação e o que fica travado enquanto não houver resposta. Separadas nas duas versões (seção 0). **Bloqueiam o lançamento da versão base: D1, D2, D3, D12.**
+
+### Versão BASE (agora)
 
 | # | Decisão | Minha recomendação | Enquanto isso |
 |---|---|---|---|
-| **D1** | **Licença e modelo de negócio** | FSL ou PolyForm Shield (veja abaixo) | **o código da `limpeza` já está público em MIT** (decisão da pessoa dona); falta a licença das versões futuras e o serviço |
-| **D2** | **O que fazer com o git** (232 commits locais, `designer.secret` no histórico antigo) | reescrever o histórico sem o segredo e manter o antigo numa branch `legado` | `limpeza` enviada (pública); `main` antiga intocada |
-| **D3** | Nome do produto, nome do servidor MCP nos exemplos, domínio | "Stylo" + servidor MCP `stylo` | docs usam `stylo` |
-| **D4** | Idioma do produto (hoje: instruções e mensagens em português) | manter pt-BR agora, isolar os textos para permitir inglês | tudo em pt-BR |
-| **D5** | Onde hospedar (servidor, Postgres, arquivos, HTTPS) | VPS pequeno + Postgres gerenciado + Cloudflare R2 + Caddy (HTTPS) | só local |
-| **D6** | Quem entra e como (cadastro aberto, convite ou aprovação; login por e-mail/senha ou Google/GitHub; política padrão de agentes) | convite + e-mail/senha; agentes em `approval` | modo local sem login |
-| **D7** | O que cobrar e os limites por plano (assentos, projetos, armazenamento, operações de agente/dia) | cota de armazenamento + limite de operações de agente por conta, plano grátis pequeno, cobrança via Stripe | cota fixa de 2 GB e mídia ≤ 25 MB |
-| **D8** | Chaves de provedores de assets: cada conta traz a sua (BYOK) ou uma chave única do serviço | BYOK no início (é como funciona hoje); só usar chave única depois de ler os termos do Pexels/Pixabay | BYOK |
+| **D1** | **Licença da versão base**: baixar e usar é livre; ninguém lança nem lucra vendendo a ferramenta | **PolyForm Shield 1.0.0** (uso livre para qualquer finalidade, **exceto** oferecer algo que concorra com o Stylo). Alternativa: FSL, que vira MIT/Apache depois de 2 anos (o oposto do que você quer). Detalhe abaixo | **o código da `limpeza` já está público em MIT** (decisão da pessoa dona); falta a licença das versões futuras |
+| **D15** | A "pequena equipe" tem limite de tamanho? Uma empresa grande pode usar internamente? | Sem limite: o que se proíbe é **revender/concorrer**, não usar. Se quiser limitar por tamanho ou faturamento: PolyForm Small Business (grátis só para empresas pequenas) | usar a recomendação de D1 |
+| **D2** | **O que fazer com o git** (`designer.secret` no histórico antigo; `main` antiga) | reescrever o histórico sem o segredo e manter o antigo numa branch `legado` | `limpeza` enviada (pública); `main` antiga intocada |
+| **D3** | Nome do produto, nome do servidor MCP nos exemplos | "Stylo" + servidor MCP `stylo` | docs usam `stylo` |
+| **D4** | Idioma: a versão base é para o público geral; hoje instruções, mensagens e docs são em português | pt-BR primeiro, textos isolados para permitir inglês depois; README de uso em inglês quando for divulgar | tudo em pt-BR |
+| **D6** | Acesso na instalação: quem cria contas, login, política de agentes (o plano está em `ACESSO-WEB.md`) | só o administrador cria contas (sem cadastro aberto); login por identificação+senha; agentes em `approval` | modo local sem login |
+| **D8** | Chaves de provedores de assets: cada instalação traz as suas (BYOK) | BYOK (é como funciona; não existe chave "do Stylo" na versão base) | BYOK |
 | **D9** | Próximos formatos de exportação | variante **TypeScript** do React (barata), depois **React Native**; Vue/Svelte só se pedirem | só HTML e React |
-| **D10** | **Editor novo**: tecnologia, escopo do v1, quando começar; colaboração por operações no servidor ou CRDT | React + Vite, canvas DOM como hoje, **operações enviadas ao workspace** (sem CRDT) | editor legado congelado |
-| **D11** | JavaScript de protótipo: o agente pode escrever? | confirmar a regra já combinada (só ao Apresentar, em iframe isolado, nunca no editor/servidor) e deixar para quando houver demanda | `<script>` é removido |
-| **D12** | Privacidade e termos de uso (LGPD/GDPR, exclusão de conta, retenção de versões, direitos sobre o que os agentes geram e sobre assets de terceiros) | texto jurídico antes do lançamento | — |
-| **D13** | IA generativa de imagem (`generate_image_edit`): manter? | tirar do núcleo e virar plugin opcional com chave da própria conta | não funciona no servidor |
-| **D14** | Telemetria e logs do serviço pago | só erros e métricas agregadas; nunca o conteúdo dos projetos | nenhuma |
+| **D10** | **Editor novo**: a tecnologia e a arquitetura foram delegadas e fechadas em `ARQUITETURA-EDITOR.md`; **continua sua:** o escopo do v1 e quando começar a programar | começar só depois de provar concorrência/persistência (primeiro bloco já descrito lá) | editor legado congelado |
+| **D11** | JavaScript de protótipo: o agente pode escrever? | confirmar a regra combinada (só ao Apresentar, em iframe isolado) e deixar para quando houver demanda | `<script>` é removido |
+| **D12** | **Aviso de privacidade e termos mínimos da versão base** (os dados ficam na instalação de quem usa; o administrador responde por ela; assets de terceiros mantêm a licença deles) | texto curto e honesto no README/NOTICE, com revisão jurídica rápida | `NOTICE` atual |
+| **D13** | IA generativa de imagem (`generate_image_edit`): manter? | tirar do núcleo e virar plugin opcional com chave da própria instalação | não funciona no servidor |
+| **D14** | Telemetria na versão base | **nenhuma** (se um dia houver, só opcional e avisada); nunca o conteúdo dos projetos | nenhuma |
+
+### Versão PAGA hospedada (DEPOIS — não trabalhar agora)
+
+| # | Decisão | Minha recomendação (para quando chegar a hora) |
+|---|---|---|
+| **D5** | Onde hospedar (servidor, Postgres, arquivos, HTTPS, domínio) | VPS pequeno + Postgres gerenciado + Cloudflare R2 + Caddy (HTTPS) |
+| **D7** | O que cobrar e os limites por plano (assentos, projetos, armazenamento, operações de agente/dia) | cota de armazenamento + limite de operações de agente por conta, plano grátis pequeno, cobrança via Stripe |
+| **D12-serviço** | Privacidade e termos do **serviço** (LGPD/GDPR, exclusão de conta, retenção de versões, direitos sobre o que os agentes geram) | texto jurídico completo antes do lançamento |
+| **D16** | Relação entre as duas versões: que parte do código da base entra na paga, em que licença a paga fica, como aceitar contribuições de terceiros sem perder o direito de relicenciar | a pessoa dona é a única titular do código hoje; antes de aceitar contribuições externas, exigir um **CLA** (termo de cessão) |
 
 ### Detalhe das que mais pesam
 
-**D1 — Licença.** O pedido é "source-available": ninguém vende a ferramenta como produto próprio; **usar o resultado** (os sites) é livre e
-agentes que a usam para prototipar são bem-vindos. Hoje o repositório está em **MIT** (qualquer um pode revender). Opções:
-*FSL (Functional Source License)* — impede concorrente direto por 2 anos e depois vira MIT/Apache; *PolyForm Shield* — impede concorrente
-direto sem prazo; *AGPL* — copyleft (um SaaS concorrente teria de abrir o código dele); *fechar o código*. Não chame de "open source"
-(a definição oficial não permite restringir uso comercial). Se aceitar contribuições de terceiros, precisa de um **CLA**. **Precisa de revisão
-jurídica** antes de valer. O `NOTICE` já lista as licenças das dependências (todas MIT/ISC/Apache, compatíveis).
+**D1 — Licença da versão base.** O que a pessoa dona quer (2026-10-12): **baixar e usar é livre** (ela e a pequena equipe dela, inclusive para fazer sites e apps), **mas não se pode lançar e lucrar com a ferramenta** como produto próprio.
+Isso é "source-available", **não** "open source" (a definição oficial de open source não permite restringir uso comercial; não chame o Stylo assim). Opções:
+- **PolyForm Shield 1.0.0 (recomendada):** qualquer um pode usar, copiar e modificar para qualquer finalidade, **exceto** fornecer um produto que concorra com o Stylo. Sem prazo, sem conversão. Casa com "baixe e use, mas não venda a ferramenta". Como a pessoa dona é a única titular do código, ela **continua livre para vender a versão paga hospedada**.
+- **FSL (Functional Source License):** parecida, mas **vira MIT/Apache automaticamente depois de 2 anos**: passados 2 anos, qualquer um poderia vender aquela versão. Contra o que a pessoa quer.
+- **PolyForm Small Business:** grátis só para empresas pequenas (limite de tamanho e faturamento); empresa grande paga. Só se a "pequena equipe" for um limite de verdade (D15).
+- **AGPL:** copyleft; quem oferecer um serviço com o Stylo tem de abrir o código dele. Não impede vender, só exige abrir. **Fechar o código:** simples, mas contraria "baixar e usar".
+Se aceitar contribuições de terceiros: **CLA** (D16). **Precisa de revisão jurídica** antes de valer. O `NOTICE` já lista as licenças das dependências (todas MIT/ISC/Apache, compatíveis).
 **Já aconteceu (2026-10-11):** a pessoa dona mandou enviar a branch `limpeza` ao GitHub **público, em MIT**. Esse código passou a poder ser copiado e reutilizado por qualquer um, inclusive para vender, e **isso não se desfaz** para quem já copiou. Uma licença nova (FSL/Shield) só vale para versões futuras. Se a intenção de "source-available" continua, decidir D1 **antes** de enviar mais código importante.
 **Posição da pessoa dona (2026-10-11):** o repositório é dela e a licença será decidida **depois**; se o resultado não ficar bom, ela **apaga o repositório e cria outro** (apagar não desfaz cópias já feitas por terceiros, mas permite recomeçar com a licença certa). Por isso: quem programa **não decide nada de licença** e **não conta com o remoto existir para sempre** — se um `push` ou `fetch` falhar porque o repositório sumiu ou mudou de endereço, **pare e avise a pessoa dona**; o histórico local continua valendo.
 
@@ -97,17 +120,29 @@ ficou visível no histórico; o banco local guardava **0 chaves criptografadas**
 **Ainda aberto:** (a) reescrever o histórico para apagar o arquivo de vez (opcional; mudaria os códigos dos commits); (b) o que fazer com a `main` antiga — recomendo arquivar como branch `legado` e
 fazer o merge da `limpeza` na `main` só quando a licença (D1) estiver decidida; (c) se o repositório segue público até lá.
 
-**D7 — Cobrança.** Já existem como base: cota de biblioteca por conta (`STYLO_LIBRARY_QUOTA_MB`), log de operações por agente, limites de tamanho por
+**D7 — Cobrança (versão PAGA, depois; fora do escopo da base).** Já existem como base: cota de biblioteca por conta (`STYLO_LIBRARY_QUOTA_MB`), log de operações por agente, limites de tamanho por
 tipo de arquivo. Faltam planos, limite de requisições, medição de uso e integração de pagamento. Decidir **o que é a unidade cobrada** antes de implementar.
 
 ### Ações que só a pessoa dona pode fazer (não são decisões)
 - Cadastrar chaves reais do **Pexels**, **Pixabay** e **Poly Pizza** (`PUT /api/providers/<id>/key` ou variáveis de ambiente) para a verificação real.
-- Contratar a revisão jurídica (D1, D12) e escolher domínio/hospedagem (D5).
+- Contratar a revisão jurídica da licença da versão base (D1, D12). (Domínio e hospedagem, D5, só entram na versão paga, depois.)
 - Apontar um agente real (Claude Code/Codex) para o servidor e dizer onde ele travou.
 
 ---
 
 ## 4. Próximos passos técnicos — o programador pode fazer SEM esperar decisão
+
+### Meta: estável (versão base)
+
+**"Estável e funciona" significa, na prática (sugestão minha; a pessoa dona confirma):**
+1. **Instalar e rodar em poucos comandos**, no Windows, macOS e Linux, com mensagens claras quando faltar algo (Node, Chromium).
+2. **Versões numeradas** (`v0.x`, `v1.0`) com um registro de mudanças (changelog) por versão, para a pessoa saber o que mudou ao atualizar.
+3. **Atualizar sem perder projetos:** migrações do banco testadas de uma versão para a próxima; **backup e restauração** simples (exportar tudo / importar).
+4. **Nunca perder trabalho:** gravação atômica, versões do projeto (já existem), recuperação após queda, erro sempre com explicação do conserto.
+5. **Seguro por padrão:** acesso pela rede só com login e só se o administrador ligar; nada na internet pública.
+6. **Testado de verdade:** suíte verde em CI nas plataformas suportadas (Node 22 e 24); roteiro de uso real (agente + pessoa) antes de cada versão.
+7. **Documentação de USO** (para quem baixa), separada da documentação de quem programa.
+Fora da versão base (não gaste tempo): cobrança, planos, multi-inquilino em nuvem, S3/R2, domínio e HTTPS públicos.
 
 A pessoa dona pediu para pensar as capacidades por grupo e melhorar as ferramentas, mantendo o editor congelado.
 O mapa atual e a ordem recomendada estão em `FERRAMENTAS.md`: edição local de fotos, ajustes em lote e busca por propriedades concluídos;
@@ -121,10 +156,10 @@ inspeção textual por largura também concluída; próximo grupo sugerido, manu
 6. **Verificação real dos provedores** quando houver chaves; conferir a API oficial do **Poly Pizza** (`plugins/assets/providers/polypizza.ts`, hoje `unverified`).
 7. **Arquivo de licenças dentro do zip exportado** (players de 3D/Lottie e fontes) — pendência do `NOTICE`.
 8. **Testes de rota HTTP** de `site.zip`/`react.zip`; teste de React com um projeto que use estados (hover) e animações.
-9. **Preparar o terreno da hospedagem sem fechar decisões:** interface de `blobs.ts` para S3/R2 (já existe a interface; falta a implementação), filtro de eventos SSE por pessoa, limite de requisições por token. (A parte de HTTPS/domínio depende de D5.)
+9. **[ADIADO — versão paga]** ~~Preparar o terreno da hospedagem~~: S3/R2 para os blobs e limite de requisições por token só interessam à versão hospedada. **Fica na base:** filtro de eventos ao vivo (SSE) por pessoa, porque contas na rede local precisam disso (veja `ACESSO-WEB.md`).
 10. **Limpar o repositório:** `scripts/auditar-colaboracao.mjs` e `scripts/gerar-miniatura-vitrine.mjs` são do editor antigo (provavelmente quebrados); `tests/e2e/*` está desatualizado; `apps/web` sai quando o editor novo chegar.
 
-O que **depende de decisão** e por isso não está nesta lista: React Native e TypeScript no React (D9), editor novo (D10), JS de protótipo (D11), hospedagem/login/cobrança (D5–D7).
+O que **depende de decisão** e por isso não está nesta lista: React Native e TypeScript no React (D9), escopo do editor v1 (D10), JS de protótipo (D11), login/contas da instalação (D6). **Versão paga (D5, D7, D12-serviço, D16): adiada.**
 
 ---
 
@@ -153,8 +188,8 @@ Lista viva: tudo que foi visto e deixado de lado. Quem pular algo novo, acrescen
 | Efeitos em fotos acima de 4 milhões de pixels; animação GIF; metadados EXIF | limite de memória dos arrays de pixels; a edição trabalha num quadro rasterizado, não preserva animação/metadados | reduzir em uma chamada antes dos efeitos; avaliar tratamento dedicado se necessário |
 | Filtros de pixels ainda rodam de forma síncrona no Node | reuso da matemática pura existente; fila e limite de pixels reduzem carga, mas o timeout do Chromium não interrompe CPU síncrona | avaliar worker de processamento caso apareça lentidão em fotos maiores |
 | Lote de breakpoints/estados e simulação de geometria intermediária no lote | `update_layers` cobre as propriedades base; comandos de layout usam a geometria atual, sem medidas entre os itens | demanda real; `set_responsive`/`set_state` continuam individuais |
-| Exposição na internet (HTTPS, limites, SSE por pessoa, login no editor) | produto ainda não hospedado | D5–D6 |
-| Cobrança, planos, cotas por plano, S3/R2 | só há pasta/memória e cota fixa | D5, D7 |
+| Acesso pela rede local com login (versão base): HTTPS opcional, limites, SSE por pessoa | produto ainda local-only | `ACESSO-WEB.md` / D6 |
+| **Versão paga hospedada** (cobrança, planos, cotas por plano, S3/R2, internet pública, domínio) | é outro produto, para depois (decisão de 2026-10-12) | D5, D7, D12-serviço, D16 |
 | TypeScript no resto do núcleo (`store`, `commands`, `css`...) | converter tudo de uma vez deu ~700 erros; **executor convertido e dividido** | converter ao mexer (passo 1) |
 | `tests/e2e` antigos | dependem do chat/agente removido e do editor antigo | editor novo (D10) |
 | Importador de `.json` antigos | é só uma ponte | `npm run importar`; apagar quando não houver mais `.json` |
