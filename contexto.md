@@ -245,3 +245,7 @@ A pessoa dona rejeitou a aparência pouco polida do legado e pediu cor principal
 ### Editor adaptado às capacidades
 
 EDITOR-WEB.md mapeia ferramentas e conceitos para interação manual/contextual. Distinções críticas: página organizadora vs tela exportada, fluxo vs coordenadas, recursos vinculados, instâncias, sobrescritas e prévia vs protótipo/exportação. Requer caminho web de operações comuns e contexto visual por sessão; hoje seleção/página ativa/histórico são do projeto. Nenhuma mudança em apps/web neste planejamento.
+
+### Arquitetura decidida do editor
+
+A pessoa dona delegou resolver questões técnicas. ARQUITETURA-EDITOR.md fecha React/TS/Vite, DOM isolado, contexto visual e MCP por sessão, autoridade documental no servidor, transações serializadas com revisão/idempotência e persistência antes de confirmar. Undo inicial só última transação elegível da mesma sessão, sem apagar trabalho alheio; conflitos recusam escrita antiga e preservam rascunho. Tema/paleta de destaque por pessoa, cor livre posterior. Ainda só documentação: store/workspace antigos não foram migrados. Implementação começa por provar contratos de concorrência/persistência antes do shell visual.

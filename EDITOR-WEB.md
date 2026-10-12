@@ -243,3 +243,7 @@ Leitura do mapa, schemas núcleo/organização/recursos, propriedades aceitas e 
 identidade. Inventário distingue modelo, ferramentas e experiência web futura. Não houve
 inspeção visual ao vivo, teste de editor, código em apps/web ou teste novo de integração.
 Última suíte anterior555/555 e tipos limpos não comprova este editor planejado.
+
+## Arquitetura técnica fechada
+
+[ARQUITETURA-EDITOR.md](ARQUITETURA-EDITOR.md) resolve as escolhas técnicas após delegação da pessoa dona: React/TypeScript/Vite, canvas DOM isolado, contexto por sessão, operações comuns, revisão/fila por projeto, conflitos explícitos e undo conservador por sessão. Sobrepõe as alternativas técnicas anteriores; comportamento ainda precisa ser implementado. Negócio e política de acesso permanecem decisões separadas.

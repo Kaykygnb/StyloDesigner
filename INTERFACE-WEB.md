@@ -184,3 +184,7 @@ implícita de implementação, licença, hospedagem ou negócio.
 ## Estrutura funcional complementar
 
 [EDITOR-WEB.md](EDITOR-WEB.md) mapeia capacidades para áreas do editor e detalha documento/layout, vínculos, estados, mídia, revisão, entrega e contratos de concorrência. Ainda é planejamento, sem implementação.
+
+## Arquitetura técnica fechada
+
+[ARQUITETURA-EDITOR.md](ARQUITETURA-EDITOR.md) resolve as escolhas técnicas após delegação da pessoa dona: React/TypeScript/Vite, canvas DOM isolado, contexto por sessão, operações comuns, revisão/fila por projeto, conflitos explícitos e undo conservador por sessão. Sobrepõe as alternativas técnicas anteriores; comportamento ainda precisa ser implementado. Negócio e política de acesso permanecem decisões separadas.
