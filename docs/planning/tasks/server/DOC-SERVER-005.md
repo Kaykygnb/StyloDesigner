@@ -1,11 +1,11 @@
 # DOC-SERVER-005 — Verificar gates de autorização da configuração do servidor
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-13 21:24 UTC
+Responsável: [Kimi]
+Estado: Em andamento
+Início: 2026-10-13 22:22 UTC
+Última atualização: 2026-10-13 22:22 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Kimi]
 
 ## Problema e evidências
 
@@ -40,8 +40,8 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 ## Marcos
 
 ### #1 — Investigação
-- Estado: pendente
-- Responsável: [Não atribuído]
+- Estado: em andamento
+- Responsável: [Kimi]
 - Atividades executadas: —
 - Arquivos alterados: —
 - Evidências: —
@@ -85,6 +85,15 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-13 22:22 UTC — [Kimi] — #1 Investigação (assunção)
+
+- Investigado: protocolo, BACKLOG e duplicação com DOC-SERVER-004 (cenários distintos: esta tarefa trata dos gates de autorização da config; a 004, da revalidação de acesso pós-mudança de compartilhamento).
+- Alterado: responsável registrado como [Kimi], estado `Em andamento`, marco #1 em andamento.
+- Arquivos: esta tarefa e BACKLOG.md.
+- Testes: nenhum nesta entrada.
+- Resultado: tarefa assumida conforme protocolo §2, após `git pull` confirmar que a branch está sincronizada.
+- Próximo passo: ler `routes/system.ts`, identidade e testes HTTP de accounts para reproduzir o acesso anônimo/membro em PUT /config.
 
 ### 2026-10-13 21:24 UTC — [Codex] — proposta
 
