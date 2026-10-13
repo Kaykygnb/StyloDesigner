@@ -2,11 +2,11 @@
  * routes/system.ts — STATUS, CONFIGURAÇÃO, PERFIL LOCAL, PRESENÇA E AVISOS AO VIVO
  *   GET  /api/status              { ok, keepVersions }
  *   GET  /api/health              diagnóstico seguro do servidor e do banco
- *   PUT  /api/config              { keepVersions? }
+ *   PUT  /api/config              { keepVersions? } (só administradores)
  *   GET|PUT /api/account          perfil da conta local (modo local; assina comentários e aparece na presença)
  *   GET  /api/presence            quem está no servidor (pessoas e agentes)
  *   GET  /api/agent/events        Server-Sent Events para o editor (presence e project)
- *   GET|PUT /api/agent/config     endereço do MCP, chave do Pexels (as chaves NUNCA são devolvidas)
+ *   GET|PUT /api/agent/config     endereço do MCP, chave do Pexels (as chaves NUNCA são devolvidas; PUT só administradores)
  */
 
 import { readFile } from 'node:fs/promises';
@@ -81,6 +81,7 @@ export function systemRoutes(s: Services, identity: Identity) {
   });
 
   r.put('/config', async (c) => {
+    await identity.adminOf(c);
     const body = await readObject(c);
     const next = { ...s.config.get() };
     if (body.keepVersions !== undefined) next.keepVersions = Math.max(0, Math.min(200, Math.round(Number(body.keepVersions) || 0)));
@@ -120,6 +121,7 @@ export function systemRoutes(s: Services, identity: Identity) {
     agentPolicy: s.config.get().mcp?.agentPolicy || 'closed',
   }));
   r.put('/agent/config', async (c) => {
+    await identity.adminOf(c);
     const body = await readObject(c);
     const pexels = { ...(s.config.get().pexels || {}) } as { apiKey?: string };
     if (body.pexelsKey !== undefined) {
