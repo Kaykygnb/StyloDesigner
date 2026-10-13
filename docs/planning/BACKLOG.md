@@ -19,4 +19,4 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-SERVER-004 | Revalidar acesso em workspaces com compartilhamento alterado | server/autorização | P0 | Concluída | [Codex] | 5/5 (100%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-004.md) |
 | DOC-SERVER-005 | Verificar gates de autorização da configuração do servidor | server/autorização | P0 | Em validação | [Kimi] | 4/5 (80%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-005.md) |
 | DOC-STUDIO-003 | Revisão visual e usabilidade do Studio para pessoas | studio/UX | P1 | Em andamento | [Codex] | 0/5 (0%) | DOC-STUDIO-002, DOC-ENG-002 | [tarefa](tasks/studio/DOC-STUDIO-003.md) |
-| DOC-QA-001 | Preparar QA exploratório com ChatGPT Work | QA/documentação | P1 | Em validação | [Codex] | 4/5 (80%) | DOC-STUDIO-003 (relação de evidências) | [tarefa](tasks/qa/DOC-QA-001.md) |
+| DOC-QA-001 | Preparar QA exploratório com ChatGPT Work | QA/documentação | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-STUDIO-003 (relação de evidências) | [tarefa](tasks/qa/DOC-QA-001.md) |

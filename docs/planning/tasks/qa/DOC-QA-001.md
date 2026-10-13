@@ -1,10 +1,10 @@
 # DOC-QA-001 — Preparar QA exploratório com ChatGPT Work
 
 Responsável: [Codex]
-Estado: Em validação
+Estado: Concluída
 Início: 2026-10-13 23:02 UTC
-Última atualização: 2026-10-13 23:07 UTC
-Progresso: 4/5 marcos (80%)
+Última atualização: 2026-10-13 23:08 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -41,7 +41,7 @@ Entregar guia, catálogo de jornadas fundamentado na interface implementada, mod
 - [x] Guia externo descreve acesso/permissões, interface gráfica, primeira exploração sem ler implementação e tratamento de bloqueios.
 - [x] Template registra contexto, reprodução, evidências reais, classificação, gravidade/impacto e limitações; nenhuma execução inventada.
 - [x] Fluxo humano e rastreabilidade jornada → observação → problema → tarefa → correção → reteste documentados; triagem evita duplicatas e tarefas automáticas de sugestão.
-- [ ] Apenas Markdown alterado; validador, links locais e diff revisados; publicação na beta e handoff atualizados.
+- [x] Apenas Markdown alterado; validador, links locais e diff revisados; publicação na beta e handoff atualizados.
 
 ## Marcos
 
@@ -87,13 +87,13 @@ Entregar guia, catálogo de jornadas fundamentado na interface implementada, mod
 
 ### #5 — Validação final
 
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: critérios documentais revisados; preparar commit beta e entrega do caminho do guia ao proprietário.
-- Arquivos alterados: esta tarefa, backlog e handoff.
-- Evidências: diff restrito a docs/**/*.md; DOC-STUDIO-003 preservada; publicação ainda pendente.
-- Testes executados: repetir validador/diff após metadados finais; sem testes funcionais nesta tarefa exclusivamente documental.
-- Problemas encontrados: falta registrar commit publicado antes de fechar o marco final.
+- Atividades executadas: critérios revisados; documentação publicada diretamente na beta e handoff atualizado; caminho externo do guia definido.
+- Arquivos alterados: esta tarefa, BACKLOG.md e HANDOFF.md para fechamento documental.
+- Evidências: [commit documental 7c24f1f](https://github.com/Kaykygnb/StyloDesigner/commit/7c24f1fd4eb63356015aa1eb5790b1177f847290); contém somente os dez arquivos Markdown previstos, sem alteração funcional. DOC-STUDIO-003 intacta.
+- Testes executados: validador documental e links/campos aprovados no #4; validador, diff e escopo repetidos após fechamento. Não executar typecheck, suíte ou E2E por esta mudança exclusivamente documental.
+- Problemas encontrados: nenhum bloqueio de preparação; uso real do Work e qualidade da experiência continuam não verificados nesta entrega.
 
 ## Histórico de trabalho
 
@@ -115,18 +115,27 @@ Entregar guia, catálogo de jornadas fundamentado na interface implementada, mod
 - Resultado: documentação pronta e validada; sessão Work depende de iniciativa humana futura; nenhuma jornada executada.
 - Próximo passo: publicar e registrar o commit para concluir #5.
 
+### 2026-10-13 23:08 UTC — [Codex] — #5 publicação e conclusão
+
+- Investigado: publicação 7c24f1f e integridade do checkout; critérios documentais atendidos.
+- Alterado: estado Concluída, 5/5 marcos e handoff final; mantidos todos os registros anteriores.
+- Arquivos: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Testes: validador documental, diff --check e verificação estática final; nenhuma exploração visual ou alteração funcional.
+- Resultado: documentos disponíveis na beta; guia exato docs/qa/WORK-GUIDE.md. Sessões e relatos reais futuros dependem de iniciativa e permissões do proprietário.
+- Próximo passo: proprietário disponibiliza o guia/URL e escolhe jornadas; engenharia tria somente achados reais posteriormente, sem criar tarefas automáticas de sugestão.
+
 ## Handoff atual
 
 Preparado por: [Codex]
 Destinatário: [Codex / próximo participante após transferência]
-Estado: Aguardando publicação documental
-Marco atual: #5 — Validação final
-Última atualização: 2026-10-13 23:07 UTC
-Commit de referência: `5ba7bbf1405f08f671aae993ff135f13143fe966`
+Estado: Concluída — preparo entregue ao proprietário
+Marco atual: #5 — Validação final concluída
+Última atualização: 2026-10-13 23:08 UTC
+Commit de referência: `7c24f1fd4eb63356015aa1eb5790b1177f847290`
 
 ### Estado atual
 
-Cinco documentos QA completos e validados; nenhum resultado de sessão. Falta registrar a publicação para concluir a tarefa.
+Cinco documentos QA completos, validados e publicados em 7c24f1f. Nenhum resultado de sessão e nenhuma alteração funcional. DOC-STUDIO-003 preservada.
 
 ### Decisões tomadas
 
@@ -142,11 +151,11 @@ Validador: 16 tarefas válidas. Verificação estática: 14 jornadas, 59 links, 
 
 ### Pendências
 
-Commit da beta e fechamento documental do marco #5. Ambiente/contas/permissões de sessão Work permanecem a cargo do proprietário.
+Nenhuma pendência desta preparação. Ambiente/contas/permissões de sessão Work permanecem a cargo do proprietário; resultados de exploração ainda não existem.
 
 ### Próximas ações recomendadas
 
-Publicar os documentos na beta; registrar commit e fechar #5; fornecer docs/qa/WORK-GUIDE.md ao proprietário.
+Proprietário fornece docs/qa/WORK-GUIDE.md (arquivo/conteúdo ou link da beta), URL e permissões, escolhe jornadas e inicia a sessão; registrar relatório real antes de encaminhar engenharia.
 
 ### Riscos e cuidados
 
