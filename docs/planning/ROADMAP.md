@@ -21,7 +21,7 @@ Rodada concluída nas tarefas DOC-ENG-002, DOC-STUDIO-002 e DOC-SERVER-003. Impl
 
 1. Reproduzir gates de configuração accounts e revalidação de acesso em compartilhamentos alterados (DOC-SERVER-004 e DOC-SERVER-005; Proposto, não validado nesta rodada).
 2. Medir carregamento do Studio e avaliar separação de código: o build local de 2026-10-13 em Node 24 gerou 857,06 kB de JavaScript (248,14 kB gzip) e avisou sobre import dinâmico ineficaz em `AutoLayoutSection.tsx`. Isso é evidência de tamanho do pacote, não de lentidão percebida.
-3. Priorizar correções de experiência a partir do fluxo real em desktop e mobile, com evidência antes/depois e testes proporcionais ao risco.
+3. Revisar a experiência visual e funcional para pessoas em desktop e mobile ([DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md), Proposta): jornadas por perfil, legibilidade, foco, feedback e responsividade, com evidência antes/depois e testes proporcionais ao risco.
 
 Essas propostas ainda não têm implementação ou validação; cada uma deve seguir TASK-PROTOCOL.md antes de ser assumida.
 

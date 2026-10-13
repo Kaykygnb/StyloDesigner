@@ -18,3 +18,4 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-SERVER-003 | Vincular workspace do Studio à conta autenticada | server/Studio | P0 | Concluída | [Codex] | 5/5 (100%) | DOC-ENG-002 | [tarefa](tasks/server/DOC-SERVER-003.md) |
 | DOC-SERVER-004 | Revalidar acesso em workspaces com compartilhamento alterado | server/autorização | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-004.md) |
 | DOC-SERVER-005 | Verificar gates de autorização da configuração do servidor | server/autorização | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-005.md) |
+| DOC-STUDIO-003 | Revisão visual e usabilidade do Studio para pessoas | studio/UX | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-STUDIO-002, DOC-ENG-002 | [tarefa](tasks/studio/DOC-STUDIO-003.md) |

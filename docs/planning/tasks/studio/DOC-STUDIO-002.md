@@ -3,7 +3,7 @@
 Responsável: [Codex]
 Estado: Concluída
 Início: 2026-10-13 20:55 UTC
-Última atualização: 2026-10-13 21:38 UTC
+Última atualização: 2026-10-13 22:03 UTC
 Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
@@ -48,7 +48,7 @@ Estado de boot/afterLogin e saída; formulário de troca obrigatória; menus con
 - Atividades executadas: boot chama afterLogin, que conecta SSE e carrega projetos mesmo com mustChangePassword. Reprodução em navegador mostrou o formulário após reload, mas seis chamadas protegidas antes da troca (backend recusa o acesso). A inspeção também confirmou que Home usava role de projeto (inicialmente OWNER) para mostrar administração da conta, e o screenshot de viewport 390 px tinha 491 px de largura por overflow do cabeçalho.
 - Arquivos alterados: esta tarefa e backlog; implementação pendente.
 - Evidências: boot chama afterLogin, que conecta SSE e carrega projetos mesmo com mustChangePassword. Reprodução em navegador mostrou o formulário após reload, mas seis chamadas protegidas antes da troca (backend recusa o acesso). A inspeção também confirmou que Home usava role de projeto (inicialmente OWNER) para mostrar administração da conta, e o screenshot de viewport 390 px tinha 491 px de largura por overflow do cabeçalho.
-- Testes executados: revisão da CI anterior; reprodução browser pendente.
+- Testes executados: revisão da CI anterior e reprodução em navegador; seis chamadas protegidas antes da troca e overflow de 491 px em viewport de 390 px confirmados.
 - Problemas encontrados: registrados no escopo; sem bloqueio para iniciar.
 
 ### #2 — Planejamento
@@ -57,7 +57,7 @@ Estado de boot/afterLogin e saída; formulário de troca obrigatória; menus con
 - Atividades executadas: escopo e critérios acima; etapas runner → reprodução → correção → E2E → gates → publicação beta.
 - Arquivos alterados: esta tarefa e backlog; implementação pendente.
 - Evidências: escopo e critérios acima; etapas runner → reprodução → correção → E2E → gates → publicação beta.
-- Testes executados: revisão da CI anterior; reprodução browser pendente.
+- Testes executados: revisão das evidências de investigação; gates e cenários de navegador definidos para os marcos #4/#5.
 - Problemas encontrados: registrados no escopo; sem bloqueio para iniciar.
 
 ### #3 — Implementação
@@ -128,3 +128,12 @@ Estado de boot/afterLogin e saída; formulário de troca obrigatória; menus con
 ## Rollback
 
 Reverter alterações desta tarefa, preservando histórico e evidências; nenhuma migração de banco prevista.
+
+### 2026-10-13 22:03 UTC — [Codex] — revisão documental
+
+- Investigado: coerência dos marcos #1/#2 com a reprodução já registrada e distinção entre correções visuais concluídas e revisão visual futura.
+- Alterado: descrições de testes desses marcos deixam de indicar reprodução pendente; histórico anterior preservado.
+- Arquivos: este documento; revisão ampla registrada separadamente em DOC-STUDIO-003.
+- Testes: validador documental antes da publicação; nenhum código alterado.
+- Resultado: tarefa continua Concluída com as evidências da rodada anterior; DOC-STUDIO-003 permanece Proposta.
+- Próximo passo: priorizar as propostas do backlog conforme risco e impacto para pessoas.
