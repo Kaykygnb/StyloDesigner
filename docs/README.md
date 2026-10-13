@@ -34,6 +34,7 @@ Os documentos anteriores foram removidos da documentação ativa. O snapshot é 
 - [engineering/CONTRACTS.md](engineering/CONTRACTS.md): interfaces que não podem ser alteradas casualmente.
 - [testing/](testing/): estratégia, inventário, efetividade e regressões.
 - [planning/](planning/): backlog e tarefas executáveis.
+- [planning/TASK-PROTOCOL.md](planning/TASK-PROTOCOL.md): protocolo obrigatório para descobrir, assumir e concluir tarefas.
 
 ## Regra de manutenção
 

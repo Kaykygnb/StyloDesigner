@@ -1,11 +1,14 @@
-# Backlog fundamentado
+# Backlog central
 
-| ID | Prioridade | Módulo | Problema verificável | Estado |
-|---|---:|---|---|---|
-| DOC-CORE-001 | P0 | core | Não há inventário único ligando cada ferramenta a handler, lock, escopo, undo e teste. | Proposto |
-| DOC-CORE-002 | P1 | core | Exportação possui vários formatos e warnings sem matriz central de limites. | Proposto |
-| DOC-MCP-001 | P0 | mcp | Compatibilidade por cliente externo não foi verificada. | Proposto |
-| DOC-STUDIO-001 | P1 | studio | Não há paridade automatizada UI/MCP por capacidade crítica. | Proposto |
-| DOC-SERVER-001 | P1 | server | PostgreSQL externo e rede multiusuário prolongada não têm evidência. | Proposto |
-| DOC-DB-001 | P1 | database | Falta procedimento automatizado de verificar restore/migração em ambiente descartável. | Proposto |
-| DOC-PLUGIN-001 | P2 | plugins | Providers com credenciais reais e contratos de licença precisam de matriz de integração. | Proposto |
+O backlog é um índice. O documento individual, ligado na última coluna, é a fonte de verdade do estado, progresso, marcos e histórico. Consulte [TASK-PROTOCOL.md](TASK-PROTOCOL.md) antes de criar ou assumir uma tarefa.
+
+| ID | Título | Módulo | Prioridade | Estado | Responsável | Progresso | Dependências | Documento |
+|---|---|---|---:|---|---|---:|---|---|
+| DOC-CORE-001 | Inventário verificável de ferramentas | core | P0 | Proposta | [Não atribuído] | 0/5 (0%) | — | [tarefa](tasks/core/DOC-CORE-001.md) |
+| DOC-CORE-002 | Matriz de exportação e warnings | core | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/core/DOC-CORE-002.md) |
+| DOC-MCP-001 | Matriz de compatibilidade MCP | mcp | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/mcp/DOC-MCP-001.md) |
+| DOC-STUDIO-001 | Paridade das operações críticas | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/studio/DOC-STUDIO-001.md) |
+| DOC-SERVER-001 | Validar adapters de persistência e rede | server/database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | — | [tarefa](tasks/server/DOC-SERVER-001.md) |
+| DOC-DB-001 | Restore e migração descartáveis | database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-001 | [tarefa](tasks/database/DOC-DB-001.md) |
+| DOC-PLUGIN-001 | Matriz de providers e licenças | plugins | P2 | Proposta | [Não atribuído] | 0/5 (0%) | credenciais de teste | [tarefa](tasks/plugins/DOC-PLUGIN-001.md) |
+

@@ -24,3 +24,5 @@ npm run build
 ```
 
 Consulte [docs/engineering/QUALITY-GATES.md](docs/engineering/QUALITY-GATES.md) antes de alterar o software.
+
+Para trabalho colaborativo, consulte [docs/planning/TASK-PROTOCOL.md](docs/planning/TASK-PROTOCOL.md) antes de criar ou assumir uma tarefa.
