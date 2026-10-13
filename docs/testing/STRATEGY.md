@@ -23,3 +23,7 @@ O comando compila o Studio e chama `tests/e2e/run.mjs`. Por padrão, o runner us
 - `studio-login-fluxo.mjs`: senha incorreta, usuário editor em contexto separado, senha temporária/reload/saída/troca, projetos, cookie de sessão, logout/reentrada, sessão revogada, suspensão/reativação e menus conforme papel da conta. Confere largura de 390 px e registra screenshots.
 
 `APP_URL` explícito conserva a opção de testar um servidor accounts externo com dados descartáveis; `E2E_ADMIN_EMAIL` e `E2E_ADMIN_PASSWORD` escolhem a conta de teste. Sem `APP_URL`, o servidor é sempre isolado. `CHROMIUM_PATH` escolhe o executável. Logs e screenshots ficam em `capturas/e2e/` (ou `STYLO_E2E_ARTIFACTS`), fora do Git; em falha a CI publica essa pasta como artifact. Esses testes não validam outros navegadores, recuperação de senha por e-mail ou PostgreSQL externo.
+
+## Avaliação exploratória independente
+
+O processo de QA pela interface gráfica está em [docs/qa](../qa/README.md). O proprietário inicia uma sessão no ChatGPT Work, fornece ambiente/permissões e escolhe jornadas; relatórios reais podem gerar tarefas pelo protocolo. A preparação documental não executa exploração, não substitui esta automação e não comprova acessibilidade ou qualidade visual. Consultar [WORK-GUIDE.md](../qa/WORK-GUIDE.md) para a orientação externa e [REPORT-TEMPLATE.md](../qa/REPORT-TEMPLATE.md) para registro.

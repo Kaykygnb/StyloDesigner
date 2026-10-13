@@ -33,6 +33,7 @@ Os documentos anteriores foram removidos da documentação ativa. O snapshot é 
 - [modules/](modules/): responsabilidades dos módulos.
 - [engineering/CONTRACTS.md](engineering/CONTRACTS.md): interfaces que não podem ser alteradas casualmente.
 - [testing/](testing/): estratégia, inventário, efetividade e regressões.
+- [qa/README.md](qa/README.md): processo exploratório orientado pelo proprietário; [guia para ChatGPT Work](qa/WORK-GUIDE.md), jornadas e modelo de relato (sem execução de QA nesta preparação).
 - [planning/](planning/): backlog e tarefas executáveis.
 - [planning/TASK-PROTOCOL.md](planning/TASK-PROTOCOL.md): protocolo obrigatório para descobrir, assumir e concluir tarefas.
 

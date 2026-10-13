@@ -6,10 +6,12 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 
 - Branch: `v0.1.0-beta`
 - Commit de referência: `7ccd005` (revalidação de compartilhamento/grant em workspace ativo)
-- Última atualização deste resumo: 2026-10-13 22:54 UTC — [Codex]
+- Última atualização deste resumo: 2026-10-13 23:07 UTC — [Codex]
 - Entrega anterior de [Kimi]: DOC-SERVER-005; evidências e referência preservadas no handoff da tarefa.
 
 ## Estado geral
+
+Preparação documental de QA com Work pronta em [DOC-QA-001](tasks/qa/DOC-QA-001.md), aguardando registro da publicação. Guia: [docs/qa/WORK-GUIDE.md](../qa/WORK-GUIDE.md). Nenhuma exploração visual executada; DOC-STUDIO-003 mantém responsável/estado e aguardará escopo/evidências futuras conforme orientação do proprietário.
 
 DOC-SERVER-004 concluída por [Codex], correção publicada em 7ccd005. `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. CI da implementação 38480360349 aprovada em Node 22/24, build/documentação e Chromium/accounts. DOC-SERVER-005 permanece em validação humana com [Kimi].
 
@@ -34,6 +36,8 @@ DOC-SERVER-004 concluída por [Codex], correção publicada em 7ccd005. `npm tes
 - Protocolo de handoff (TASK-PROTOCOL.md §10, este arquivo, seção `## Handoff atual` no template e no validador).
 
 ## Próximas prioridades
+
+O proprietário pode iniciar uma sessão Work com URL/permissões e o guia acima, selecionar jornadas e revisar relatos antes de encaminhar tarefas. Nesta entrega não iniciar QA automaticamente; preparo não conclui DOC-STUDIO-003.
 
 1. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md).
 2. [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) (P1) — assumida por [Codex]; revisar jornadas visuais e funcionais; P0 DOC-SERVER-004 concluída.
