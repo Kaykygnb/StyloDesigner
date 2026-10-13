@@ -5,17 +5,20 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `7c24f1f` (preparação documental de QA com Work; correção de produto anterior em 7ccd005)
-- Última atualização deste resumo: 2026-10-13 23:08 UTC — [Codex]
+- Commit de referência: `08a6c03` (inventário de ferramentas e gate de drift)
+- Última atualização deste resumo: 2026-10-13 23:29 UTC — [Codex]
 - Entrega anterior de [Kimi]: DOC-SERVER-005; evidências e referência preservadas no handoff da tarefa.
 
 ## Estado geral
+
+[DOC-CORE-001](tasks/core/DOC-CORE-001.md) concluída: 120 ferramentas com inventário gerado e check CI, commit 08a6c03; typecheck e 613 testes locais aprovados. Referências textuais não equivalem a cobertura comportamental completa. DOC-MCP-001 e DOC-STUDIO-001 podem usar esta base; ainda não assumidas nesta rodada.
 
 Preparação documental de QA com Work pronta em [DOC-QA-001](tasks/qa/DOC-QA-001.md), concluída e publicada em 7c24f1f: 14 jornadas Não executada, guia externo e modelo de relato/reteste; 16 tarefas e links/campos validados. Guia: [docs/qa/WORK-GUIDE.md](../qa/WORK-GUIDE.md). Nenhuma exploração visual executada; DOC-STUDIO-003 mantém responsável/estado e aguardará escopo/evidências futuras conforme orientação do proprietário.
 
 DOC-SERVER-004 concluída por [Codex], correção publicada em 7ccd005. `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. CI da implementação 38480360349 aprovada em Node 22/24, build/documentação e Chromium/accounts. DOC-SERVER-005 permanece em validação humana com [Kimi].
 
 ## Em andamento
+
 
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1), próxima execução de jornadas; DOC-SERVER-004 concluída.
 

@@ -4,7 +4,7 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 
 | ID | Título | Módulo | Prioridade | Estado | Responsável | Progresso | Dependências | Documento |
 |---|---|---|---:|---|---|---:|---|---|
-| DOC-CORE-001 | Inventário verificável de ferramentas | core | P0 | Proposta | [Não atribuído] | 0/5 (0%) | — | [tarefa](tasks/core/DOC-CORE-001.md) |
+| DOC-CORE-001 | Inventário verificável de ferramentas | core | P0 | Concluída | [Codex] | 5/5 (100%) | — | [tarefa](tasks/core/DOC-CORE-001.md) |
 | DOC-CORE-002 | Matriz de exportação e warnings | core | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/core/DOC-CORE-002.md) |
 | DOC-MCP-001 | Matriz de compatibilidade MCP | mcp | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/mcp/DOC-MCP-001.md) |
 | DOC-STUDIO-001 | Paridade das operações críticas | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/studio/DOC-STUDIO-001.md) |
