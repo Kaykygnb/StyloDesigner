@@ -11,7 +11,7 @@ import { Hono } from 'hono';
 import type { HttpBindings } from '@hono/node-server';
 import type { Services } from '../context.js';
 import type { Identity } from '../http/identity.js';
-import type { StudioCaller } from '../studio/studio-calls.js';
+import { studioSessionId, type StudioCaller } from '../studio/studio-calls.js';
 import { httpError } from '../http-error.js';
 
 const SID = /^[A-Za-z0-9_-]{8,80}$/;
@@ -33,10 +33,10 @@ export function studioRoutes(s: Services, id: Identity, studio: StudioCaller) {
   });
 
   r.get('/studio/doc', async (c) => {
-    await id.userOf(c);
+    const user = await id.userOf(c);
     const sid = c.req.query('sid') || '';
     if (!SID.test(sid)) throw httpError(400, 'sid inválido.');
-    const snap = s.workspace.snapshot(sid);
+    const snap = s.workspace.snapshot(studioSessionId(user.id, sid));
     // sem projeto aberto não é erro: o painel pergunta isso ao carregar a página (null = nenhum)
     return c.json(snap);
   });

@@ -1,10 +1,10 @@
 # DOC-SERVER-002 — Corrigir datas e validar snapshots de backup
 
 Responsável: [Codex]
-Estado: Em validação
+Estado: Concluída
 Início: 2026-10-13 20:20 UTC
-Última atualização: 2026-10-13 20:42 UTC
-Progresso: 4/5 marcos (80%)
+Última atualização: 2026-10-13 21:07 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -79,13 +79,13 @@ Listar snapshots com data UTC correta e ordem decrescente, preservando o contrat
 - Problemas encontrados: rodada com concorrência 4 falhou em startup/config e edição de texto do Studio; ambas passaram no comando padrão sem alteração de asserções. Build avisa sobre import dinâmico ineficaz e chunk de 857,06 kB.
 
 ### #5 — Validação final
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: revisão local do diff, escopo e contratos; preparando branch de revisão e PR em rascunho para v0.1.0-beta.
-- Arquivos alterados: documentação de tarefas, backlog, módulos, contratos, gates, estado atual e regressões.
-- Evidências: checkout baseado em aa2582c9522143718a7a2fcec790c3c44877c38f; branch feat/beta-quality-gates; gates locais aprovados.
-- Testes executados: validação local concluída; GitHub Actions remoto pendente.
-- Problemas encontrados: revisão e CI remotas pendentes; restore de banco real, PostgreSQL e E2E administrativo dedicado não validados nesta mudança.
+- Atividades executadas: conferidos jobs remotos, diff e escopo; PR #16 incorporado à beta após autorização do usuário; branch de revisão removida.
+- Arquivos alterados: tarefa e backlog (conclusão).
+- Evidências: PR https://github.com/Kaykygnb/StyloDesigner/pull/16; merge cb22f9685b278206b114c12077f99f82bed9a766; run 38465127528.
+- Testes executados: tipos/testes Node 22 e 24 e build/documentação aprovados no GitHub; validação local anterior 606 testes aprovada.
+- Problemas encontrados: job antigo de navegador falhou porque não preparava servidor; fora do escopo original, tratado em DOC-ENG-002. Restore de banco real permanece em DOC-DB-001.
 
 ## Histórico de trabalho
 
@@ -124,6 +124,15 @@ Listar snapshots com data UTC correta e ordem decrescente, preservando o contrat
 - Testes: npm test (606 aprovados, 0 falhas, 0 ignorados), typecheck/build Node 24, tipos/build Node 22, backup 2/2 Node 22/24, renderer 10/10, formato documental e YAML aprovados.
 - Resultado: correção e gates prontos localmente; o fluxo real do editor passou no comando padrão.
 - Próximo passo: publicar branch e PR em rascunho, conferir CI remota e revisão antes de marcar Concluída.
+
+### 2026-10-13 21:07 UTC — [Codex] — #5 Validação final
+
+- Investigado: CI remota do PR #16 e preferência de fluxo main estável/beta em desenvolvimento.
+- Alterado: PR incorporado à beta, branch extra removida, tarefa Concluída.
+- Arquivos: esta tarefa e BACKLOG.md.
+- Testes: jobs obrigatórios de tipos/testes Node 22/24 e build/documentação success no run 38465127528; job de navegador legado failure, com causa registrada em DOC-ENG-002.
+- Resultado: critérios do escopo original atendidos e mudança disponível na beta no merge cb22f9685b278206b114c12077f99f82bed9a766.
+- Próximo passo: trabalho direto na beta e validação do fluxo accounts em DOC-ENG-002/DOC-STUDIO-002.
 
 ## Rollback
 

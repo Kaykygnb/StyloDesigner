@@ -269,8 +269,18 @@ export async function boot(): Promise<void> {
 }
 
 export async function afterLogin(user: PublicUser | null): Promise<void> {
-  app.set({ user });
+  stopLive?.();
+  stopLive = null;
+  window.clearTimeout(refreshTimer);
+  window.removeEventListener('hashchange', onHashChange);
+  app.set({ user, bootError: null });
   hydrateAccountPreferences(user);
+  // Contas com senha temporária só podem trocar a senha ou sair: ainda não há workspace.
+  if (user?.mustChangePassword) {
+    liveHandlers = null;
+    app.set({ boot: 'ready', screen: 'home', doc: null, file: null, pageId: null, role: 'VIEWER', projects: null, projectsError: null, presence: null, live: false });
+    return;
+  }
   liveUserName = user?.name || 'Pessoa';
   liveHandlers = {
     onPresence: (presence) => app.set({ presence }),
@@ -307,7 +317,12 @@ function onHashChange() {
 
 export async function signedOut() {
   stopLive?.();
-  app.set({ user: null, screen: 'home', doc: null, file: null, projects: null });
+  stopLive = null;
+  liveHandlers = null;
+  window.clearTimeout(refreshTimer);
+  window.removeEventListener('hashchange', onHashChange);
+  history.replaceState(null, '', location.pathname + location.search);
+  app.set({ user: null, screen: 'home', doc: null, file: null, pageId: null, role: 'VIEWER', selection: [], hover: null, projects: null, projectsError: null, presence: null, live: false });
   const auth = await api.authState().catch(() => null);
   app.set({ auth });
 }

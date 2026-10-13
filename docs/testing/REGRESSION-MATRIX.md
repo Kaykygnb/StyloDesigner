@@ -11,3 +11,6 @@
 | Auth | login/agent scopes | `auth.ts`, `identity.ts`, `agents.ts` | `conta*`, `api-seguranca` | acesso indevido | DOC-SERVER-001 |
 | Engenharia | CI da beta/PR | `.github/workflows/ci.yml` | `typecheck`, suíte completa, `build`, `validate-tasks` | regressão de tipos/build não detectada | DOC-ENG-001 |
 | Backups locais | snapshot/lista/restore pendente | `services/backups.ts` | `backups.test.ts` (arquivos; CHECKPOINT simulado) | data/ordem incorreta, restauração de arquivos | DOC-SERVER-002 |
+| Entrada humana | login/senha temporária/logout/menus | `lib/app.ts`, `Login.tsx`, `Home.tsx` | `studio-login-fluxo.mjs`, suíte completa | chamadas antes da troca, contexto anterior, confusão de papéis, overflow mobile | DOC-STUDIO-002 |
+| Administração accounts | ambiente E2E e CI obrigatória | `tests/e2e/run.mjs`, `ci.yml` | `studio-admin-fluxo.mjs`, `studio-login-fluxo.mjs` | dados compartilhados, servidor ausente, falha ignorada | DOC-ENG-002 |
+| Workspace humano | conta + sid | `studio-calls.ts`, `routes/studio.ts` | `studio-api` (accounts), `studio-login-fluxo.mjs` | acesso a documento alheio por reutilização de sid | DOC-SERVER-003 |

@@ -10,6 +10,7 @@
 | Studio visual | Verificado em fluxo automatizado | `apps/studio`, `tests/studio-ui.test.js` |
 | MCP HTTP/stdio | Verificado | `apps/server/src/mcp`, `mcp-sdk`, `mcp-stdio` |
 | Autenticação e agentes | Verificado | `routes/auth.ts`, `services/auth.ts`, `services/agents.ts` |
+| Entrada humana accounts e administração | Verificado localmente em Chromium | `tests/e2e/run.mjs`, `studio-admin-fluxo.mjs`, `studio-login-fluxo.mjs`; senha temporária, sessão, suspensão e menus por papel da conta |
 | Locks e presença | Verificado | `presence.js`, `studio-calls.ts`, `agent-calls.ts` |
 | Biblioteca de assets | Verificado | `services/library.ts`, `blobs.ts`, plugins de assets |
 | Plugins embutidos | Implementado; cobertura varia | `packages/plugins/src`, `plugins.test.ts` |

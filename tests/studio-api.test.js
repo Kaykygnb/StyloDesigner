@@ -12,12 +12,12 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 
 const freePort = () => new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
 
-async function startServer(t) {
+async function startServer(t, authMode = 'local') {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-studio-'));
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') },
+    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: authMode, STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') },
     stdio: 'ignore',
   });
   t.after(() => child.kill());
@@ -125,4 +125,35 @@ test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois
   const snap = await (await fetch(`${base}/api/studio/doc?sid=${sid}`)).json();
   const flat = (l) => l.flatMap((n) => [n, ...(n.children ? flat(n.children) : [])]);
   assert.equal(flat(snap.doc.pages[0].children).find((n) => n.id === doAgente.created.id).text, 'editado pela pessoa');
+});
+
+test('accounts: sid reutilizado não lê nem altera workspace de outra conta', async (t) => {
+  const base = await startServer(t, 'accounts');
+  const request = async (cookie, method, path, body) => fetch(base + path, {
+    method, headers: { ...json, ...(cookie ? { cookie } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const setup = await request('', 'POST', '/api/auth/setup', { email: 'owner@isolation.test', name: 'Owner', password: 'senha-owner-segura' });
+  assert.equal(setup.status, 201);
+  const ownerCookie = setup.headers.get('set-cookie').split(';', 1)[0];
+  const sid = 'web-isolation-shared-001';
+  const call = async (cookie, tool, args = {}) => (await request(cookie, 'POST', '/api/studio/call', { sid, tool, args })).json();
+  assert.equal((await call(ownerCookie, 'new_project', { name: 'Mesmo nome' })).error, undefined);
+  const snapshot = async (cookie) => (await request(cookie, 'GET', `/api/studio/doc?sid=${sid}`)).json();
+  const ownerBefore = await snapshot(ownerCookie);
+  assert.ok(ownerBefore?.doc);
+  assert.equal((await request(ownerCookie, 'POST', '/api/users', { email: 'editor@isolation.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
+  const login = await request('', 'POST', '/api/auth/login', { email: 'editor@isolation.test', password: 'senha-editor-inicial' });
+  assert.equal(login.status, 200);
+  const editorCookie = login.headers.get('set-cookie').split(';', 1)[0];
+  assert.equal((await request(editorCookie, 'POST', '/api/me/password', { current: 'senha-editor-inicial', next: 'senha-editor-final' })).status, 200);
+  assert.equal(await snapshot(editorCookie), null);
+  assert.ok((await call(editorCookie, 'get_document')).error);
+  assert.ok((await call(editorCookie, 'create_layer', { type: 'rect' })).error);
+  assert.deepEqual(await snapshot(ownerCookie), ownerBefore);
+  assert.equal((await call(editorCookie, 'new_project', { name: 'Mesmo nome' })).error, undefined);
+  const editorOwn = await snapshot(editorCookie);
+  assert.equal(editorOwn.file, ownerBefore.file, 'nomes de arquivo iguais em contas distintas são permitidos');
+  assert.notEqual(editorOwn.id, ownerBefore.id, 'cada conta mantém seu próprio documento com o mesmo sid e nome');
+  assert.deepEqual(await snapshot(ownerCookie), ownerBefore);
 });

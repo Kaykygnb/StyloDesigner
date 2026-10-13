@@ -18,7 +18,7 @@
     "build": "npm run build -w apps/studio",
     "start": "node --import tsx apps/server/src/main.ts",
     "test": "node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/*.test.js tests/*.test.ts",
-    "test:e2e": "node tests/e2e/studio-admin-fluxo.mjs",
+    "test:e2e": "npm run build && node tests/e2e/run.mjs",
     "docs:ferramentas": "node --import tsx scripts/gerar-docs-ferramentas.mjs",
     "typecheck": "tsc -p packages/db && tsc -p packages/core && tsc -p packages/plugins && tsc -p apps/server && tsc -p apps/studio",
     "db:generate": "prisma generate --config packages/db/prisma.config.ts",

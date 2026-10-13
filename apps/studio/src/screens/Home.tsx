@@ -32,7 +32,6 @@ export function Home() {
   const error = useApp((s) => s.projectsError);
   const user = useApp((s) => s.user);
   const auth = useApp((s) => s.auth);
-  const role = useApp((s) => s.role);
   const busy = useApp((s) => s.busy);
   const presence = useApp((s) => s.presence);
   const language = useApp((s) => s.language);
@@ -44,8 +43,10 @@ export function Home() {
 
   const shown = useMemo(() => (projects ?? []).filter((p) => (p.name || pretty(p.file)).toLowerCase().includes(query.trim().toLowerCase())), [projects, query]);
   const cmd = connectCommand();
-  const canAdmin = auth?.mode === 'local' || role === 'OWNER' || role === 'ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN';
-  const homeTabs = ([['projects', 'home.projects'], ['library', 'home.library'], ['agents', 'home.agents'], ...(canAdmin ? [['admin', 'home.admin'] as const] : []), ['account', 'home.account']] as const);
+  const canAdmin = auth?.mode === 'local' || user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const homeTabs: Array<[typeof area, string]> = [['projects', 'home.projects'], ['library', 'home.library']];
+  if (canAdmin) homeTabs.push(['agents', 'home.agents'], ['admin', 'home.admin']);
+  homeTabs.push(['account', 'home.account']);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +89,7 @@ export function Home() {
         {presence && presence.agents.length > 0 && <span className="badge"><span className="dot" style={{ background: 'var(--ok)' }} /> {presence.agents.length} agente(s) conectado(s)</span>}
         <AppearanceMenu />
         {auth?.mode === 'accounts' && user && (
-          <button className="btn ghost" onClick={async () => { await api.logout().catch(() => {}); await signedOut(); }} title={user.email}>Sair ({user.name})</button>
+          <button className="btn ghost" onClick={async () => { try { await api.logout(); await signedOut(); } catch (error) { toast('error', error instanceof Error ? error.message : String(error)); } }} title={user.email}>Sair ({user.name})</button>
         )}
       </header>
 
@@ -146,11 +147,16 @@ export function Home() {
           </ul>
         )}
 
-        <section className="connect-card">
-          <h3><Icon name="spark" size={16} /> Conectar um agente de IA</h3>
-          <p className="muted">Qualquer agente que fale MCP (Claude Code, Codex, Cursor…) pode criar e editar projetos aqui. Rode este comando no computador onde o agente está:</p>
-          <div className="codebox"><code>{cmd}</code><button className="btn ghost icon sm" title="Copiar" onClick={() => navigator.clipboard.writeText(cmd).then(() => toast('ok', 'Copiado.'), () => toast('error', 'Não consegui copiar.'))}><Icon name="copy" size={14} /></button></div>
-        </section>
+        {canAdmin && <section className="connect-card">
+          <h3><Icon name="spark" size={16} /> {t(language, 'home.connectTitle')}</h3>
+          {auth?.mode === 'accounts' ? <>
+            <p className="muted">{t(language, 'home.connectAccountHint')}</p>
+            <div><button className="btn" onClick={() => setArea('agents')}>{t(language, 'home.manageAgents')}</button></div>
+          </> : <>
+            <p className="muted">Qualquer agente que fale MCP (Claude Code, Codex, Cursor…) pode criar e editar projetos aqui. Rode este comando no computador onde o agente está:</p>
+            <div className="codebox"><code>{cmd}</code><button className="btn ghost icon sm" title="Copiar" onClick={() => navigator.clipboard.writeText(cmd).then(() => toast('ok', 'Copiado.'), () => toast('error', 'Não consegui copiar.'))}><Icon name="copy" size={14} /></button></div>
+          </>}
+        </section>}
         </>}
       </main>
     </div>

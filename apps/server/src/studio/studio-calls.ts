@@ -18,6 +18,9 @@ import type { Events } from '../events.js';
 /** Ferramentas que o painel não deve chamar direto (não fazem sentido para uma pessoa na tela). */
 const BLOCKED = new Set<string>([]);
 
+/** O sid público identifica a aba; a chave de workspace também pertence à conta autenticada. */
+export const studioSessionId = (userId: string, sid: string) => `web:${userId}:${sid}`;
+
 export interface StudioCallInput {
   sid: string;
   tool: string;
@@ -31,7 +34,8 @@ export function createStudioCaller({ workspace, presence, events }: { workspace:
   const log = (user: PublicUser, text: string, projectFile = '') => presence.log?.(user.name, user.color || colorFor(user.name), text, projectFile);
 
   async function call(user: PublicUser, input: StudioCallInput, signal?: AbortSignal): Promise<any> {
-    const { sid, tool, args = {}, pageId } = input;
+    const { sid: tabId, tool, args = {}, pageId } = input;
+    const sid = studioSessionId(user.id, tabId);
     if (BLOCKED.has(tool)) return { error: `A ferramenta ${tool} não está disponível no painel.` };
     const def: any = toolByName(tool);
     const actor: Actor = { type: 'USER', userId: user.id, name: user.name };
@@ -42,7 +46,7 @@ export function createStudioCaller({ workspace, presence, events }: { workspace:
     const lockId = randomUUID();
     let locked = false;
     if (locking) {
-      const lock = presence.lock(lockId, lockTargets, 0, { agentId: sid, name: user.name, yieldToCompleted: true });
+      const lock = presence.lock(lockId, lockTargets, 0, { agentId: tabId, name: user.name, yieldToCompleted: true });
       if (!lock.ok) {
         const what = lock.id === DOCUMENT_LOCK ? 'O documento inteiro está sendo alterado' : `A camada ${lock.id} está sendo alterada`;
         return { error: `${what} por ${lock.by} agora. Espere uns ${lock.wait}s e tente de novo.` };

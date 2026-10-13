@@ -6,6 +6,8 @@ O servidor compõe o processo: HTTP, autenticação, projetos, workspace, persis
 
 Identidade, autorização, ciclo de vida do workspace, gravação, versões, blobs, rede e adapters externos.
 
+O caller do Studio associa o identificador público da aba à conta autenticada para formar a chave interna do workspace; a rota de snapshot usa a mesma chave. Cookie/Bearer continuam sendo a identidade; o sid sozinho não autoriza acesso ao documento (DOC-SERVER-003).
+
 ## Não deve fazer
 
 Não deve duplicar regras do modelo ou implementar uma segunda versão de ferramentas.

@@ -11,6 +11,10 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-SERVER-001 | Validar adapters de persistência e rede | server/database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | — | [tarefa](tasks/server/DOC-SERVER-001.md) |
 | DOC-DB-001 | Restore e migração descartáveis | database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-001 | [tarefa](tasks/database/DOC-DB-001.md) |
 | DOC-PLUGIN-001 | Matriz de providers e licenças | plugins | P2 | Proposta | [Não atribuído] | 0/5 (0%) | credenciais de teste | [tarefa](tasks/plugins/DOC-PLUGIN-001.md) |
-
-| DOC-ENG-001 | Aplicar gates de engenharia na CI da beta | engenharia/CI | P1 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/engineering/DOC-ENG-001.md) |
-| DOC-SERVER-002 | Corrigir datas e validar snapshots de backup | server | P1 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/server/DOC-SERVER-002.md) |
+| DOC-ENG-001 | Aplicar gates de engenharia na CI da beta | engenharia/CI | P1 | Concluída | [Codex] | 5/5 (100%) | — | [tarefa](tasks/engineering/DOC-ENG-001.md) |
+| DOC-SERVER-002 | Corrigir datas e validar snapshots de backup | server | P1 | Concluída | [Codex] | 5/5 (100%) | — | [tarefa](tasks/server/DOC-SERVER-002.md) |
+| DOC-ENG-002 | E2E administrativo isolado e obrigatório | engenharia/CI | P0 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/engineering/DOC-ENG-002.md) |
+| DOC-STUDIO-002 | Entrada humana com senha temporária e retorno após reload | studio | P0 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/studio/DOC-STUDIO-002.md) |
+| DOC-SERVER-003 | Vincular workspace do Studio à conta autenticada | server/Studio | P0 | Em validação | [Codex] | 4/5 (80%) | DOC-ENG-002 | [tarefa](tasks/server/DOC-SERVER-003.md) |
+| DOC-SERVER-004 | Revalidar acesso em workspaces com compartilhamento alterado | server/autorização | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-004.md) |
+| DOC-SERVER-005 | Verificar gates de autorização da configuração do servidor | server/autorização | P0 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-003 | [tarefa](tasks/server/DOC-SERVER-005.md) |
