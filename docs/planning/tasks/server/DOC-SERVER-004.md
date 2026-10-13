@@ -1,15 +1,15 @@
 # DOC-SERVER-004 — Revalidar acesso em workspaces com compartilhamento alterado
 
 Responsável: [Codex]
-Estado: Em andamento
+Estado: Concluída
 Início: 2026-10-13 22:42 UTC
-Última atualização: 2026-10-13 22:42 UTC
-Progresso: 0/5 marcos (0%)
+Última atualização: 2026-10-13 22:54 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
 
-**Proposto — investigação pendente.** workspace guarda o papel no momento de open_project e usa esse valor em chamadas posteriores. É preciso reproduzir downgrade/revogação com a sessão ainda aberta, sem reabrir o projeto.
+Reproduzido em servidor HTTP accounts: após EDITOR → VIEWER, snapshot ainda informava EDITOR e update_layer era aceito (sem error). A permissão guardada ao abrir não acompanhava mudanças de compartilhamento; persistência do workspace ocorre como dono do projeto, portanto o gate precisa recusar antes da mutação.
 
 ## Objetivo
 
@@ -29,60 +29,65 @@ workspace/index.ts, services/projects.ts, sharing, snapshots, testes HTTP/MCP; p
 ## Dependências, riscos e bloqueios
 
 - Dependência: contexto de DOC-SERVER-003 e infraestrutura accounts de DOC-ENG-002.
-- Sem reprodução executada nesta rodada. Evitar carregar documentos completos apenas para conferir permissão; preservar colaboração e distinguir papel da conta/projeto.
+- Reprodução executada nesta rodada. A consulta de acesso seleciona somente ownerId/papel do membro por ID do projeto; não hidrata documento/assets nem resolve arquivo por slug. Revalidação ocorre no início da chamada: não cancela operações já autorizadas e em execução quando o compartilhamento muda.
 
 ## Critérios de aceitação
 
-- [ ] Cenário reproduzido e política confirmada com contratos existentes.
-- [ ] Comportamento autorizado permitido e acesso indevido recusado, sem mutação parcial.
-- [ ] Testes, regressões e documentação atualizados com evidências.
+- [x] Cenário reproduzido e política confirmada com contratos existentes.
+- [x] Comportamento autorizado permitido e acesso indevido recusado, sem mutação parcial.
+- [x] Testes, regressões e documentação atualizados com evidências.
 
 ## Marcos
 
 ### #1 — Investigação
-- Estado: em andamento
+
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: Leitura inicial confirmou papel armazenado em current/need e snapshot síncrono sem consulta de acesso atual. Isso sustenta a hipótese, mas downgrade/revogação ainda precisam ser reproduzidos em HTTP/MCP.
-- Arquivos alterados: —
-- Evidências: `apps/server/src/workspace/index.ts` guarda papel ao abrir; `routes/studio.ts` consulta snapshot sem revalidar compartilhamento. Leitura estática, não reprodução.
-- Testes executados: nenhum de runtime nesta assunção; reprodução pendente.
-- Problemas encontrados: —
+- Atividades executadas: Reproduzir downgrade no workspace ativo; revisar caminhos de núcleo, projeto, plugin e grants de agentes.
+- Arquivos alterados: documentação desta tarefa e evidências dos testes relacionados.
+- Evidências: Testes antes da correção falharam: snapshot EDITOR em vez de VIEWER e escrita sem error após downgrade.
+- Testes executados: Duas execuções HTTP accounts antes da correção; logs locais /tmp/stylo-sharing-before.log e /tmp/stylo-sharing-write-before.log.
+- Problemas encontrados: Consulta inicial de papel era estática; reproduções registradas.
 
 ### #2 — Planejamento
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Revalidar papel por ID sem ler documento; conferir grant do agente; proteger snapshot exposto via rota; permitir abrir/criar/listar projetos após revogação.
+- Arquivos alterados: documentação desta tarefa e evidências dos testes relacionados.
+- Evidências: Contratos existentes exigem dono/editor para escrever e membro para ler; esquema e nomes públicos preservados.
+- Testes executados: Leitura de services/projects.ts, sharing.ts, agents.ts e schema.ts.
+- Problemas encontrados: Sem bloqueio conhecido; validação final pendente.
 
 ### #3 — Implementação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Adicionar projects.access e revalidate; consultar gates antes de ferramentas dependentes do projeto, incluindo plugins; impedir save_project de viewer/commenter ou agente sem write; snapshotForActor na rota Studio.
+- Arquivos alterados: `services/projects.ts`, `workspace/index.ts`, `routes/studio.ts`, `tests/studio-api.test.js`, `tests/workspace.test.ts`.
+- Evidências: Diff nos arquivos de runtime; snapshot interno síncrono preservado para presença/log, sem uso como autorização pública.
+- Testes executados: Typecheck aprovado; cenários específicos e suíte completa em execução.
+- Problemas encontrados: Sem bloqueio conhecido; validação final pendente.
 
 ### #4 — Testes
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: regressões HTTP accounts e workspace MCP, suíte completa e fluxos humanos no navegador.
+- Arquivos alterados: tests/studio-api.test.js e tests/workspace.test.ts; documentação de regressão.
+- Evidências: `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. Logs locais /tmp/stylo-sharing-full.log, /tmp/stylo-sharing-targeted.log, /tmp/stylo-sharing-types.log, /tmp/stylo-sharing-build.log e /tmp/stylo-sharing-e2e.log.
+- Testes executados: npm run typecheck; npm test; npm run build; npm run test:e2e; execução específica das quatro suítes (45 testes).
+- Problemas encontrados: o preparo inicial do caso de slug foi ajustado conforme contrato existente; nenhuma falha nos resultados finais. Avisos de tamanho/import dinâmico do build são preexistentes.
 
 ### #5 — Validação final
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: revisar critérios, diff, documentação e estado remoto; publicar implementação diretamente na beta sem modificar a tarefa Kimi.
+- Arquivos alterados: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Evidências: implementação [7ccd005](https://github.com/Kaykygnb/StyloDesigner/commit/7ccd0057b7a30c79d7ecf18cbd4f731fce4ae100); [CI da implementação](https://github.com/Kaykygnb/StyloDesigner/actions/runs/38480360349). CI 38480360349 aprovada: Node 22, Node 24, build/documentação e login/administração Chromium/accounts.
+- Testes executados: `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. node docs/planning/validate-tasks.mjs e git diff --check exigidos antes desta publicação documental.
+- Problemas encontrados: nenhuma pendência de aceitação; não cancela operações previamente autorizadas/em execução, conforme limite registrado.
 
 ## Histórico de trabalho
 
@@ -104,47 +109,65 @@ workspace/index.ts, services/projects.ts, sharing, snapshots, testes HTTP/MCP; p
 - Resultado: tarefa assumida após atualização por fast-forward; DOC-SERVER-005 permanece com [Kimi] em validação humana.
 - Próximo passo: Reproduzir downgrade e revogação com workspace aberto; examinar também gates de agentes, plugins e snapshot antes de definir a correção.
 
+### 2026-10-13 22:47 UTC — [Codex] — #1–#3 reprodução e correção
+
+- Investigado: hipótese confirmada em HTTP accounts; rebaixamento mantinha papel antigo e permitia update_layer.
+- Alterado: consulta leve por ID, revalidação de membro/grant, snapshot autorizado e gate save_project; dois testes de regressão adicionados.
+- Arquivos: `services/projects.ts`, `workspace/index.ts`, `routes/studio.ts`, `tests/studio-api.test.js`, `tests/workspace.test.ts`, documentação do servidor e matriz de regressão.
+- Testes: reproduções antes da correção falharam conforme esperado; typecheck aprovado; gates finais em execução. O primeiro teste após correção chegou ao caso final de slug, cujo preparo foi ajustado: new_project recusa arquivo compartilhado existente por contrato, então criar o próprio exige primeiro retirar esse compartilhamento.
+- Resultado: marcos #1–#3 concluídos; #4 em andamento, sem alegar suíte final aprovada.
+- Próximo passo: concluir testes, revisar resultados e publicar com evidências.
+
+### 2026-10-13 22:54 UTC — [Codex] — #4–#5 validação e entrega
+
+- Investigado: resultados finais, critérios e coerência entre gate de ferramentas e snapshot HTTP.
+- Alterado: estado Concluída, critérios atendidos, marcos 5/5 e handoff final; implementação já publicada em 7ccd005.
+- Arquivos: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Testes: `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. Documentação validada antes da publicação final.
+- Resultado: downgrade/revogação e grant de agente respeitados em chamadas novas; dono e membros autorizados continuam funcionando, sem mutação nas recusas.
+- Próximo passo: DOC-STUDIO-003 para revisão visual; DOC-SERVER-005 permanece com Kimi aguardando revisão humana.
+
 ## Handoff atual
 
 Preparado por: [Codex]
-Destinatário: [Codex / próximo participante após transferência]
-Estado: Em execução — investigação pendente
-Marco atual: #1 — Investigação
-Última atualização: 2026-10-13 22:42 UTC
-Commit de referência: `48b914a5315bca4892d3f8dddf594dc13b6b98c1` na branch `v0.1.0-beta`
+Destinatário: [Próximo participante]
+Estado: Concluída — entrega validada localmente e na CI
+Marco atual: #5 — Validação final concluída
+Última atualização: 2026-10-13 22:54 UTC
+Commit de referência: `7ccd0057b7a30c79d7ecf18cbd4f731fce4ae100`
 
 ### Estado atual
 
-Leitura inicial confirmou papel armazenado em current/need e snapshot síncrono sem consulta de acesso atual. Isso sustenta a hipótese, mas downgrade/revogação ainda precisam ser reproduzidos em HTTP/MCP.
+Correção publicada na beta. Papel atual de membro e grant de agente revalidados antes das ferramentas dependentes do projeto; snapshot HTTP também protegido. Critérios atendidos.
 
 ### Decisões tomadas
 
-Trabalhar na beta atual sem modificar a tarefa de Kimi; priorizar DOC-SERVER-004 (P0) antes da revisão visual P1. Assunção publicada para informar outros participantes antes de mudanças de código. Sem alegar lock técnico ou coordenação por mensagem.
+Consulta leve por ID, sem documento/assets, preservando schema e APIs públicas. Snapshot interno continua síncrono para logging; rotas de dados devem usar snapshotForActor. Não invalidar a sessão inteira: recompartilhamento pode permitir continuar e ferramentas de abrir/criar/listar mantêm a recuperação.
 
 ### Arquivos envolvidos
 
-Este documento, BACKLOG.md e HANDOFF.md. Consultar o escopo para os arquivos de implementação; ainda não alterados.
+services/projects.ts, workspace/index.ts, routes/studio.ts; testes studio-api/workspace; documentação do servidor, matriz, backlog e handoff.
 
 ### Evidências e testes
 
-Branch atualizada por fast-forward; tarefa sem responsável no backlog. Nenhuma reprodução nova ou teste de runtime nesta assunção. Validador documental exigido antes da publicação.
+`npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. Implementação 7ccd005; CI 38480360349 aprovada nos quatro jobs. Reprodução anterior e resultados referenciados no histórico e marcos.
 
 ### Pendências
 
-Marcos #1–#5; reproduções, implementação quando justificada e gates. As evidências anteriores de outras tarefas não encerram esta tarefa.
+Nenhuma desta tarefa. DOC-STUDIO-003 segue com Codex para revisão visual; revisão humana de DOC-SERVER-005 permanece separada.
 
 ### Próximas ações recomendadas
 
-Reproduzir downgrade e revogação com workspace aberto; examinar também gates de agentes, plugins e snapshot antes de definir a correção.
+Revisar jornadas humanas da DOC-STUDIO-003; preservar os gates e consultar os quatro jobs aprovados da CI 38480360349 como referência.
 
 ### Riscos e cuidados
 
-Consultar o remoto antes de publicar e interromper sobreposição de arquivos se outro participante assumir escopo relacionado. Preservar mudanças e revisão humana pendente de DOC-SERVER-005; nenhum segredo em evidências.
+Revalidação no início da chamada não cancela operações já autorizadas/em execução. SSE não foi redesenhado. Preservar gates e testes ao alterar plugins/ferramentas.
 
 ### Condições para conclusão
 
-Critérios de aceitação desta tarefa atendidos, marcos com evidências e gates proporcionais aprovados; backlog e handoff atualizados.
+Critérios atendidos e gates locais aprovados; marcos 5/5 com evidências, implementação publicada.
 
 ## Rollback
 
-Nenhuma implementação nesta proposta; registrar cancelamento se a investigação invalidar a hipótese.
+Reverter o diff desta tarefa somente se houver regressão e preservar histórico/evidências; não retirar a revalidação sem um gate equivalente, pois restauraria a falha de autorização.
