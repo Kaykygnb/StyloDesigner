@@ -43,6 +43,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node docs/planning/validate-tasks.mjs
+      - run: npm run docs:inventario -- --check
 
   navegador:
     name: Login e administração (Chromium/accounts)

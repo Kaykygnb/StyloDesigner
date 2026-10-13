@@ -27,3 +27,7 @@ O comando compila o Studio e chama `tests/e2e/run.mjs`. Por padrão, o runner us
 ## Avaliação exploratória independente
 
 O processo de QA pela interface gráfica está em [docs/qa](../qa/README.md). O proprietário inicia uma sessão no ChatGPT Work, fornece ambiente/permissões e escolhe jornadas; relatórios reais podem gerar tarefas pelo protocolo. A preparação documental não executa exploração, não substitui esta automação e não comprova acessibilidade ou qualidade visual. Consultar [WORK-GUIDE.md](../qa/WORK-GUIDE.md) para a orientação externa e [REPORT-TEMPLATE.md](../qa/REPORT-TEMPLATE.md) para registro.
+
+## Contrato do inventário
+
+`npm run docs:inventario -- --check` e `tests/tool-inventory.test.js` impedem drift entre catálogo, ligação de handlers e artefatos. O JSON preserva schemas e referências; [TOOL-INVENTORY.md](TOOL-INVENTORY.md) descreve limites da evidência. Testes de plugins acrescentam casos de metadata, exportação Tailwind e auditoria de página; referências textuais no inventário não equivalem a aprovação de todos os cenários.

@@ -213,3 +213,28 @@ test('project_brief: grava no documento, mescla, apaga com vazio e exige escrita
   await t.workspace.flushAll();
   await t.close();
 });
+
+test('plugins de publicação/qualidade: metadata preserva/remove campos, Tailwind exporta e auditoria valida página', async (ctx) => {
+  const t = await setup();
+  ctx.after(() => t.close());
+  const writer = await t.agent(['read', 'write']);
+  const reader = await t.agent(['read']);
+  const call = (tool: string, args = {}, actor = writer) => t.workspace.call(tool, args, { sid: 'qa-contract', actor });
+  assert.equal((await call('new_project', { name: 'Contrato plugins' })).error, undefined);
+  assert.equal((await call('set_site_metadata', { title: 'Título de teste', description: 'Descrição' })).error, undefined);
+  await call('set_site_metadata', { description: '' });
+  const metadata = await call('get_site_metadata', {}, reader);
+  assert.equal(metadata.site.title, 'Título de teste');
+  assert.equal(metadata.site.description, undefined);
+  assert.match((await call('set_site_metadata', { title: 'Não permitido' }, reader)).error, /permissão de escrita/);
+  assert.equal((await call('get_site_metadata')).site.title, 'Título de teste');
+  const exported = await call('tailwind_export', {}, reader);
+  assert.equal(exported.format, 'tailwind');
+  assert.ok(exported.files.some((f: any) => f.path === 'tailwind.config.js'));
+  assert.ok(exported.files.some((f: any) => f.path === 'tokens.css'));
+  const audit = await call('accessibility_audit', {}, reader);
+  assert.equal(audit.error, undefined);
+  assert.equal(audit.count, audit.issues.length);
+  assert.equal(audit.errors + audit.warnings, audit.count);
+  assert.match((await call('accessibility_audit', { page_id: 'pagina-inexistente' }, reader)).error, /não existe/);
+});

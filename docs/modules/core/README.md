@@ -13,3 +13,7 @@ Não deve conhecer React, Hono, Prisma, rede ou filesystem. Efeitos entram por `
 ## Verificação
 
 Use testes de modelo, CSS, exportação, geometria, auditoria, runner e segurança. Gate: `npm run typecheck` e `npm test`.
+
+## Inventário de ferramentas
+
+[TOOL-INVENTORY.md](../../testing/TOOL-INVENTORY.md) e JSON são gerados por `npm run docs:inventario`; `-- --check` recusa drift na CI. O gerador lê catálogo/AST sem executar handlers e respeita a composição do runner e o dispatch de projeto no workspace. Distingue teste de contrato estrutural de menções textuais candidatas e não afirma cobertura comportamental completa. Parser Babel é dependência de desenvolvimento; não integra o runtime do produto.
