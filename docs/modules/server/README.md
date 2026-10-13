@@ -8,6 +8,8 @@ Identidade, autorização, ciclo de vida do workspace, gravação, versões, blo
 
 O caller do Studio associa o identificador público da aba à conta autenticada para formar a chave interna do workspace; a rota de snapshot usa a mesma chave. Cookie/Bearer continuam sendo a identidade; o sid sozinho não autoriza acesso ao documento (DOC-SERVER-003).
 
+Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige papel de administrador (`identity.adminOf`): anônimo recebe 401, MEMBER/EDITOR/VIEWER/COMMENTER recebem 403 e a recusa não muta nada. No modo local o usuário técnico é OWNER, então o comportamento local não muda (DOC-SERVER-005). As chaves de integração (Pexels) nunca são devolvidas por nenhuma rota.
+
 ## Não deve fazer
 
 Não deve duplicar regras do modelo ou implementar uma segunda versão de ferramentas.

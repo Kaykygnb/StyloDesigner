@@ -1,10 +1,10 @@
 # DOC-SERVER-005 — Verificar gates de autorização da configuração do servidor
 
 Responsável: [Kimi]
-Estado: Em andamento
+Estado: Em validação
 Início: 2026-10-13 22:22 UTC
-Última atualização: 2026-10-13 22:22 UTC
-Progresso: 0/5 marcos (0%)
+Última atualização: 2026-10-13 23:10 UTC
+Progresso: 4/5 marcos (80%)
 Participantes: [Kimi]
 
 ## Problema e evidências
@@ -33,58 +33,76 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 
 ## Critérios de aceitação
 
-- [ ] Cenário reproduzido e política confirmada com contratos existentes.
-- [ ] Comportamento autorizado permitido e acesso indevido recusado, sem mutação parcial.
-- [ ] Testes, regressões e documentação atualizados com evidências.
+- [x] Cenário reproduzido e política confirmada com contratos existentes.
+- [x] Comportamento autorizado permitido e acesso indevido recusado, sem mutação parcial.
+- [x] Testes, regressões e documentação atualizados com evidências.
 
 ## Marcos
 
 ### #1 — Investigação
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Kimi]
-- Atividades executadas: —
+- Atividades executadas: leitura de `routes/system.ts`, `http/identity.ts`, `http/guards.ts`, `app.ts`, `services/auth.ts` (papel do usuário local), padrão de gates em `routes/plugins.ts` e `routes/auth.ts`, consumidores no Studio (`WorkspacePanel.tsx`, `lib/api.ts`) e testes existentes (`api-seguranca.test.js`, `contas-http.test.js`).
 - Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Evidências: `PUT /api/config` (system.ts:83) e `PUT /api/agent/config` (system.ts:122) não chamam `identity.userOf/adminOf/ownerOf`; a proteção global (`localOnly` em app.ts:39-41) cobre Host/Origin/JSON, não autorização de conta. Usuário local tem papel `OWNER` (services/auth.ts:98-102), então gates `adminOf` não afetam o modo local. Testes de segurança existentes rodam em `STYLO_AUTH: local` e continuam válidos com gate de admin.
+- Testes executados: leitura de `tests/api-seguranca.test.js` (linhas 55-103) e `tests/contas-http.test.js` (infra de servidor real por spawn).
+- Problemas encontrados: hipótese confirmada — em modo contas, anônimo (ou qualquer papel) pode alterar `keepVersions`, injetar chave Pexels e mudar `agentPolicy` (postura de segurança de entrada de agentes) nos dois PUT de configuração.
 
 ### #2 — Planejamento
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: definição da política a partir dos contratos existentes — configuração de servidor segue o padrão `adminOf` (mesmo de `PUT /api/plugins/:id`, rotas `/api/sessions`, `/api/users`, backups). Leituras públicas (`GET /status`, `GET /agent/config`, `GET /presence`) permanecem como estão: não expõem chaves nem dados de conta.
 - Arquivos alterados: —
-- Evidências: —
+- Evidências: política = `PUT /api/config` e `PUT /api/agent/config` exigem `identity.adminOf(c)` (OWNER/ADMIN). Modo local inalterado (usuário local é OWNER). Sem mudança de contrato de resposta nem de schema.
 - Testes executados: —
 - Problemas encontrados: —
 
 ### #3 — Implementação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: `await identity.adminOf(c)` adicionado como primeira linha de `PUT /api/config` e de `PUT /api/agent/config` em `routes/system.ts`; cabeçalho do arquivo atualizado para registrar o requisito de administrador nos dois PUT.
+- Arquivos alterados: `apps/server/src/routes/system.ts`
+- Evidências: política = OWNER/ADMIN (mesmo padrão de `routes/plugins.ts` e rotas admin de `routes/auth.ts`); modo local inalterado porque o usuário técnico local é OWNER.
+- Testes executados: typecheck sem erros.
 - Problemas encontrados: —
 
 ### #4 — Testes
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: novo `tests/config-autorizacao.test.js` sobe o servidor real em modo contas e cobre: anônimo → 401 nos dois PUT; MEMBER → 403 nos dois PUT; recusas não mudam `keepVersions` nem `agentPolicy` (verificação de ausência de mutação parcial); OWNER e ADMIN alteram e persistem; chave Pexels nunca aparece em resposta.
+- Arquivos alterados: `tests/config-autorizacao.test.js`
+- Evidências: teste isolado passou (1/1); suíte completa 608/608; typecheck limpo; build de produção ok (apenas avisos pré-existentes de chunk > 500 kB).
+- Testes executados: `node --import tsx --import ./tests/_setup.mjs --test tests/config-autorizacao.test.js`; `npm run typecheck`; `npm test`; `npm run build`.
 - Problemas encontrados: —
 
 ### #5 — Validação final
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Estado: em andamento
+- Responsável: [Kimi]
+- Atividades executadas: critérios de aceitação marcados como atendidos; `docs/modules/server/README.md` atualizado com a política de autorização da configuração (governança §9); estado movido para `Em validação` aguardando revisão humana conforme protocolo §8.
+- Arquivos alterados: `docs/planning/tasks/server/DOC-SERVER-005.md`, `docs/planning/BACKLOG.md`, `docs/modules/server/README.md`
+- Evidências: commits `fix(server)` e `docs(server)` na branch `v0.1.0-beta`.
+- Testes executados: typecheck, `npm test` (608/608), `npm run build`.
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-13 23:10 UTC — [Kimi] — #3 Implementação, #4 Testes e #5 Validação
+
+- Investigado: confirmação de que nenhum consumidor do Studio além do painel admin usa `PUT /api/agent/config` e de que `PUT /api/config` não tem consumidor na UI; testes de segurança existentes rodam em modo local e cobrem apenas origem/tamanho, não papéis.
+- Alterado: gates `identity.adminOf(c)` nos dois PUT de `routes/system.ts`; novo `tests/config-autorizacao.test.js` (reprodução anônimo/member/owner/admin + ausência de mutação parcial + não exposição da chave Pexels); política registrada em `docs/modules/server/README.md`; marcos #3 e #4 concluídos, estado `Em validação` (revisão humana pendente para marcar `Concluída`).
+- Arquivos: `apps/server/src/routes/system.ts`, `tests/config-autorizacao.test.js`, `docs/modules/server/README.md`, esta tarefa e BACKLOG.md.
+- Testes: novo teste isolado 1/1; `npm run typecheck` limpo; `npm test` 608/608; `npm run build` ok.
+- Resultado: anônimo leva 401, MEMBER leva 403 e nada é mutado nas recusas; OWNER/ADMIN alteram e persistem; modo local inalterado (usuário técnico é OWNER).
+- Próximo passo: revisão humana da evidência e, se aprovada, estado `Concluída`.
+
+### 2026-10-13 22:45 UTC — [Kimi] — #1 Investigação e #2 Planejamento
+
+- Investigado: `routes/system.ts` (PUT /config na linha 83 e PUT /agent/config na linha 122, ambos sem gate de identidade), `http/identity.ts` (userOf/ownerOf/adminOf), `http/guards.ts` (localOnly cobre Host/Origin/JSON, não conta), `services/auth.ts` (usuário local é OWNER, linha 101), padrão adminOf em `routes/plugins.ts:29` e `routes/auth.ts`, consumidores no Studio (`WorkspacePanel.tsx` — seletor de agentPolicy fica no painel admin) e testes existentes (`api-seguranca.test.js` em modo local, `contas-http.test.js` com spawn de servidor real).
+- Alterado: marcos #1 e #2 concluídos com política definida: os dois PUT de configuração passam a exigir `identity.adminOf(c)`; leituras públicas inalteradas.
+- Arquivos: apenas este documento.
+- Testes: nenhum executado nesta entrada (investigação estática).
+- Resultado: hipótese confirmada — anônimo/membro consegue hoje alterar keepVersions, injetar chave Pexels e mudar agentPolicy em modo contas. Sem mutação parcial a corrigir além dos gates.
+- Próximo passo: implementar os gates (marco #3) e criar teste HTTP em modo contas reproduzindo anônimo/membro/owner (marco #4).
 
 ### 2026-10-13 22:22 UTC — [Kimi] — #1 Investigação (assunção)
 
