@@ -102,6 +102,35 @@ Resultado observável que encerra a tarefa.
 - Resultado: Proposta registrada.
 - Próximo passo: consultar duplicações e assumir explicitamente.
 
+## Handoff atual
+
+<!-- Opcional enquanto a tarefa estiver Proposta/Pronta. Obrigatório ao transferir,
+encerrar sessão com pendências, entregar para revisão ou ficar Bloqueada/Em validação.
+Veja TASK-PROTOCOL.md §10. -->
+
+Preparado por: [Ninguém]
+Destinatário: —
+Estado: —
+Marco atual: —
+Última atualização: —
+Commit de referência: —
+
+### Estado atual
+
+### Decisões tomadas
+
+### Arquivos envolvidos
+
+### Evidências e testes
+
+### Pendências
+
+### Próximas ações recomendadas
+
+### Riscos e cuidados
+
+### Condições para conclusão
+
 ## Rollback
 
 Descreva como desfazer a mudança sem apagar evidências.

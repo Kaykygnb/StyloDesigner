@@ -3,7 +3,7 @@
 Responsável: [Kimi]
 Estado: Em validação
 Início: 2026-10-13 22:22 UTC
-Última atualização: 2026-10-13 23:10 UTC
+Última atualização: 2026-10-13 23:15 UTC
 Progresso: 4/5 marcos (80%)
 Participantes: [Kimi]
 
@@ -86,6 +86,15 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 
 ## Histórico de trabalho
 
+### 2026-10-13 23:15 UTC — [Kimi] — handoff da tarefa
+
+- Investigado: nada de código; fechamento da sessão com a tarefa em `Em validação`.
+- Alterado: seção `## Handoff atual` criada com o estado real (gates implementados, testes 608/608, revisão humana pendente); criado `docs/planning/HANDOFF.md` geral e protocolo §10 em `TASK-PROTOCOL.md` (handoff passa a fazer parte do padrão do projeto).
+- Arquivos: esta tarefa, `HANDOFF.md`, `TASK-PROTOCOL.md`, `_TEMPLATE.md`, `validate-tasks.mjs` (handoff obrigatório para tarefas em voo).
+- Testes: `node docs/planning/validate-tasks.mjs` — 15 tarefas válidas.
+- Resultado: continuidade garantida para o revisor humano ou próximo agente.
+- Próximo passo: revisão humana; ver HANDOFF.md "Aguardando revisão".
+
 ### 2026-10-13 23:10 UTC — [Kimi] — #3 Implementação, #4 Testes e #5 Validação
 
 - Investigado: confirmação de que nenhum consumidor do Studio além do painel admin usa `PUT /api/agent/config` e de que `PUT /api/config` não tem consumidor na UI; testes de segurança existentes rodam em modo local e cobrem apenas origem/tamanho, não papéis.
@@ -121,6 +130,57 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Testes: pendentes nesta proposta.
 - Resultado: hipótese/escopo de validação marcado explicitamente como Proposto.
 - Próximo passo: descobrir duplicações novamente, assumir e reproduzir antes de implementar.
+
+## Handoff atual
+
+Preparado por: [Kimi]
+Destinatário: [Revisor humano]
+Estado: Aguardando revisão humana
+Marco atual: #5 — Validação final
+Última atualização: 2026-10-13 23:15 UTC
+Commit de referência: `21b2f60` na branch `v0.1.0-beta`
+
+### Estado atual
+
+Hipótese confirmada e corrigida: `PUT /api/config` e `PUT /api/agent/config` não tinham gate de identidade; agora exigem `identity.adminOf(c)`. Todos os marcos de trabalho (#1–#4) concluídos com evidências; #5 em andamento. Tarefa em `Em validação` — falta só a revisão humana para `Concluída`.
+
+### Decisões tomadas
+
+- Política = `adminOf` (OWNER/ADMIN), não `ownerOf`: segue o padrão de `routes/plugins.ts` (PUT /api/plugins/:id) e das rotas admin de `routes/auth.ts`. A alternativa `ownerOf` foi descartada por criar exceção à política existente de configuração de servidor.
+- Leituras públicas (`GET /status`, `GET /agent/config`, `GET /presence`) mantidas como estão: não expõem chaves nem dados de conta.
+- Sem mudança de contrato de resposta nem de schema — apenas gate.
+
+### Arquivos envolvidos
+
+- Alterados: `apps/server/src/routes/system.ts` (os dois gates + cabeçalho), `tests/config-autorizacao.test.js` (novo), `docs/modules/server/README.md` (política registrada, governança §9).
+- Referência para quem revisar: `apps/server/src/http/identity.ts` (`adminOf` lança 401 via `userOf` e 403 para não-admin).
+
+### Evidências e testes
+
+- `tests/config-autorizacao.test.js` (novo, 1/1): servidor real em modo contas; anônimo → 401, MEMBER → 403 nos dois PUT; recusas não mudam `keepVersions` nem `agentPolicy` (sem mutação parcial); OWNER/ADMIN alteram e persistem; chave Pexels nunca aparece na resposta.
+- `npm run typecheck` limpo; `npm test` 608/608; `npm run build` ok (avisos pré-existentes de chunk > 500 kB, não relacionados).
+- Limitação: testes cobrem modo contas; o modo local depende do usuário técnico ser OWNER (coberto indiretamente pelos testes existentes em `STYLO_AUTH: local`).
+
+### Pendências
+
+- Revisão humana do diff (commits `9b39789` e `21b2f60`) e aprovação da política `adminOf`.
+- Após aprovação: estado `Concluída` no documento e no BACKLOG.
+
+### Próximas ações recomendadas
+
+1. Revisor: ler o diff de `apps/server/src/routes/system.ts` (2 linhas de gate) e o teste novo.
+2. Se aprovado, marcar critérios e estado como `Concluída` (protocolo §8).
+3. Se `ownerOf` for preferido, registrar a decisão no histórico e ajustar gate + teste (o teste separa 401 de 403, a mudança é pequena).
+
+### Riscos e cuidados
+
+- Não reverter o gate sem substituto: o modo contas ficaria novamente aberto para anônimo/membro alterar configuração do servidor e injetar chave Pexels.
+- `GET /api/agent/config` continua público de propósito; não movê-lo sem revisar o consumidor no painel admin do Studio (`WorkspacePanel.tsx`).
+- Testes locais existentes (`api-seguranca.test.js`, `api.test.js`) rodam em modo local e devem continuar passando — o usuário técnico local é OWNER.
+
+### Condições para conclusão
+
+- Revisão humana registrada no histórico; estado `Concluída` com evidência (commits e gates verdes já registrados nos marcos #4 e #5).
 
 ## Rollback
 

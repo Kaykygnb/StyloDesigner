@@ -94,3 +94,59 @@ Antes de concluir:
 ## 9. Governança
 
 Se a tarefa alterar responsabilidade, contrato, persistência, autorização, ferramenta, plugin, fluxo de dados ou decisão arquitetural, atualize a documentação de engenharia e avalie uma ADR. Propostas futuras devem continuar marcadas como propostas. O validador detecta inconsistências de formato; ele não prova a verdade das evidências.
+
+## 10. Handoff de contexto
+
+Handoff é a transferência de contexto entre sessões e participantes. Ele garante continuidade: quem chega deve saber onde o trabalho parou, por que parou, o que já foi decidido, o que falta e como continuar com segurança. Não é execução simultânea nem orquestração.
+
+**Handoff não substitui o histórico.** O histórico registra o que aconteceu, em ordem, sem apagar entradas; o handoff informa o que o próximo participante precisa saber e fazer, agora. Não duplique o histórico no handoff — referencie-o.
+
+### 10.1 Onde fica
+
+- **Por tarefa:** a seção `## Handoff atual` no documento individual da tarefa. É a fonte de verdade da continuidade daquela tarefa.
+- **Por sessão:** [HANDOFF.md](HANDOFF.md), no mesmo diretório deste protocolo, resume o estado geral do projeto entre sessões. É curto e aponta para as tarefas; não copia o conteúdo delas.
+
+### 10.2 Quando produzir ou atualizar
+
+Produza ou atualize o handoff quando:
+
+1. encerrar uma sessão com trabalho pendente;
+2. transferir uma tarefa (o entregue registra a transferência e o recebido confirma a aceite no histórico);
+3. encontrar um bloqueio;
+4. finalizar uma investigação importante (mesmo sem implementação);
+5. entregar trabalho para revisão humana;
+6. alterar uma decisão que afete a continuidade.
+
+Se não houver mudanças relevantes, não gere registros redundantes. Um handoff simples e correto é melhor que um relatório extenso e repetitivo.
+
+### 10.3 Conteúdo mínimo do handoff por tarefa
+
+O cabeçalho registra quem entrega, para quem, quando e com qual referência:
+
+```text
+Preparado por: [Kimi]
+Destinatário: [Próximo agente] ou [Revisor humano]
+Estado: Aguardando continuidade
+Marco atual: #5 — Validação
+Última atualização: data/hora
+Commit de referência: SHA
+```
+
+O corpo cobre: estado atual, decisões tomadas (com justificativa), arquivos envolvidos, evidências e testes (comandos, resultados, limitações), pendências, próximas ações recomendadas em ordem de execução, riscos e cuidados, e condições para conclusão.
+
+### 10.4 Preservar o que é difícil de reconstruir
+
+O handoff deve registrar: motivos de decisões técnicas, hipóteses descartadas, investigações inconclusivas, falhas reproduzidas, comportamentos inesperados, restrições identificadas, testes relevantes e riscos de regressão. Nunca inclua credenciais, tokens, senhas ou outros segredos.
+
+### 10.5 Como continuar uma tarefa recebida
+
+Antes de continuar, o novo participante deve, nesta ordem:
+
+1. ler o `## Handoff atual` da tarefa e o [HANDOFF.md](HANDOFF.md) geral;
+2. conferir a tarefa e seu histórico de trabalho;
+3. verificar branch, commit de referência e estado atual do código (o handoff pode estar desatualizado);
+4. confirmar que as pendências descritas ainda existem;
+5. registrar sua identidade entre colchetes (assunção conforme §2, ou transferência conforme §6);
+6. continuar a partir do marco apropriado e atualizar o handoff ao encerrar.
+
+Nunca assuma que um handoff antigo continua válido sem conferir o repositório. Se o contexto mudou, registre a divergência antes de prosseguir.

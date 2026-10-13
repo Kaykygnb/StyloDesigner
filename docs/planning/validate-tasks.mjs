@@ -33,6 +33,15 @@ for (const file of files) {
   if (!milestones.length || milestones.some((n, i) => n !== i + 1)) errors.push(`${rel}: milestones must be sequential from #1`);
   if (!/^##\s+Histórico de trabalho/m.test(text)) errors.push(`${rel}: missing work history`);
   if (state === 'Concluída' && !/Evidências:\s*(?!—\s*$).+/m.test(text)) errors.push(`${rel}: completed task needs evidence`);
+  // Handoff obrigatório só para tarefas em voo (TASK-PROTOCOL §10); Proposta/Pronta/Concluída/Cancelada ficam livres.
+  const handoffStates = new Set(['Em andamento', 'Bloqueada', 'Em revisão', 'Em validação']);
+  if (handoffStates.has(state)) {
+    const handoffBody = text.split(/^##\s+Handoff atual\s*$/m)[1]?.split(/^##\s/m)[0] ?? '';
+    if (!handoffBody) errors.push(`${rel}: in-flight task (Estado: ${state}) needs a '## Handoff atual' section (TASK-PROTOCOL §10)`);
+    else for (const field of ['Preparado por:', 'Destinatário:', 'Estado:', 'Última atualização:']) {
+      if (!handoffBody.includes(field)) errors.push(`${rel}: handoff missing '${field}'`);
+    }
+  }
 }
 const backlog = fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8');
 for (const row of backlog.split('\n').filter((line) => /^\| DOC-/.test(line))) {
