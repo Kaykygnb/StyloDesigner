@@ -9,7 +9,7 @@ import { createNotes } from '../apps/server/src/services/notes.ts';
 import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
-async function setup(extra: { inspectLayout?: import('../packages/core/src/layout-inspection.ts').InspectLayout; fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
+async function setup(extra: { agentProjectAccess?: (agentId: string, projectId: string) => Promise<boolean>; inspectLayout?: import('../packages/core/src/layout-inspection.ts').InspectLayout; fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
   const { db, close } = await createDb({ pglite: {} });
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
@@ -464,4 +464,32 @@ test('inspect_layout pelo workspace aceita leitor e não grava medidas responsiv
     const after = await t.projects.load({ id: t.owner.id }, 'inspecao-sem-escrita.json');
     assert.equal(after.contentHash, before.contentHash); assert.equal(after.doc.pages[0].children[0].w, 600); assert.equal(after.doc.pages[0].children[0].h, 100);
   } finally { await t.close(); }
+});
+
+
+test('workspace MCP revalida membro e grant do agente antes de leituras, notas e edição', async (ctx) => {
+  let grant = true;
+  const t = await setup({ agentProjectAccess: async () => grant });
+  ctx.after(() => t.close());
+  const owner = await t.agentOf('Owner');
+  const member = await t.agentOf('Member', t.other);
+  const call = (actor: Actor, sid: string, tool: string, args = {}) => t.workspace.call(tool, args, { sid, actor });
+  await call(owner, 'owner', 'new_project', { name: 'Equipe ativa' });
+  await call(owner, 'owner', 'share_project', { email: t.other.email, role: 'editor' });
+  assert.equal((await call(member, 'member', 'open_project', { file: 'equipe-ativa.json' })).error, undefined);
+  await call(owner, 'owner', 'share_project', { email: t.other.email, role: 'commenter' });
+  assert.match((await call(member, 'member', 'create_layer', { type: 'rect' })).error, /só pode ler ou comentar/);
+  assert.equal((await call(member, 'member', 'add_note', { text: 'Comentário autorizado', kind: 'comment' })).error, undefined);
+  await call(owner, 'owner', 'unshare_project', { email: t.other.email });
+  for (const tool of ['get_document', 'list_notes', 'get_activity', 'list_members']) {
+    assert.match((await call(member, 'member', tool)).error, /não encontrado/i, tool);
+  }
+  await call(owner, 'owner', 'share_project', { email: t.other.email, role: 'editor' });
+  assert.equal((await call(member, 'member', 'get_document')).error, undefined);
+  grant = false;
+  for (const tool of ['get_document', 'create_layer', 'add_note', 'list_notes']) {
+    assert.match((await call(member, 'member', tool, { type: 'rect', text: 'Sem grant' })).error, /agente não está autorizado/, tool);
+  }
+  grant = true;
+  assert.equal((await call(member, 'member', 'create_layer', { type: 'rect' })).error, undefined);
 });

@@ -157,3 +157,52 @@ test('accounts: sid reutilizado não lê nem altera workspace de outra conta', a
   assert.notEqual(editorOwn.id, ownerBefore.id, 'cada conta mantém seu próprio documento com o mesmo sid e nome');
   assert.deepEqual(await snapshot(ownerCookie), ownerBefore);
 });
+
+test('accounts: workspace aberto respeita downgrade, revogação e novo compartilhamento', async (t) => {
+  const base = await startServer(t, 'accounts');
+  const request = (cookie, method, path, body) => fetch(base + path, {
+    method, headers: { ...json, ...(cookie ? { cookie } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const setup = await request('', 'POST', '/api/auth/setup', { email: 'owner@sharing.test', name: 'Owner', password: 'senha-owner-segura' });
+  assert.equal(setup.status, 201);
+  const ownerCookie = setup.headers.get('set-cookie').split(';', 1)[0];
+  assert.equal((await request(ownerCookie, 'POST', '/api/users', { email: 'editor@sharing.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
+  const login = await request('', 'POST', '/api/auth/login', { email: 'editor@sharing.test', password: 'senha-editor-inicial' });
+  const editorCookie = login.headers.get('set-cookie').split(';', 1)[0];
+  assert.equal((await request(editorCookie, 'POST', '/api/me/password', { current: 'senha-editor-inicial', next: 'senha-editor-final' })).status, 200);
+  const sid = 'web-sharing-active-001';
+  const call = async (cookie, tool, args = {}) => (await request(cookie, 'POST', '/api/studio/call', { sid, tool, args })).json();
+  const snapshot = (cookie) => request(cookie, 'GET', `/api/studio/doc?sid=${sid}`);
+  const share = (role) => call(ownerCookie, 'share_project', { email: 'editor@sharing.test', role });
+  const created = await call(ownerCookie, 'new_project', { name: 'Sharing ativo' });
+  assert.equal((await share('editor')).error, undefined);
+  assert.equal((await call(editorCookie, 'open_project', { file: created.file })).error, undefined);
+  const layer = await call(editorCookie, 'create_layer', { type: 'rect', props: { name: 'Permitido' } });
+  assert.equal(layer.error, undefined);
+  for (const role of ['viewer', 'commenter']) {
+    assert.equal((await share(role)).error, undefined);
+    const before = (await (await snapshot(ownerCookie)).json()).doc;
+    assert.match((await call(editorCookie, 'update_layer', { id: layer.created.id, props: { name: 'Proibido' } })).error, /só pode ler ou comentar/);
+    assert.equal((await (await snapshot(editorCookie)).json()).role, role.toUpperCase(), 'snapshot reflete o papel atual');
+    assert.match((await call(editorCookie, 'save_project', { name: 'Copia proibida' })).error, /só pode ler ou comentar/);
+    assert.equal((await call(editorCookie, 'get_document')).error, undefined);
+    assert.deepEqual((await (await snapshot(ownerCookie)).json()).doc, before, 'recusa não altera documento');
+  }
+  assert.equal((await share('editor')).error, undefined);
+  assert.equal((await call(editorCookie, 'update_layer', { id: layer.created.id, props: { name: 'Promovido' } })).error, undefined);
+  const beforeRevocation = (await (await snapshot(ownerCookie)).json()).doc;
+  assert.equal((await call(ownerCookie, 'unshare_project', { email: 'editor@sharing.test' })).error, undefined);
+  assert.ok((await call(editorCookie, 'get_document')).error, 'revogação impede leitura sem reabrir');
+  assert.ok((await call(editorCookie, 'get_activity')).error, 'revogação impede leitura de atividade');
+  assert.ok((await call(editorCookie, 'update_layer', { id: layer.created.id, props: { name: 'Revogado' } })).error);
+  assert.equal((await snapshot(editorCookie)).status, 404, 'snapshot recusado após revogação');
+  assert.deepEqual((await (await snapshot(ownerCookie)).json()).doc, beforeRevocation);
+  assert.equal((await share('editor')).error, undefined);
+  assert.equal((await call(editorCookie, 'get_document')).error, undefined, 'novo compartilhamento permite continuar');
+  assert.equal((await call(ownerCookie, 'unshare_project', { email: 'editor@sharing.test' })).error, undefined);
+  assert.equal((await call(editorCookie, 'new_project', { name: 'Sharing ativo' })).error, undefined, 'mesmo slug próprio permitido');
+  assert.equal((await share('editor')).error, undefined);
+  assert.equal((await call(ownerCookie, 'unshare_project', { email: 'editor@sharing.test' })).error, undefined);
+  assert.equal((await call(editorCookie, 'get_document')).error, undefined, 'projeto próprio com mesmo slug mantém acesso');
+});

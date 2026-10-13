@@ -150,6 +150,16 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
     return { entry, role: cur.role };
   };
 
+  /** O papel guardado só é um retrato; compartilhamento e grants podem mudar com a sessão aberta. */
+  async function revalidate(sid: string, actor: Actor) {
+    const { entry } = need(sid);
+    const role = await projects.access({ id: actor.userId }, entry.id);
+    if (actor.type === 'AGENT' && actor.agentId && agentProjectAccess && !(await agentProjectAccess(actor.agentId, entry.id))) {
+      throw new Error('Este agente não está autorizado neste projeto. Peça ao administrador para liberar o acesso.');
+    }
+    current.get(sid)!.role = role;
+  }
+
   const has = (actor: Actor, scope: string) => !actor.scopes || actor.scopes.includes(scope);
 
   /** Leituras que mostram tamanhos: antes delas, o layout real é medido (se mudou algo desde a última vez). */
@@ -288,6 +298,8 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
       const def = toolByName(tool);
       // ferramenta de PLUGIN: mesmas permissões, validação e registro de atividade das do núcleo
       const plug = plugins?.get(tool);
+      const independent = new Set(['list_projects', 'open_project', 'new_project', 'who_is_here']);
+      if (plug ? plug.needsProject : !independent.has(tool)) await revalidate(sid, actor);
       if (plug) {
         const pdef = plug.def as any;
         const needs = pdef.needs ?? (pdef.write ? 'write' : 'read');
@@ -316,6 +328,10 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
         return result;
       }
       if (PROJECT_TOOLS.has(tool)) {
+        if (tool === 'save_project') {
+          if (['VIEWER', 'COMMENTER'].includes(need(sid).role)) throw new Error('Você só pode ler ou comentar este projeto.');
+          if (!has(actor, 'write')) throw new Error('Este agente não tem permissão de escrita.');
+        }
         const needs = (def as any)?.needs;
         if (needs === 'read' && !has(actor, 'read')) throw new Error('Este agente não tem permissão de leitura.');
         if (needs === 'comment' && !has(actor, 'comment') && !has(actor, 'write')) throw new Error('Este agente não tem permissão de comentar.');
@@ -374,17 +390,26 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
   const timer = setInterval(() => sweep().catch(() => {}), 60 * 1000);
   timer.unref();
 
+  /** Snapshot interno para callers/log; rotas de dados devem usar snapshotForActor. */
+  function snapshot(sid: string) {
+    const cur = current.get(sid);
+    const entry = cur && docs.get(cur.id);
+    if (!entry) return null;
+    entry.lastUsed = Date.now();
+    return { file: entry.file, id: entry.id, role: cur!.role, pageId: entry.store.page().id as string, doc: entry.store.state.doc };
+  }
+
   return {
     call,
     externalWrite,
     endSession: (sid: string) => { current.delete(sid); },
     /** O projeto aberto numa sessão (para o painel web desenhar): arquivo, página atual e o documento inteiro. Null se não há projeto aberto. */
-    snapshot: (sid: string) => {
-      const cur = current.get(sid);
-      const entry = cur && docs.get(cur.id);
-      if (!entry) return null;
-      entry.lastUsed = Date.now();
-      return { file: entry.file, id: entry.id, role: cur!.role, pageId: entry.store.page().id as string, doc: entry.store.state.doc };
+    snapshot,
+    /** Snapshot exposto a uma pessoa: autenticação não substitui o compartilhamento atual. */
+    snapshotForActor: async (sid: string, actor: Actor) => {
+      if (!current.has(sid)) return null;
+      await revalidate(sid, actor);
+      return snapshot(sid);
     },
     sessionsForProject: (projectId: string) => [...current.entries()].filter(([, c]) => c.id === projectId).map(([sid]) => sid),
     /** Gravação imediata de tudo que está pendente (desligar o servidor). */

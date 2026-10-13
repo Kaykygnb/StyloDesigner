@@ -14,3 +14,4 @@
 | Entrada humana | login/senha temporária/logout/menus | `lib/app.ts`, `Login.tsx`, `Home.tsx` | `studio-login-fluxo.mjs`, suíte completa | chamadas antes da troca, contexto anterior, confusão de papéis, overflow mobile | DOC-STUDIO-002 |
 | Administração accounts | ambiente E2E e CI obrigatória | `tests/e2e/run.mjs`, `ci.yml` | `studio-admin-fluxo.mjs`, `studio-login-fluxo.mjs` | dados compartilhados, servidor ausente, falha ignorada | DOC-ENG-002 |
 | Workspace humano | conta + sid | `studio-calls.ts`, `routes/studio.ts` | `studio-api` (accounts), `studio-login-fluxo.mjs` | acesso a documento alheio por reutilização de sid | DOC-SERVER-003 |
+| Compartilhamento ativo | downgrade/revogação/grant | `projects.access`, `workspace`, `routes/studio` | `studio-api` (accounts), `workspace` (MCP), `plugins` | papel/grant antigo permitir leitura ou mutação indevida | DOC-SERVER-004 |

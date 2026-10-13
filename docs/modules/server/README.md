@@ -10,6 +10,8 @@ O caller do Studio associa o identificador público da aba à conta autenticada 
 
 Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige papel de administrador (`identity.adminOf`): anônimo recebe 401, MEMBER/EDITOR/VIEWER/COMMENTER recebem 403 e a recusa não muta nada. No modo local o usuário técnico é OWNER, então o comportamento local não muda (DOC-SERVER-005). As chaves de integração (Pexels) nunca são devolvidas por nenhuma rota.
 
+Workspaces ativos revalidam o papel atual da pessoa por ID do projeto antes de ferramentas que dependem dele; agentes também precisam manter seu grant. O snapshot HTTP do Studio usa o mesmo gate. Downgrade atualiza o papel e recusa escrita, revogação recusa leitura/escrita, e novo compartilhamento pode permitir continuar sem reabrir. A consulta não hidrata documento/assets. A verificação acontece no início da chamada e não cancela operações já em execução (DOC-SERVER-004).
+
 ## Não deve fazer
 
 Não deve duplicar regras do modelo ou implementar uma segunda versão de ferramentas.

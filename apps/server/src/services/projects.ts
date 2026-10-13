@@ -67,6 +67,17 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     return project;
   };
 
+  /** Permissão atual por ID: não hidrata documento/assets nem resolve slugs ambíguos. */
+  async function access(user: Person, projectId: string) {
+    const p = await db.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true, members: { where: { userId: user.id }, select: { role: true } } },
+    });
+    const role = p?.ownerId === user.id ? 'OWNER' : p?.members[0]?.role;
+    if (!role) throw httpError(404, 'Projeto não encontrado.');
+    return role;
+  }
+
   async function list(user: Person): Promise<ProjectSummary[]> {
     const rows = await db.project.findMany({
       where: { OR: [{ ownerId: user.id }, { members: { some: { userId: user.id } } }] },
@@ -234,7 +245,7 @@ export function createProjects({ db, getConfig, onWrite = () => {}, versionEvery
     return { file: target, modified: updated.updatedAt.getTime() };
   }
 
-  return { list, load, exists, write, asset, versions, snapshot, labelVersion, compareVersions, duplicateVersion, readVersion, restoreVersion, readThumb, writeThumb, rename };
+  return { access, list, load, exists, write, asset, versions, snapshot, labelVersion, compareVersions, duplicateVersion, readVersion, restoreVersion, readThumb, writeThumb, rename };
 }
 
 export type Projects = ReturnType<typeof createProjects>;

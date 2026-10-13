@@ -36,7 +36,7 @@ export function studioRoutes(s: Services, id: Identity, studio: StudioCaller) {
     const user = await id.userOf(c);
     const sid = c.req.query('sid') || '';
     if (!SID.test(sid)) throw httpError(400, 'sid inválido.');
-    const snap = s.workspace.snapshot(studioSessionId(user.id, sid));
+    const snap = await s.workspace.snapshotForActor(studioSessionId(user.id, sid), { type: 'USER', userId: user.id, name: user.name });
     // sem projeto aberto não é erro: o painel pergunta isso ao carregar a página (null = nenhum)
     return c.json(snap);
   });
