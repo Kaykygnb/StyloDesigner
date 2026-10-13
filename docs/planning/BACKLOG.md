@@ -12,3 +12,5 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-DB-001 | Restore e migração descartáveis | database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-001 | [tarefa](tasks/database/DOC-DB-001.md) |
 | DOC-PLUGIN-001 | Matriz de providers e licenças | plugins | P2 | Proposta | [Não atribuído] | 0/5 (0%) | credenciais de teste | [tarefa](tasks/plugins/DOC-PLUGIN-001.md) |
 
+| DOC-ENG-001 | Aplicar gates de engenharia na CI da beta | engenharia/CI | P1 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/engineering/DOC-ENG-001.md) |
+| DOC-SERVER-002 | Corrigir datas e validar snapshots de backup | server | P1 | Em validação | [Codex] | 4/5 (80%) | — | [tarefa](tasks/server/DOC-SERVER-002.md) |

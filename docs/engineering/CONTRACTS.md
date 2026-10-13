@@ -15,3 +15,7 @@ Leituras de camadas, busca, auditoria, inspeção e exportação precisam respei
 ## Segurança
 
 HTML/CSS/SVG/URLs externos, conteúdo de projeto, assets e credenciais são não confiáveis. Sanitização, limites, host checks e escopos devem permanecer antes do efeito externo.
+
+## Backups locais
+
+Os IDs de snapshot seguem `YYYYMMDD-HHMMSS` em UTC. `BackupInfo.createdAt` na listagem deve refletir essa data com precisão de segundos; a lista retorna os snapshots do mais novo ao mais antigo. Restore prepara uma cópia de segurança e um marcador para aplicação no próximo boot; não substitui o banco durante a sessão ativa. PostgreSQL exige `pg_dump`/`pg_restore`, sem cópia da pasta do processo.

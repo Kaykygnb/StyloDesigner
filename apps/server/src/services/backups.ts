@@ -28,7 +28,7 @@ export function createBackups({ dbDir, db, postgres }: { dbDir: string; db: Db; 
     for (const item of names.filter((x) => x.isDirectory() && x.name.startsWith(prefix))) {
       const id = item.name.slice(prefix.length);
       if (!validId(id)) continue;
-      const createdAt = new Date(id.replace('-', 'T').replace('-', ':') + ':00Z');
+      const createdAt = new Date(`${id.slice(0, 4)}-${id.slice(4, 6)}-${id.slice(6, 8)}T${id.slice(9, 11)}:${id.slice(11, 13)}:${id.slice(13, 15)}Z`);
       rows.push({ id, createdAt: Number.isNaN(createdAt.getTime()) ? new Date(0).toISOString() : createdAt.toISOString(), bytes: await sizeOf(join(parent, item.name)) });
     }
     return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
