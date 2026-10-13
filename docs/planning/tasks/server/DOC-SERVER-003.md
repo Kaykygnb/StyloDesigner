@@ -1,10 +1,10 @@
 # DOC-SERVER-003 — Vincular workspace do Studio à conta autenticada
 
 Responsável: [Codex]
-Estado: Em validação
+Estado: Concluída
 Início: 2026-10-13 21:10 UTC
-Última atualização: 2026-10-13 21:28 UTC
-Progresso: 4/5 marcos (80%)
+Última atualização: 2026-10-13 21:38 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -79,13 +79,13 @@ Vincular a chave interna de workspace humano à conta autenticada, mantendo o si
 - Problemas encontrados: primeira rodada interrompida para incluir isolamento; outra interrompida pelo reinício do ambiente, sem totais declarados. Rodada final completa aprovada. Avisos de chunk/import dinâmico anteriores permanecem.
 
 ### #5 — Validação final
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: revisão final de critérios/escopo e preparação de commit direto na beta, conforme preferência do usuário.
-- Arquivos alterados: arquivos do escopo e documentação de evidências.
-- Evidências: base cb22f9685b278206b114c12077f99f82bed9a766, PR anterior #16 incorporado; publicação desta rodada e CI remota pendentes.
-- Testes executados: gates locais aprovados; CI remota desta rodada ainda não executada.
-- Problemas encontrados: validação remota pendente; cenários de autorização adicionais registrados como Proposta em DOC-SERVER-004/005, sem afirmação de reprodução nesta rodada.
+- Atividades executadas: implementação publicada diretamente na beta, CI remota completa conferida e critérios revisados.
+- Arquivos alterados: tarefa, backlog, roadmap e estado atual (conclusão).
+- Evidências: commit https://github.com/Kaykygnb/StyloDesigner/commit/669df6e2811244589ba87130e854bbf028282d45; run https://github.com/Kaykygnb/StyloDesigner/actions/runs/38471114507.
+- Testes executados: tipos/testes Node 22 e 24, build/documentação e login/administração Chromium/accounts: todos success no GitHub. Validação local: 607 testes, typecheck, build e ambos E2E aprovados.
+- Problemas encontrados: sem pendência do escopo; DOC-SERVER-004/005 continuam Proposta, sem reprodução nesta rodada; outros navegadores, recuperação por e-mail e PostgreSQL externo não foram validados.
 
 ## Histórico de trabalho
 
@@ -115,6 +115,15 @@ Vincular a chave interna de workspace humano à conta autenticada, mantendo o si
 - Testes: npm test 607/607, 0 ignorados; typecheck e build aprovados; suítes de administração e entrada humana aprovadas em Chromium com servidor/banco accounts isolados; YAML/sintaxe/formato e diff conferidos.
 - Resultado: seis chamadas protegidas antes da troca eliminadas; menus separados do papel de projeto; mobile 390 px; leitura/escrita de workspace alheio por sid recusadas com documento do dono intacto; regressão local completa aprovada.
 - Próximo passo: publicar diretamente na beta e conferir CI, sem nova branch de revisão.
+
+### 2026-10-13 21:38 UTC — [Codex] — #5 Validação final
+
+- Investigado: CI da implementação 669df6e na beta e atendimento dos critérios.
+- Alterado: tarefa Concluída e progresso 5/5; publicação direta na beta conforme preferência do usuário.
+- Arquivos: tarefa, backlog, roadmap e estado atual.
+- Testes: run 38471114507 com tipos/testes Node 22/24, build/documentação e E2E login/administração accounts aprovados; suite local 607/607 sem ignorados.
+- Resultado: implementação disponível e validada na beta; PR anterior #16 incorporado e branch extra removida.
+- Próximo passo: investigar propostas DOC-SERVER-004/005 com reprodução antes de implementar; manter separação entre evidência e hipótese.
 
 ## Rollback
 

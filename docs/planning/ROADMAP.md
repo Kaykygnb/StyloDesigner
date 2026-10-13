@@ -4,9 +4,9 @@
 
 - CI de tipos/testes/build/documentação validada no GitHub e incorporada à beta (DOC-ENG-001 concluída);
 - correção de datas/ordem dos backups incorporada à beta (DOC-SERVER-002 concluída);
-- validar fluxo humano de entrada, menus por papel da conta e navegação mobile (DOC-STUDIO-002);
-- executar E2E accounts isolado como job obrigatório (DOC-ENG-002);
-- validar isolamento de workspace entre contas que reutilizam sid (DOC-SERVER-003);
+- fluxo humano, menus por papel da conta e mobile validados e publicados na beta (DOC-STUDIO-002 concluída);
+- E2E accounts isolado aprovado como job obrigatório no GitHub (DOC-ENG-002 concluída);
+- workspace ligado à conta autenticada, com regressão aprovada para sid reutilizado (DOC-SERVER-003 concluída);
 
 - gerar inventário de ferramentas e matriz de contrato;
 - adicionar paridade Studio/MCP para operações críticas;
@@ -15,7 +15,7 @@
 
 ## Rodada humana atual
 
-E2E isolado de login/administração implementado e aprovado localmente; acompanhado em DOC-ENG-002. Fluxo humano, menus e mobile em DOC-STUDIO-002; vínculo conta/sid em DOC-SERVER-003.
+Rodada concluída nas tarefas DOC-ENG-002, DOC-STUDIO-002 e DOC-SERVER-003. Implementação 669df6e publicada diretamente na beta; CI 38471114507 aprovada em Node 22/24, build/documentação e E2E accounts.
 
 ## Próxima rodada de polimento (proposto)
 
