@@ -1,11 +1,11 @@
 # DOC-STUDIO-003 — Revisão visual e usabilidade do Studio para pessoas
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-13 22:03 UTC
+Responsável: [Codex]
+Estado: Em andamento
+Início: 2026-10-13 22:42 UTC
+Última atualização: 2026-10-13 22:42 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Codex]
 
 ## Problema e evidências
 
@@ -50,8 +50,8 @@ Revisar jornadas humanas no Studio e corrigir problemas reproduzidos de legibili
 
 ### #1 — Investigação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
+- Estado: em andamento
+- Responsável: [Codex]
 - Atividades executadas:
 - Arquivos alterados:
 - Evidências:
@@ -108,6 +108,56 @@ Revisar jornadas humanas no Studio e corrigir problemas reproduzidos de legibili
 - Testes: revisão documental; validação de formato será executada antes da publicação.
 - Resultado: Proposta registrada, sem marcos de execução concluídos.
 - Próximo passo: assumir a tarefa pelo protocolo e investigar as jornadas; registrar problemas observados antes de implementar.
+
+### 2026-10-13 22:42 UTC — [Codex] — assunção e #1 Investigação
+
+- Investigado: protocolo atualizado, handoff geral, backlog e código em `48b914a`; Escopo e dependências conferidos: revisão visual ampla não duplica a paridade de DOC-STUDIO-001 nem as correções de entrada já concluídas em DOC-STUDIO-002. Revisão de telas ainda não executada.
+- Alterado: responsável, estado e marco #1; janela de trabalho declarada nesta tarefa.
+- Arquivos: este documento, BACKLOG.md e HANDOFF.md; nenhum código alterado nesta assunção.
+- Testes: validador documental antes da publicação; gates de runtime da sessão Kimi não foram reexecutados nesta etapa.
+- Resultado: tarefa assumida após atualização por fast-forward; DOC-SERVER-005 permanece com [Kimi] em validação humana.
+- Próximo passo: Depois da investigação P0 de DOC-SERVER-004, executar jornadas humanas por perfil em desktop/mobile e registrar evidências antes de corrigir a interface.
+
+## Handoff atual
+
+Preparado por: [Codex]
+Destinatário: [Codex / próximo participante após transferência]
+Estado: Em execução — investigação pendente
+Marco atual: #1 — Investigação
+Última atualização: 2026-10-13 22:42 UTC
+Commit de referência: `48b914a5315bca4892d3f8dddf594dc13b6b98c1` na branch `v0.1.0-beta`
+
+### Estado atual
+
+Escopo e dependências conferidos: revisão visual ampla não duplica a paridade de DOC-STUDIO-001 nem as correções de entrada já concluídas em DOC-STUDIO-002. Revisão de telas ainda não executada.
+
+### Decisões tomadas
+
+Trabalhar na beta atual sem modificar a tarefa de Kimi; priorizar DOC-SERVER-004 (P0) antes da revisão visual P1. Assunção publicada para informar outros participantes antes de mudanças de código. Sem alegar lock técnico ou coordenação por mensagem.
+
+### Arquivos envolvidos
+
+Este documento, BACKLOG.md e HANDOFF.md. Consultar o escopo para os arquivos de implementação; ainda não alterados.
+
+### Evidências e testes
+
+Branch atualizada por fast-forward; tarefa sem responsável no backlog. Nenhuma reprodução nova ou teste de runtime nesta assunção. Validador documental exigido antes da publicação.
+
+### Pendências
+
+Marcos #1–#5; reproduções, implementação quando justificada e gates. As evidências anteriores de outras tarefas não encerram esta tarefa.
+
+### Próximas ações recomendadas
+
+Depois da investigação P0 de DOC-SERVER-004, executar jornadas humanas por perfil em desktop/mobile e registrar evidências antes de corrigir a interface.
+
+### Riscos e cuidados
+
+Consultar o remoto antes de publicar e interromper sobreposição de arquivos se outro participante assumir escopo relacionado. Preservar mudanças e revisão humana pendente de DOC-SERVER-005; nenhum segredo em evidências.
+
+### Condições para conclusão
+
+Critérios de aceitação desta tarefa atendidos, marcos com evidências e gates proporcionais aprovados; backlog e handoff atualizados.
 
 ## Rollback
 

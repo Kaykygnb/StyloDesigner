@@ -5,16 +5,18 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `21b2f60` (docs/server: DOC-SERVER-005 marcos #3-#5 e politica de autorizacao)
-- Última sessão: 2026-10-13 23:15 UTC — [Kimi]
+- Commit de referência: `48b914a` (protocolo de handoff incorporado; base da assunção Codex)
+- Última atualização deste resumo: 2026-10-13 22:42 UTC — [Codex]
+- Entrega anterior de [Kimi]: DOC-SERVER-005; evidências e referência preservadas no handoff da tarefa.
 
 ## Estado geral
 
-Quality gates verdes: typecheck limpo, `npm test` 608/608, build ok. Última entrega fechou um buraco de autorização nos endpoints de configuração (DOC-SERVER-005), aguardando revisão humana para concluir.
+Gates reportados na entrega Kimi: typecheck limpo, `npm test` 608/608, build ok; não reexecutados na assunção Codex. Última entrega fechou um buraco de autorização nos endpoints de configuração (DOC-SERVER-005), aguardando revisão humana para concluir.
 
 ## Em andamento
 
-- Nenhuma.
+- [DOC-SERVER-004](tasks/server/DOC-SERVER-004.md) — [Codex], #1 investigação: revalidar compartilhamento em workspace ativo (P0); reprodução ainda pendente.
+- [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1), execução de jornadas após a prioridade P0.
 
 ## Aguardando revisão
 
@@ -33,8 +35,9 @@ Quality gates verdes: typecheck limpo, `npm test` 608/608, build ok. Última ent
 ## Próximas prioridades
 
 1. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md).
-2. [DOC-SERVER-004](tasks/server/DOC-SERVER-004.md) (P0) — revalidar acesso em workspaces com compartilhamento alterado.
-3. [DOC-SERVER-003](tasks/server/DOC-SERVER-003.md) está concluída e é dependência das P0 de autorização restantes.
+2. [DOC-SERVER-004](tasks/server/DOC-SERVER-004.md) (P0) — assumida por [Codex]; reproduzir downgrade/revogação e definir correção.
+3. [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) (P1) — assumida por [Codex]; revisar jornadas visuais e funcionais após a P0.
+4. [DOC-SERVER-003](tasks/server/DOC-SERVER-003.md) está concluída e é dependência das P0 de autorização restantes.
 
 ## Decisões humanas pendentes
 
