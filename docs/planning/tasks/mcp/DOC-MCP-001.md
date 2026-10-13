@@ -3,8 +3,8 @@
 Responsável: [Kimi]
 Estado: Em andamento
 Início: 2026-10-13 23:45 UTC
-Última atualização: 2026-10-13 23:45 UTC
-Progresso: 0/5 marcos (0%)
+Última atualização: 2026-10-14 00:30 UTC
+Progresso: 4/5 marcos (80%)
 Participantes: [Kimi]
 
 - **Módulo:** mcp
@@ -24,47 +24,67 @@ Participantes: [Kimi]
 ## Marcos
 
 ### #1 — Investigação
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Kimi]
-- Atividades executadas: —
+- Atividades executadas: leitura de `mcp/gateway.ts` (transporte Streamable HTTP do SDK, sessão por `Mcp-Session-Id`, Bearer `stylo_agt_...`, leniente com `Accept`, erros -32700/-32602), `tests/mcp-sdk.test.js` (cliente oficial SDK TS `^1.32.1`: initialize, tools/list, tools/call, isError, ping, presença), `tests/mcp-stdio.test.js` (ponte stdio `bin/mcp.mjs`) e `tests/mcp-contas.test.js` (tokens em modo contas).
 - Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Evidências: conteúdo de IMAGEM só é produzido por `get_image` (exige renderer com navegador — indisponível no servidor de teste); ferramentas como `generate_qr_code` em PNG devolvem dataUrl dentro do conteúdo de texto.
+- Testes executados: leitura estática; nenhum comando nesta entrada.
+- Problemas encontrados: nenhum teste cobre cliente externo que NÃO use o SDK oficial (JSON-RPC manual sobre HTTP) — lacuna central da tarefa.
+
 ### #2 — Planejamento
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: definição dos clientes verificáveis neste ambiente e da matriz. Clientes testados: SDK oficial TS (existente), ponte stdio (existente), contas/bearer (existente) e novo cliente HTTP cru (JSON-RPC 2.0 manual via fetch, sem SDK). Lacunas explícitas: clientes GUI/hosted (Claude Desktop, Cursor, Windsurf, ChatGPT Work) — não instaláveis neste ambiente; deixam de ser verificados com justificativa e roteiro manual.
 - Arquivos alterados: —
-- Evidências: —
+- Evidências: plano = `tests/mcp-compatibilidade.test.js` (novo) + `docs/mcp/COMPATIBILIDADE.md` (matriz com versão, configuração, fluxo e resultado por cliente, mais comandos curl reproduzíveis).
 - Testes executados: —
 - Problemas encontrados: —
 ### #3 — Implementação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: criado `tests/mcp-compatibilidade.test.js` (cliente HTTP cru, 2 testes: protocolo ponta a ponta e isolamento de sessões) e `docs/mcp/COMPATIBILIDADE.md` (matriz com versão/configuração/fluxo/resultado por cliente, lacunas GUI/hosted e roteiro curl reproduzível); inventário de ferramentas regenerado (`npm run docs:inventario`) porque o teste novo adicionou referências.
+- Arquivos alterados: `tests/mcp-compatibilidade.test.js`, `docs/mcp/COMPATIBILIDADE.md`, `docs/modules/mcp/README.md`, `docs/testing/TOOL-INVENTORY.json`, `docs/testing/TOOL-INVENTORY.md`
+- Evidências: nenhuma mudança de runtime — cobertura de teste e documentação apenas.
+- Testes executados: teste novo isolado 2/2.
 - Problemas encontrados: —
+
 ### #4 — Testes
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: concluído
+- Responsável: [Kimi]
+- Atividades executadas: contrato MCP (mcp-sdk, mcp-stdio, mcp-compatibilidade, tool-inventory) 8/8 isolado; typecheck limpo; build ok; suíte completa: única falha é `tests/studio-ui.test.js` (linha 155, etapa "Conferir"), reproduzida na árvore limpa — pré-existente e fora do escopo; registrada como [DOC-STUDIO-004](../studio/DOC-STUDIO-004.md).
 - Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Evidências: `npm test` — 615 passando, 1 falha pré-existente (studio-ui); MCP e inventário verdes.
+- Testes executados: `node --import tsx --import ./tests/_setup.mjs --test tests/tool-inventory.test.js tests/mcp-compatibilidade.test.js tests/mcp-sdk.test.js tests/mcp-stdio.test.js` (8/8); `npm run typecheck`; `npm test`; `npm run build`.
+- Problemas encontrados: falha ambiental pré-existente do E2E de painel web (DOC-STUDIO-004).
 ### #5 — Validação final
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: em andamento
+- Responsável: [Kimi]
+- Atividades executadas: aceite endereçado — cada cliente testado tem versão, configuração, fluxo e resultado anexados; lacunas (GUI/hosted e conteúdo de imagem) permanecem explicitamente não verificadas com justificativa e roteiro manual. Pendente apenas o estado `Em validação`/`Concluída` conforme revisão.
 - Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Evidências: `docs/mcp/COMPATIBILIDADE.md`; validador de tarefas ok.
+- Testes executados: `node docs/planning/validate-tasks.mjs`.
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-14 00:30 UTC — [Kimi] — #3 Implementação, #4 Testes e #5 Validação
+
+- Investigado: produção de conteúdo de imagem (`get_image` exige renderer) e integração do teste novo com o inventário de ferramentas (drift check exigiu regeneração).
+- Alterado: `tests/mcp-compatibilidade.test.js`, `docs/mcp/COMPATIBILIDADE.md`, `docs/modules/mcp/README.md`, inventário regenerado; marcos #3 e #4 concluídos; proposta DOC-STUDIO-004 registrada para a falha pré-existente do E2E de painel web.
+- Arquivos: os acima + BACKLOG.md + este documento.
+- Testes: MCP + inventário 8/8 isolados; typecheck limpo; build ok; suíte 615/1 falha pré-existente (studio-ui, fora do escopo).
+- Resultado: matriz de compatibilidade publicada com lacunas explícitas; nenhuma mudança de runtime.
+- Próximo passo: fechar marco #5 (revisão) e mover para `Em validação`/`Concluída`.
+
+### 2026-10-13 23:58 UTC — [Kimi] — #1 Investigação e #2 Planejamento
+
+- Investigado: `mcp/gateway.ts`, `tests/mcp-sdk.test.js`, `tests/mcp-stdio.test.js`, `tests/mcp-contas.test.js` e produção de conteúdo de imagem (`get_image` exige renderer; QR PNG devolve dataUrl em texto).
+- Alterado: marcos #1 e #2 concluídos com plano — novo teste de cliente HTTP cru (JSON-RPC manual, sem SDK) e matriz `docs/mcp/COMPATIBILIDADE.md` com lacunas GUI/hosted explicitamente não verificadas.
+- Arquivos: apenas este documento.
+- Testes: nenhum executado nesta entrada.
+- Resultado: escopo e aceitação endereçados sem implementar clientes externos no Stylo.
+- Próximo passo: implementar `tests/mcp-compatibilidade.test.js` e a matriz (marco #3).
 
 ### 2026-10-13 23:45 UTC — [Kimi] — #1 Investigação (assunção)
 
@@ -82,3 +102,51 @@ Participantes: [Kimi]
 - Testes: validador documental pendente.
 - Resultado: tarefa continua Proposta e não atribuída.
 - Próximo passo: consultar duplicações e assumir explicitamente.
+
+## Handoff atual
+
+Preparado por: [Kimi]
+Destinatário: [Próximo agente] ou [Revisor humano]
+Estado: Aguardando continuidade
+Marco atual: #5 — Validação final
+Última atualização: 2026-10-14 00:30 UTC
+Commit de referência: `cc9bec8` na branch `v0.1.0-beta`
+
+### Estado atual
+
+Marcos #1–#4 concluídos. Cliente HTTP cru (sem SDK) validado com 2 testes novos; matriz `docs/mcp/COMPATIBILIDADE.md` publicada com 3 clientes aprovados e lacunas explícitas. Regressão: MCP + inventário 8/8, typecheck e build verdes; única falha da suíte é pré-existente (DOC-STUDIO-004).
+
+### Decisões tomadas
+
+- Lacuna de imagem deixada explícita em vez de mockada: conteúdo `image` só vem de `get_image`, que exige renderer com navegador; QR PNG devolve dataURL em texto.
+- Clientes GUI/hosted (Claude Desktop, Cursor, Windsurf, ChatGPT Work) registrados como não verificados neste ambiente, com roteiro manual — em vez de simulações que não provariam compatibilidade real.
+- Teste novo entrou no inventário de ferramentas: `npm run docs:inventario` é obrigatório ao adicionar testes que mencionam ferramentas (drift check do DOC-CORE-001).
+
+### Arquivos envolvidos
+
+- Alterados: `tests/mcp-compatibilidade.test.js` (novo), `docs/mcp/COMPATIBILIDADE.md` (novo), `docs/modules/mcp/README.md`, `docs/testing/TOOL-INVENTORY.{json,md}` (regenerados), `docs/planning/BACKLOG.md` (DOC-STUDIO-004), este documento.
+
+### Evidências e testes
+
+- Isolado: tool-inventory + mcp-sdk + mcp-stdio + mcp-compatibilidade = 8/8.
+- `npm run typecheck` limpo; `npm run build` ok; `npm test` = 615 passando + 1 falha pré-existente (`studio-ui.test.js:155`, DOC-STUDIO-004, reproduzida na árvore limpa).
+
+### Pendências
+
+- Commitar e publicar as mudanças locais; mover marco #5 para concluído e estado para `Em validação`/`Concluída` após revisão.
+- Revisão humana da matriz (principalmente a classificação das lacunas).
+
+### Próximas ações recomendadas
+
+1. Commitar (teste + matriz + inventário + DOC-STUDIO-004) e dar push na `v0.1.0-beta`.
+2. Atualizar `HANDOFF.md` geral com a DOC-MCP-001.
+3. Revisão: conferir se as lacunas declaradas são aceitáveis como "explicitamente não verificadas".
+
+### Riscos e cuidados
+
+- Nunca enfraquecer as asserções do `tests/tool-inventory.test.js` ao regenerar o inventário — ele é o gate de drift do DOC-CORE-001.
+- A falha do `studio-ui.test.js` não foi causada por esta tarefa; não misturar correções (DOC-STUDIO-004).
+
+### Condições para conclusão
+
+- Mudanças publicadas na branch; validador de tarefas ok; matriz revisada e aceita.

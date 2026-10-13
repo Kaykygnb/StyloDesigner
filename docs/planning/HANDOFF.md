@@ -5,26 +5,22 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `08a6c03` (inventário de ferramentas e gate de drift)
-- Última atualização deste resumo: 2026-10-13 23:29 UTC — [Codex]
-- Entrega anterior de [Kimi]: DOC-SERVER-005; evidências e referência preservadas no handoff da tarefa.
+- Commit de referência: `cc9bec8` (matriz de compatibilidade MCP e teste de cliente externo)
+- Última atualização deste resumo: 2026-10-14 00:35 UTC — [Kimi]
+- Entrega anterior de [Codex]: DOC-SERVER-004, DOC-CORE-001 e DOC-QA-001 concluídas (commits até `80818cd`).
 
 ## Estado geral
 
-[DOC-CORE-001](tasks/core/DOC-CORE-001.md) concluída: 120 ferramentas com inventário gerado e check CI, commit 08a6c03; typecheck e 613 testes locais aprovados. Referências textuais não equivalem a cobertura comportamental completa. DOC-MCP-001 e DOC-STUDIO-001 podem usar esta base; ainda não assumidas nesta rodada.
-
-Preparação documental de QA com Work pronta em [DOC-QA-001](tasks/qa/DOC-QA-001.md), concluída e publicada em 7c24f1f: 14 jornadas Não executada, guia externo e modelo de relato/reteste; 16 tarefas e links/campos validados. Guia: [docs/qa/WORK-GUIDE.md](../qa/WORK-GUIDE.md). Nenhuma exploração visual executada; DOC-STUDIO-003 mantém responsável/estado e aguardará escopo/evidências futuras conforme orientação do proprietário.
-
-DOC-SERVER-004 concluída por [Codex], correção publicada em 7ccd005. `npm test`: 610/610, zero falhas/cancelamentos/skips; targeted workspace/Studio/plugins/config: 45/45; typecheck, build e E2E administrativo/login aprovados. CI da implementação 38480360349 aprovada em Node 22/24, build/documentação e Chromium/accounts. DOC-SERVER-005 permanece em validação humana com [Kimi].
+[Kimi] sincronizou a branch (7 commits de [Codex]) e assumiu a DOC-MCP-001, última P0 aberta. Gates locais: typecheck limpo, build ok, MCP + inventário 8/8. Suíte completa com uma falha pré-existente e ambiental (`studio-ui.test.js:155`, etapa "Conferir" — registrada em DOC-STUDIO-004, reproduzida na árvore limpa; CI de [Codex] aprovou 613/613).
 
 ## Em andamento
 
-
-- [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1), próxima execução de jornadas; DOC-SERVER-004 concluída.
+- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — [Kimi], #5 validação: matriz de compatibilidade publicada (cliente HTTP cru novo, 2 testes; lacunas GUI/hosted e imagem explícitas); mudanças locais a publicar.
+- [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
 
 ## Aguardando revisão
 
-- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) — gates de autorização em `PUT /api/config` e `PUT /api/agent/config` (anônimo 401, MEMBER 403, OWNER/ADMIN ok). Revisor: humano. Evidências no documento da tarefa.
+- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) — gates de autorização em `PUT /api/config` e `PUT /api/agent/config` (anônimo 401, MEMBER 403, OWNER/ADMIN ok). Revisor: humano.
 
 ## Bloqueios importantes
 
@@ -32,20 +28,17 @@ DOC-SERVER-004 concluída por [Codex], correção publicada em 7ccd005. `npm tes
 
 ## Alterações recentes relevantes
 
-- `7ccd005` fix(server): consulta de permissão por ID, revalidação de membro/grant e snapshot HTTP autorizado (DOC-SERVER-004).
-
-- `9b39789` fix(server): `identity.adminOf` nos dois PUT de configuração; novo `tests/config-autorizacao.test.js`.
-- `21b2f60` docs(server): marcos #3–#5 da DOC-SERVER-005 e política registrada em `docs/modules/server/README.md`.
-- Protocolo de handoff (TASK-PROTOCOL.md §10, este arquivo, seção `## Handoff atual` no template e no validador).
+- [Kimi] `tests/mcp-compatibilidade.test.js` (novo) + `docs/mcp/COMPATIBILIDADE.md` (novo) + inventário de ferramentas regenerado (drift check do DOC-CORE-001 exige `npm run docs:inventario` ao adicionar testes que citam ferramentas).
+- [Codex] `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004); QA exploratório preparado (DOC-QA-001, guia em `docs/qa/WORK-GUIDE.md`).
+- Proposta nova: [DOC-STUDIO-004](tasks/studio/DOC-STUDIO-004.md) — investigar falha do E2E de painel web na etapa "Conferir" (P1, não atribuída).
 
 ## Próximas prioridades
 
-O proprietário pode iniciar uma sessão Work com URL/permissões e o guia acima, selecionar jornadas e revisar relatos antes de encaminhar tarefas. Nesta entrega não iniciar QA automaticamente; preparo não conclui DOC-STUDIO-003.
-
-1. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md).
-2. [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) (P1) — assumida por [Codex]; revisar jornadas visuais e funcionais; P0 DOC-SERVER-004 concluída.
-3. [DOC-SERVER-003](tasks/server/DOC-SERVER-003.md) está concluída e é dependência das P0 de autorização restantes.
+1. Publicar a entrega da [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) e revisar as lacunas declaradas na matriz.
+2. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) (decisão humana pendente: `adminOf` vs `ownerOf`).
+3. P1 abertas sem responsável: [DOC-SERVER-001](tasks/server/DOC-SERVER-001.md), [DOC-CORE-002](tasks/core/DOC-CORE-002.md), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md), [DOC-DB-001](tasks/database/DOC-DB-001.md), [DOC-STUDIO-004](tasks/studio/DOC-STUDIO-004.md).
 
 ## Decisões humanas pendentes
 
-- Aprovar ou pedir ajustes na política `adminOf` para os PUTs de configuração (DOC-SERVER-005): a alternativa considerada foi `ownerOf`, rejeitada por inconsistência com o padrão de `routes/plugins.ts`.
+- Aprovar ou pedir ajustes na política `adminOf` para os PUTs de configuração (DOC-SERVER-005).
+- Aceitar como "explicitamente não verificadas" as lacunas da matriz MCP: clientes GUI/hosted (Claude Desktop, Cursor, Windsurf, ChatGPT Work) e conteúdo de imagem (`get_image` exige renderer).
