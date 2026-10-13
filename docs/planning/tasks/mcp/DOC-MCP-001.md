@@ -1,11 +1,11 @@
 # DOC-MCP-001 — Matriz de compatibilidade MCP
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-13 00:00 -03:00
+Responsável: [Kimi]
+Estado: Em andamento
+Início: 2026-10-13 23:45 UTC
+Última atualização: 2026-10-13 23:45 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Kimi]
 
 - **Módulo:** mcp
 - **Prioridade:** P0
@@ -24,8 +24,8 @@ Participantes: —
 ## Marcos
 
 ### #1 — Investigação
-- Estado: pendente
-- Responsável: [Não atribuído]
+- Estado: em andamento
+- Responsável: [Kimi]
 - Atividades executadas: —
 - Arquivos alterados: —
 - Evidências: —
@@ -65,6 +65,15 @@ Participantes: —
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-13 23:45 UTC — [Kimi] — #1 Investigação (assunção)
+
+- Investigado: protocolo, BACKLOG, HANDOFF geral (Codex concluiu DOC-SERVER-004, DOC-CORE-001 e DOC-QA-001; DOC-STUDIO-003 segue com [Codex]) e duplicação com DOC-CORE-001 (concluída — inventário de ferramentas; esta tarefa valida clientes, não ferramentas).
+- Alterado: responsável registrado como [Kimi], estado `Em andamento`, marco #1 em andamento.
+- Arquivos: esta tarefa e BACKLOG.md.
+- Testes: nenhum nesta entrada.
+- Resultado: tarefa assumida conforme protocolo §2, após `git pull` sincronizar 7 commits novos da branch (80818cd).
+- Próximo passo: ler `mcp/gateway.ts` e os testes `mcp-sdk`/`mcp-stdio`/`mcp-contas` para mapear o contrato de transporte antes de planejar a matriz.
 
 ### 2026-10-13 00:00 -03:00 — [Sistema] — adaptação ao protocolo
 - Investigado: tarefa existente e formato anterior.
