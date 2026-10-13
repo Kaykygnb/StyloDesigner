@@ -1477,6 +1477,10 @@
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
         {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 100
+        },
+        {
           "path": "tests/mcp-sdk.test.js",
           "line": 57
         },
@@ -4231,6 +4235,14 @@
           "line": 160
         },
         {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 134
+        },
+        {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 140
+        },
+        {
           "path": "tests/mcp-contas.test.js",
           "line": 85
         },
@@ -4459,6 +4471,10 @@
         {
           "path": "tests/agente.test.js",
           "line": 172
+        },
+        {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 107
         },
         {
           "path": "tests/mcp-sdk.test.js",
@@ -6068,6 +6084,14 @@
           "line": 306
         },
         {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 105
+        },
+        {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 131
+        },
+        {
           "path": "tests/mcp-contas.test.js",
           "line": 63
         },
@@ -6327,6 +6351,10 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 138
+        },
         {
           "path": "tests/mcp-sdk.test.js",
           "line": 95
