@@ -88,6 +88,8 @@ test('DNS rebinding: Host que não é desta máquina é recusado, com ou sem Ori
   const { port, call } = await startServer(t);
   assert.equal((await call('GET', '/api/status', undefined, { Host: `atacante.example:${port}` })).status, 403);
   assert.equal((await call('PUT', '/api/config', { keepVersions: 3 }, { Host: `atacante.example:${port}` })).status, 403);
+  // uso somente local: nem o endereço da rede privada (192.168.x, 10.x, 172.16.x) é aceito como Host
+  for (const host of ['192.168.0.10', '10.0.0.5', '172.16.0.1']) assert.equal((await call('GET', '/api/status', undefined, { Host: `${host}:${port}` })).status, 403, host);
   assert.equal((await call('GET', '/api/status')).status, 200);
 });
 

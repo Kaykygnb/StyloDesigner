@@ -58,7 +58,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   assert.equal(r.status, 200);
   const { modified, contentHash } = await r.json();
   const list = await (await fetch(base + '/api/projects')).json();
-  assert.deepEqual(list.map((p) => p.file), ['meu-app.json']);
+  assert.deepEqual(list.map((p) => p.file), ['meu-app']);
   r = await fetch(base + '/api/projects/meu-app.json');
   assert.equal((await r.json()).name, 'Meu app');
   assert.equal(Number(r.headers.get('x-modified')), modified);
@@ -94,7 +94,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
 
   // 5. validação: conteúdo que não é projeto, nome perigoso, rota inexistente
   assert.equal((await put('/api/projects/x.json', { nada: 1 })).status, 400);
-  for (const bad of ['..%2Fsegredo.json', '.oculto.json', 'semextensao', 'a%5C..%5Cb.json']) {
+  for (const bad of ['..%2Fsegredo.json', '.oculto.json', 'a%5C..%5Cb.json']) {
     assert.equal((await put('/api/projects/' + bad, doc('x'))).status, 400, bad);
   }
   assert.equal((await fetch(base + '/api/projects/nao-existe.json')).status, 404);
@@ -115,7 +115,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   assert.equal(r.headers.get('content-type'), 'image/svg+xml');
   assert.match(r.headers.get('content-security-policy'), /default-src 'none'/);
   assert.equal(await r.text(), svg);
-  assert.ok((await (await fetch(base + '/api/projects')).json()).find((p) => p.file === 'meu-app.json').thumb > 0);
+  assert.ok((await (await fetch(base + '/api/projects')).json()).find((p) => p.file === 'meu-app').thumb > 0);
 
   // 8. renomear: leva junto versões e miniatura; recusa nome existente e nome inválido
   const post = (path, body) => fetch(base + path, { method: 'POST', headers: json, body: JSON.stringify(body) });
@@ -124,7 +124,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   assert.equal((await post('/api/projects/meu-app.json/rename', { to: '../fora.json' })).status, 400);
   r = await post('/api/projects/meu-app.json/rename', { to: 'app-final.json' });
   assert.equal(r.status, 200);
-  assert.equal((await r.json()).file, 'app-final.json');
+  assert.equal((await r.json()).file, 'app-final');
   assert.equal((await fetch(base + '/api/projects/meu-app.json')).status, 404);
   assert.equal((await (await fetch(base + '/api/projects/app-final.json')).json()).name, 'Forçado');
   assert.equal((await (await fetch(base + '/api/projects/app-final.json/versions')).json()).length, 1, 'versões vieram junto');

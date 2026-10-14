@@ -124,7 +124,7 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
     const loaded = await projects.load({ id: actor.userId }, file);
     if (actor.type === 'AGENT' && actor.agentId && agentProjectAccess && !(await agentProjectAccess(actor.agentId, loaded.id))) throw new Error('Este agente não está autorizado neste projeto. Peça ao administrador para liberar o acesso.');
     if (!Array.isArray(loaded.doc?.pages) || !loaded.doc.pages.length) throw new Error('Arquivo inválido: não parece um projeto do Stylo.');
-    const entry = docs.get(loaded.id) ?? mount(loaded.id, file, loaded.ownerId, loaded.doc, { hash: loaded.contentHash });
+    const entry = docs.get(loaded.id) ?? mount(loaded.id, loaded.file, loaded.ownerId, loaded.doc, { hash: loaded.contentHash });
     return { entry, role: loaded.role };
   }
 

@@ -60,7 +60,7 @@ test('HTTP: envia arquivo para a biblioteca, lista, baixa com o tipo certo, remo
   const used = await (await fetch(`${base}/api/library/usage-detail`)).json();
   const usedAsset = used.assets.find((item) => item.assetId === asset.id);
   assert.equal(usedAsset.useCount, 1);
-  assert.equal(usedAsset.projects[0].file, 'usa-logo.json');
+  assert.equal(usedAsset.projects[0].file, 'usa-logo');
   const replaced = await fetch(`${base}/api/library/${asset.id}/replace`, { method: 'POST', headers: { 'Content-Type': 'font/woff', 'X-Name': encodeURIComponent('Logo atualizado') }, body: WOFF });
   assert.equal(replaced.status, 200);
   const replacedAsset = await replaced.json();

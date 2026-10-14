@@ -63,12 +63,12 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
     const r = await mcp({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } }, { ...auth, 'Mcp-Session-Id': sid });
     return { status: r.status, body: r.status === 200 ? JSON.parse((await r.json()).result.content[0].text) : null };
   };
-  assert.equal((await tool('new_project', { name: 'Do Agente' })).body.file, 'do-agente.json');
+  assert.equal((await tool('new_project', { name: 'Do Agente' })).body.file, 'do-agente');
   assert.equal((await tool('create_layer', { type: 'frame', props: { name: 'Hero' } })).body.ok, true);
 
   // o dono vê o projeto e o log de atividade mostra o agente
   const list = await (await call('GET', '/api/projects', null, session)).json();
-  assert.deepEqual(list.map((p) => p.file), ['do-agente.json']);
+  assert.deepEqual(list.map((p) => p.file), ['do-agente']);
   await new Promise((r) => setTimeout(r, 600)); // o servidor grava 400 ms depois da última alteração
   const doc = await (await call('GET', '/api/projects/do-agente.json', null, session)).json();
   assert.ok(JSON.stringify(doc).includes('Hero'), 'a alteração do agente chegou ao banco');

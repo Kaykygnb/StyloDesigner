@@ -326,7 +326,7 @@ test('library_use: copia imagem e mídia para o projeto; add_font hospeda a font
   assert.deepEqual(font.files.map((f: any) => [f.weight, f.subset]).sort(), [[400, 'latin'], [700, 'latin']]);
   await t.workspace.flushAll();
   const doc = (await t.workspace.call('get_document', {}, { sid: 's', actor: a })).document ?? null;
-  const saved = await t.db.project.findFirstOrThrow({ where: { slug: 'site.json' } });
+  const saved = await t.db.project.findFirstOrThrow({ where: { slug: 'site' } });
   const stored: any = saved.doc;
   assert.equal(stored.fonts[0].family, 'Inter');
   assert.equal(stored.fonts[0].files.length, 2);

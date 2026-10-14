@@ -105,7 +105,7 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
   assert.equal(pending.status, 'PENDING');
   await agents.approve(pending.id);
   assert.equal((await agents.forClient(owner.id, 'Cursor', 'approval')).id, pending.id);
-  const project = await db.project.create({ data: { slug: 'privado.json', name: 'Privado', ownerId: owner.id, doc: doc('Privado'), size: JSON.stringify(doc('Privado')).length } });
+  const project = await db.project.create({ data: { slug: 'privado', name: 'Privado', ownerId: owner.id, doc: doc('Privado'), size: JSON.stringify(doc('Privado')).length } });
   assert.equal(await agents.projectAccess(agent.id, project.id), false);
   await agents.grantProject(agent.id, project.id);
   assert.equal(await agents.projectAccess(agent.id, project.id), true);
@@ -147,7 +147,7 @@ test('projetos: conflito por revisão, versões a cada intervalo com limite, pap
   assert.equal(comparison.same, false);
   assert.ok(comparison.changed.includes('name'));
   const copy = await projects.duplicateVersion(me, 'site.json', versions[0].id, 'copia da versão');
-  assert.equal(copy.file, 'copia-da-versao.json');
+  assert.equal(copy.file, 'copia-da-versao');
   assert.equal((await projects.load(me, copy.file)).doc.name, 'v4');
 
   // papéis: quem não é membro nem vê; VIEWER lê mas não grava; EDITOR grava
@@ -167,7 +167,7 @@ test('projetos: conflito por revisão, versões a cada intervalo com limite, pap
   await assert.rejects(projects.rename(me, 'site.json', 'outro.json'), /Já existe/);
   await assert.rejects(projects.rename(me, 'site.json', '../fora.json'), /inválido/);
   await assert.rejects(projects.rename(stranger, 'site.json', 'novo.json'), /Só o dono/);
-  assert.equal((await projects.rename(me, 'site.json', 'final.json')).file, 'final.json');
+  assert.equal((await projects.rename(me, 'site.json', 'final.json')).file, 'final');
   assert.equal(await projects.exists(me, 'site.json'), false);
   await close();
 });
@@ -240,7 +240,7 @@ test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data UR
 test('projeto antigo com imagem embutida no JSON é externalizado na próxima gravação', async () => {
   const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
-  const old = await db.project.create({ data: { slug: 'velho.json', name: 'Velho', ownerId: owner.id, doc: { ...doc('velho'), assets: { a: PNG_URL } }, revision: 1 } });
+  const old = await db.project.create({ data: { slug: 'velho', name: 'Velho', ownerId: owner.id, doc: { ...doc('velho'), assets: { a: PNG_URL } }, revision: 1 } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
   const me = { id: owner.id };
   const loaded = await projects.load(me, 'velho.json');

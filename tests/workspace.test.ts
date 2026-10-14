@@ -37,7 +37,7 @@ test('new_project cria no banco, create_layer altera, grava e o log registra que
   const t = await setup();
   const a = await t.agentOf('Claude Code');
   const created = await t.workspace.call('new_project', { name: 'Meu Site' }, { sid: 'a', actor: a });
-  assert.equal(created.file, 'meu-site.json');
+  assert.equal(created.file, 'meu-site');
   const layer = await t.workspace.call('create_layer', { type: 'frame', props: { name: 'Hero', w: 800, h: 400, fill: '#ff0000' } }, { sid: 'a', actor: a });
   assert.equal(layer.error, undefined, layer.error);
   assert.ok(JSON.stringify(await t.workspace.call('get_document', {}, { sid: 'a', actor: a })).includes('Hero'));
@@ -85,7 +85,7 @@ test('new_project recusa nome que já existe; list_projects mostra o aberto', as
   await t.workspace.call('new_project', { name: 'Um' }, { sid: 'a', actor: a });
   assert.match((await t.workspace.call('new_project', { name: 'Um' }, { sid: 'a', actor: a })).error, /Já existe/);
   const list = await t.workspace.call('list_projects', {}, { sid: 'a', actor: a });
-  assert.equal(list.open, 'um.json');
+  assert.equal(list.open, 'um');
   assert.equal(list.projects.length, 1);
   await t.close();
 });
@@ -107,7 +107,7 @@ test('membro VIEWER lê o projeto de outra pessoa mas não altera; EDITOR altera
   const t = await setup();
   const dono = await t.agentOf('Do dono');
   await t.workspace.call('new_project', { name: 'Compartilhado' }, { sid: 'd', actor: dono });
-  const project = await t.db.project.findFirstOrThrow({ where: { slug: 'compartilhado.json' } });
+  const project = await t.db.project.findFirstOrThrow({ where: { slug: 'compartilhado' } });
   await t.db.projectMember.create({ data: { projectId: project.id, userId: t.other.id, role: 'VIEWER' } });
   const visitante = await t.agentOf('Visitante', t.other);
   const opened = await t.workspace.call('open_project', { file: 'compartilhado.json' }, { sid: 'v', actor: visitante });
@@ -138,7 +138,7 @@ test('export_zip devolve os endereços do site .zip e do projeto, depois de grav
   await t.workspace.call('create_layer', { type: 'frame', props: { name: 'Home', w: 400, h: 300 } }, { sid: 'a', actor: a });
   const out = await t.workspace.call('export_zip', {}, { sid: 'a', actor: a });
   assert.equal(out.error, undefined, out.error);
-  assert.match(out.site_zip_url, /\/api\/projects\/zip\.json\/site\.zip$/);
+  assert.match(out.site_zip_url, /\/api\/projects\/zip\/site\.zip$/);
   assert.ok(out.files.length >= 1);
   assert.ok(JSON.stringify((await t.projects.load({ id: t.owner.id }, 'zip.json')).doc).includes('Home'));
   await t.close();
@@ -270,7 +270,7 @@ test('add_asset: envia imagem (base64, data URL ou endereço), reaproveita a rep
   const listed = await t.workspace.call('list_assets', {}, { sid: 's', actor: a });
   assert.ok(listed.count >= 1);
   await t.workspace.flushAll();
-  const row = await t.db.project.findFirstOrThrow({ where: { slug: 'imagens.json' } });
+  const row = await t.db.project.findFirstOrThrow({ where: { slug: 'imagens' } });
   assert.equal(JSON.stringify(row.doc).includes('base64'), false);
   assert.equal(await t.db.asset.count({ where: { projectId: row.id } }), 2);
   const loaded = await t.projects.load({ id: t.owner.id }, 'imagens.json');
@@ -320,7 +320,7 @@ test('export_site com format "react" pelo MCP lista o projeto Vite/React; export
   assert.match(jsx.files[0].content, /export default function Home\(\)/);
   assert.match((await call('export_site', { format: 'vue' })).error, /Argumentos inválidos|format/);
   const zip = await call('export_zip');
-  assert.match(zip.react_zip_url, /\/api\/projects\/app-react\.json\/react\.zip$/);
+  assert.match(zip.react_zip_url, /\/api\/projects\/app-react\/react\.zip$/);
   await t.close();
 });
 

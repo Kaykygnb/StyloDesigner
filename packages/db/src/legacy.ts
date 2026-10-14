@@ -40,6 +40,8 @@ export async function importLegacyPglite(dir: string, db: Db, log: (line: string
           const rows = (await pg.query<Record<string, unknown>>(sql)).rows;
           if (rows.length) {
             const data = rows.map((row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v === undefined ? null : v])));
+            // projetos deixaram de ser "arquivos .json": o nome vem sem a extensão
+            if (name === 'Project') for (const row of data) row.slug = String(row.slug).replace(/\.json$/i, '');
             // Notas respondem a notas: as mais antigas primeiro
             if (name === 'Note') data.sort((a, b) => new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime());
             await (tx as any)[delegateName(name)].createMany({ data });

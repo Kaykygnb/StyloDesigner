@@ -68,7 +68,7 @@ test('cliente oficial: initialize traz as instruções, tools/list o catálogo a
 
   const created = await client.callTool({ name: 'new_project', arguments: { name: 'Pelo SDK' } });
   assert.equal(created.isError, false);
-  assert.equal(text(created).file, 'pelo-sdk.json');
+  assert.equal(text(created).file, 'pelo-sdk');
   const layer = await client.callTool({ name: 'create_layer', arguments: { type: 'frame', props: { name: 'Hero', w: 300, h: 200 } } });
   assert.equal(text(layer).ok, true);
 

@@ -54,7 +54,7 @@ export function createProjectsTools(ctx: RunnerContext): ToolHandlers {
       if (name) {
         // nome que já existe (e não é o arquivo aberto): recusa com mensagem, em vez de abrir a pergunta "substituir?"
         // mesmo nome de arquivo que o storage.fileNameFor gera (sem acento, minúsculas, hífens)
-        const file = `${String(name).replace(/\.json$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'projeto'}.json`;
+        const file = String(name).replace(/\.json$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'projeto';
         const taken = (await folder.list()).some((p) => p.file === file);
         if (taken && store.ui.link?.file !== file) throw new Error(`Já existe "${file}" na pasta. Escolha outro nome.`);
         if (!(await saving.saveAs(name, { overwrite: false }))) throw new Error('Não consegui salvar na pasta.');

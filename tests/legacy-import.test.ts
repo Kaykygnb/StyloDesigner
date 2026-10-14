@@ -52,7 +52,7 @@ test('banco antigo (PGlite) é importado: contas, projetos com imagem, versões,
       assert.ok(owner.createdAt instanceof Date && owner.createdAt.getFullYear() >= 2025);
       assert.equal((await db.user.findUniqueOrThrow({ where: { email: 'maria@x.invalid' } })).mustChangePassword, true);
 
-      const project = await db.project.findUniqueOrThrow({ where: { ownerId_slug: { ownerId: U, slug: 'meu-site.json' } }, include: { members: true, assets: true, versions: true, agents: true } });
+      const project = await db.project.findUniqueOrThrow({ where: { ownerId_slug: { ownerId: U, slug: 'meu-site' } }, include: { members: true, assets: true, versions: true, agents: true } });
       assert.equal(project.revision, 7); assert.equal(project.thumb, '<svg/>'); assert.equal(project.docHash, 'abc');
       assert.equal(project.doc.pages[0].name, 'Início ç');
       assert.equal(project.members[0].role, 'VIEWER');

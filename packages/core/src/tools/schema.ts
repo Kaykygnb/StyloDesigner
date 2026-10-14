@@ -817,7 +817,7 @@ ${PROP_HELP}`,
     write: true, noLock: true,
     description: 'Abre um projeto da pasta como o projeto desta sessão (use list_projects). Quem mais abrir o mesmo arquivo trabalha no mesmo projeto.',
     input: z.object({
-      file: z.string().describe('ex.: meu-site.json'),
+      file: z.string().describe('nome do projeto, ex.: meu-site'),
     }),
   }),
   defineTool({
@@ -825,7 +825,7 @@ ${PROP_HELP}`,
     write: true, noLock: true,
     description: 'Grava o projeto aberto na pasta (o servidor também grava sozinho depois de cada alteração). Com name, salva uma cópia com esse nome e passa a trabalhar nela.',
     input: z.object({
-      name: z.string().describe('nome do arquivo (sem .json)').optional(),
+      name: z.string().describe('nome do projeto').optional(),
     }),
   }),
   defineTool({

@@ -125,11 +125,11 @@ export function ExportPanel() {
   const downloadProject = () => {
     if (!doc) return;
     const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = file || 'projeto.json'; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = `${(file || 'projeto').replace(/\.json$/i, '')}.stylo`; a.click(); URL.revokeObjectURL(url);
   };
   const importProjectFile = () => {
-    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
-    input.onchange = () => { const file = input.files?.[0]; if (!file) return; void file.text().then(async (text) => { let doc: any; try { doc = JSON.parse(text); } catch { throw new Error(t(language, 'export.invalidJson')); } const title = await askText(t(language, 'export.importName'), String(doc.name || file.name.replace(/\.json$/i, '')), { okLabel: t(language, 'export.import') }); if (!title?.trim()) return; const out = await importProject(title.trim(), doc); toast('ok', t(language, 'export.imported')); await openProject(out.file); }).catch((e) => toast('error', e instanceof Error ? e.message : String(e))); };
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.stylo,.json,application/json';
+    input.onchange = () => { const file = input.files?.[0]; if (!file) return; void file.text().then(async (text) => { let doc: any; try { doc = JSON.parse(text); } catch { throw new Error(t(language, 'export.invalidJson')); } const title = await askText(t(language, 'export.importName'), String(doc.name || file.name.replace(/\.(stylo|json)$/i, '')), { okLabel: t(language, 'export.import') }); if (!title?.trim()) return; const out = await importProject(title.trim(), doc); toast('ok', t(language, 'export.imported')); await openProject(out.file); }).catch((e) => toast('error', e instanceof Error ? e.message : String(e))); };
     input.click();
   };
   return (

@@ -115,11 +115,11 @@ test('contas: cadastro, agente MCP, autorização por projeto e revogação', as
   assert.equal(grant.status, 200);
   const listedAgents = await call('GET', '/api/agents');
   assert.equal(listedAgents.status, 200);
-  assert.equal(listedAgents.json.find((item) => item.id === agent.json.agent.id).lastProject.slug, 'controle.json');
+  assert.equal(listedAgents.json.find((item) => item.id === agent.json.agent.id).lastProject.slug, 'controle');
   const listed = await call('GET', `/api/agents/${agent.json.agent.id}/projects`);
   assert.equal(listed.status, 200);
   assert.equal(listed.json.length, 1);
-  assert.equal(listed.json[0].project.slug, 'controle.json');
+  assert.equal(listed.json[0].project.slug, 'controle');
   const revoke = await call('DELETE', `/api/agents/${agent.json.agent.id}/projects/${listed.json[0].projectId}`, {});
   assert.equal(revoke.status, 200);
   const after = await call('GET', `/api/agents/${agent.json.agent.id}/projects`);

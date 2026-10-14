@@ -82,7 +82,7 @@ export function Home() {
     try {
       const doc = JSON.parse(await file.text());
       if (!Array.isArray(doc?.pages)) throw new Error(en ? 'This file does not contain project pages.' : 'O arquivo não contém páginas de projeto.');
-      const created = await api.importProject(file.name.replace(/\.json$/i, ''), doc);
+      const created = await api.importProject(file.name.replace(/\.(stylo|json)$/i, ''), doc);
       await loadProjects();
       toast('ok', en ? `Project imported as ${created.file}.` : `Projeto importado como ${created.file}.`);
     } catch (e) { toast('error', String(e)); }
@@ -128,7 +128,7 @@ export function Home() {
           </div>
           <span className="spacer" />
           <div className="search"><Icon name="search" size={15} /><input className="field" placeholder={en ? 'Search projects' : 'Buscar projeto'} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={en ? 'Search projects' : 'Buscar projeto'} />{query && <button type="button" className="search-clear" aria-label={en ? 'Clear search' : 'Limpar busca'} title={en ? 'Clear search' : 'Limpar busca'} onClick={() => setQuery('')}><Icon name="close" size={12} /></button>}</div>
-          <input ref={importInput} hidden type="file" accept="application/json,.json" onChange={(e) => void importProjectFile(e.target.files?.[0])} />
+          <input ref={importInput} hidden type="file" accept=".stylo,.json,application/json" onChange={(e) => void importProjectFile(e.target.files?.[0])} />
           <button className="btn" onClick={() => importInput.current?.click()} disabled={busy > 0}><Icon name="upload" size={14} /> {en ? 'Import project' : 'Importar projeto'}</button>
         </div>
 

@@ -77,7 +77,7 @@ test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entra
 
   // criar, montar e ler de volta
   const novo = await (await call({ sid, tool: 'new_project', args: { name: 'Painel' } })).json();
-  assert.equal(novo.file, 'painel.json');
+  assert.equal(novo.file, 'painel');
   const tela = await (await call({ sid, tool: 'build_layout', args: { tree: { type: 'frame', props: { name: 'Tela', w: 800, h: 600, fill: '#FFFFFF' } } } })).json();
   assert.equal(tela.error, undefined, tela.error);
   const rect = await (await call({ sid, tool: 'create_layer', args: { type: 'rect', parent_id: tela.created.id, props: { x: 10, y: 20, w: 100, h: 50, fill: '#FF0000' } } })).json();
@@ -85,7 +85,7 @@ test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entra
   const up = await (await call({ sid, tool: 'update_layer', args: { id: rect.created.id, props: { x: 77 } } })).json();
   assert.equal(up.error, undefined, up.error);
   const snap = await (await fetch(`${base}/api/studio/doc?sid=${sid}`)).json();
-  assert.equal(snap.file, 'painel.json');
+  assert.equal(snap.file, 'painel');
   const flat = (l) => l.flatMap((n) => [n, ...(n.children ? flat(n.children) : [])]);
   const r = flat(snap.doc.pages[0].children).find((n) => n.id === rect.created.id);
   assert.deepEqual([r.x, r.y, r.w, r.h], [77, 20, 100, 50]);
