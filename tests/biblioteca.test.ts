@@ -75,7 +75,7 @@ test('chaves: cifra AES-GCM (ida e volta), troca de chave não decifra, nada em 
   assert.notEqual(encrypt('x', key), encrypt('x', key), 'nonce diferente a cada vez');
   assert.throws(() => decrypt(encrypt('segredo', key), randomBytes(32)));
   const { db, close } = await createDb({ pglite: {} });
-  const u = await db.user.create({ data: { email: 'a@x.com', name: 'A', passwordHash: '!' } });
+  const u = await db.user.create({ data: { username: 'a', email: 'a@x.com', name: 'A', passwordHash: '!' } });
   const secrets = createSecrets(db, key);
   await secrets.set(u.id, 'pexels', '  CHAVE-SECRETA-DO-PEXELS  ');
   assert.equal(await secrets.get(u.id, 'pexels'), 'CHAVE-SECRETA-DO-PEXELS');
@@ -89,8 +89,8 @@ test('chaves: cifra AES-GCM (ida e volta), troca de chave não decifra, nada em 
 
 test('biblioteca: tipo pelo conteúdo, mesma coisa não duplica, isolada por conta, cota e remoção que respeita blob compartilhado', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const a = await db.user.create({ data: { email: 'a@x.com', name: 'A', passwordHash: '!' } });
-  const b = await db.user.create({ data: { email: 'b@x.com', name: 'B', passwordHash: '!' } });
+  const a = await db.user.create({ data: { username: 'a', email: 'a@x.com', name: 'A', passwordHash: '!' } });
+  const b = await db.user.create({ data: { username: 'b', email: 'b@x.com', name: 'B', passwordHash: '!' } });
   const blobs = createMemoryBlobStore();
   const lib = createLibrary({ db, blobs });
 
@@ -147,7 +147,7 @@ const JSONRES = (data: unknown) => new Response(JSON.stringify(data), { status: 
 async function setup() {
   resetAssetCaches(); resetFontCatalog();
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!', role: 'OWNER' } });
+  const owner = await db.user.create({ data: { username: 'o', email: 'o@x.com', name: 'O', passwordHash: '!', role: 'OWNER' } });
   const blobs = createMemoryBlobStore();
   const library = createLibrary({ db, blobs });
   const secrets = createSecrets(db, randomBytes(32));

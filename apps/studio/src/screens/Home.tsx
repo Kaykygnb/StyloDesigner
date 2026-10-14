@@ -3,7 +3,6 @@ import { useMemo, useRef, useState } from 'react';
 import { thumbUrl } from '../lib/api';
 import { createProject, loadProjects, openProject, signedOut, toast, useApp } from '../lib/app';
 import * as api from '../lib/api';
-import { connectCommand } from '../editor/Panels';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Icon } from '../ui/Icon';
 import { WorkspacePanel } from './WorkspacePanel';
@@ -31,7 +30,6 @@ export function Home() {
   const projects = useApp((s) => s.projects);
   const error = useApp((s) => s.projectsError);
   const user = useApp((s) => s.user);
-  const auth = useApp((s) => s.auth);
   const busy = useApp((s) => s.busy);
   const presence = useApp((s) => s.presence);
   const language = useApp((s) => s.language);
@@ -42,8 +40,7 @@ export function Home() {
   const importInput = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(() => (projects ?? []).filter((p) => (p.name || pretty(p.file)).toLowerCase().includes(query.trim().toLowerCase())), [projects, query]);
-  const cmd = connectCommand();
-  const canAdmin = auth?.mode === 'local' || user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const canAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const homeTabs: Array<[typeof area, string]> = [['projects', 'home.projects'], ['library', 'home.library']];
   if (canAdmin) homeTabs.push(['agents', 'home.agents'], ['admin', 'home.admin']);
   homeTabs.push(['account', 'home.account']);
@@ -88,8 +85,8 @@ export function Home() {
         </nav>
         {presence && presence.agents.length > 0 && <span className="badge"><span className="dot" style={{ background: 'var(--ok)' }} /> {presence.agents.length} agente(s) conectado(s)</span>}
         <AppearanceMenu />
-        {auth?.mode === 'accounts' && user && (
-          <button className="btn ghost" onClick={async () => { try { await api.logout(); await signedOut(); } catch (error) { toast('error', error instanceof Error ? error.message : String(error)); } }} title={user.email}>Sair ({user.name})</button>
+        {user && (
+          <button className="btn ghost" onClick={async () => { try { await api.logout(); await signedOut(); } catch (error) { toast('error', error instanceof Error ? error.message : String(error)); } }} title={user.email || user.username}>Sair ({user.name})</button>
         )}
       </header>
 
@@ -149,13 +146,8 @@ export function Home() {
 
         {canAdmin && <section className="connect-card">
           <h3><Icon name="spark" size={16} /> {t(language, 'home.connectTitle')}</h3>
-          {auth?.mode === 'accounts' ? <>
-            <p className="muted">{t(language, 'home.connectAccountHint')}</p>
-            <div><button className="btn" onClick={() => setArea('agents')}>{t(language, 'home.manageAgents')}</button></div>
-          </> : <>
-            <p className="muted">Qualquer agente que fale MCP (Claude Code, Codex, Cursor…) pode criar e editar projetos aqui. Rode este comando no computador onde o agente está:</p>
-            <div className="codebox"><code>{cmd}</code><button className="btn ghost icon sm" title="Copiar" onClick={() => navigator.clipboard.writeText(cmd).then(() => toast('ok', 'Copiado.'), () => toast('error', 'Não consegui copiar.'))}><Icon name="copy" size={14} /></button></div>
-          </>}
+          <p className="muted">{t(language, 'home.connectAccountHint')}</p>
+          <div><button className="btn" onClick={() => setArea('agents')}>{t(language, 'home.manageAgents')}</button></div>
         </section>}
         </>}
       </main>

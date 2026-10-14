@@ -22,9 +22,9 @@ const LAYOUT = {
 
 async function setup({ now = Date.now } = {}) {
   const { db, close } = await createDb({ pglite: {} });
-  const studioOwner = await db.user.create({ data: { email: 'pessoa-paridade@parity.test', name: 'Pessoa Paridade', passwordHash: '!', role: 'OWNER' } });
-  const agentOwner = await db.user.create({ data: { email: 'dono-agente@parity.test', name: 'Dono Agente', passwordHash: '!', role: 'OWNER' } });
-  const viewer = await db.user.create({ data: { email: 'leitor-paridade@parity.test', name: 'Leitor Paridade', passwordHash: '!', role: 'MEMBER' } });
+  const studioOwner = await db.user.create({ data: { username: 'pessoaparidade', email: 'pessoa-paridade@parity.test', name: 'Pessoa Paridade', passwordHash: '!', role: 'OWNER' } });
+  const agentOwner = await db.user.create({ data: { username: 'donoagente', email: 'dono-agente@parity.test', name: 'Dono Agente', passwordHash: '!', role: 'OWNER' } });
+  const viewer = await db.user.create({ data: { username: 'leitorparidade', email: 'leitor-paridade@parity.test', name: 'Leitor Paridade', passwordHash: '!', role: 'MEMBER' } });
   const operations = createOperations(db);
   const presence = createPresence({ now });
   const events = createEvents({ presence });
@@ -248,7 +248,7 @@ test('paridade: escopo só de leitura e papel VIEWER recusam mutação e preserv
   const fullZip = await env.mcp.call(full, 'export_zip', {});
   assert.equal(fullZip.error, undefined, fullZip.error);
   assert.match(fullZip.site_zip_url, /\/site\.zip$/);
-  const commenter = await env.db.user.create({ data: { email: 'comenta-paridade@parity.test', name: 'Comenta Paridade', passwordHash: '!', role: 'MEMBER' } });
+  const commenter = await env.db.user.create({ data: { username: 'comentaparidade', email: 'comenta-paridade@parity.test', name: 'Comenta Paridade', passwordHash: '!', role: 'MEMBER' } });
   const sharedComment = await env.studio.call(user, { sid: 'aba-dono', tool: 'share_project', args: { email: commenter.email, role: 'commenter' } });
   assert.equal(sharedComment.error, undefined, sharedComment.error);
   const openedComment = await env.studio.call(person(commenter), { sid: 'aba-comenta', tool: 'open_project', args: { file: created.file } });

@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { createAgent, setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Testes de segurança do servidor local: origem exata (porta incluída) e limite de corpo por rota.
 // Sobe o servidor real com configuração e pasta TEMPORÁRIAS (nunca toca nos projetos de ninguém).
@@ -30,11 +31,11 @@ async function startServer(t) {
   t.after(() => cleanupFixture(fixture));
   const port = await unusedPort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts' }),
     stdio: 'ignore',
   });
   fixture.children.push(child);
-  const call = (method, path, body, headers = {}) => new Promise((resolve, reject) => {
+  const raw = (method, path, body, headers = {}) => new Promise((resolve, reject) => {
     const data = body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body);
     const req = request({ host: '127.0.0.1', port, method, path, headers: { ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}), ...headers } }, (res) => {
       let text = '';
@@ -48,10 +49,18 @@ async function startServer(t) {
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
-    try { up = (await call('GET', '/api/status')).status === 200; } catch { /* ainda subindo */ }
+    try { up = (await raw('GET', '/api/status')).status === 200; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
-  return { port, call };
+  const base = `http://127.0.0.1:${port}`;
+  const { cookie } = await setupSession(base);
+  const { token } = await createAgent(base, cookie, 'Segurança');
+  const call = (method, path, body, headers = {}) => raw(method, path, body, {
+    cookie,
+    ...(String(path).startsWith('/mcp') ? { authorization: `Bearer ${token}` } : {}),
+    ...headers,
+  });
+  return { port, call, cookie };
 }
 
 test('origem: só a página do próprio servidor (mesma porta) escreve; outra porta de localhost é recusada', async (t) => {
@@ -110,7 +119,7 @@ test('erros internos não vazam detalhes e JSON que não é objeto vira 400', as
 });
 
 test('limites de sessões MCP e de editores conectados (sem crescimento ilimitado)', async (t) => {
-  const { port, call } = await startServer(t);
+  const { port, call, cookie } = await startServer(t);
   const init = { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'teste-seguranca', version: '1' } } };
   const statuses = [];
   for (let i = 0; i < 70; i++) statuses.push((await call('POST', '/mcp', init)).status);
@@ -122,7 +131,7 @@ test('limites de sessões MCP e de editores conectados (sem crescimento ilimitad
   const codes = [];
   for (let i = 0; i < 34; i++) {
     codes.push(await new Promise((resolve) => {
-      const req = get({ host: '127.0.0.1', port, path: `/api/agent/events?id=ed${i}&user=${'x'.repeat(200)}`, agent: false }, (res) => { open.push(res); resolve(res.statusCode); });
+      const req = get({ host: '127.0.0.1', port, path: `/api/agent/events?id=ed${i}&user=${'x'.repeat(200)}`, headers: { cookie }, agent: false }, (res) => { open.push(res); resolve(res.statusCode); });
       req.on('error', () => resolve(0));
     }));
   }

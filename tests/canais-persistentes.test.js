@@ -86,11 +86,11 @@ test('canais persistentes: sessão MCP não muda de agente e o SSE só entrega a
   assert.equal((await call('GET', '/api/presence')).status, 401, 'presença exige sessão');
   assert.equal((await call('GET', '/api/agent/events')).status, 401, 'canal de eventos não aceita anônimo');
 
-  const setup = await call('POST', '/api/auth/setup', { email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
+  const setup = await call('POST', '/api/auth/setup', { username: 'owner', email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(setup.status, 201);
   const ownerCookie = cookie;
   const makeUser = async (email, name, role) => {
-    const created = await call('POST', '/api/users', { email, name, role, password: `senha-${role.toLowerCase()}-segura` });
+    const created = await call('POST', '/api/users', { username: email.split('@')[0].replace(/[^a-z0-9]/g, ''), email, name, role, password: `senha-${role.toLowerCase()}-segura` });
     assert.equal(created.status, 201, email);
     const login = await call('POST', '/api/auth/login', { email, password: `senha-${role.toLowerCase()}-segura` });
     assert.equal(login.status, 200, email);
@@ -210,7 +210,7 @@ test('canais persistentes: sessão MCP não muda de agente e o SSE só entrega a
   cookie = ownerCookie;
   const restored = await call('POST', `/api/users/${owner2Id}/suspend`, { suspended: false });
   assert.equal(restored.status, 200);
-  const relogin = await call('POST', '/api/auth/login', { email: 'owner2@stylo.test', password: 'senha-owner-nova' });
+  const relogin = await call('POST', '/api/auth/login', { username: 'owner2', email: 'owner2@stylo.test', password: 'senha-owner-nova' });
   assert.equal(relogin.status, 200);
   const listedAgents = await call('GET', '/api/agents');
   const kept = listedAgents.json.find((row) => row.id === secondaryAgent.json.agent.id);

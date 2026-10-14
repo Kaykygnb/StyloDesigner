@@ -110,13 +110,13 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
 
   // 3. servidor no PostgreSQL: setup de conta, usuário, projeto e agente
   const first = await startStylo(fixture, dbUrl);
-  const owner = await call(first.base, 'POST', '/api/auth/setup', { email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
+  const owner = await call(first.base, 'POST', '/api/auth/setup', { username: 'owner', email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(owner.status, 201, 'setup no PostgreSQL');
   const ownerCookie = owner.cookie;
 
-  const created = await call(first.base, 'POST', '/api/users', { email: 'editor@stylo.test', name: 'Editor', role: 'EDITOR' }, ownerCookie);
+  const created = await call(first.base, 'POST', '/api/users', { username: 'editor', email: 'editor@stylo.test', name: 'Editor', role: 'EDITOR' }, ownerCookie);
   assert.equal(created.status, 201, 'criação de usuário no PostgreSQL');
-  let editor = await call(first.base, 'POST', '/api/auth/login', { email: 'editor@stylo.test', password: created.json.temporaryPassword });
+  let editor = await call(first.base, 'POST', '/api/auth/login', { username: 'editor', email: 'editor@stylo.test', password: created.json.temporaryPassword });
   assert.equal(editor.status, 200);
   const changed = await call(first.base, 'POST', '/api/me/password', { current: created.json.temporaryPassword, next: 'senha-editor-segura' }, editor.cookie);
   assert.equal(changed.status, 200, 'troca de senha no PostgreSQL');
@@ -151,7 +151,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   fixture.clients.splice(fixture.clients.indexOf(mcp), 1);
   await stopChild(first.child);
   const second = await startStylo(fixture, dbUrl);
-  const relogin = await call(second.base, 'POST', '/api/auth/login', { email: 'owner@stylo.test', password: 'senha-owner-segura' });
+  const relogin = await call(second.base, 'POST', '/api/auth/login', { username: 'owner', email: 'owner@stylo.test', password: 'senha-owner-segura' });
   assert.equal(relogin.status, 200, 'conta sobrevive ao reinício do servidor');
   const survived = await call(second.base, 'GET', '/api/projects/controle.json', undefined, relogin.cookie);
   assert.equal(survived.status, 200, 'projeto sobrevive ao reinício (persistência real no PostgreSQL)');

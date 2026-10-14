@@ -6,7 +6,7 @@ O Studio é o editor React/Vite: canvas, seleção, camadas, toolbar, inspector,
 
 Apresentação e estado de sessão: página, seleção, ferramenta, zoom, painéis, idioma, tema e comunicação com o servidor.
 
-No modo accounts, a entrada com senha temporária mostra somente troca de senha/saída, inclusive após reload; projetos, snapshot e presença são carregados após a troca. Sair encerra a presença, remove callbacks de navegação/refresh e limpa contexto de projeto. Administração e conexões MCP usam o papel da conta (`user.role`), nunca o papel no projeto. O modo local mantém seu fluxo sem login.
+A entrada pede conta. Com senha temporária, a tela mostra somente troca de senha e saída, inclusive após reload; projetos, snapshot e presença são carregados após a troca. Sair encerra a presença, remove callbacks de navegação/refresh e limpa contexto de projeto. Administração e conexões MCP usam o papel da conta (`user.role`), nunca o papel no projeto.
 
 ## Não deve fazer
 

@@ -9,9 +9,9 @@ Um projeto contém um documento de design com páginas e camadas; não pressupom
 ## QA-JRN-001 — Primeiro acesso
 
 - Objetivo: descobrir como entrar no Studio e compreender a tela inicial.
-- Pré-condições: URL alcançável e modo local/accounts informado; autorização específica se a instalação de teste estiver vazia e pedir conta mestre.
+- Pré-condições: URL alcançável; autorização específica se a instalação de teste estiver vazia e pedir conta mestre. Não há modo sem conta.
 - Passos sugeridos: abrir a URL; registrar redirecionamento/tela; localizar entrada ou projetos; se autorizado, preencher setup de teste; observar mensagens e próximo passo.
-- Resultado esperado: caminho para Studio e estado coerente com o modo/contas existentes; modo local pode abrir sem login, accounts pode pedir entrada/setup.
+- Resultado esperado: caminho para Studio. Instalação vazia pede a primeira conta (nome de usuário e senha; e-mail opcional). Instalação com contas pede entrada.
 - Critérios de avaliação: entendimento do produto e da ação inicial, rótulos e feedback; setup não deve ser confundido com cadastro público livre.
 - Riscos: criar conta mestre altera instalação; não executar setup sem permissão ou reinicializar instalação existente.
 - Estado de execução: Não executada.
@@ -19,7 +19,7 @@ Um projeto contém um documento de design com páginas e camadas; não pressupom
 ## QA-JRN-002 — Login e sessão
 
 - Objetivo: entrar, sair e compreender troca obrigatória de senha e recuperação de sessão.
-- Pré-condições: modo accounts, conta descartável, permissão para login/logout e variantes de senha; não aplicável ao login em modo local.
+- Pré-condições: conta descartável e permissão para login, logout e variantes de senha. A entrada aceita nome de usuário ou e-mail.
 - Passos sugeridos: entrar com conta de teste; se autorizado, errar senha uma vez; percorrer troca temporária quando apresentada, incluindo reload e saída; sair e entrar novamente; revogação/suspensão só com humano ou conta admin especificamente autorizados.
 - Resultado esperado: erro de senha compreensível; senha obrigatória bloqueia acesso ao trabalho até a troca; sair exige novo login; conta/sessão inválida não mantém acesso autenticado. Não presumir recuperação por e-mail: não identificada nesta preparação.
 - Critérios de avaliação: instruções, feedback, preservação do contexto e distinção entre erro de credencial e acesso/rede; nenhuma credencial no relatório.

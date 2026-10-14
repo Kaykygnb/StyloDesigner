@@ -9,6 +9,8 @@ export function Login() {
   const language = useApp((s) => s.language);
   const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
   const first = !!auth && !auth.hasAccounts;
+  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -22,8 +24,8 @@ export function Login() {
     if (first && password !== confirm) { setError(tr('login.passwordMismatch')); return; }
     setBusy(true);
     try {
-      if (first) await api.setup(email.trim(), name.trim(), password);
-      else await api.login(email.trim(), password);
+      if (first) await api.setup(username.trim(), name.trim(), password, email.trim());
+      else await api.login(identifier.trim(), password);
       const state = await api.authState();
       await afterLogin(state.user);
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); } finally { setBusy(false); }
@@ -36,7 +38,9 @@ export function Login() {
         <h1>{tr(first ? 'login.setupTitle' : 'login.signInTitle')}</h1>
         <p className="muted">{tr(first ? 'login.setupHint' : 'login.signInHint')}</p>
         {first && <label>{tr('login.name')}<input className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required /></label>}
-        <label>{tr('login.email')}<input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required autoFocus /></label>
+        {first && <label>{tr('login.username')}<input className="field" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required autoFocus /></label>}
+        {first && <label>{tr('login.emailOptional')}<input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></label>}
+        {!first && <label>{tr('login.identifier')}<input className="field" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" required autoFocus /></label>}
         <label>{tr('login.password')}<input className="field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={first ? 'new-password' : 'current-password'} minLength={first ? 8 : undefined} required /></label>
         {first && <label>{tr('login.confirmPassword')}<input className="field" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required /></label>}
         {first && <p className="faint small">{tr('login.passwordHint')}</p>}
@@ -77,7 +81,7 @@ export function RequiredPasswordChange() {
       <form className="login-card" onSubmit={submit} aria-busy={busy}>
         <div className="brand big"><span className="logo">S</span> Stylo</div>
         <h1>{tr('login.changeTitle')}</h1>
-        <p className="muted">{tr('login.changeHint', { email: user?.email || (language === 'en-US' ? 'your account' : 'sua conta') })}</p>
+        <p className="muted">{tr('login.changeHint', { email: user?.email || user?.username || (language === 'en-US' ? 'your account' : 'sua conta') })}</p>
         <label>{tr('login.temporaryPassword')}<input className="field" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required autoFocus /></label>
         <label>{tr('login.newPassword')}<input className="field" type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required /></label>
         <label>{tr('login.confirmNewPassword')}<input className="field" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required /></label>

@@ -143,10 +143,6 @@ export function systemRoutes(s: Services, identity: Identity) {
       try { await s.projects.access(user, event.projectId); return true; } catch { return false; }
     };
     const sessionLive = async () => {
-      if (s.authMode === 'local') {
-        const fresh = await s.db.user.findUnique({ where: { id: user.id }, select: { suspended: true } });
-        return !!fresh && !fresh.suspended;
-      }
       const current = token ? await s.auth.userFromToken(token) : null;
       return !!current && !current.suspended && !current.mustChangePassword;
     };

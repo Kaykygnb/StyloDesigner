@@ -68,10 +68,10 @@ test('rotas ZIP entregam HTML/React íntegros e isolam projetos por conta', { ti
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   const json = (url: string, body: unknown, token?: string) => fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
-  const setup = await json('/api/auth/setup', { email: 'owner@zip.test', name: 'Dono', password: 'SenhaZipTeste123!' }); assert.equal(setup.status, 201);
+  const setup = await json('/api/auth/setup', { username: 'owner', email: 'owner@zip.test', name: 'Dono', password: 'SenhaZipTeste123!' }); assert.equal(setup.status, 201);
   const owner = (await setup.json()).token;
-  const created = await json('/api/users', { email: 'other@zip.test', name: 'Outra conta', password: 'SenhaZipTeste123!' }, owner); assert.equal(created.status, 201);
-  const other = (await (await json('/api/auth/login', { email: 'other@zip.test', password: 'SenhaZipTeste123!' })).json()).token;
+  const created = await json('/api/users', { username: 'other', email: 'other@zip.test', name: 'Outra conta', password: 'SenhaZipTeste123!' }, owner); assert.equal(created.status, 201);
+  const other = (await (await json('/api/auth/login', { username: 'other', email: 'other@zip.test', password: 'SenhaZipTeste123!' })).json()).token;
   const changedOther = await json('/api/me/password', { current: 'SenhaZipTeste123!', next: 'SenhaZipTesteNova123!' }, other); assert.equal(changedOther.status, 200);
   const doc: any = makeDoc(); doc.name = 'Entrega ZIP'; doc.assets.foto = `data:image/png;base64,${PNG}`;
   doc.breakpoints = [{ id: 'mobile', name: 'Celular', max: 600, preview: 390 }];

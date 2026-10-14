@@ -27,8 +27,8 @@ async function snapshot(db: Awaited<ReturnType<typeof memory>>['db'], id: string
   return { role: user.role, suspended: user.suspended, passwordHash: user.passwordHash, mustChangePassword: user.mustChangePassword, email: user.email, sessions };
 }
 
-function httpApp(db: Awaited<ReturnType<typeof memory>>['db'], auth: ReturnType<typeof createAuth>, localUser: Awaited<ReturnType<ReturnType<typeof createAuth>['localUser']>>) {
-  const services = { db, auth, authMode: 'accounts' as const, localUser, config: { get: () => ({}) } } as unknown as Services;
+function httpApp(db: Awaited<ReturnType<typeof memory>>['db'], auth: ReturnType<typeof createAuth>) {
+  const services = { db, auth, authMode: 'accounts' as const, config: { get: () => ({}) } } as unknown as Services;
   const app = new Hono();
   app.onError((error, c) => c.json({ error: error.message }, (error as { status?: number }).status || 500));
   app.route('/api', authRoutes(services, createIdentity(services)));
@@ -40,9 +40,9 @@ test('migração 0015 não escolhe principal e não altera contas existentes', a
   try {
     await db.$executeRawUnsafe('DROP TABLE "Installation"');
     await db.$executeRawUnsafe(`DELETE FROM "_stylo_migrations" WHERE name = '0015_autoridade_principal'`);
-    await db.user.create({ data: { email: LOCAL_EMAIL, name: 'Você', passwordHash: '!', role: 'OWNER', createdAt: new Date('2019-01-01T00:00:00Z') } });
-    await db.user.create({ data: { email: 'primeiro@synthetic.test', name: 'Primeiro', passwordHash: 'hash-um', role: 'OWNER', createdAt: new Date('2020-01-01T00:00:00Z') } });
-    await db.user.create({ data: { email: 'segundo@synthetic.test', name: 'Segundo', passwordHash: 'hash-dois', role: 'ADMIN', createdAt: new Date('2024-06-01T00:00:00Z') } });
+    await db.user.create({ data: { username: 'local', email: LOCAL_EMAIL, name: 'Você', passwordHash: '!', role: 'OWNER', createdAt: new Date('2019-01-01T00:00:00Z') } });
+    await db.user.create({ data: { username: 'primeiro', email: 'primeiro@synthetic.test', name: 'Primeiro', passwordHash: 'hash-um', role: 'OWNER', createdAt: new Date('2020-01-01T00:00:00Z') } });
+    await db.user.create({ data: { username: 'segundo', email: 'segundo@synthetic.test', name: 'Segundo', passwordHash: 'hash-dois', role: 'ADMIN', createdAt: new Date('2024-06-01T00:00:00Z') } });
     const before = await db.user.findMany({ orderBy: { email: 'asc' }, select: { id: true, email: true, role: true, passwordHash: true, suspended: true } });
     const sql = await readFile(fileURLToPath(new URL('../packages/db/prisma/migrations/0015_autoridade_principal/migration.sql', import.meta.url)), 'utf8');
     assert.doesNotMatch(sql, /UPDATE\s+"User"/i);
@@ -57,27 +57,49 @@ test('migração 0015 não escolhe principal e não altera contas existentes', a
   }
 });
 
-test('setup designa a primeira conta humana; o usuário técnico e uma segunda corrida não viram principal', async () => {
+test('setup designa a primeira conta; uma segunda corrida não vira principal', async () => {
   const { db, close, auth } = await memory();
   try {
-    const local = await auth.localUser();
     assert.equal(await auth.principalId(), null);
-    assert.equal(local.email, LOCAL_EMAIL);
-    await assert.rejects(auth.setup({ email: LOCAL_EMAIL, name: 'Local', password: PASSWORD }), /reservado/);
+    await assert.rejects(auth.setup({ username: 'local', email: LOCAL_EMAIL, name: 'Local', password: PASSWORD }), /reservado/);
     const [first, second] = await Promise.allSettled([
-      auth.setup({ email: 'um@synthetic.test', name: 'Um', password: PASSWORD }),
-      auth.setup({ email: 'dois@synthetic.test', name: 'Dois', password: PASSWORD }),
+      auth.setup({ username: 'um', email: 'um@synthetic.test', name: 'Um', password: PASSWORD }),
+      auth.setup({ username: 'dois', email: 'dois@synthetic.test', name: 'Dois', password: PASSWORD }),
     ]);
     const fulfilled = [first, second].filter((result) => result.status === 'fulfilled');
-    assert.equal(fulfilled.length, 1, 'só uma conta humana sobrevive à corrida do setup');
+    assert.equal(fulfilled.length, 1, 'só uma conta sobrevive à corrida do setup');
     const winner = fulfilled[0].status === 'fulfilled' ? fulfilled[0].value : null;
     assert.ok(winner);
     assert.equal(winner.role, 'OWNER');
+    assert.equal(winner.principal, true);
     assert.equal(await auth.principalId(), winner.id);
-    assert.equal(await db.user.count({ where: { email: { not: LOCAL_EMAIL } } }), 1);
-    assert.notEqual((await db.user.findUniqueOrThrow({ where: { email: LOCAL_EMAIL } })).id, winner.id);
-    await assert.rejects(auth.setup({ email: 'tres@synthetic.test', name: 'Três', password: PASSWORD }), /Já existe uma conta mestre/);
-    assert.equal(await db.user.count({ where: { email: { not: LOCAL_EMAIL } } }), 1);
+    assert.equal(await db.user.count(), 1);
+    await assert.rejects(auth.setup({ username: 'tres', email: 'tres@synthetic.test', name: 'Três', password: PASSWORD }), /Já existe uma conta mestre/);
+    assert.equal(await db.user.count(), 1);
+  } finally {
+    await close();
+  }
+});
+
+test('setup assume o usuário técnico antigo e preserva o projeto no mesmo id', async () => {
+  const { db, close, auth } = await memory();
+  try {
+    const legacy = await db.user.create({ data: { username: 'local', email: LOCAL_EMAIL, name: 'Você', passwordHash: '!', role: 'OWNER' } });
+    await db.project.create({ data: { slug: 'loja.json', name: 'Loja', ownerId: legacy.id, doc: { pages: [] } } });
+    const adopted = await auth.setup({ username: 'kayky', name: 'Kayky', password: PASSWORD, email: '' });
+    assert.equal(adopted.id, legacy.id);
+    assert.equal(adopted.username, 'kayky');
+    assert.equal(adopted.email, null);
+    assert.equal(adopted.name, 'Kayky');
+    assert.equal(adopted.role, 'OWNER');
+    assert.equal(adopted.principal, true);
+    assert.equal(await auth.principalId(), legacy.id);
+    assert.equal((await db.project.findUniqueOrThrow({ where: { ownerId_slug: { ownerId: legacy.id, slug: 'loja.json' } } })).ownerId, legacy.id);
+    assert.notEqual((await db.user.findUniqueOrThrow({ where: { id: legacy.id } })).passwordHash, '!');
+    const session = await auth.login('KAYKY', PASSWORD);
+    assert.equal(session.user.id, legacy.id);
+    await assert.rejects(auth.login('local', PASSWORD), /Usuário ou senha incorretos/);
+    await assert.rejects(auth.setup({ username: 'outro', name: 'Outro', password: PASSWORD }), /Já existe uma conta mestre/);
   } finally {
     await close();
   }
@@ -86,15 +108,14 @@ test('setup designa a primeira conta humana; o usuário técnico e uma segunda c
 test('principal designado: negativas não mutam; sem ponteiro ninguém altera OWNER', async () => {
   const { db, close, auth } = await memory();
   try {
-    const local = await auth.localUser();
-    const principal = await auth.setup({ email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
-    const admin = await auth.createUser({ email: 'admin@synthetic.test', name: 'Admin', password: PASSWORD, role: 'ADMIN' });
+    const principal = await auth.setup({ username: 'principal', email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
+    const admin = await auth.createUser({ username: 'admin', email: 'admin@synthetic.test', name: 'Admin', password: PASSWORD, role: 'ADMIN' });
     await auth.changePassword(admin.id, PASSWORD, 'senha-admin-2');
-    const member = await auth.createUser({ email: 'membro@synthetic.test', name: 'Membro', password: PASSWORD, role: 'MEMBER' });
+    const member = await auth.createUser({ username: 'membro', email: 'membro@synthetic.test', name: 'Membro', password: PASSWORD, role: 'MEMBER' });
     const adminLogin = await auth.login(admin.email, 'senha-admin-2');
     const principalLogin = await auth.login(principal.email, PASSWORD);
     await auth.login(principal.email, PASSWORD);
-    const app = httpApp(db, auth, local);
+    const app = httpApp(db, auth);
     const call = async (token: string, method: string, path: string, body?: unknown) => {
       const response = await app.request('/api' + path, { method, headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
       const json = await response.json() as { error?: string; role?: string; id?: string; suspended?: boolean; user?: { id: string; role: string } };
@@ -124,7 +145,7 @@ test('principal designado: negativas não mutam; sem ponteiro ninguém altera OW
 
     const step = await call(principalLogin.token, 'POST', '/me/reconfirm', { password: PASSWORD });
     assert.equal(step.status, 200);
-    const createdOwner = await call(principalLogin.token, 'POST', '/users', { email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
+    const createdOwner = await call(principalLogin.token, 'POST', '/users', { username: 'socio', email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
     assert.equal(createdOwner.status, 201);
     assert.equal(createdOwner.json.user?.role, 'OWNER');
     assert.equal('temporaryPassword' in createdOwner.json, false);
@@ -134,7 +155,7 @@ test('principal designado: negativas não mutam; sem ponteiro ninguém altera OW
     assert.equal(await auth.principalId(), principal.id);
     await auth.changePassword(secondId, PASSWORD, 'senha-socio-2');
     const secondLogin = await auth.login('socio@synthetic.test', 'senha-socio-2');
-    const secondGrant = await call(secondLogin.token, 'POST', '/users', { email: 'terceiro@synthetic.test', name: 'Terceiro', password: PASSWORD, role: 'OWNER' });
+    const secondGrant = await call(secondLogin.token, 'POST', '/users', { username: 'terceiro', email: 'terceiro@synthetic.test', name: 'Terceiro', password: PASSWORD, role: 'OWNER' });
     assert.equal(secondGrant.status, 403);
     assert.equal(await db.user.count({ where: { email: 'terceiro@synthetic.test' } }), 0);
     const secondDemote = await call(secondLogin.token, 'PUT', '/users/' + principal.id, { role: 'MEMBER', name: 'Tomada' });
@@ -174,26 +195,25 @@ test('principal designado: negativas não mutam; sem ponteiro ninguém altera OW
 test('só o principal administra outro OWNER: reconfirmação, auditoria e senha que não volta', async () => {
   const { db, close, auth } = await memory();
   try {
-    const local = await auth.localUser();
-    const principal = await auth.setup({ email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
+    const principal = await auth.setup({ username: 'principal', email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
     assert.equal(principal.principal, true);
-    const admin = await auth.createUser({ email: 'admin@synthetic.test', name: 'Admin', password: PASSWORD, role: 'ADMIN' });
+    const admin = await auth.createUser({ username: 'admin', email: 'admin@synthetic.test', name: 'Admin', password: PASSWORD, role: 'ADMIN' });
     await auth.changePassword(admin.id, PASSWORD, 'senha-admin-2');
     const principalLogin = await auth.login(principal.email, PASSWORD);
     const adminLogin = await auth.login(admin.email, 'senha-admin-2');
-    const app = httpApp(db, auth, local);
+    const app = httpApp(db, auth);
     const call = async (token: string, method: string, path: string, body?: unknown) => {
       const response = await app.request('/api' + path, { method, headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
       return { status: response.status, json: await response.json() as Record<string, unknown> };
     };
     const ownerEvents = async () => (await db.authEvent.findMany({ select: { kind: true, email: true } })).map((event) => `${event.email} ${event.kind}`);
 
-    const early = await call(principalLogin.token, 'POST', '/users', { email: 'cedo@synthetic.test', name: 'Cedo', password: PASSWORD, role: 'OWNER' });
+    const early = await call(principalLogin.token, 'POST', '/users', { username: 'cedo', email: 'cedo@synthetic.test', name: 'Cedo', password: PASSWORD, role: 'OWNER' });
     assert.equal(early.status, 403);
     assert.match(String(early.json.error), /Confirme sua senha/);
     assert.equal(await db.user.count({ where: { email: 'cedo@synthetic.test' } }), 0);
 
-    const adminGrant = await call(adminLogin.token, 'POST', '/users', { email: 'admin-owner@synthetic.test', name: 'Não', password: PASSWORD, role: 'OWNER' });
+    const adminGrant = await call(adminLogin.token, 'POST', '/users', { username: 'adminowner', email: 'admin-owner@synthetic.test', name: 'Não', password: PASSWORD, role: 'OWNER' });
     assert.equal(adminGrant.status, 403);
     assert.match(String(adminGrant.json.error), /Só a autoridade principal/);
     assert.doesNotMatch(String(adminGrant.json.error), /Confirme sua senha/);
@@ -208,12 +228,12 @@ test('só o principal administra outro OWNER: reconfirmação, auditoria e senha
     assert.ok((await ownerEvents()).some((kind) => kind.endsWith(' step-up')));
     assert.equal(JSON.stringify(await db.authEvent.findMany()).includes(PASSWORD), false);
 
-    const missing = await call(principalLogin.token, 'POST', '/users', { email: 'sem-senha@synthetic.test', name: 'Sem', role: 'OWNER' });
+    const missing = await call(principalLogin.token, 'POST', '/users', { username: 'semsenha', email: 'sem-senha@synthetic.test', name: 'Sem', role: 'OWNER' });
     assert.equal(missing.status, 400);
     assert.match(String(missing.json.error), /não será mostrada de volta/);
     assert.equal(await db.user.count({ where: { email: 'sem-senha@synthetic.test' } }), 0);
 
-    const created = await call(principalLogin.token, 'POST', '/users', { email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
+    const created = await call(principalLogin.token, 'POST', '/users', { username: 'socio', email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
     assert.equal(created.status, 201);
     const second = created.json.user as { id: string; role: string; principal?: boolean };
     assert.equal(second.role, 'OWNER');
@@ -298,13 +318,13 @@ test('só o principal administra outro OWNER: reconfirmação, auditoria e senha
     assert.equal(await db.user.count({ where: { id: second.id } }), 0);
     assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.remove:${second.id}`)));
 
-    const member = await auth.createUser({ email: 'membro@synthetic.test', name: 'Membro', password: PASSWORD, role: 'MEMBER' });
+    const member = await auth.createUser({ username: 'membro', email: 'membro@synthetic.test', name: 'Membro', password: PASSWORD, role: 'MEMBER' });
     const memberReset = await call(adminLogin.token, 'POST', '/users/' + member.id + '/reset-password', {});
     assert.equal(memberReset.status, 200);
     assert.equal(typeof memberReset.json.temporaryPassword, 'string');
     assert.notEqual(memberReset.json.temporaryPassword, PASSWORD);
 
-    const pending = await auth.createUser({ email: 'pendente@synthetic.test', name: 'Pendente', password: PASSWORD, role: 'MEMBER' });
+    const pending = await auth.createUser({ username: 'pendente', email: 'pendente@synthetic.test', name: 'Pendente', password: PASSWORD, role: 'MEMBER' });
     const pendingLogin = await auth.login(pending.email, PASSWORD);
     const pendingStep = await call(pendingLogin.token, 'POST', '/me/reconfirm', { password: PASSWORD });
     assert.equal(pendingStep.status, 403);
@@ -312,7 +332,7 @@ test('só o principal administra outro OWNER: reconfirmação, auditoria e senha
 
     const agent = await createAgents(db).create(principal.id, { name: 'Agente' });
     for (const [method, path] of [['POST', '/users'], ['POST', '/users/' + member.id + '/suspend'], ['POST', '/users/' + member.id + '/reset-password'], ['DELETE', '/users/' + member.id]] as const) {
-      const denied = await call(agent.token, method, path, { email: 'agente@synthetic.test', name: 'Agente', password: PASSWORD, role: 'ADMIN', suspended: true });
+      const denied = await call(agent.token, method, path, { username: 'agente', email: 'agente@synthetic.test', name: 'Agente', password: PASSWORD, role: 'ADMIN', suspended: true });
       assert.equal(denied.status, 401, method + ' ' + path);
     }
     assert.equal(await db.user.count({ where: { email: 'agente@synthetic.test' } }), 0);
@@ -328,15 +348,15 @@ test('a janela de reconfirmação expira e a senha errada entra no limite', asyn
   const { db, close } = await createDb({ pglite: {} });
   const auth = createAuth(db, { now: () => now });
   try {
-    const principal = await auth.setup({ email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
+    const principal = await auth.setup({ username: 'principal', email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
     await auth.reconfirm(principal.id, PASSWORD);
-    await auth.createUser({ email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' }, false, principal);
+    await auth.createUser({ username: 'socio', email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' }, false, principal);
     now += STEP_UP_MS;
-    await assert.rejects(auth.createUser({ email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal), /Confirme sua senha/);
+    await assert.rejects(auth.createUser({ username: 'outro', email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal), /Confirme sua senha/);
     assert.equal(await db.user.count({ where: { email: 'outro@synthetic.test' } }), 0);
     now += 1;
     await auth.reconfirm(principal.id, PASSWORD);
-    const again = await auth.createUser({ email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal);
+    const again = await auth.createUser({ username: 'outro', email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal);
     assert.equal(again.role, 'OWNER');
 
     for (let attempt = 0; attempt < 8; attempt++) await assert.rejects(auth.reconfirm(principal.id, 'senha-errada'), /senha atual está incorreta/);

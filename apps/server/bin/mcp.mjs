@@ -20,7 +20,7 @@
 import { createInterface } from 'node:readline';
 
 const BASE = (process.env.DESIGNER_URL || 'http://localhost:5173').replace(/\/+$/, '');
-/** Token do agente (servidor com contas: a conta mestre cria em POST /api/agents). Sem ele, vale o modo local. */
+/** Token do agente (a conta mestre cria em POST /api/agents). Sem ele, o servidor recusa o canal. */
 const TOKEN = String(process.env.STYLO_TOKEN || '').trim();
 const auth = TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
 /**

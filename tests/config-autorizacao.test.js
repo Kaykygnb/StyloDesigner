@@ -56,12 +56,12 @@ const login = async (base, email, password) => {
 test('config do servidor: anônimo e membro são recusados; owner e admin alteram; recusa não muta nada', async (t) => {
   const { base } = await start(t);
 
-  const setup = await call(base, 'POST', '/api/auth/setup', { email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
+  const setup = await call(base, 'POST', '/api/auth/setup', { username: 'owner', email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(setup.status, 201);
   const ownerCookie = setup.cookie;
 
   const makeUser = async (email, name, role) => {
-    const created = await call(base, 'POST', '/api/users', { email, name, role }, ownerCookie);
+    const created = await call(base, 'POST', '/api/users', { username: email.split('@')[0].replace(/[^a-z0-9]/g, ''), email, name, role }, ownerCookie);
     assert.equal(created.status, 201);
     const cookie = await login(base, email, created.json.temporaryPassword);
     const changed = await call(base, 'POST', '/api/me/password', { current: created.json.temporaryPassword, next: `senha-${role.toLowerCase()}-segura` }, cookie);

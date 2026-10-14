@@ -4,9 +4,9 @@
  * Cada agente (Claude Code, Codex...) é um registro com dono, escopos e estado:
  *   PENDING (esperando aprovação) → ACTIVE → REVOKED.
  * O token (`stylo_agt_...`) aparece UMA vez, na criação; só o hash fica no banco.
- * Política de entrada de agentes sem token (modo local):
- *   open      registra sozinho pelo nome do programa e já ativa (conveniência de quem roda na própria máquina)
- *   approval  registra como PENDING; a conta mestre aprova
+ * O canal MCP exige esse token. `forClient` permanece para testes da política antiga e não abre o canal:
+ *   open      registraria sozinho pelo nome do programa
+ *   approval  registraria como PENDING
  *   closed    só entra quem tem token criado pela conta mestre
  */
 

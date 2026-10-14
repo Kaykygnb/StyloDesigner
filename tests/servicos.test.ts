@@ -20,25 +20,28 @@ test('conta mestre: o setup só funciona uma vez; login cria sessão; token erra
   const { db, close } = await createDb({ pglite: {} });
   const auth = createAuth(db);
   assert.equal(await auth.hasAccounts(), false);
-  await auth.localUser(); // o usuário técnico não conta como conta de pessoa
-  assert.equal(await auth.hasAccounts(), false);
-  await assert.rejects(auth.setup({ email: 'x', name: 'A', password: '12345678' }), /E-mail inválido/);
-  await assert.rejects(auth.setup({ email: 'a@x.com', name: 'A', password: 'curta' }), /8 caracteres/);
-  const owner = await auth.setup({ email: 'Dono@X.com', name: 'Dono', password: 'senha-do-dono' });
+  await assert.rejects(auth.setup({ username: 'x', email: 'x', name: 'A', password: '12345678' }), /E-mail inválido/);
+  await assert.rejects(auth.setup({ username: 'a', email: 'a@x.com', name: 'A', password: 'curta' }), /8 caracteres/);
+  const owner = await auth.setup({ username: 'dono', email: 'Dono@X.com', name: 'Dono', password: 'senha-do-dono' });
   assert.equal(owner.role, 'OWNER');
+  assert.equal(owner.username, 'dono');
   assert.equal(owner.email, 'dono@x.com');
+  assert.equal(owner.principal, true);
   const avatar = 'data:image/png;base64,' + 'a'.repeat(80);
   const withAvatar = await auth.updateUser(owner.id, { avatar });
   assert.equal(withAvatar.avatar, avatar);
   const withPreferences = await auth.updateUser(owner.id, { preferences: { theme: 'light', accent: '#4c8dff', density: 'compact', language: 'pt-BR' } });
   assert.deepEqual(withPreferences.preferences, { theme: 'light', accent: '#4c8dff', density: 'compact', language: 'pt-BR' });
   await assert.rejects(auth.updateUser(owner.id, { avatar: 'javascript:alert(1)' }), /Avatar inválido/);
-  await assert.rejects(auth.setup({ email: 'b@x.com', name: 'B', password: '12345678' }), /Já existe uma conta mestre/);
+  await assert.rejects(auth.setup({ username: 'b', email: 'b@x.com', name: 'B', password: '12345678' }), /Já existe uma conta mestre/);
 
   await assert.rejects(auth.login('dono@x.com', 'errada'), /incorretos/);
   for (let i = 0; i < 8; i++) await assert.rejects(auth.login('bloqueado@x.com', 'errada'), /incorretos/);
   await assert.rejects(auth.login('bloqueado@x.com', 'errada'), /Muitas tentativas/);
-  await assert.rejects(auth.login('ninguem@x.com', 'qualquer'), /incorretos/, 'mesma mensagem para e-mail inexistente');
+  await assert.rejects(auth.login('ninguem@x.com', 'qualquer'), /incorretos/, 'mesma mensagem para conta inexistente');
+  const byName = await auth.login('DONO', 'senha-do-dono');
+  assert.equal(byName.user.username, 'dono');
+  await auth.logout(byName.token);
   const { token } = await auth.login('DONO@x.com', 'senha-do-dono');
   assert.equal((await auth.userFromToken(token))?.preferences.theme, 'light');
   assert.equal((await auth.userFromToken(token))?.name, 'Dono');
@@ -58,7 +61,7 @@ test('conta mestre: o setup só funciona uma vez; login cria sessão; token erra
   assert.ok(authEvents.some((e) => e.kind === 'login'));
   assert.ok(authEvents.some((e) => e.kind === 'logout'));
 
-  const member = await auth.createUser({ email: 'm@x.com', name: 'Membro', password: 'senha-membro' });
+  const member = await auth.createUser({ username: 'm', email: 'm@x.com', name: 'Membro', password: 'senha-membro' });
   assert.equal(member.role, 'MEMBER');
   assert.equal(member.mustChangePassword, true, 'convite exige troca da senha temporária');
   await auth.login('m@x.com', 'senha-membro');
@@ -67,7 +70,7 @@ test('conta mestre: o setup só funciona uma vez; login cria sessão; token erra
   await assert.rejects(auth.login('m@x.com', 'senha-membro'), /incorretos/);
   const active = await auth.setSuspended(member.id, false);
   assert.equal(active.suspended, false);
-  await assert.rejects(auth.createUser({ email: 'm@x.com', name: 'Outro', password: 'senha-membro' }), /Já existe uma conta/);
+  await assert.rejects(auth.createUser({ username: 'm', email: 'm@x.com', name: 'Outro', password: 'senha-membro' }), /Já existe uma conta/);
   assert.equal((await auth.users()).length, 2);
   await close();
 });
@@ -76,7 +79,7 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
   const { db, close } = await createDb({ pglite: {} });
   const auth = createAuth(db);
   const agents = createAgents(db);
-  const owner = await auth.setup({ email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
+  const owner = await auth.setup({ username: 'dono', email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
 
   const { agent, token } = await agents.create(owner.id, { name: 'Claude Code', scopes: ['read', 'write', 'lixo'] });
   assert.deepEqual(agent.scopes, ['read', 'write'], 'escopos desconhecidos são descartados');
@@ -121,9 +124,9 @@ test('suspensão: corta sessão e credencial do agente; reativar a conta não de
   const { db, close } = await createDb({ pglite: {} });
   const auth = createAuth(db);
   const agents = createAgents(db);
-  const owner = await auth.setup({ email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
+  const owner = await auth.setup({ username: 'dono', email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
   await assert.rejects(auth.setSuspended(owner.id, true), /não pode ser suspensa/, 'o principal continua protegido');
-  const member = await auth.createUser({ email: 'agente-dono@x.com', name: 'Dono do agente', password: 'senha-membro' });
+  const member = await auth.createUser({ username: 'agentedono', email: 'agente-dono@x.com', name: 'Dono do agente', password: 'senha-membro' });
   const { token: session } = await auth.login('agente-dono@x.com', 'senha-membro');
   const { agent, token } = await agents.create(member.id, { name: 'Claude Code' });
   const project = await db.project.create({ data: { slug: 'privado.json', name: 'Privado', ownerId: owner.id, doc: doc('Privado'), size: 10 } });
@@ -150,8 +153,8 @@ test('suspensão: corta sessão e credencial do agente; reativar a conta não de
 
 test('projetos: conflito por revisão, versões a cada intervalo com limite, papéis e renomear', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
-  const guest = await db.user.create({ data: { email: 'g@x.com', name: 'G', passwordHash: '!' } });
+  const owner = await db.user.create({ data: { username: 'o', email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const guest = await db.user.create({ data: { username: 'g', email: 'g@x.com', name: 'G', passwordHash: '!' } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 2 }), versionEveryMs: 0 });
   const me = { id: owner.id };
 
@@ -205,7 +208,7 @@ test('projetos: conflito por revisão, versões a cada intervalo com limite, pap
 
 test('gravar o mesmo conteúdo de novo não cria revisão, versão nem aviso (evita laço editor ↔ servidor)', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const owner = await db.user.create({ data: { username: 'o', email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const events: string[] = [];
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0, onWrite: (e) => events.push(e.contentHash) });
   const me = { id: owner.id };
@@ -224,8 +227,8 @@ const GIF_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAA
 
 test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data URLs, versões leves, lixo recolhido', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
-  const stranger = await db.user.create({ data: { email: 's@x.com', name: 'S', passwordHash: '!' } });
+  const owner = await db.user.create({ data: { username: 'o', email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const stranger = await db.user.create({ data: { username: 's', email: 's@x.com', name: 'S', passwordHash: '!' } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
   const me = { id: owner.id };
   const withAssets = (assets: Record<string, string>, name = 'img') => ({ ...doc(name), assets });
@@ -270,7 +273,7 @@ test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data UR
 
 test('projeto antigo com imagem embutida no JSON é externalizado na próxima gravação', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
+  const owner = await db.user.create({ data: { username: 'o', email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const old = await db.project.create({ data: { slug: 'velho.json', name: 'Velho', ownerId: owner.id, doc: { ...doc('velho'), assets: { a: PNG_URL } }, revision: 1 } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
   const me = { id: owner.id };

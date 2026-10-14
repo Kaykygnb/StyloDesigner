@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Testes da API de salvamento do server.js: sobe o servidor real com configuração e pasta TEMPORÁRIAS
 // (nunca toca na sua pasta de projetos) e confere gravar/ler/listar, proteção contra conflito, versões e segurança.
@@ -31,9 +32,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   t.after(() => cleanupFixture(fixture));
   const port = await unusedPort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    // Este teste exercita apenas a persistência da API. O servidor real exige
-    // contas por padrão; o modo local fica explícito somente neste teste legado.
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'local' }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'accounts' }),
     stdio: 'ignore',
   });
   fixture.children.push(child);
@@ -41,9 +40,15 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
-    try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
+    try { up = (await globalThis.fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
+  const { cookie } = await setupSession(base);
+  const fetch = (input, init = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (!headers.has('cookie')) headers.set('cookie', cookie);
+    return globalThis.fetch(input, { ...init, headers });
+  };
   const json = { 'Content-Type': 'application/json' };
   const put = (path, body, headers = {}) => fetch(base + path, { method: 'PUT', headers: { ...json, ...headers }, body: JSON.stringify(body) });
 

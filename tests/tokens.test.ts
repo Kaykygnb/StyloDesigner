@@ -10,7 +10,7 @@ import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.
 
 async function setup() {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
+  const owner = await db.user.create({ data: { username: 'dono', email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const operations = createOperations(db);
   let workspace: ReturnType<typeof createWorkspace>;
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), onWrite: (e) => { void workspace.externalWrite(e); } });

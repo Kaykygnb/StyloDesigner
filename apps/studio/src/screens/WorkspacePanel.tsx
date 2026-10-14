@@ -20,7 +20,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     null,
   );
   const [newUserOpen, setNewUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'MEMBER' as api.PublicUser['role'], color: '#6d5dfc', avatar: '' });
+  const [newUser, setNewUser] = useState({ name: '', username: '', email: '', password: '', role: 'MEMBER' as api.PublicUser['role'], color: '#6d5dfc', avatar: '' });
   const [stepUpUntil, setStepUpUntil] = useState(0);
   const [editUserDraft, setEditUserDraft] = useState<(api.PublicUser & { avatar: string }) | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
@@ -43,6 +43,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const [adminActivityFilter, setAdminActivityFilter] = useState('all');
   const [accountName, setAccountName] = useState(user?.name || "");
   const [accountEmail, setAccountEmail] = useState(user?.email || "");
+  const [accountUsername, setAccountUsername] = useState(user?.username || "");
   const [accountColor, setAccountColor] = useState(user?.color || "#6d5dfc");
   const [accountAvatar, setAccountAvatar] = useState(user?.avatar || "");
   const [sessions, setSessions] = useState<
@@ -199,15 +200,15 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     }
   };
   const createUser = async () => {
-    if (!newUser.email.trim() || !newUser.name.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    if (!newUser.username.trim() || !newUser.name.trim()) return toast('error', 'Nome e nome de usuário são obrigatórios.');
     if (newUser.role === 'OWNER' && !(await ensureStepUp())) return;
     try {
-      const created = await api.createUser({ ...newUser, email: newUser.email.trim(), name: newUser.name.trim(), password: newUser.password || undefined, avatar: newUser.avatar || null });
+      const created = await api.createUser({ ...newUser, username: newUser.username.trim(), email: newUser.email.trim(), name: newUser.name.trim(), password: newUser.password || undefined, avatar: newUser.avatar || null });
       setUsers((x) => [...x, created.user]);
       setTemporaryPassword(newUser.role === 'OWNER' ? null : created.temporaryPassword || null);
       if (newUser.role === 'OWNER') toast('ok', tr('admin.ownerPasswordSet'));
       setNewUserOpen(false);
-      setNewUser({ name: '', email: '', password: '', role: 'MEMBER', color: '#6d5dfc', avatar: '' });
+      setNewUser({ name: '', username: '', email: '', password: '', role: 'MEMBER', color: '#6d5dfc', avatar: '' });
     } catch (e) {
       toast("error", String(e));
     }
@@ -217,12 +218,12 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   };
   const saveEditedUser = async () => {
     if (!editUserDraft) return;
-    const { id, name, email, color, avatar, role } = editUserDraft;
-    if (!name.trim() || !email.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    const { id, name, username, email, color, avatar, role } = editUserDraft;
+    if (!name.trim() || !username.trim()) return toast('error', 'Nome e nome de usuário são obrigatórios.');
     const previous = users.find((item) => item.id === id);
     if (previous && previous.role !== role && (previous.role === 'OWNER' || role === 'OWNER') && !(await ensureStepUp())) return;
     try {
-      const updated = await api.updateUser(id, { name: name.trim(), email: email.trim(), color, avatar: avatar || null, role });
+      const updated = await api.updateUser(id, { name: name.trim(), username: username.trim(), email: email?.trim() || null, color, avatar: avatar || null, role });
       setUsers((x) => x.map((v) => (v.id === id ? updated : v)));
       setEditUserDraft(null);
       toast("ok", "Usuário atualizado.");
@@ -272,7 +273,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           <div className="row">
             <button className="avatar" type="button" title={tr('account.changeAvatar')} style={{ background: accountColor, overflow: 'hidden', padding: 0 }} onClick={() => avatarInput.current?.click()}>{accountAvatar ? <img src={accountAvatar} alt={tr('account.title')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (accountName || user?.name || "?").slice(0, 1).toUpperCase()}</button>
             <div>
-              <b>{user?.email || tr('account.noLogin')}</b>
+              <b>{user?.username || tr('account.noLogin')}</b>
               {user?.role && (
                 <span className="faint">
                   {tr(`role.${user.role}`) || user.role}
@@ -281,7 +282,11 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             </div>
           </div>
           <label className="small">
-            {tr('account.email')}
+            {tr('account.username')}
+            <input className="field" value={accountUsername} onChange={(e) => setAccountUsername(e.target.value)} autoComplete="username" />
+          </label>
+          <label className="small">
+            {tr('login.emailOptional')}
             <input className="field" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
           </label>
           <label className="small">
@@ -307,8 +312,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             className="btn primary"
             onClick={() =>
               void api
-                .updateMe({ name: accountName, email: accountEmail, color: accountColor, avatar: accountAvatar || null })
-                .then((updated) => { app.set({ user: updated }); setAccountEmail(updated.email); toast("ok", tr('account.profileSaved')); })
+                .updateMe({ name: accountName, username: accountUsername, email: accountEmail, color: accountColor, avatar: accountAvatar || null })
+                .then((updated) => { app.set({ user: updated }); setAccountUsername(updated.username); setAccountEmail(updated.email || ''); toast("ok", tr('account.profileSaved')); })
                 .catch((e) => toast("error", String(e)))
             }
           >
@@ -602,7 +607,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         {editUserDraft && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setEditUserDraft(null); }}><div className="modal" role="dialog" aria-modal="true" aria-label="Editar usuário">
           <h3>{tr('admin.editUser')}</h3>
           <label className="small">{tr('account.name')}<input className="field" autoFocus value={editUserDraft.name} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, name: e.target.value }))} /></label>
-          <label className="small">E-mail<input className="field" type="email" value={editUserDraft.email} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, email: e.target.value }))} /></label>
+          <label className="small">{tr('account.username')}<input className="field" value={editUserDraft.username} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, username: e.target.value }))} /></label>
+          <label className="small">{tr('login.emailOptional')}<input className="field" type="email" value={editUserDraft.email || ''} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, email: e.target.value }))} /></label>
           <label className="small">{tr('admin.accessLevel')}<select className="field" value={editUserDraft.role} disabled={editUserDraft.id === user?.id || Boolean(editUserDraft.principal) || (editUserDraft.role === 'OWNER' && !user?.principal)} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, role: e.target.value as api.PublicUser['role'] }))}>{(user?.principal || editUserDraft.role === 'OWNER') && <option value="OWNER">{tr('admin.owner')}</option>}<option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option></select></label>
           <label className="small">{tr('account.profileColor')}<input className="field" type="color" value={editUserDraft.color || '#6d5dfc'} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, color: e.target.value }))} /></label>
           <label className="small">{tr('admin.profilePhoto')}<input className="field" type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setEditUserDraft((v) => v && ({ ...v, avatar: String(reader.result || '') })); reader.readAsDataURL(file); }} /></label>
@@ -649,14 +655,14 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           </div>
           <ul className="resource-list">
             {users.filter((u) => {
-              const text = `${u.name} ${u.email}`.toLowerCase();
+              const text = `${u.name} ${u.username} ${u.email || ''}`.toLowerCase();
               return (!userQ.trim() || text.includes(userQ.trim().toLowerCase())) && (userStatus === "all" || (userStatus === "suspended" ? u.suspended : !u.suspended));
             }).map((u) => (
               <li key={u.id}>
                 <div>
                   <b>{u.name}</b>
                   <span className="faint">
-                    {u.email} · {tr(`role.${u.role}`)}{u.principal ? ` · ${tr('admin.principal')}` : ''} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (language === 'en-US' ? 'password change pending' : 'troca de senha pendente') : tr('admin.active')}
+                    {u.username}{u.email ? ` · ${u.email}` : ''} · {tr(`role.${u.role}`)}{u.principal ? ` · ${tr('admin.principal')}` : ''} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (language === 'en-US' ? 'password change pending' : 'troca de senha pendente') : tr('admin.active')}
                   </span>
                 </div>
                 <div className="row">
@@ -700,7 +706,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
               </li>
             ))}
             {!users.some((u) => {
-              const text = `${u.name} ${u.email}`.toLowerCase();
+              const text = `${u.name} ${u.username} ${u.email || ''}`.toLowerCase();
               return (!userQ.trim() || text.includes(userQ.trim().toLowerCase())) && (userStatus === "all" || (userStatus === "suspended" ? u.suspended : !u.suspended));
             }) && <li className="muted">{tr('admin.noUserMatch')}</li>}
           </ul>
@@ -709,7 +715,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         {newUserOpen && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setNewUserOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-label={tr('admin.newUserTitle')}>
           <h3>{tr('admin.newUserTitle')}</h3><p className="muted small">{tr('admin.newUserHint')}</p>
           <label className="small">{tr('account.name')}<input className="field" autoFocus value={newUser.name} onChange={(e) => setNewUser((v) => ({ ...v, name: e.target.value }))} /></label>
-          <label className="small">{tr('account.email')}<input className="field" type="email" value={newUser.email} onChange={(e) => setNewUser((v) => ({ ...v, email: e.target.value }))} /></label>
+          <label className="small">{tr('account.username')}<input className="field" value={newUser.username} onChange={(e) => setNewUser((v) => ({ ...v, username: e.target.value }))} autoComplete="off" /></label>
+          <label className="small">{tr('login.emailOptional')}<input className="field" type="email" value={newUser.email} onChange={(e) => setNewUser((v) => ({ ...v, email: e.target.value }))} /></label>
           <label className="small">{tr('admin.accessLevel')}<select className="field" value={newUser.role} onChange={(e) => setNewUser((v) => ({ ...v, role: e.target.value as api.PublicUser['role'] }))}><option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option>{user?.principal && <option value="OWNER">{tr('admin.owner')}</option>}</select></label>
           {newUser.role === 'OWNER' && <label className="small">{tr('admin.ownerPassword')}<input className="field" type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser((v) => ({ ...v, password: e.target.value }))} /></label>}
           {newUser.role === 'OWNER' && <p className="hint">{tr('admin.ownerPasswordHint')}</p>}

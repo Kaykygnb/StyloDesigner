@@ -7,7 +7,7 @@
  *   GET|POST /api/users           (conta mestre) lista / cria contas
  *   GET|POST /api/agents          (conta mestre) lista / cadastra agente — o token aparece UMA vez
  *   POST /api/agents/:id/approve|revoke
- * No modo local (sem login) só `state` e `me` existem; o resto responde 404 explicando como ligar as contas.
+ * Toda instalação exige conta. O login aceita nome de usuário ou e-mail.
  */
 
 import { Hono } from 'hono';
@@ -24,8 +24,8 @@ export function authRoutes(s: Services, id: Identity) {
   const r = new Hono();
 
   r.get('/auth/state', async (c) => {
-    const user = s.authMode === 'local' ? s.localUser : await s.auth.userFromToken(sessionTokenOf(c));
-    return c.json({ mode: s.authMode, hasAccounts: s.authMode === 'local' ? true : await s.auth.hasAccounts(), user });
+    const user = await s.auth.userFromToken(sessionTokenOf(c));
+    return c.json({ mode: 'accounts' as const, hasAccounts: await s.auth.hasAccounts(), user });
   });
   r.get('/me', async (c) => c.json(await id.userOf(c)));
   r.get('/me/export', async (c) => {
@@ -40,7 +40,7 @@ export function authRoutes(s: Services, id: Identity) {
   r.put('/me', async (c) => {
     const me = await id.userOf(c);
     const b = await readObject(c);
-    return c.json(await s.auth.updateUser(me.id, { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), preferences: b.preferences && typeof b.preferences === 'object' ? b.preferences : undefined }));
+    return c.json(await s.auth.updateUser(me.id, { name: b.name === undefined ? undefined : String(b.name), username: b.username === undefined ? undefined : String(b.username), email: b.email === undefined ? undefined : b.email === null ? null : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), preferences: b.preferences && typeof b.preferences === 'object' ? b.preferences : undefined }));
   });
   r.get('/me/sessions', async (c) => c.json(await s.auth.sessions((await id.userOf(c)).id, sessionTokenOf(c))));
   r.get('/sessions', async (c) => { await id.adminOf(c); return c.json(await s.auth.allSessions()); });
@@ -51,25 +51,24 @@ export function authRoutes(s: Services, id: Identity) {
   r.post('/me/password', async (c) => { const me = await id.passwordUserOf(c); const b = await readObject(c); return c.json(await s.auth.changePassword(me.id, String(b.current || ''), String(b.next || ''))); });
   r.post('/me/reconfirm', async (c) => { const me = await id.userOf(c); const b = await readObject(c); return c.json(await s.auth.reconfirm(me.id, String(b.password || ''))); });
 
-  const accountsOnly = (name: string) => { if (s.authMode === 'local') throw httpError(404, `Este servidor está no modo local (sem login). Ligue STYLO_AUTH=accounts para usar ${name}.`); };
-
   r.post('/auth/setup', async (c) => {
-    accountsOnly('contas');
     const b = await readObject(c);
-    await s.auth.setup({ email: String(b.email || ''), name: String(b.name || ''), password: String(b.password || '') });
-    const { token, user } = await s.auth.login(String(b.email), String(b.password));
+    const username = String(b.username || '');
+    const email = b.email == null ? '' : String(b.email);
+    const password = String(b.password || '');
+    await s.auth.setup({ username, email, name: String(b.name || ''), password });
+    const { token, user } = await s.auth.login(username, password);
     c.header('Set-Cookie', sessionCookie(token, MONTH));
     return c.json({ user, token }, 201);
   });
   r.post('/auth/login', async (c) => {
-    accountsOnly('contas');
     const b = await readObject(c);
-    const { token, user } = await s.auth.login(String(b.email || ''), String(b.password || ''));
+    const identifier = String(b.login || b.username || b.email || '');
+    const { token, user } = await s.auth.login(identifier, String(b.password || ''));
     c.header('Set-Cookie', sessionCookie(token, MONTH));
     return c.json({ user, token });
   });
   r.post('/auth/logout', async (c) => {
-    accountsOnly('contas');
     await s.auth.logout(sessionTokenOf(c));
     c.header('Set-Cookie', sessionCookie('', 0));
     return c.json({ ok: true });
@@ -82,7 +81,7 @@ export function authRoutes(s: Services, id: Identity) {
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
     const requested = String(b.password || '');
     const password = role === 'OWNER' ? requested : (requested || newToken('stylo_pwd').slice(-16));
-    const user = await s.auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password, role }, false, actor);
+    const user = await s.auth.createUser({ username: String(b.username || ''), email: b.email == null ? '' : String(b.email), name: String(b.name || ''), password, role }, false, actor);
     const temporaryPassword = role === 'OWNER' || requested ? undefined : password;
     if (b.avatar !== undefined || b.color !== undefined) {
       return c.json({ user: await s.auth.updateUser(user.id, { avatar: b.avatar === null ? null : b.avatar === undefined ? undefined : String(b.avatar), color: b.color === undefined ? undefined : String(b.color) }), temporaryPassword }, 201);
@@ -93,7 +92,7 @@ export function authRoutes(s: Services, id: Identity) {
     const actor = await id.adminOf(c);
     const b = await readObject(c);
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
-    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }, actor));
+    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), username: b.username === undefined ? undefined : String(b.username), email: b.email === undefined ? undefined : b.email === null ? null : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }, actor));
   });
   r.post('/users/:id/reset-password', async (c) => { const actor = await id.adminOf(c); const b = await readObject(c); return c.json(await s.auth.resetPassword(c.req.param('id'), actor, b.password === undefined ? undefined : String(b.password))); });
   r.post('/users/:id/revoke-sessions', async (c) => { await id.adminOf(c); return c.json(await s.auth.revokeAllSessions(c.req.param('id'))); });

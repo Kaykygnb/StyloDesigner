@@ -60,12 +60,12 @@ export async function snapshot(): Promise<Snapshot | null> {
 export const authState = () => request<AuthState>('/api/auth/state');
 export const projectsList = () => request<ProjectInfo[]>('/api/projects');
 export const importProject = (name: string, doc: unknown) => request<{ file: string; projectId: string }>('/api/projects/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, doc }) });
-export const login = (email: string, password: string) => request<unknown>('/api/auth/login', json({ email, password }));
-export const setup = (email: string, name: string, password: string) => request<unknown>('/api/auth/setup', json({ email, name, password }));
+export const login = (identifier: string, password: string) => request<unknown>('/api/auth/login', json({ login: identifier, password }));
+export const setup = (username: string, name: string, password: string, email?: string) => request<unknown>('/api/auth/setup', json({ username, name, password, email: email || '' }));
 export const logout = () => request<unknown>('/api/auth/logout', json({}));
-export const updateMe = (body: { name?: string; email?: string; color?: string; avatar?: string | null; preferences?: PublicUser['preferences'] }) => request<PublicUser>('/api/me', { ...json(body), method: 'PUT' });
+export const updateMe = (body: { name?: string; username?: string; email?: string | null; color?: string; avatar?: string | null; preferences?: PublicUser['preferences'] }) => request<PublicUser>('/api/me', { ...json(body), method: 'PUT' });
 export const sessionsList = () => request<Array<{ id: string; createdAt: string; expiresAt: string; current: boolean }>>('/api/me/sessions');
-export const adminSessionsList = () => request<Array<{ id: string; userId: string; user: { name: string; email: string; role: string }; createdAt: string; expiresAt: string }>>('/api/sessions');
+export const adminSessionsList = () => request<Array<{ id: string; userId: string; user: { name: string; email: string | null; username?: string; role: string }; createdAt: string; expiresAt: string }>>('/api/sessions');
 export const revokeAdminSession = (id: string) => request<{ ok: true; revoked: boolean }>(`/api/sessions/${encodeURIComponent(id)}`, json({}, 'DELETE'));
 export const authEvents = () => request<Array<{ id: string; email: string; kind: string; createdAt: string }>>('/api/me/auth-events?limit=50');
 export const accountExport = () => request<Record<string, unknown>>('/api/me/export');
@@ -88,8 +88,8 @@ export const libraryUpdate = (id: string, body: unknown) => request<LibraryAsset
 export const libraryReplace = (id: string, file: File) => request<LibraryAsset>(`/api/library/${encodeURIComponent(id)}/replace`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Name': encodeURIComponent(file.name) }, body: file });
 export const agentsList = () => request<AgentInfo[]>('/api/agents');
 export const usersList = () => request<PublicUser[]>('/api/users');
-export const createUser = (body: { email: string; name: string; password?: string; role?: PublicUser['role']; color?: string; avatar?: string | null }) => request<{ user: PublicUser; temporaryPassword?: string }>('/api/users', json(body));
-export const updateUser = (id: string, body: { name?: string; email?: string; color?: string | null; avatar?: string | null; role?: PublicUser['role'] }) => request<PublicUser>(`/api/users/${encodeURIComponent(id)}`, { ...json(body), method: 'PUT' });
+export const createUser = (body: { username: string; email?: string; name: string; password?: string; role?: PublicUser['role']; color?: string; avatar?: string | null }) => request<{ user: PublicUser; temporaryPassword?: string }>('/api/users', json(body));
+export const updateUser = (id: string, body: { name?: string; username?: string; email?: string | null; color?: string | null; avatar?: string | null; role?: PublicUser['role'] }) => request<PublicUser>(`/api/users/${encodeURIComponent(id)}`, { ...json(body), method: 'PUT' });
 export const resetUserPassword = (id: string, body: { password?: string } = {}) => request<{ temporaryPassword?: string; ok?: boolean; mustChangePassword?: boolean }>(`/api/users/${encodeURIComponent(id)}/reset-password`, json(body));
 export const revokeUserSessions = (id: string) => request<unknown>(`/api/users/${encodeURIComponent(id)}/revoke-sessions`, json({}));
 export const setUserSuspended = (id: string, suspended: boolean) => request<PublicUser>(`/api/users/${encodeURIComponent(id)}/suspend`, json({ suspended }));

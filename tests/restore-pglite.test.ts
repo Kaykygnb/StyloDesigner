@@ -25,8 +25,8 @@ test('PGlite real: snapshot anterior à migration restaura projeto no próximo b
   try {
     handle = await createDb({ pglite: { dir } });
     const { db } = handle;
-    const owner = await db.user.create({ data: { email: 'restore@example.invalid', name: 'Fixture', passwordHash: 'synthetic-not-a-password', role: 'OWNER' } });
-    const viewer = await db.user.create({ data: { email: 'viewer@example.invalid', name: 'Viewer', passwordHash: 'synthetic-not-a-password' } });
+    const owner = await db.user.create({ data: { username: 'restore', email: 'restore@example.invalid', name: 'Fixture', passwordHash: 'synthetic-not-a-password', role: 'OWNER' } });
+    const viewer = await db.user.create({ data: { username: 'viewer', email: 'viewer@example.invalid', name: 'Viewer', passwordHash: 'synthetic-not-a-password' } });
     const project = await projectsFor(db).write(owner, 'restore.json', fixtureDoc);
     await db.projectMember.create({ data: { projectId: project.projectId, userId: viewer.id, role: 'VIEWER' } });
     const agent = await db.agent.create({ data: { ownerId: owner.id, name: 'Fixture agent', tokenHash: 'synthetic-token-hash', scopes: ['read'], status: 'ACTIVE' } });
@@ -36,7 +36,7 @@ test('PGlite real: snapshot anterior à migration restaura projeto no próximo b
     const expected = await projectsFor(db).load(owner, 'restore.json');
     const hash = checksum(expected.doc);
     const beforeMigrations = await db.$queryRawUnsafe<{ name: string }[]>('SELECT name FROM "_stylo_migrations" ORDER BY name');
-    assert.equal(beforeMigrations.at(-1)?.name, '0015_autoridade_principal');
+    assert.equal(beforeMigrations.at(-1)?.name, '0016_nome_de_usuario');
     // Reconstitui explicitamente o estado do contrato imediatamente anterior
     // a 0014, somente neste banco descartável. Não é um backup histórico real.
     // 0015 também sai, porque ela é posterior: o reopen precisa reaplicá-la.
@@ -99,7 +99,7 @@ test('PGlite real: fonte de restore ausente recupera diretório original e mant�
   let handle: Awaited<ReturnType<typeof createDb>> | undefined;
   try {
     handle = await createDb({ pglite: { dir } });
-    const owner = await handle.db.user.create({ data: { email: 'failure@example.invalid', name: 'Fixture', passwordHash: 'synthetic-not-a-password', role: 'OWNER' } });
+    const owner = await handle.db.user.create({ data: { username: 'failure', email: 'failure@example.invalid', name: 'Fixture', passwordHash: 'synthetic-not-a-password', role: 'OWNER' } });
     await projectsFor(handle.db).write(owner, 'original.json', fixtureDoc);
     const expected = await projectsFor(handle.db).load(owner, 'original.json');
     const backups = createBackups({ dbDir: dir, db: handle.db, postgres: false });

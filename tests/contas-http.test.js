@@ -46,7 +46,7 @@ test('contas: cadastro, agente MCP, autorização por projeto e revogação', as
     return { status: response.status, json, text };
   };
 
-  const setup = await call('POST', '/api/auth/setup', { email: 'owner@stylo.test', name: 'Owner', password: 'senha-segura' });
+  const setup = await call('POST', '/api/auth/setup', { username: 'owner', email: 'owner@stylo.test', name: 'Owner', password: 'senha-segura' });
   assert.equal(setup.status, 201);
   const sessions = await call('GET', '/api/sessions');
   assert.equal(sessions.status, 200);
@@ -85,16 +85,16 @@ test('contas: cadastro, agente MCP, autorização por projeto e revogação', as
   assert.ok(Array.isArray(accountExport.json.projects));
   assert.ok(Array.isArray(accountExport.json.agents));
   assert.ok(accountExport.json.agents.every((agent) => !('token' in agent)), 'exportação nunca inclui tokens');
-  const created = await call('POST', '/api/users', { email: 'editor@stylo.test', name: 'Editor', role: 'EDITOR', color: '#123456', avatar: 'data:image/png;base64,AA==' });
+  const created = await call('POST', '/api/users', { username: 'editor', email: 'editor@stylo.test', name: 'Editor', role: 'EDITOR', color: '#123456', avatar: 'data:image/png;base64,AA==' });
   assert.equal(created.status, 201);
   assert.ok(created.json.temporaryPassword, 'a senha temporária deve aparecer uma vez');
   assert.equal(created.json.user.role, 'EDITOR');
   assert.equal(created.json.user.color, '#123456');
   assert.equal(created.json.user.avatar, 'data:image/png;base64,AA==');
   const ownerCookie = cookie;
-  const editorLogin = await call('POST', '/api/auth/login', { email: 'editor@stylo.test', password: created.json.temporaryPassword });
+  const editorLogin = await call('POST', '/api/auth/login', { username: 'editor', email: 'editor@stylo.test', password: created.json.temporaryPassword });
   assert.equal(editorLogin.status, 200);
-  const forbiddenOwner = await call('POST', '/api/users', { email: 'owner2@stylo.test', name: 'Owner 2', role: 'OWNER' });
+  const forbiddenOwner = await call('POST', '/api/users', { username: 'owner2', email: 'owner2@stylo.test', name: 'Owner 2', role: 'OWNER' });
   assert.equal(forbiddenOwner.status, 403);
   const blockedBeforePasswordChange = await call('GET', '/api/projects');
   assert.equal(blockedBeforePasswordChange.status, 403);

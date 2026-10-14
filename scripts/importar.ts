@@ -1,10 +1,10 @@
 /**
  * importar.ts — IMPORTA PROJETOS .json ANTIGOS PARA O BANCO (uso pontual: testes e aproveitar o que já existe)
  *
- *   npm run importar -- <pasta> [--owner email]
+ *   npm run importar -- <pasta> [--owner usuário-ou-email]
  *
  * - Lê cada `*.json` da pasta que seja um projeto do Stylo (tem `pages`); ignora versões (.versoes) e miniaturas.
- * - Grava como projeto de `--owner` (padrão: o usuário local). Nome de arquivo já existente é PULADO, nunca sobrescrito.
+ * - Grava como projeto de `--owner` (usuário ou e-mail). Sem isso, usa a autoridade principal, ou a única conta. Nome de arquivo já existente é PULADO.
  * - Usa o mesmo banco do servidor (DESIGNER_CONFIG / DESIGNER_DB_DIR / DATABASE_URL). Com o servidor ligado em
  *   PGlite, pare-o antes: o PGlite aceita um processo por vez.
  * Os .json NÃO são o armazenamento do Stylo; este comando é só uma ponte.
@@ -18,9 +18,9 @@ import { createAuth } from '../apps/server/src/services/auth.ts';
 
 const args = process.argv.slice(2);
 const folder = args.find((a) => !a.startsWith('--'));
-const ownerEmail = args.includes('--owner') ? args[args.indexOf('--owner') + 1] : '';
+const ownerKey = args.includes('--owner') ? args[args.indexOf('--owner') + 1] : '';
 if (!folder) {
-  console.error('Uso: npm run importar -- <pasta com .json> [--owner email]');
+  console.error('Uso: npm run importar -- <pasta com .json> [--owner usuário-ou-email]');
   process.exit(1);
 }
 
@@ -28,10 +28,16 @@ const configFile = resolve(process.env.DESIGNER_CONFIG || 'designer.config.json'
 const { db, close } = await openDb({ dir: defaultDbDir(configFile) });
 try {
   const auth = createAuth(db);
-  const owner = ownerEmail
-    ? await db.user.findUnique({ where: { email: ownerEmail.toLowerCase() } })
-    : await auth.localUser();
-  if (!owner) throw new Error(`Não existe conta com o e-mail ${ownerEmail}.`);
+  const key = ownerKey.trim().toLowerCase();
+  const owner = key
+    ? await db.user.findFirst({ where: key.includes('@') ? { email: key } : { username: key } })
+    : await (async () => {
+      const principalId = await auth.principalId();
+      if (principalId) return db.user.findUnique({ where: { id: principalId } });
+      const people = await db.user.findMany({ where: { NOT: { passwordHash: '!' } }, take: 2 });
+      return people.length === 1 ? people[0] : null;
+    })();
+  if (!owner) throw new Error(key ? `Não existe conta com o identificador ${ownerKey}.` : 'Informe --owner com o nome de usuário ou o e-mail. Há mais de uma conta, ou nenhuma.');
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 20 }) });
 
   const names = (await readdir(folder)).filter((f) => FILE_RE.test(f)).sort();

@@ -3,7 +3,7 @@
 Responsável: [Não atribuído]
 Estado: Proposta
 Início: —
-Última atualização: 2026-10-14 03:34 UTC
+Última atualização: 2026-10-14 10:10 UTC
 Progresso: 0/5 marcos (0%)
 Participantes: —
 
@@ -95,6 +95,15 @@ Entregar plano técnico revisado, com critérios/ensaios isolados e limites de a
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 10:10 UTC — [Grok 4.7] — retirada pedida dentro da DOC-SERVER-011
+
+- Investigado: o proprietário pediu, na DOC-SERVER-011, a retirada de `STYLO_AUTH=local` com migração que preserva projetos. Esta tarefa continua só o plano.
+- Alterado: nenhum código por esta tarefa. O runtime mudou na 011.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: continua Proposta. Não marcar concluída: o critério daqui é um plano revisado, não a retirada.
+- Próximo passo: revisar o plano contra o que a 011 já fez, sem reabrir o formato do login.
 
 ### 2026-10-14 08:40 UTC — [Grok 4.7] — nota
 

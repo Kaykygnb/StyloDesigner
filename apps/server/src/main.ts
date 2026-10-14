@@ -5,7 +5,8 @@
  *
  * Monta os serviços (configuração, banco, contas, agentes, projetos, workspace, renderizador), a aplicação HTTP (Hono)
  * e o servidor MCP, e entrega o editor. Variáveis: PORT, DESIGNER_CONFIG (arquivo de configuração), DATABASE_URL
- * (Postgres; sem ela, PGlite embutido), DESIGNER_DB_DIR, STYLO_AUTH=accounts (login com contas), STYLO_DEV=1 (força o Vite).
+ * (Postgres; sem ela, PGlite embutido), DESIGNER_DB_DIR, STYLO_DEV=1 (força o Vite).
+ * A entrada é sempre com conta e senha. STYLO_AUTH=local não contorna mais o login.
  * Segurança: escuta na rede local; ver http/guards.ts (Host/Origin privados, limites de corpo).
  */
 
@@ -108,12 +109,12 @@ const { db, close: closeDb } = opened;
 let onUserSuspended: (userId: string) => void = () => {};
 let onCredentialRevoked: (agentId: string) => void = () => {};
 const auth = createAuth(db, { onUserSuspended: (userId) => onUserSuspended(userId) });
-// O servidor sempre inicia com autenticação por contas. O modo local não é mais o padrão de produção;
-// STYLO_AUTH=local continua reservado para testes/desenvolvimento explícito.
-const authMode = process.env.STYLO_AUTH === 'local' ? 'local' : 'accounts';
+if (process.env.STYLO_AUTH === 'local') {
+  console.error('STYLO_AUTH=local foi removido. Esta instalação exige conta e senha. Se o banco só tinha o usuário técnico, a primeira conta assume os projetos dele.');
+}
+const authMode = 'accounts' as const;
 /** 0.0.0.0 mantém acesso pela rede local; 127.0.0.1 bloqueia interfaces remotas explicitamente. */
 const bindHost = process.env.STYLO_HOST === '127.0.0.1' || process.env.STYLO_HOST === 'localhost' ? '127.0.0.1' : '0.0.0.0';
-const localUser = await auth.localUser();
 const presence = createPresence();
 const events = createEvents({ presence });
 const operations = createOperations(db);
@@ -138,7 +139,7 @@ const plugins = createPlugins({ plugins: builtinPlugins, enabled: config.get().p
 const agents = createAgents(db, { onCredentialRevoked: (agentId) => onCredentialRevoked(agentId) });
 const backups = createBackups({ dbDir, db, postgres: !!process.env.DATABASE_URL });
 workspace = createWorkspace({
-  projects, notes, sharing, operations, agentProjectAccess: (agentId, projectId) => authMode === 'local' ? Promise.resolve(true) : agents.projectAccess(agentId, projectId), grantAgentProject: (agentId, projectId) => agents.grantProject(agentId, projectId), plugins, presence: () => presence.snapshot(),
+  projects, notes, sharing, operations, agentProjectAccess: (agentId, projectId) => agents.projectAccess(agentId, projectId), grantAgentProject: (agentId, projectId) => agents.grantProject(agentId, projectId), plugins, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale, opts) => renderer.render(node, doc, scale, opts),
   inspectLayout: (root, doc, opts) => renderer.inspect(root, doc, opts),
   measureLayout: (roots, doc) => renderer.measure(roots, doc),
@@ -151,13 +152,13 @@ workspace = createWorkspace({
 
 const services: Services = {
   port, root, here, config, accountFile, db, auth, agents, operations, notes, sharing, projects, renderer,
-  workspace, events, authMode, localUser, presence, library, secrets, backups, plugins,
+  workspace, events, authMode, presence, library, secrets, backups, plugins,
 };
 const identity = createIdentity(services);
 const caller = createToolCaller({ workspace, presence, events });
 /** Instruções entregues aos agentes (o arquivo é lido a cada sessão nova: editar muda o comportamento sem reiniciar). */
 const instructions = () => readFile(join(here, 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
-const mcp = createMcpGateway({ s: services, identity, caller, instructions, version: VERSION });
+const mcp = createMcpGateway({ s: services, caller, instructions, version: VERSION });
 onUserSuspended = (userId) => { events.closeForUser(userId); mcp.closeForOwner(userId); };
 onCredentialRevoked = (agentId) => mcp.closeForAgent(agentId);
 const studio = createStudioCaller({ workspace, presence, events });
@@ -203,6 +204,6 @@ httpServer.listen(port, bindHost, () => {
   console.log(`\n  Stylo rodando em  http://localhost:${port}/studio/`);
   console.log(`  Acesso pela rede local      http://<IP-da-maquina>:${port}/studio/`);
   console.log(`  Banco de dados               ${process.env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : 'PGlite em ' + dbDir}`);
-  console.log(`  Acesso                       ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'}`);
+  console.log('  Acesso                       contas e senha');
   console.log(`  Interface                   ${bindHost}${bindHost === '127.0.0.1' ? ' (somente este computador)' : ' (rede local habilitada)'}\n`);
 });

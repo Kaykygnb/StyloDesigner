@@ -3,7 +3,7 @@
  *
  * O protocolo (initialize, tools/list, tools/call, ping, cancelamento, Streamable HTTP) vem do SDK oficial
  * `@modelcontextprotocol/sdk`. Este arquivo cuida do que é nosso:
- *   - QUEM é o agente: `Authorization: Bearer stylo_agt_...` ou, no modo local, o nome do programa (política de agentes);
+ *   - QUEM é o agente: `Authorization: Bearer stylo_agt_...`; sem token o canal não abre;
  *   - uma sessão por cliente (cabeçalho Mcp-Session-Id), no máximo 64, e a limpeza das paradas há 10 min;
  *   - as ferramentas: a lista vem de @stylo/core/tools/schema.js e cada chamada passa pelo `ToolCaller` (presença e travas).
  * Um `Server` do SDK por sessão: o agente da sessão vive no fechamento dos handlers.
@@ -16,7 +16,6 @@ import { CallToolRequestSchema, ListToolsRequestSchema, McpError, ErrorCode } fr
 import { mcpTools, mcpToolByName } from '@stylo/core/tools/schema.js';
 import { httpError } from '../http-error.js';
 import type { Services } from '../context.js';
-import type { Identity } from '../http/identity.js';
 import { bearerOf } from '../http/identity.js';
 import { sha256 } from '../services/auth.js';
 import type { McpSession, ToolCaller } from './agent-calls.js';
@@ -36,9 +35,8 @@ export function toolResult(out: any) {
   return { content, isError };
 }
 
-export function createMcpGateway({ s, identity, caller, instructions, version }: {
-  s: Pick<Services, 'agents' | 'localUser' | 'authMode' | 'events'> & { presence: any };
-  identity: Identity;
+export function createMcpGateway({ s, caller, instructions, version }: {
+  s: Pick<Services, 'agents' | 'events'> & { presence: any };
   caller: ToolCaller;
   /** Texto de instruções entregue ao agente (lido do arquivo a cada sessão nova). */
   instructions: () => Promise<string>;
@@ -71,16 +69,12 @@ export function createMcpGateway({ s, identity, caller, instructions, version }:
   }, 2_000);
   recheck.unref();
 
-  /** Quem é o agente deste pedido (token ou, no modo local, o nome do programa) e o hash da credencial presa à sessão. */
-  async function bindAgent(c: Context, clientName: string) {
+  /** Quem é o agente deste pedido e o hash da credencial presa à sessão. Sem token, não entra. */
+  async function bindAgent(c: Context) {
     const token = bearerOf(c);
-    if (token) {
-      const agent = await s.agents.authenticate(token);
-      return { agent, credentialHash: sha256(token) };
-    }
-    if (s.authMode === 'accounts') throw httpError(401, 'Envie o token do agente: Authorization: Bearer stylo_agt_...');
-    const agent = await s.agents.forClient(s.localUser.id, c.req.header('x-stylo-agent') || clientName || 'IA externa', identity.agentPolicy());
-    return { agent, credentialHash: await s.agents.credentialHash(agent.id) };
+    if (!token) throw httpError(401, 'Envie o token do agente: Authorization: Bearer stylo_agt_...');
+    const agent = await s.agents.authenticate(token);
+    return { agent, credentialHash: sha256(token) };
   }
 
   /** Bearer de outro agente não troca a sessão. Sem bearer, a credencial presa é revalidada. Falha da credencial fecha o canal. */
@@ -113,8 +107,7 @@ export function createMcpGateway({ s, identity, caller, instructions, version }:
 
   async function open(c: Context, request: Request, body: any, initMessage: any): Promise<Response> {
     if (sessions.size >= MAX_MCP_SESSIONS) throw httpError(429, `Há ${MAX_MCP_SESSIONS} sessões MCP abertas. Feche alguma (DELETE /mcp com Mcp-Session-Id) ou aguarde 10 min sem uso.`);
-    const clientName = String(initMessage?.params?.clientInfo?.name || '');
-    const { agent, credentialHash } = await bindAgent(c, clientName);
+    const { agent, credentialHash } = await bindAgent(c);
     const forced = (c.req.header('x-stylo-agent') || '').slice(0, 40);
     const session: McpSession = { id: '', agent, credentialHash, abort: new AbortController(), name: forced || agent.name, activeCalls: 0, closing: false, lastSeen: Date.now() };
 

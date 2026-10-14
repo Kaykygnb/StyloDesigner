@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { createAgent, setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // O servidor MCP conversa com o CLIENTE OFICIAL do SDK (o mesmo protocolo que Claude Code, Codex etc. usam):
 // initialize com instruções, lista de ferramentas, chamada, imagem como conteúdo, erro como isError e sessão encerrada.
@@ -21,7 +22,7 @@ async function startServer(t) {
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }), stdio: 'ignore',
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts' }), stdio: 'ignore',
   });
   fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
@@ -31,19 +32,21 @@ async function startServer(t) {
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
-  return { base, fixture };
+  const { cookie } = await setupSession(base);
+  const { token } = await createAgent(base, cookie, 'Claude Code');
+  return { base, fixture, cookie, token };
 }
 
-async function connect(base, name = 'Claude Code') {
+async function connect(base, token, name = 'Claude Code') {
   const client = new Client({ name, version: '1.0.0' });
-  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
+  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp'), { requestInit: { headers: { Authorization: 'Bearer ' + token, 'x-stylo-agent': name } } }));
   return client;
 }
 const text = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 
 test('cliente oficial: initialize traz as instruções, tools/list o catálogo atual, e uma sessão trabalha de ponta a ponta', async (t) => {
-  const { base, fixture } = await startServer(t);
-  const client = await connect(base);
+  const { base, fixture, cookie, token } = await startServer(t);
+  const client = await connect(base, token);
   fixture.clients.push(client);
 
   assert.equal(client.getServerVersion().name, 'projeto-designer');
@@ -82,14 +85,14 @@ test('cliente oficial: initialize traz as instruções, tools/list o catálogo a
   await client.ping();
 
   // o servidor registrou o agente pelo nome do programa e o log mostra a alteração
-  const agents = await (await fetch(base + '/api/projects/pelo-sdk.json/activity')).json();
+  const agents = await (await fetch(base + '/api/projects/pelo-sdk.json/activity', { headers: { cookie } })).json();
   assert.ok(agents.some((a) => a.who === 'Claude Code' && a.tool === 'create_layer'));
 });
 
 test('cliente oficial: sessões diferentes não misturam o projeto atual e cada uma tem o seu agente', async (t) => {
-  const { base, fixture } = await startServer(t);
-  const a = await connect(base, 'Claude Code');
-  const b = await connect(base, 'Codex');
+  const { base, fixture, cookie, token } = await startServer(t);
+  const a = await connect(base, token, 'Claude Code');
+  const b = await connect(base, token, 'Codex');
   fixture.clients.push(a, b);
   await a.callTool({ name: 'new_project', arguments: { name: 'Isolado' } });
   const semProjeto = await b.callTool({ name: 'get_document', arguments: {} });
@@ -99,17 +102,17 @@ test('cliente oficial: sessões diferentes não misturam o projeto atual e cada 
   assert.equal(op.isError, false, JSON.stringify(op.content));
   const opened = await b.callTool({ name: 'get_document', arguments: {} });
   assert.equal(opened.isError, false, JSON.stringify(opened.content));
-  const presence = await (await fetch(base + '/api/presence')).json();
+  const presence = await (await fetch(base + '/api/presence', { headers: { cookie } })).json();
   assert.deepEqual(presence.agents.map((x) => x.name).sort(), ['Claude Code', 'Codex']);
 });
 
 test('encerrar a sessão (DELETE) tira o agente da presença', async (t) => {
-  const { base, fixture } = await startServer(t);
-  const client = await connect(base, 'Cursor');
+  const { base, fixture, cookie, token } = await startServer(t);
+  const client = await connect(base, token, 'Cursor');
   await client.callTool({ name: 'list_projects', arguments: {} });
-  assert.equal((await (await fetch(base + '/api/presence')).json()).agents.length, 1);
+  assert.equal((await (await fetch(base + '/api/presence', { headers: { cookie } })).json()).agents.length, 1);
   await client.transport.terminateSession();
   await client.close();
   await new Promise((r) => setTimeout(r, 200));
-  assert.equal((await (await fetch(base + '/api/presence')).json()).agents.length, 0);
+  assert.equal((await (await fetch(base + '/api/presence', { headers: { cookie } })).json()).agents.length, 0);
 });

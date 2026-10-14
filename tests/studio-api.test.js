@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { createAgent, grantProject, setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // A ponte do painel web: o navegador chama as MESMAS ferramentas do MCP, pelo mesmo workspace. Servidor real, como nos outros testes HTTP.
 import { test } from 'node:test';
@@ -14,13 +15,13 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 
 const freePort = () => new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
 
-async function startServer(t, authMode = 'local') {
+async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-studio-'));
   const fixture = { dir: tmp, children: [], clients: [] };
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: authMode, STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') }),
     stdio: 'ignore',
   });
   fixture.children.push(child);
@@ -56,7 +57,13 @@ test('painel: a entrada (/) leva para /studio/, e /studio/ entrega a página do 
 });
 
 test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entradas e recusa abusos', async (t) => {
-  const { base, fixture } = await startServer(t);
+  const { base } = await startServer(t);
+  const { cookie } = await setupSession(base);
+  const fetch = (input, init = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (!headers.has('cookie')) headers.set('cookie', cookie);
+    return globalThis.fetch(input, { ...init, headers });
+  };
   const call = (body) => fetch(base + '/api/studio/call', { method: 'POST', headers: json, body: JSON.stringify(body) });
   const sid = 'web-teste-0123456789ab';
 
@@ -108,13 +115,21 @@ test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entra
 
 test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois de cada edição (regressão: janela de 10 s)', async (t) => {
   const { base, fixture } = await startServer(t);
+  const { cookie } = await setupSession(base);
+  const agent = await createAgent(base, cookie, 'Agente do teste');
+  const fetch = (input, init = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (!headers.has('cookie')) headers.set('cookie', cookie);
+    return globalThis.fetch(input, { ...init, headers });
+  };
   const sid = 'web-teste-bloqueio-001';
   const call = async (tool, args) => (await fetch(base + '/api/studio/call', { method: 'POST', headers: json, body: JSON.stringify({ sid, tool, args }) })).json();
   const novo = await call('new_project', { name: 'Dois' });
   const tela = await call('build_layout', { tree: { type: 'frame', props: { name: 'Tela', w: 600, h: 400 } } }); // trava o documento inteiro
+  await grantProject(base, cookie, agent.agent.id, novo.file);
 
   const client = new Client({ name: 'Agente do teste', version: '1.0.0' }, {});
-  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
+  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp'), { requestInit: { headers: { Authorization: 'Bearer ' + agent.token } } }));
   fixture.clients.push(client);
   const mcp = async (name, args) => JSON.parse((await client.callTool({ name, arguments: args })).content[0].text);
   await mcp('open_project', { file: novo.file });
@@ -131,12 +146,12 @@ test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois
 });
 
 test('accounts: sid reutilizado não lê nem altera workspace de outra conta', async (t) => {
-  const { base, fixture } = await startServer(t, 'accounts');
+  const { base } = await startServer(t);
   const request = async (cookie, method, path, body) => fetch(base + path, {
     method, headers: { ...json, ...(cookie ? { cookie } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const setup = await request('', 'POST', '/api/auth/setup', { email: 'owner@isolation.test', name: 'Owner', password: 'senha-owner-segura' });
+  const setup = await request('', 'POST', '/api/auth/setup', { username: 'owner', email: 'owner@isolation.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(setup.status, 201);
   const ownerCookie = setup.headers.get('set-cookie').split(';', 1)[0];
   const sid = 'web-isolation-shared-001';
@@ -145,8 +160,8 @@ test('accounts: sid reutilizado não lê nem altera workspace de outra conta', a
   const snapshot = async (cookie) => (await request(cookie, 'GET', `/api/studio/doc?sid=${sid}`)).json();
   const ownerBefore = await snapshot(ownerCookie);
   assert.ok(ownerBefore?.doc);
-  assert.equal((await request(ownerCookie, 'POST', '/api/users', { email: 'editor@isolation.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
-  const login = await request('', 'POST', '/api/auth/login', { email: 'editor@isolation.test', password: 'senha-editor-inicial' });
+  assert.equal((await request(ownerCookie, 'POST', '/api/users', { username: 'editor', email: 'editor@isolation.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
+  const login = await request('', 'POST', '/api/auth/login', { username: 'editor', email: 'editor@isolation.test', password: 'senha-editor-inicial' });
   assert.equal(login.status, 200);
   const editorCookie = login.headers.get('set-cookie').split(';', 1)[0];
   assert.equal((await request(editorCookie, 'POST', '/api/me/password', { current: 'senha-editor-inicial', next: 'senha-editor-final' })).status, 200);
@@ -162,16 +177,16 @@ test('accounts: sid reutilizado não lê nem altera workspace de outra conta', a
 });
 
 test('accounts: workspace aberto respeita downgrade, revogação e novo compartilhamento', async (t) => {
-  const { base, fixture } = await startServer(t, 'accounts');
+  const { base } = await startServer(t);
   const request = (cookie, method, path, body) => fetch(base + path, {
     method, headers: { ...json, ...(cookie ? { cookie } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const setup = await request('', 'POST', '/api/auth/setup', { email: 'owner@sharing.test', name: 'Owner', password: 'senha-owner-segura' });
+  const setup = await request('', 'POST', '/api/auth/setup', { username: 'owner', email: 'owner@sharing.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(setup.status, 201);
   const ownerCookie = setup.headers.get('set-cookie').split(';', 1)[0];
-  assert.equal((await request(ownerCookie, 'POST', '/api/users', { email: 'editor@sharing.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
-  const login = await request('', 'POST', '/api/auth/login', { email: 'editor@sharing.test', password: 'senha-editor-inicial' });
+  assert.equal((await request(ownerCookie, 'POST', '/api/users', { username: 'editor', email: 'editor@sharing.test', name: 'Editor', password: 'senha-editor-inicial', role: 'EDITOR' })).status, 201);
+  const login = await request('', 'POST', '/api/auth/login', { username: 'editor', email: 'editor@sharing.test', password: 'senha-editor-inicial' });
   const editorCookie = login.headers.get('set-cookie').split(';', 1)[0];
   assert.equal((await request(editorCookie, 'POST', '/api/me/password', { current: 'senha-editor-inicial', next: 'senha-editor-final' })).status, 200);
   const sid = 'web-sharing-active-001';

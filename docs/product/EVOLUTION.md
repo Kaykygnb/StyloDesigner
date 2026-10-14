@@ -96,7 +96,7 @@ Inkscape, Figma, Penpot, Illustrator, Rive, Framer, ProtoPie, Spline e Blender s
 - Não substituir o editor vetorial por VectorCraft, Paper.js, Fabric.js ou Konva. O editor já está no núcleo e nas ferramentas. Trocar a cena duplicaria regras e afastaria o MCP do documento.
 - Não prometer importação PPTX com PptxGenJS. A biblioteca não lê o arquivo.
 - Não colocar Three.js, React Three Fiber ou Babylon no núcleo. 3D fica para o horizonte C, como adaptador.
-- Não abrir uma segunda aplicação “pessoal” sem conta. A decisão 2.1 proíbe isso. O modo `STYLO_AUTH=local` existe no código e conflita; a retirada é migração (DOC-SERVER-009), não um atalho nesta entrega.
+- Não abrir uma segunda aplicação “pessoal” sem conta. A decisão 2.1 proíbe isso. A DOC-SERVER-011 retirou o modo `STYLO_AUTH=local`. A entrada é conta e senha, também no uso local.
 
 ## Horizontes
 

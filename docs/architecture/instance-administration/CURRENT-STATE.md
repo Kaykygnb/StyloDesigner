@@ -27,7 +27,7 @@ Nesta rodada: `tests/config-autorizacao.test.js` reexecutado, **1/1 aprovado**; 
 | PostgreSQL/migrações | Implementado/testado adapter: [client](../../../packages/db/src/client.ts), [PostgreSQL integração](../../../tests/postgres-integracao.test.js) | teste descartável real, reinício/outage; backup PG exige pg_dump/pg_restore externo, não GUI completo |
 | Saúde/rede/conexões | Implementado: [system:29](../../../apps/server/src/routes/system.ts#L29), :43, :106; SSE não é sessão MCP | contas HTTP/PG/E2E admin; health sem identidade retorna detalhes em falha; contagens/migrações não são health público mínimo |
 | Limites e abuso | Parcial: [guards:14](../../../apps/server/src/http/guards.ts#L14), gateway, renderer, eventos; login 8/5min por e-mail | segurança API e renderer; não encontrada quota completa por usuário/disco/provedor; rate limit login é memória de processo |
-| Política agentPolicy | Implementada para cliente sem token em modo local: [gateway:63](../../../apps/server/src/mcp/gateway.ts#L63); accounts exige bearer no initialize mesmo se configuração diz open | Não afirmar que open habilita init anônimo em accounts; coerência GUI/política é insumo operacional |
+| Política agentPolicy | O canal MCP exige Bearer. A DOC-SERVER-011 retirou a entrada sem token. `forClient` não abre o gateway | Não tratar `open` como entrada anônima |
 | Multi-organização/infraestrutura | Não identificado: schema sem tenant/org; nenhum controlador SO/firewall/VPS | Não tratar como falta a implementar no MVP; infraestrutura pertence ao operador externo |
 
 ## Riscos e bloqueios identificados
@@ -70,7 +70,7 @@ Resultados: `403`, `403`, `allowed`, respectivamente. É incompatibilidade funci
 
 ## Atualização factual após registro HD (base 50a8d00)
 
-O registro humano é intenção, não capacidade instalada. localUser/identity bypass, OWNER indiferenciado, qualquer OWNER concedendo OWNER e ausência de SMTP/recuperação são conflitos com HD conforme [plano](IDENTITY-ONBOARDING-RECOVERY.md). Fonte inicial deste inventário permanece preservada; uma vulnerabilidade antes estática foi reproduzida abaixo em recurso isolado.
+O registro humano abaixo é a fotografia da base 50a8d00. localUser/identity bypass, OWNER indiferenciado, qualquer OWNER concedendo OWNER e ausência de SMTP/recuperação eram conflitos com HD conforme [plano](IDENTITY-ONBOARDING-RECOVERY.md). A DOC-SERVER-011, depois desta fotografia, retirou o bypass sem senha e o login passou a ser nome de usuário. O script reproduzido aqui chama `setup` sem `username` e não descreve o código atual. Fonte inicial deste inventário permanece preservada; uma vulnerabilidade antes estática foi reproduzida abaixo em recurso isolado.
 
 Reprodução por [identity_conflicts], Hono.request em processo sem socket/rede, `createDb({pglite:{}})` exclusivamente memória, fechamento em finally; conta OWNER sem projetos + ADMIN com senha trocada e sessão própria. Script não lê DATABASE_URL e não imprime token/senha. Comando observado: `node --import /workspace/StyloDesigner/node_modules/tsx/dist/loader.mjs /tmp/stylo-owner-reproduction.mjs`. SHA256 observado do script: `873fc9ed846b8f41080cd96966568d8cd410b503c11ef2e46df25c774041bc23`.
 

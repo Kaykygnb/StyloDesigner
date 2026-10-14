@@ -5,7 +5,7 @@
 
 import type { Db } from '@stylo/db/client.ts';
 import type { ConfigStore } from './config.js';
-import type { Auth, PublicUser } from './services/auth.js';
+import type { Auth } from './services/auth.js';
 import type { Agents } from './services/agents.js';
 import type { Operations } from './services/operations.js';
 import type { Notes } from './services/notes.js';
@@ -19,7 +19,7 @@ import type { Events } from './events.js';
 import type { Backups } from './services/backups.js';
 import type { Plugins } from './plugins.js';
 
-export type AuthMode = 'local' | 'accounts';
+export type AuthMode = 'accounts';
 
 export interface Services {
   port: number;
@@ -41,10 +41,8 @@ export interface Services {
   secrets: Secrets;
   workspace: Workspace;
   events: Events;
-  /** 'local' = sem login (só esta máquina); 'accounts' = contas e senha. */
+  /** Conta e senha. Não há modo que entre sem autenticação. */
   authMode: AuthMode;
-  /** Usuário técnico que age no lugar da pessoa no modo local. */
-  localUser: PublicUser;
   presence: ReturnType<typeof import('./presence.js').createPresence>;
   backups: Backups;
   plugins: Plugins;

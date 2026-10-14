@@ -9,7 +9,7 @@ export function isolatedServerEnv(overrides, inheritedEnv = process.env) {
     DESIGNER_DB_DIR: 'memory',
     STYLO_BLOB_DIR: 'memory',
     STYLO_SECRET_KEY: randomBytes(32).toString('base64'),
-    STYLO_AUTH: 'local',
+    STYLO_AUTH: 'accounts',
     PEXELS_API_KEY: '',
     PIXABAY_API_KEY: '',
     ...overrides,

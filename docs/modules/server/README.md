@@ -8,7 +8,7 @@ Identidade, autorização, ciclo de vida do workspace, gravação, versões, blo
 
 O caller do Studio associa o identificador público da aba à conta autenticada para formar a chave interna do workspace; a rota de snapshot usa a mesma chave. Cookie/Bearer continuam sendo a identidade; o sid sozinho não autoriza acesso ao documento (DOC-SERVER-003).
 
-Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige papel de administrador (`identity.adminOf`): anônimo recebe 401, MEMBER/EDITOR/VIEWER/COMMENTER recebem 403 e a recusa não muta nada. No modo local o usuário técnico é OWNER, então o comportamento local não muda (DOC-SERVER-005). As chaves de integração (Pexels) nunca são devolvidas por nenhuma rota.
+Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige papel de administrador (`identity.adminOf`): anônimo recebe 401, MEMBER/EDITOR/VIEWER/COMMENTER recebem 403 e a recusa não muta nada (DOC-SERVER-005). As chaves de integração (Pexels) nunca são devolvidas por nenhuma rota.
 
 Workspaces ativos revalidam o papel atual da pessoa por ID do projeto antes de ferramentas que dependem dele; agentes também precisam manter seu grant. O snapshot HTTP do Studio usa o mesmo gate. Downgrade atualiza o papel e recusa escrita, revogação recusa leitura/escrita, e novo compartilhamento pode permitir continuar sem reabrir. A consulta não hidrata documento/assets. A verificação acontece no início da chamada e não cancela operações já em execução (DOC-SERVER-004).
 
@@ -16,7 +16,7 @@ Workspaces ativos revalidam o papel atual da pessoa por ID do projeto antes de f
 
 Sessão MCP fica presa ao agente que a abriu. Bearer de outro agente não troca essa identidade. Pedido sem bearer revalida a credencial presa: token rotacionado, revogação, escopo reduzido e dono suspenso passam a valer em POST, GET e DELETE. Suspender uma conta que a regra permite apaga as sessões web, marca os agentes ACTIVE como REVOKED e fecha os canais daquela conta. O principal não é suspenso por esta rota; outro OWNER só é suspenso pelo principal, depois de reconfirmar a senha. Reativar a conta não devolve essas credenciais. O registro do agente, o projeto e o log de operações permanecem. Uma ferramenta que já passou da checagem do sinal pode concluir o passo atual; a próxima chamada e o canal persistente não seguem (DOC-SERVER-007, junto da DOC-SERVER-006).
 
-`GET /api/agent/events` exige sessão. A query não escolhe usuário nem inscreve projeto sem acesso. Evento de projeto vai para dono, membro ou OWNER da instalação. ADMIN sem membership não recebe projeto privado e não há exceção de emergência. `GET /api/health` e `GET /api/presence` exigem sessão. `GET /api/status` continua sendo o mínimo público. No modo local o usuário técnico segue como a identidade, sem login.
+`GET /api/agent/events` exige sessão. A query não escolhe usuário nem inscreve projeto sem acesso. Evento de projeto vai para dono, membro ou OWNER da instalação. ADMIN sem membership não recebe projeto privado e não há exceção de emergência. `GET /api/health` e `GET /api/presence` exigem sessão. `GET /api/status` continua sendo o mínimo público. Não há entrada sem conta.
 
 ## Não deve fazer
 

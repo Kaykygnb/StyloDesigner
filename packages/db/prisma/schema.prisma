@@ -49,7 +49,10 @@ enum NoteKind {
 
 model User {
   id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
+  /// Login. Obrigatório, único sem distinguir maiúsculas, sem "@". Não é o nome de exibição.
+  username     String   @unique
+  /// Opcional. Quando existe, também serve para entrar e continua único sem distinguir maiúsculas.
+  email        String?  @unique
   name         String
   passwordHash String
     role         Role     @default(MEMBER)

@@ -30,7 +30,7 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-SERVER-008 | Preparar exposição pública e bootstrap seguro da instância | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-ADMIN-001; decisões ADR 0002 | [tarefa](tasks/server/DOC-SERVER-008.md) |
 | DOC-ADMIN-002 | Completar trilha de auditoria administrativa sensível | administration | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-ADMIN-001; decisões ADR 0002 | [tarefa](tasks/administration/DOC-ADMIN-002.md) |
 | DOC-SERVER-009 | Planejar migração do modo local para contas obrigatórias | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/server/DOC-SERVER-009.md) |
-| DOC-SERVER-011 | Implementar login por nome de usuário | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002; bloqueia DOC-ENG-006 | [tarefa](tasks/server/DOC-SERVER-011.md) |
+| DOC-SERVER-011 | Implementar login por nome de usuário | server | P1 | Em validação | [Grok] | 5/5 (100%) | ADR 0002; bloqueia DOC-ENG-006 | [tarefa](tasks/server/DOC-SERVER-011.md) |
 | DOC-SERVER-012 | Separar papel de projeto do papel da instalação | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.4 | [tarefa](tasks/server/DOC-SERVER-012.md) |
 | DOC-SERVER-013 | Aplicar a administração delegada | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §4; ADM-DEC-00; ADM-DEC-08 | [tarefa](tasks/server/DOC-SERVER-013.md) |
 | DOC-SERVER-014 | Acesso de OWNER a projeto privado | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.3; ADM-DEC-07 | [tarefa](tasks/server/DOC-SERVER-014.md) |
@@ -38,4 +38,4 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-STUDIO-006 | Planejar onboarding guiado e administração progressiva | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/studio/DOC-STUDIO-006.md) |
 | DOC-SERVER-010 | Projetar recuperação de contas e envio configurável pela GUI | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/server/DOC-SERVER-010.md) |
 | DOC-ENG-005 | Registrar visão, decisões e horizontes do produto | engenharia/docs | P1 | Concluída | [Grok 4.7] | 5/5 (100%) | ADR 0002 | [tarefa](tasks/engineering/DOC-ENG-005.md) |
-| DOC-ENG-006 | Preparar a alpha pública local | engenharia | P1 | Proposta | [Não atribuído] | 0/5 (0%) | PRs #17 e #18; DOC-SERVER-011 | [tarefa](tasks/engineering/DOC-ENG-006.md) |
+| DOC-ENG-006 | Preparar a alpha pública local | engenharia | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-011 em validação; demo e limitações do README | [tarefa](tasks/engineering/DOC-ENG-006.md) |

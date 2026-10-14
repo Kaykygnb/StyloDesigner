@@ -24,7 +24,7 @@
 
 SSE `/agent/events` exige `userOf`. Nome e id da query não são identidade. O arquivo na query só entra se a conta pode ver o projeto. O broadcast de projeto vai para dono, membro ou OWNER da instalação; ADMIN sem membership não recebe e não há exceção de emergência. Suspensão e revogação de sessão fecham o canal (DOC-SERVER-007). Abrir ou gravar o documento privado só por ser OWNER da instalação não faz parte deste canal.
 
-Sessão humana exige validação via auth; token de agente não é token de usuário. Não confundir SSE de editor, cookie da pessoa e SID MCP. Legado atual: no modo local o usuário técnico é OWNER e não há limite de identidade multiusuário equivalente a accounts; parte das rotas de contas responde 404.
+Sessão humana exige validação via auth; token de agente não é token de usuário. Não confundir SSE de editor, cookie da pessoa e SID MCP. A DOC-SERVER-011 retirou o modo sem conta. O usuário técnico antigo só segue se ainda não foi assumido pelo setup, e não entra sem senha.
 
 A política beta dos dois PUT foi aprovada explicitamente, com ressalva: segurança, privilégios e credenciais críticas exigem avaliação separada. Demais poderes atuais nesta tabela não ganharam aprovação adicional.
 

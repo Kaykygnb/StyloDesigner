@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { createAgent, grantProject, setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // O painel web usado como uma pessoa usa, num navegador de verdade (Chromium do Playwright; sem ele o teste é pulado).
 // Atenção: o mouse NATIVO apertado sobre um iframe sem scripts derruba navegadores automatizados (defeito do Chromium em modo
@@ -30,7 +31,7 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' }),
     stdio: 'inherit',
   });
   fixture.children.push(child);
@@ -40,8 +41,11 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
+  const { cookie } = await setupSession(base);
+  const agent = await createAgent(base, cookie, 'Agente de teste');
 
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.context().addCookies([{ name: 'stylo_session', value: cookie.slice('stylo_session='.length), url: base }]);
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
@@ -160,9 +164,10 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   // ---- um agente (MCP) altera o mesmo projeto: a tela atualiza sozinha
   await page.getByRole('tab', { name: 'Agentes' }).click();
   const client = new Client({ name: 'Agente de teste', version: '1.0.0' }, {});
-  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
-  fixture.clients.push(client);
   const file = await page.evaluate(() => window.__stylo.get().file);
+  await grantProject(base, cookie, agent.agent.id, file);
+  await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp'), { requestInit: { headers: { Authorization: 'Bearer ' + agent.token, 'x-stylo-agent': 'Agente de teste' } } }));
+  fixture.clients.push(client);
   await client.callTool({ name: 'open_project', arguments: { file } });
   const rows = await page.locator('.layer-row').count();
   const made = JSON.parse((await client.callTool({ name: 'create_layer', arguments: { type: 'text', props: { text: 'Feito pelo agente', x: 400, y: 300, fontSize: 32 } } })).content[0].text);

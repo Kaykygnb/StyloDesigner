@@ -40,7 +40,7 @@
       "testReferences": [
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 54
+          "line": 57
         },
         {
           "path": "tests/plugins.test.ts",
@@ -1238,11 +1238,11 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 81
+          "line": 88
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 114
+          "line": 128
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -1398,7 +1398,7 @@
       "testReferences": [
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 63
+          "line": 66
         },
         {
           "path": "tests/plugins.test.ts",
@@ -1502,11 +1502,11 @@
       "testReferences": [
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 107
+          "line": 112
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 60
+          "line": 63
         },
         {
           "path": "tests/plugins.test.ts",
@@ -2096,11 +2096,11 @@
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 72
+          "line": 75
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 86
+          "line": 89
         },
         {
           "path": "tests/presenca.test.js",
@@ -2124,23 +2124,23 @@
         },
         {
           "path": "tests/servicos.test.ts",
-          "line": 130
+          "line": 133
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 83
+          "line": 90
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 123
+          "line": 138
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 155
+          "line": 170
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 184
+          "line": 199
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -2180,7 +2180,7 @@
         },
         {
           "path": "tests/studio-ui.test.js",
-          "line": 168
+          "line": 173
         },
         {
           "path": "tests/tokens.test.ts",
@@ -2743,7 +2743,7 @@
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 57
+          "line": 60
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -3904,7 +3904,7 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 98
+          "line": 105
         },
         {
           "path": "tests/tokens.test.ts",
@@ -4138,11 +4138,11 @@
       "testReferences": [
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 53
+          "line": 56
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 65
+          "line": 68
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4183,7 +4183,7 @@
       "testReferences": [
         {
           "path": "tests/studio-api.test.js",
-          "line": 200
+          "line": 215
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -4368,11 +4368,11 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 141
+          "line": 146
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 147
+          "line": 152
         },
         {
           "path": "tests/mcp-contas.test.js",
@@ -4380,15 +4380,15 @@
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 56
+          "line": 59
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 95
+          "line": 98
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 100
+          "line": 103
         },
         {
           "path": "tests/plugins.test.ts",
@@ -4400,39 +4400,39 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 67
+          "line": 74
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 71
+          "line": 78
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 73
+          "line": 80
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 76
+          "line": 83
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 154
+          "line": 169
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 192
+          "line": 207
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 199
+          "line": 214
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 205
+          "line": 220
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 210
+          "line": 225
         },
         {
           "path": "tests/tokens.test.ts",
@@ -4606,11 +4606,11 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 114
+          "line": 119
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 76
+          "line": 79
         },
         {
           "path": "tests/tokens.test.ts",
@@ -4773,7 +4773,7 @@
       "testReferences": [
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 55
+          "line": 58
         },
         {
           "path": "tests/plugins.test.ts",
@@ -5991,7 +5991,7 @@
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 109
+          "line": 112
         },
         {
           "path": "tests/postgres-integracao.test.js",
@@ -6254,15 +6254,15 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 112
+          "line": 117
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 138
+          "line": 143
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 167
+          "line": 172
         },
         {
           "path": "tests/mcp-contas.test.js",
@@ -6270,11 +6270,11 @@
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 69
+          "line": 72
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 94
+          "line": 97
         },
         {
           "path": "tests/plugins.test.ts",
@@ -6286,27 +6286,27 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 79
+          "line": 86
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 113
+          "line": 127
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 144
+          "line": 159
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 157
+          "line": 172
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 181
+          "line": 196
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 207
+          "line": 222
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -6554,11 +6554,11 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 145
+          "line": 150
         },
         {
           "path": "tests/mcp-sdk.test.js",
-          "line": 98
+          "line": 101
         },
         {
           "path": "tests/postgres-integracao.test.js",
@@ -6566,11 +6566,11 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 120
+          "line": 135
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 183
+          "line": 198
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -6590,7 +6590,7 @@
         },
         {
           "path": "tests/studio-ui.test.js",
-          "line": 166
+          "line": 171
         },
         {
           "path": "tests/update-layers-workspace.test.ts",
@@ -7122,7 +7122,7 @@
       "testReferences": [
         {
           "path": "tests/studio-api.test.js",
-          "line": 191
+          "line": 206
         },
         {
           "path": "tests/workspace.test.ts",
@@ -7995,7 +7995,7 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 180
+          "line": 195
         },
         {
           "path": "tests/studio-parity.test.js",
@@ -8427,15 +8427,15 @@
       "testReferences": [
         {
           "path": "tests/studio-api.test.js",
-          "line": 198
+          "line": 213
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 206
+          "line": 221
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 209
+          "line": 224
         },
         {
           "path": "tests/workspace.test.ts",
@@ -8886,27 +8886,27 @@
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 85
+          "line": 92
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 94
+          "line": 101
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 126
+          "line": 141
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 189
+          "line": 204
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 196
+          "line": 211
         },
         {
           "path": "tests/studio-api.test.js",
-          "line": 201
+          "line": 216
         },
         {
           "path": "tests/studio-parity.test.js",

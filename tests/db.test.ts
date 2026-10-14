@@ -6,7 +6,7 @@ import { createDb } from '@stylo/db/client.ts';
 test('migração cria o esquema; usuário, agente, projeto, operação e nota se relacionam', async () => {
   const { db, close } = await createDb({ pglite: {} });
   try {
-    const owner = await db.user.create({ data: { email: 'dono@exemplo.com', name: 'Dono', passwordHash: 'x', role: 'OWNER' } });
+    const owner = await db.user.create({ data: { username: 'dono', email: 'dono@exemplo.com', name: 'Dono', passwordHash: 'x', role: 'OWNER' } });
     const agent = await db.agent.create({ data: { name: 'Claude Code', ownerId: owner.id, tokenHash: 'hash-1', scopes: ['read', 'write'], status: 'ACTIVE' } });
     const project = await db.project.create({
       data: { slug: 'meu-site.json', name: 'Meu site', ownerId: owner.id, doc: { pages: [{ id: 'p1', name: 'Home', children: [] }] } },

@@ -21,12 +21,13 @@ try {
     if (state.mode !== 'accounts') throw new Error('O fluxo administrativo E2E precisa de STYLO_AUTH=accounts.');
     if (!state.hasAccounts) {
       await loginCard.getByLabel('Seu nome').fill('Owner E2E');
-      await loginCard.getByLabel('E-mail').fill(adminEmail);
+      await loginCard.getByLabel('Nome de usuário', { exact: true }).fill('ownere2e');
+      await loginCard.getByLabel('E-mail (opcional)', { exact: true }).fill(adminEmail);
       await loginCard.getByLabel('Senha', { exact: true }).fill(adminPassword);
       await loginCard.getByLabel('Repita a senha').fill(adminPassword);
       await loginCard.getByRole('button', { name: 'Criar conta e entrar' }).click();
     } else {
-      await loginCard.getByLabel('E-mail').fill(adminEmail);
+      await loginCard.getByLabel('Usuário ou e-mail', { exact: true }).fill(adminEmail);
       await loginCard.getByLabel('Senha').fill(adminPassword);
       await loginCard.getByRole('button', { name: 'Entrar' }).click();
     }
@@ -61,8 +62,10 @@ try {
 
   await page.getByRole('button', { name: 'Novo usuário', exact: true }).click();
   const userDialog = page.getByRole('dialog', { name: 'Novo usuário' });
-  await userDialog.getByLabel('Nome').fill('Usuário E2E');
-  await userDialog.getByLabel('E-mail').fill(`e2e-${Date.now()}@stylo.test`);
+  const userStamp = Date.now();
+  await userDialog.getByLabel('Nome', { exact: true }).fill('Usuário E2E');
+  await userDialog.getByLabel('Nome de usuário', { exact: true }).fill(`e2e${userStamp}`);
+  await userDialog.getByLabel('E-mail (opcional)', { exact: true }).fill(`e2e-${userStamp}@stylo.test`);
   await userDialog.getByRole('button', { name: 'Criar usuário', exact: true }).click();
   await page.getByText('Senha temporária — copie agora').waitFor();
   assert.match(await page.locator('.codebox').last().innerText(), /\S+/);
@@ -73,8 +76,9 @@ try {
   const ownerPassword = 'SenhaDoSocio 123!';
   await page.getByRole('button', { name: 'Novo usuário', exact: true }).click();
   const ownerDialog = page.getByRole('dialog', { name: 'Novo usuário' });
-  await ownerDialog.getByLabel('Nome').fill('Sócio E2E');
-  await ownerDialog.getByLabel('E-mail').fill(ownerEmail);
+  await ownerDialog.getByLabel('Nome', { exact: true }).fill('Sócio E2E');
+  await ownerDialog.getByLabel('Nome de usuário', { exact: true }).fill(`socio${Date.now()}`);
+  await ownerDialog.getByLabel('E-mail (opcional)', { exact: true }).fill(ownerEmail);
   await ownerDialog.getByLabel('Nível de acesso').selectOption('OWNER');
   await ownerDialog.getByLabel('Senha inicial').fill(ownerPassword);
   const createdPromise = page.waitForResponse((response) => response.url().includes('/api/users') && response.request().method() === 'POST');
@@ -116,7 +120,7 @@ try {
   await page.getByRole('heading', { name: 'Conexões MCP' }).waitFor();
   await page.getByRole('button', { name: 'Novo agente', exact: true }).click();
   const agentDialog = page.getByRole('dialog', { name: 'Novo agente MCP' });
-  await agentDialog.getByLabel('Nome').fill(`Agente E2E ${Date.now()}`);
+  await agentDialog.getByLabel('Nome', { exact: true }).fill(`Agente E2E ${Date.now()}`);
   await agentDialog.getByRole('button', { name: 'Criar agente', exact: true }).click();
   await page.getByText('Token criado — copie agora').waitFor();
   const token = await page.locator('.account-card .codebox code').first().innerText();

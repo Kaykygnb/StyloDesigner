@@ -11,6 +11,7 @@ import { createServer } from 'node:net';
 import { mkdtemp } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
+import { createAgent, setupSession } from './helpers/session.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,31 +24,35 @@ async function startServer(t, inheritedEnv = process.env) {
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...inheritedEnv, DATABASE_URL: '', PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: randomBytes(32).toString('base64') }, stdio: 'ignore',
+    env: { ...inheritedEnv, DATABASE_URL: '', PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: randomBytes(32).toString('base64') }, stdio: 'ignore',
   });
   fixture.children.push(child);
   let startupError;
   child.once('error', (error) => { startupError = error; });
   const base = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 60000;
+  let ready = false;
   while (Date.now() < deadline) {
     if (startupError) throw startupError;
     if (child.exitCode !== null || child.signalCode !== null) throw new Error('Servidor de teste encerrou antes de ficar pronto.');
-    try { if ((await fetch(base + '/api/status', { signal: AbortSignal.timeout(1000) })).ok) return base; } catch { /* ainda subindo */ }
+    try { if ((await fetch(base + '/api/status', { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; } } catch { /* ainda subindo */ }
     await new Promise((r) => setTimeout(r, 25));
   }
-  throw new Error('O servidor de teste não subiu em 60 s.');
+  if (!ready) throw new Error('O servidor de teste não subiu em 60 s.');
+  const { cookie } = await setupSession(base);
+  const { token } = await createAgent(base, cookie, 'cliente-cru');
+  return { base, cookie, token };
 }
 
-/** Cliente MCP mínimo, sem SDK: POST JSON-RPC e cabeçalho Mcp-Session-Id após o initialize. */
-function rawClient(base, name = 'cliente-cru') {
+/** Cliente MCP mínimo, sem SDK: POST JSON-RPC, token do agente e Mcp-Session-Id após o initialize. */
+function rawClient(base, token, name = 'cliente-cru') {
   const url = base + '/mcp';
   let sid = '';
   let nextId = 0;
   const rpc = async (method, params, { expectError = false } = {}) => {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...(sid ? { 'mcp-session-id': sid } : {}) },
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token, 'x-stylo-agent': name, ...(sid ? { 'mcp-session-id': sid } : {}) },
       body: JSON.stringify({ jsonrpc: '2.0', id: ++nextId, method, params }),
     });
     const sessionHeader = response.headers.get('mcp-session-id');
@@ -77,8 +82,8 @@ function rawClient(base, name = 'cliente-cru') {
 const textOf = (body) => JSON.parse(body.result.content.find((c) => c.type === 'text').text);
 
 test('cliente externo sem SDK: initialize, tools/list, tools/call, erros de protocolo e sessão por cabeçalho', async (t) => {
-  const base = await startServer(t);
-  const client = rawClient(base, 'integracao-custom');
+  const { base, token } = await startServer(t);
+  const client = rawClient(base, token, 'integracao-custom');
 
   // pedido que não é initialize sem sessão: recusado com orientação
   const noSession = await client.postRaw(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }));
@@ -129,9 +134,9 @@ test('cliente externo sem SDK: initialize, tools/list, tools/call, erros de prot
 });
 
 test('cliente externo sem SDK: sessões diferentes não misturam o projeto atual e aparecem na presença pelo nome do cliente', async (t) => {
-  const base = await startServer(t);
-  const a = rawClient(base, 'agente-a');
-  const b = rawClient(base, 'agente-b');
+  const { base, cookie, token } = await startServer(t);
+  const a = rawClient(base, token, 'agente-a');
+  const b = rawClient(base, token, 'agente-b');
   await a.initialize();
   await b.initialize();
 
@@ -148,7 +153,7 @@ test('cliente externo sem SDK: sessões diferentes não misturam o projeto atual
   assert.equal(document.body.result.isError, false, JSON.stringify(document.body));
   assert.ok(textOf(document.body).pages.length >= 1);
 
-  const presence = await (await fetch(base + '/api/presence')).json();
+  const presence = await (await fetch(base + '/api/presence', { headers: { cookie } })).json();
   assert.deepEqual(presence.agents.map((x) => x.name).sort(), ['agente-a', 'agente-b']);
 
   await a.close();
@@ -158,10 +163,10 @@ test('cliente externo sem SDK: sessões diferentes não misturam o projeto atual
 
 test('fixture MCP ignora DATABASE_URL, blobs e segredo herdados', async (t) => {
   // URL deliberadamente inválida: nunca aponta para um banco real.
-  const base = await startServer(t, { ...process.env, DATABASE_URL: 'not-a-database-url', STYLO_BLOB_DIR: '/nao-usar-blobs-herdados', STYLO_SECRET_KEY: 'segredo-invalido' });
-  const health = await (await fetch(base + '/api/health')).json();
+  const { base, cookie, token } = await startServer(t, { ...process.env, DATABASE_URL: 'not-a-database-url', STYLO_BLOB_DIR: '/nao-usar-blobs-herdados', STYLO_SECRET_KEY: 'segredo-invalido' });
+  const health = await (await fetch(base + '/api/health', { headers: { cookie } })).json();
   assert.equal(health.database.engine, 'pglite');
-  const client = rawClient(base, 'fixture-isolado');
+  const client = rawClient(base, token, 'fixture-isolado');
   await client.initialize();
   try {
     const created = await client.callTool('new_project', { name: 'Isolado' });

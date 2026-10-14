@@ -6,7 +6,7 @@ Fonte normativa: [21 decisões/diretrizes humanas na ADR 0002](../adr/0002-self-
 
 | Requisito | Estado atual / conflito | Engenharia autorizada agora |
 |---|---|---|
-| Conta e senha em todo uso humano | main.ts:111 accounts padrão, mas STYLO_AUTH=local e identity.ts:20/27 dão acesso sem senha; localUser técnico OWNER criado em main.ts:114/auth.ts:98 | Inventariar runtime/GUI/MCP/scripts/tests e dados ligados à identidade técnica. Planejar migração/compatibilidade; não remover env/conta técnica agora |
+| Conta e senha em todo uso humano | A fotografia 50a8d00 tinha `STYLO_AUTH=local` e `localUser`. A DOC-SERVER-011 retirou esse modo. A entrada é conta e senha. O MCP exige token. Se a única conta é `local@stylo.local` com senha inutilizável, o primeiro setup assume o mesmo id | Feito na DOC-SERVER-011. Não recriar um modo sem conta |
 | Primeiro OWNER principal protegido | setup cria role OWNER comum; schema User só role, sem relação de autoridade principal; count/create separados | Validar proteção/concorrência em fixtures e desenhar representação/invariantes/migração. Não presumir principal como menor UUID, primeiro timestamp ou e-mail coletivo |
 | Só principal concede OWNER | routes/auth.ts:83/94 permite qualquer OWNER criar/promover OWNER | Registrar incompatibilidade e expectativas de autorização específicas após identificação segura de principal |
 | Titularidade institucional | User tem e-mail pessoal; sem cadastro distinto de instituição/principal | Comparar metadados de instância com entidades novas; contato empresarial não autentica nem substitui pessoa administradora |
@@ -16,7 +16,7 @@ Fonte normativa: [21 decisões/diretrizes humanas na ADR 0002](../adr/0002-self-
 
 ### Plano de migração local (DOC-SERVER-009)
 
-1. Inventário de contas técnicas, projetos/slug/memberships, agentes/grants/ownerId, notas/autoria, assets e segredos; setup ignora LOCAL_EMAIL, logo “primeira conta” significa conta humana do provisionamento autorizado.
+1. Inventário de contas técnicas, projetos/slug/memberships, agentes/grants/ownerId, notas/autoria, assets e segredos. A DOC-SERVER-011 não ignora `LOCAL_EMAIL`: se essa conta técnica inutilizável é a única, o setup a assume. Se já há outra conta, a linha técnica permanece e ninguém é escolhido principal por data.
 2. Propor estado de instalação e principal referenciado por identidade individual estável, com invariantes transacionais. Relação singular de principal não proíbe múltiplos usuários role OWNER. Modelo ainda sujeito a revisão técnica; principal não é dono do software.
 3. Autenticar/provisionar legitimamente operador antes de atribuir dados legados; provar colisões de nomes,ownership e grants, autoria preservada e retorno seguro. Não transformar todo OWNER técnico em pessoa principal silenciosamente.
 4. Ensaiar em cópias descartáveis com checksums/contagens e gates de restore DOC-DB-001. Proteger segredos/config/blobs e preservar histórico; não resetar banco para “resolver” identidade.

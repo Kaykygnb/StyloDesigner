@@ -1,6 +1,6 @@
 /**
  * http/identity.ts — QUEM FEZ O PEDIDO (pessoa) e a política de entrada de agentes
- * Modo local: sempre o usuário local. Modo contas: quem tem a sessão (cookie `stylo_session` ou `Authorization: Bearer`).
+ * Quem tem a sessão (cookie `stylo_session` ou `Authorization: Bearer`). Sem sessão, 401.
  */
 
 import type { Context } from 'hono';
@@ -14,17 +14,15 @@ const cookieOf = (c: Context, name: string) => ((c.req.header('cookie') || '').s
 export const sessionTokenOf = (c: Context) => bearerOf(c) || cookieOf(c, 'stylo_session');
 export const sessionCookie = (token: string, maxAge: number) => `stylo_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
 
-export function createIdentity(s: Pick<Services, 'authMode' | 'localUser' | 'auth' | 'config'>) {
+export function createIdentity(s: Pick<Services, 'auth' | 'config'>) {
   /** A pessoa dona deste pedido; 401 se não entrou. */
   async function userOf(c: Context): Promise<PublicUser> {
-    if (s.authMode === 'local') return s.localUser;
     const user = await s.auth.userFromToken(sessionTokenOf(c));
     if (!user) throw httpError(401, 'Entre com a sua conta.');
     if (user.mustChangePassword) throw httpError(403, 'Troque a senha temporária antes de continuar.');
     return user;
   }
   async function passwordUserOf(c: Context): Promise<PublicUser> {
-    if (s.authMode === 'local') return s.localUser;
     const user = await s.auth.userFromToken(sessionTokenOf(c));
     if (!user) throw httpError(401, 'Entre com a sua conta.');
     return user;
@@ -40,10 +38,10 @@ export function createIdentity(s: Pick<Services, 'authMode' | 'localUser' | 'aut
     if (user.role !== 'OWNER' && user.role !== 'ADMIN') throw httpError(403, 'Só administradores fazem isto.');
     return user;
   }
-  /** Política de entrada de agentes sem token: configurável; padrão aberta no modo local e fechada com contas. */
+  /** Política gravada na configuração. Sem token o canal não abre; o padrão é fechado. */
   const agentPolicy = (): AgentPolicy => {
     const p = s.config.get().mcp?.agentPolicy;
-    return p === 'open' || p === 'approval' || p === 'closed' ? p : s.authMode === 'local' ? 'open' : 'closed';
+    return p === 'open' || p === 'approval' || p === 'closed' ? p : 'closed';
   };
   return { userOf, passwordUserOf, ownerOf, adminOf, agentPolicy };
 }

@@ -11,8 +11,8 @@ import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.
 
 async function setup(extra: { agentProjectAccess?: (agentId: string, projectId: string) => Promise<boolean>; inspectLayout?: import('../packages/core/src/layout-inspection.ts').InspectLayout; fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
-  const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
+  const owner = await db.user.create({ data: { username: 'dono', email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
+  const other = await db.user.create({ data: { username: 'outro', email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
   const operations = createOperations(db);
   let workspace: ReturnType<typeof createWorkspace>;
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), onWrite: (e) => { void workspace.externalWrite(e); } });
@@ -120,7 +120,7 @@ test('membro VIEWER lê o projeto de outra pessoa mas não altera; EDITOR altera
   await t.workspace.call('open_project', { file: 'compartilhado.json' }, { sid: 'v', actor: visitante });
   assert.equal((await t.workspace.call('create_layer', { type: 'rect', props: { name: 'Do editor' } }, { sid: 'v', actor: visitante })).error, undefined);
   // quem não é dono nem membro não enxerga
-  const estranho = await t.db.user.create({ data: { email: 'e@x.com', name: 'Estranho', passwordHash: '!' } });
+  const estranho = await t.db.user.create({ data: { username: 'e', email: 'e@x.com', name: 'Estranho', passwordHash: '!' } });
   const intruso = await t.agentOf('Intruso', estranho);
   assert.match((await t.workspace.call('open_project', { file: 'compartilhado.json' }, { sid: 'i', actor: intruso })).error, /não encontrado/i);
   await t.close();
@@ -223,7 +223,7 @@ test('who_is_here devolve o retrato da presença injetada', async () => {
 
 test('get_image usa o renderizador injetado e devolve a imagem para o MCP', async () => {
   const { db, close } = await createDb({ pglite: {} });
-  const owner = await db.user.create({ data: { email: 'r@x.com', name: 'R', passwordHash: '!', role: 'OWNER' } });
+  const owner = await db.user.create({ data: { username: 'r', email: 'r@x.com', name: 'R', passwordHash: '!', role: 'OWNER' } });
   const ag = await db.agent.create({ data: { name: 'A', ownerId: owner.id, tokenHash: 'h-r', scopes: ['read', 'write'], status: 'ACTIVE' } });
   const actor: Actor = { type: 'AGENT', userId: owner.id, agentId: ag.id, name: 'A', scopes: ag.scopes };
   let workspace: ReturnType<typeof createWorkspace>;

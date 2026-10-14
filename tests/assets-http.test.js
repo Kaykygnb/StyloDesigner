@@ -1,4 +1,5 @@
 import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { setupSession } from './helpers/session.mjs';
 import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Imagens por HTTP: o editor grava o projeto com data URLs; o servidor guarda as imagens fora do JSON, devolve data URLs
 // ao ler e serve cada imagem por endereço (sha256).
@@ -21,16 +22,22 @@ test('projeto com imagem: ler devolve data URL e a imagem sai por /assets/<sha25
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }), stdio: 'ignore',
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts' }), stdio: 'ignore',
   });
   fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
-    try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
+    try { up = (await globalThis.fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
+  const { cookie } = await setupSession(base);
+  const fetch = (input, init = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (!headers.has('cookie')) headers.set('cookie', cookie);
+    return globalThis.fetch(input, { ...init, headers });
+  };
   const qr = await fetch(`${base}/api/network/qr?value=${encodeURIComponent(base + '/studio/')}`);
   assert.equal(qr.status, 200);
   assert.match(qr.headers.get('content-type') || '', /image\/svg\+xml/);

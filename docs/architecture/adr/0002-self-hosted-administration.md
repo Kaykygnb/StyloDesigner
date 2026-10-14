@@ -64,6 +64,8 @@ Autoria: **proprietário humano do projeto**, instrução “Registro de decisõ
 
 A implementação atual **ainda não atende** integralmente a esse modelo. OWNER principal não é hoje distinguido dos demais OWNERs; contas com senha já existem, mas STYLO_AUTH=local mantém bypass e identidade técnica. Registro não faz migração, não escolhe flags/tabelas, não converte e-mail empresarial em credencial coletiva e não promete SMTP/recuperação já presentes. Plano técnico detalhado em [identidade, onboarding e recuperação](../instance-administration/IDENTITY-ONBOARDING-RECOVERY.md).
 
+Nota posterior, sem apagar o parágrafo: a DOC-SERVER-006 passou a distinguir o OWNER principal, e a DOC-SERVER-011 retirou o bypass `STYLO_AUTH=local`. SMTP, códigos offline e e-mail empresarial como credencial coletiva continuam fora.
+
 ## Deliberações anteriores reconciliadas
 
 | ID | Deliberação | Recomendação inicial / implicação |
@@ -97,7 +99,7 @@ O proprietário delegou a forma do login aos engenheiros. Detalhe técnico, não
 - O login aceita usuário ou e-mail. A comparação não distingue maiúsculas. Texto com `@` procura e-mail; o resto procura usuário. O nome de usuário não contém `@`.
 - Contas que já existem recebem um nome de usuário na migração e não perdem o e-mail. A geração usa a parte local do e-mail, em minúsculas, só letras e dígitos. Se não sobrar nada, o valor é `user`. Colisão recebe sufixo `-2`, `-3`, e assim por diante. O nome de exibição não muda.
 
-Implementação, migração e testes: DOC-SERVER-011. Isso bloqueia a alpha, porque o fluxo de conta obrigatória depende desse login. Ainda não está no código.
+Implementação, migração e testes: DOC-SERVER-011. O conflito com `31f16bf`, no parágrafo acima, fica como registro. A DOC-SERVER-011 colocou este login no código e retirou `STYLO_AUTH=local`. Se a instalação só tinha o usuário técnico `local@stylo.local` com senha inutilizável, o primeiro setup assume esse mesmo id e não apaga projetos. A alpha continua na DOC-ENG-006.
 
 ### 2.2 Uso individual e empresarial
 

@@ -37,12 +37,12 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
   assert.equal((await call('GET', '/api/projects')).status, 401, 'sem login não lista projetos');
 
   // conta mestre
-  const setup = await call('POST', '/api/auth/setup', { email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
+  const setup = await call('POST', '/api/auth/setup', { username: 'dono', email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
   assert.equal(setup.status, 201);
   assert.match(setup.headers.get('set-cookie'), /HttpOnly; SameSite=Strict/);
   const { token: session } = await setup.json();
-  assert.equal((await call('POST', '/api/auth/setup', { email: 'b@x.com', name: 'B', password: '12345678' })).status, 409);
-  assert.equal((await call('POST', '/api/auth/login', { email: 'dono@x.com', password: 'errada' })).status, 401);
+  assert.equal((await call('POST', '/api/auth/setup', { username: 'b', email: 'b@x.com', name: 'B', password: '12345678' })).status, 409);
+  assert.equal((await call('POST', '/api/auth/login', { username: 'dono', email: 'dono@x.com', password: 'errada' })).status, 401);
   assert.equal((await (await call('GET', '/api/me', null, session)).json()).role, 'OWNER');
 
   // cadastro de agente: só a conta mestre; o token aparece uma vez
@@ -76,8 +76,8 @@ test('modo contas: setup, login, token de agente no MCP, log de atividade, revog
   assert.ok(activity.some((a) => a.tool === 'create_layer' && a.who === 'Claude Code'));
 
   // outra pessoa não enxerga o projeto
-  await call('POST', '/api/users', { email: 'amigo@x.com', name: 'Amigo', password: 'senha-do-amigo' }, session);
-  const friend = await (await call('POST', '/api/auth/login', { email: 'amigo@x.com', password: 'senha-do-amigo' })).json();
+  await call('POST', '/api/users', { username: 'amigo', email: 'amigo@x.com', name: 'Amigo', password: 'senha-do-amigo' }, session);
+  const friend = await (await call('POST', '/api/auth/login', { username: 'amigo', email: 'amigo@x.com', password: 'senha-do-amigo' })).json();
   await call('POST', '/api/me/password', { current: 'senha-do-amigo', next: 'senha-amigo-nova' }, friend.token);
   assert.deepEqual(await (await call('GET', '/api/projects', null, friend.token)).json(), []);
   assert.equal((await call('GET', '/api/projects/do-agente.json', null, friend.token)).status, 404);

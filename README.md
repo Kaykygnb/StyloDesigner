@@ -13,7 +13,7 @@ npm install
 npm start
 ```
 
-Abra `http://localhost:5173/studio/`. Para desenvolvimento sem autenticação: `STYLO_AUTH=local npm start`.
+Abra `http://localhost:5173/studio/`. A primeira visita pede uma conta: nome de usuário e senha. O e-mail é opcional. Não há modo sem conta.
 
 ## Verificar
 

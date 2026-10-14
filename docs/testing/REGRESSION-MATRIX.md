@@ -8,7 +8,7 @@
 | Studio | editar/exportar | `apps/studio`, `studio-calls.ts` | `studio-ui`, `studio-api`, `studio-parity` | divergência UI/MCP | DOC-STUDIO-001 |
 | Exportação | HTML/React/ZIP | `site-export.ts`, `export-react.ts` | `export*`, `site-export` | saída inválida | DOC-CORE-002 |
 | Assets | biblioteca/providers | `library.ts`, `blobs.ts`, plugins | `biblioteca*`, `assets*` | rede/licença | DOC-PLUGIN-001 |
-| Auth | login/agent scopes | `auth.ts`, `identity.ts`, `agents.ts` | `conta*`, `api-seguranca` | acesso indevido | DOC-SERVER-001 |
+| Auth | login por usuário ou e-mail; sem modo sem conta | `auth.ts`, `identity.ts`, `agents.ts`, migração `0016` | `username-login`, `principal-autoridade`, `conta*`, `api-seguranca` | login sem conta, usuário duplicado, perda de e-mail na migração | DOC-SERVER-011 |
 | Engenharia | CI da beta/PR | `.github/workflows/ci.yml` | `typecheck`, suíte completa, `build`, `validate-tasks` | regressão de tipos/build não detectada | DOC-ENG-001 |
 | Backups locais | snapshot/lista/restore pendente | `services/backups.ts` | `backups.test.ts` (arquivos; CHECKPOINT simulado) | data/ordem incorreta, restauração de arquivos | DOC-SERVER-002 |
 | Entrada humana | login/senha temporária/logout/menus | `lib/app.ts`, `Login.tsx`, `Home.tsx` | `studio-login-fluxo.mjs`, suíte completa | chamadas antes da troca, contexto anterior, confusão de papéis, overflow mobile | DOC-STUDIO-002 |

@@ -3,14 +3,14 @@
 Responsável: [Não atribuído]
 Estado: Proposta
 Início: —
-Última atualização: 2026-10-14 08:45 UTC
+Última atualização: 2026-10-14 10:10 UTC
 Progresso: 0/5 marcos (0%)
 Participantes: —
 
 ## Problema e evidências
 
 - Problema: o proprietário quer uma alpha pública em breve, pequena, para atrair quem instala e usa. O produto já edita, exporta e fala com agentes. Publicar antes dos bloqueios abaixo expõe canal sem identidade ou um README que ensina o modo sem conta.
-- Evidências observadas: `README.md` ainda indica `STYLO_AUTH=local` como caminho sem autenticação. `GET /api/agent/events`, `/api/health`, `/api/presence` e `/api/agent/config` não pedem identidade (`events.ts`, `system.ts`). PRs #17 e #18 abertas em 2026-10-14. Escopo em [EVOLUTION.md](../../../product/EVOLUTION.md) e [ROADMAP.md](../../ROADMAP.md).
+- Evidências observadas em 2026-10-14 08:45 UTC: README ensinava `STYLO_AUTH=local`; eventos, health e presença respondiam sem identidade; PRs #17 e #18 estavam abertas. Atualização na DOC-SERVER-011: o README não ensina mais o modo sem conta; eventos, health e presença pedem sessão. `GET /api/agent/config` ainda responde sem sessão (endereço do MCP, se há chave do Pexels, política). O demo da alpha e as limitações conhecidas ainda não estão no README.
 
 ## Objetivo
 
@@ -30,9 +30,9 @@ Uma pessoa com Node 22 segue o README, sobe o servidor na primeira tentativa, cr
 
 ## Dependências, riscos e bloqueios
 
-- Dependências: merge da PR #17 e da PR #18 na `v0.1.0-beta`. DOC-SERVER-011 (login por nome de usuário) bloqueia esta alpha, porque o fluxo de conta obrigatória depende dela. DOC-SERVER-007 é quem investiga o canal; coordenar para não duplicar.
-- Riscos: anunciar alpha em rede aberta com SSE anônimo; documentar `STYLO_AUTH=local` como o caminho feliz.
-- Bloqueios: não assumir enquanto #17 e #18 não estiverem na beta e DOC-SERVER-011 não estiver concluída.
+- Dependências: DOC-SERVER-011 em validação (login por usuário). O demo e as limitações do README são o trabalho desta tarefa. DOC-SERVER-007 já exige sessão em eventos, health e presença.
+- Riscos: tratar `GET /api/agent/config` sem sessão como superfície pública além do mínimo da ADM-DEC-09; publicar a alpha antes do README.
+- Bloqueios: não marcar esta tarefa concluída enquanto o README não tiver o demo e as limitações, e enquanto a DOC-SERVER-011 não estiver aceita.
 
 ## Critérios de aceitação
 
@@ -95,6 +95,15 @@ Uma pessoa com Node 22 segue o README, sobe o servidor na primeira tentativa, cr
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 10:10 UTC — [Grok 4.7] — bloqueio do login atendido em outra tarefa
+
+- Investigado: a DOC-SERVER-011 implementou o login por usuário e retirou `STYLO_AUTH=local`. Eventos, health e presença já pedem sessão. `GET /api/agent/config` continua sem sessão.
+- Alterado: evidências e dependências. Nenhum roteiro de alpha.
+- Arquivos: este documento.
+- Testes: não executados para esta tarefa.
+- Resultado: continua Proposta. O demo e as limitações conhecidas ainda faltam.
+- Próximo passo: assumir só depois da aceitação da DOC-SERVER-011 e escrever o README da alpha.
 
 ### 2026-10-14 08:40 UTC — [Grok 4.7] — bloqueio da alpha
 
