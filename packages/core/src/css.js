@@ -259,7 +259,8 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
     if (t || r || b || l) s.padding = `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
   }
   // Conteúdo que sai da caixa: cortar (overflow:hidden, que também faz os filhos respeitarem o border-radius), mostrar ou rolar.
-  if (node.type === 'frame' || node.type === 'html') overflowCss(node, s, opts);
+  // (preserve-3d não convive com corte/rolagem: `overflow` diferente de visible achata a cena 3D, então é ignorado)
+  if ((node.type === 'frame' || node.type === 'html') && !node.preserve3d) overflowCss(node, s, opts);
 
   // Linhas têm um desenho próprio (barra com gradiente) e não usam fill/radius/outline: retorna cedo.
   if (node.type === 'line') {
@@ -377,6 +378,9 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
   if (node.sticky != null && s.position === 'relative' && !opts.editor) { s.position = 'sticky'; s.top = px(node.sticky); s['z-index'] = s['z-index'] || '1'; }
   const tf = transformOf(node);
   if (tf) s.transform = tf;
+  // cena 3D: o contêiner define de onde se olha (perspective) e se os filhos mantêm a profundidade (preserve-3d)
+  if (node.perspective > 0) s.perspective = px(node.perspective);
+  if (node.preserve3d) s['transform-style'] = 'preserve-3d';
   // ordem visual do item dentro de flex/grid (order) e se ele pode encolher (flex-shrink)
   if (flow && Number.isFinite(node.order) && node.order !== 0) s.order = String(Math.round(node.order));
   if (flow && node.shrink && s.flex === '0 0 auto') s.flex = '0 1 auto';
@@ -515,6 +519,10 @@ export function parseCustomCss(text) {
 
 export function transformOf(node) {
   const parts = [];
+  // 3D: profundidade e giros em X/Y vêm primeiro; o `perspective` vem do pai (ver depth3dCss)
+  if (node.depth) parts.push(`translateZ(${round(node.depth, 1)}px)`);
+  if (node.rotateX) parts.push(`rotateX(${round(node.rotateX, 2)}deg)`);
+  if (node.rotateY) parts.push(`rotateY(${round(node.rotateY, 2)}deg)`);
   if (node.rotation) parts.push(`rotate(${round(node.rotation, 2)}deg)`);
   if (node.skewX || node.skewY) parts.push(`skew(${round(node.skewX || 0, 2)}deg, ${round(node.skewY || 0, 2)}deg)`);
   if (node.flipX || node.flipY) parts.push(`scale(${node.flipX ? -1 : 1}, ${node.flipY ? -1 : 1})`);
@@ -994,6 +1002,12 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
     // a NOTA da camada vira comentário no HTML e no CSS (a menos que a pessoa tenha desligado)
     const note = noteComment(node);
     rules.push((note ? `/* ${note} */\n` : '') + cssRule(`.${cls}`, base));
+    // PARALLAX: movimento ligado à rolagem, só com CSS (animation-timeline). Navegador sem suporte, ou pessoa que pediu
+    // menos movimento, vê a camada parada. `translate` (propriedade própria) não briga com o `transform` da camada.
+    if (node.parallax && Number.isFinite(node.parallax)) {
+      const amp = round(Math.max(-1, Math.min(1, node.parallax)) * 200, 1);
+      rules.push(`@media (prefers-reduced-motion: no-preference) {\n  @supports (animation-timeline: view()) {\n    @keyframes parallax-${cls} {\n      from { translate: 0 ${px(-amp)}; }\n      to { translate: 0 ${px(amp)}; }\n    }\n    .${cls} {\n      animation: parallax-${cls} linear both;\n      animation-timeline: view();\n      animation-range: cover;\n    }\n  }\n}`);
+    }
     if (anyBps) {
       let prev = base, prevHidden = false;
       for (const bp of BREAKPOINTS) {

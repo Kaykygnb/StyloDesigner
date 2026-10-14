@@ -7,7 +7,7 @@ import { uid, FORMAT_VERSION } from './model.js';
 /** Imagens aceitas no documento: só dados embutidos. Endereços externos (rastreamento) e esquemas como javascript: não. */
 const DATA_IMAGE = /^data:image\/(png|jpe?g|gif|webp|avif|bmp|svg\+xml)[;,]/i;
 /** Campos numéricos da camada; o que não for número finito é convertido (texto numérico) ou removido (volta ao padrão). */
-const NUMERIC = ['x', 'y', 'w', 'h', 'rotation', 'opacity', 'blur', 'bgBlur', 'colSpan', 'rowSpan', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'grow', 'wordSpacing', 'fontSize', 'lineHeight', 'letterSpacing', 'lines'];
+const NUMERIC = ['x', 'y', 'w', 'h', 'rotation', 'opacity', 'blur', 'bgBlur', 'colSpan', 'rowSpan', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'grow', 'wordSpacing', 'fontSize', 'lineHeight', 'letterSpacing', 'lines', 'rotateX', 'rotateY', 'depth', 'perspective', 'parallax'];
 /** Campos que guardam uma palavra-chave (blend, cursor...): só identificador simples; o resto volta ao padrão. */
 const KEYWORDS = ['blend', 'cursor', 'alignSelf', 'justifySelf', 'sizeX', 'sizeY', 'overflow', 'truncate'];
 /** Geometria e opacidade sempre existem numa camada: o valor inválido vira o padrão do createNode, não some. */

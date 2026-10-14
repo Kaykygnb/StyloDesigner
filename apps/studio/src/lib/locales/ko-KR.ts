@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': '가로로 기울이기',
   'ui.position.skewV': '세로로 기울이기',
+  'inspector.position.threeD': '3D와 깊이',
+  'inspector.position.threeDTip': 'CSS 3D 회전과 깊이입니다. 깊이가 보이려면 컨테이너(프레임)에 원근(perspective)이 필요합니다.',
+  'ui.position.rotateXTip': 'X축 회전(앞/뒤)',
+  'ui.position.rotateYTip': 'Y축 회전(좌/우)',
+  'ui.position.depthTip': '깊이(translateZ): 양수는 가까이, 음수는 멀리',
+  'ui.position.parallaxTip': '스크롤 시차: -1~1 (0 = 정지, 양수 = 느리게, 음수 = 빠르게)',
+  'ui.position.perspectiveTip': '컨테이너 원근(px, 100~5000, 0 = 없음)',
+  'ui.position.preserve3dTip': '자식의 깊이 유지(preserve-3d). 채우기 없이 사용하세요: 이 프레임의 배경이 뒤로 돌아가는 부분을 가립니다(색은 부모 프레임에). 콘텐츠 자르기도 꺼집니다.',
   // ui.login
   'ui.login.aboutAria': 'Stylo 소개',
   // ui.color

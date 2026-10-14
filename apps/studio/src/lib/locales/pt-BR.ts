@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': 'inclinar na horizontal',
   'ui.position.skewV': 'inclinar na vertical',
+  'inspector.position.threeD': '3D e profundidade',
+  'inspector.position.threeDTip': 'Giros e profundidade em CSS 3D. Para a profundidade aparecer, o contêiner (frame) precisa de perspectiva.',
+  'ui.position.rotateXTip': 'girar no eixo X (para frente/trás)',
+  'ui.position.rotateYTip': 'girar no eixo Y (para os lados)',
+  'ui.position.depthTip': 'profundidade (translateZ): positivo aproxima, negativo afasta',
+  'ui.position.parallaxTip': 'parallax na rolagem: -1 a 1 (0 = parado; positivo = mais lento, negativo = mais rápido)',
+  'ui.position.perspectiveTip': 'perspectiva do contêiner em px (100–5000; 0 = sem perspectiva)',
+  'ui.position.preserve3dTip': 'mantém a profundidade dos filhos (preserve-3d). Use sem preenchimento: o fundo desse frame esconde o que gira para trás (ponha a cor num frame pai). Também desliga o corte do conteúdo.',
   // ui.login
   'ui.login.aboutAria': 'Sobre o Stylo',
   // ui.color

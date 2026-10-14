@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': '水平倾斜',
   'ui.position.skewV': '垂直倾斜',
+  'inspector.position.threeD': '3D 与景深',
+  'inspector.position.threeDTip': 'CSS 3D 旋转与景深。要显示景深，容器（画框）需要设置透视。',
+  'ui.position.rotateXTip': '绕 X 轴旋转（前后）',
+  'ui.position.rotateYTip': '绕 Y 轴旋转（左右）',
+  'ui.position.depthTip': '景深（translateZ）：正值靠近，负值远离',
+  'ui.position.parallaxTip': '滚动视差：-1 到 1（0 = 不动；正值更慢，负值更快）',
+  'ui.position.perspectiveTip': '容器透视，单位 px（100–5000；0 = 无）',
+  'ui.position.preserve3dTip': '保持子图层的景深（preserve-3d）。请不要给它填充：该画框的背景会遮住转到后面的部分（把颜色放在父画框上）。同时会关闭内容裁剪。',
   // ui.login
   'ui.login.aboutAria': '关于 Stylo',
   // ui.color

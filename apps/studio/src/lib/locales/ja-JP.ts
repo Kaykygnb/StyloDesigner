@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': '水平方向に傾ける',
   'ui.position.skewV': '垂直方向に傾ける',
+  'inspector.position.threeD': '3Dと奥行き',
+  'inspector.position.threeDTip': 'CSS 3Dの回転と奥行き。奥行きを見せるには、コンテナ（フレーム）に遠近（perspective）が必要です。',
+  'ui.position.rotateXTip': 'X軸まわりに回転（前後）',
+  'ui.position.rotateYTip': 'Y軸まわりに回転（左右）',
+  'ui.position.depthTip': '奥行き（translateZ）：正で手前、負で奥',
+  'ui.position.parallaxTip': 'スクロール視差：-1〜1（0＝動かない。正は遅く、負は速く）',
+  'ui.position.perspectiveTip': 'コンテナの遠近（px、100〜5000、0＝なし）',
+  'ui.position.preserve3dTip': '子要素の奥行きを保つ（preserve-3d）。塗りなしで使ってください：このフレームの背景が、奥へ回り込む部分を隠します（色は親フレームに）。コンテンツの切り抜きも無効になります。',
   // ui.login
   'ui.login.aboutAria': 'Styloについて',
   // ui.color

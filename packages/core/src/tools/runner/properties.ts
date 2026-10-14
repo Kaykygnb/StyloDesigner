@@ -9,15 +9,18 @@ const SIMPLE = [
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
   'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted', 'mediaPoster', 'mediaFallback',
+  'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax',
   'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
   'flowStart', 'isMask', 'noteInCode', 'fillRule', 'customCss', 'shape',
   'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
 /** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
-const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart'];
+const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart', 'preserve3d'];
+/** Limites dos campos 3D (fora disso o efeito vira lixo visual ou trava a GPU). */
+const RANGES_3D: Record<string, [number, number]> = { rotateX: [-360, 360], rotateY: [-360, 360], depth: [-2000, 2000], perspective: [100, 5000], parallax: [-1, 1] };
 /** Campos opcionais: `null` apaga (a chave some do projeto, como no editor). */
-const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'shape', 'wordSpacing', 'flowStart', 'mediaPoster', 'mediaFallback'];
-const NUMBERS = ['skewX', 'skewY', 'order'];
+const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'shape', 'wordSpacing', 'flowStart', 'mediaPoster', 'mediaFallback', 'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax'];
+const NUMBERS = ['skewX', 'skewY', 'order', ...Object.keys(RANGES_3D)];
 const STRINGS = ['customCss', 'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap', 'mediaPoster', 'mediaFallback'];
 const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
 const CONSTRAINT_V = ['top', 'bottom', 'topbottom', 'center', 'scale'];
@@ -71,6 +74,8 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
     if (ENUMS[k] && !ENUMS[k].includes(v)) throw new Error(`${k} precisa ser um destes: ${ENUMS[k].join(', ')}.`);
     if (BOOLEANS.includes(k) && typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);
     if (NUMBERS.includes(k) && !Number.isFinite(v)) throw new Error(`${k} precisa ser um número.`);
+    if (RANGES_3D[k] && (v < RANGES_3D[k][0] || v > RANGES_3D[k][1])) throw new Error(`${k} precisa ficar entre ${RANGES_3D[k][0]} e ${RANGES_3D[k][1]}.`);
+    if (['perspective', 'preserve3d'].includes(k) && !['frame', 'group', 'section'].includes(node.type)) throw new Error(`${k} só vale para frame, grupo ou seção (a camada que contém as outras).`);
     if (STRINGS.includes(k) && typeof v !== 'string') throw new Error(`${k} precisa ser um texto (use "" para limpar).`);
     if (k === 'html' && (node.type !== 'html' || v.length > 200000)) throw new Error('html só vale para camadas de código HTML (type "html") e vai até 200.000 caracteres.');
     if (k === 'shape') {

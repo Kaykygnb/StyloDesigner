@@ -98,6 +98,9 @@ export interface LayerNode {
   mediaMuted?: boolean;
   mediaPoster?: string;
   mediaFallback?: string;
+  /** 3D (CSS): giros em X/Y (graus), profundidade (translateZ, px), parallax -1..1 na rolagem; perspective/preserve3d valem no contêiner. */
+  rotateX?: number; rotateY?: number; depth?: number; parallax?: number;
+  perspective?: number; preserve3d?: boolean;
   /** Etiqueta HTML escolhida (div, section, h1...). */
   tag?: string;
   href?: string; alt?: string; note?: string;

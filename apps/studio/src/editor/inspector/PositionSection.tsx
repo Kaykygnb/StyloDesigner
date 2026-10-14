@@ -5,7 +5,7 @@ import { arrange } from '../../lib/editing';
 import { run, useApp } from '../../lib/app';
 import { t } from '../../lib/i18n';
 import { inFlow, parentOf } from '../../lib/doc';
-import { Cap, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fields';
+import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fields';
 import { union } from '../canvas/geometry';
 import type { Ctx } from './ctx';
 
@@ -93,6 +93,22 @@ export function PositionSection({ c }: { c: Ctx }) {
           <Num label="X" value={n.skewX ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title={tr('ui.position.skewH')} onCommit={(v) => void c.set({ skewX: v || null })} />
           <Num label="Y" value={n.skewY ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title={tr('ui.position.skewV')} onCommit={(v) => void c.set({ skewY: v || null })} />
         </Row>
+      </Cap>
+      <Cap label={tr('inspector.position.threeD')} css="transform · perspective" tip={tr('inspector.position.threeDTip')}>
+        <Row>
+          <Num label="X" value={n.rotateX ?? 0} decimals={1} min={-360} max={360} unit="°" disabled={off} title={tr('ui.position.rotateXTip')} onCommit={(v) => void c.set({ rotateX: v || null })} />
+          <Num label="Y" value={n.rotateY ?? 0} decimals={1} min={-360} max={360} unit="°" disabled={off} title={tr('ui.position.rotateYTip')} onCommit={(v) => void c.set({ rotateY: v || null })} />
+        </Row>
+        <Row>
+          <Num label="Z" value={n.depth ?? 0} decimals={0} min={-2000} max={2000} unit="px" disabled={off} title={tr('ui.position.depthTip')} onCommit={(v) => void c.set({ depth: v || null })} />
+          <Num label="⇅" value={n.parallax ?? 0} decimals={2} step={0.1} min={-1} max={1} disabled={off} title={tr('ui.position.parallaxTip')} onCommit={(v) => void c.set({ parallax: v || null })} />
+        </Row>
+        {single && ['frame', 'group', 'section'].includes(n.type) && (
+          <Row>
+            <Num label="◎" value={n.perspective ?? 0} decimals={0} min={0} max={5000} unit="px" nullable disabled={off} title={tr('ui.position.perspectiveTip')} onCommit={(v) => void c.set({ perspective: v && v >= 100 ? v : null })} />
+            <Check label="3D" checked={!!n.preserve3d} disabled={off} title={tr('ui.position.preserve3dTip')} onChange={(v) => void c.set({ preserve3d: v || null })} />
+          </Row>
+        )}
       </Cap>
       {c.baseOnly && (
         <Cap label={tr('inspector.position.stack')} css="z-index">

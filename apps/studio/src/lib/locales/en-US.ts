@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': 'skew horizontally',
   'ui.position.skewV': 'skew vertically',
+  'inspector.position.threeD': '3D and depth',
+  'inspector.position.threeDTip': 'CSS 3D rotation and depth. For depth to show, the container (frame) needs a perspective.',
+  'ui.position.rotateXTip': 'rotate around the X axis (forward/back)',
+  'ui.position.rotateYTip': 'rotate around the Y axis (sideways)',
+  'ui.position.depthTip': 'depth (translateZ): positive moves closer, negative moves away',
+  'ui.position.parallaxTip': 'scroll parallax: -1 to 1 (0 = still; positive = slower, negative = faster)',
+  'ui.position.perspectiveTip': 'container perspective in px (100–5000; 0 = none)',
+  'ui.position.preserve3dTip': 'keep children\'s depth (preserve-3d). Use without a fill: this frame\'s background hides what rotates behind it (put the colour on a parent frame). Also turns off content clipping.',
   // ui.login
   'ui.login.aboutAria': 'About Stylo',
   // ui.color

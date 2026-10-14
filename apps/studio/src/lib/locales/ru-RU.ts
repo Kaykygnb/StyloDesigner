@@ -1750,6 +1750,14 @@ const messages: Record<string, string> = {
   // ui.position
   'ui.position.skewH': 'наклон по горизонтали',
   'ui.position.skewV': 'наклон по вертикали',
+  'inspector.position.threeD': '3D и глубина',
+  'inspector.position.threeDTip': 'Повороты и глубина в CSS 3D. Чтобы глубина была видна, у контейнера (фрейма) должна быть перспектива.',
+  'ui.position.rotateXTip': 'поворот вокруг оси X (вперёд/назад)',
+  'ui.position.rotateYTip': 'поворот вокруг оси Y (в стороны)',
+  'ui.position.depthTip': 'глубина (translateZ): плюс — ближе, минус — дальше',
+  'ui.position.parallaxTip': 'параллакс при прокрутке: от -1 до 1 (0 — неподвижно; плюс — медленнее, минус — быстрее)',
+  'ui.position.perspectiveTip': 'перспектива контейнера в px (100–5000; 0 — нет)',
+  'ui.position.preserve3dTip': 'сохранять глубину дочерних слоёв (preserve-3d). Используйте без заливки: фон этого фрейма скрывает то, что поворачивается назад (задайте цвет родительскому фрейму). Также отключает обрезку содержимого.',
   // ui.login
   'ui.login.aboutAria': 'О Stylo',
   // ui.color

@@ -493,6 +493,7 @@ export const BP_KEYS = [
   'fontSize', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign', 'fontWeight', 'textTransform', 'truncate', 'lines',
   'radius', 'opacity', 'blend', 'clip', 'fill', 'stroke', 'shadows', 'blur', 'bgBlur', 'fx',
   'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'skewX', 'skewY', 'customCss', 'sticky',
+  'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax',
 ];
 /** Breakpoints "até" um (inclusive), na ordem da cascata: ate('mobile') = ['tablet', 'mobile']. */
 export const bpsUpTo = (bp) => {
