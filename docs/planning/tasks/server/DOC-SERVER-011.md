@@ -101,7 +101,7 @@ Destinatário: [Revisor humano]
 Estado: Aguardando revisão
 Marco atual: #5 — Validação final
 Última atualização: 2026-10-14 10:08 UTC
-Commit de referência: ver o commit desta branch após o push
+Commit de referência: 68e03e6
 
 ### Estado atual
 

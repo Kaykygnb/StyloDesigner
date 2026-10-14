@@ -4,7 +4,7 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 ## Entrega desta sessão — 2026-10-14 10:08 UTC — [Grok]
 
-Branch `cursor/login-por-usuario-1d56`. [DOC-SERVER-011](tasks/server/DOC-SERVER-011.md) em validação, 5/5. Login por nome de usuário ou e-mail. E-mail opcional. Migração `0016_nome_de_usuario` gera o usuário e não apaga o e-mail. `STYLO_AUTH=local` não entra mais sem senha. Se a única conta é o usuário técnico sem senha utilizável, o primeiro setup assume o mesmo id. A alpha [DOC-ENG-006](tasks/engineering/DOC-ENG-006.md) continua Proposta: falta o demo e as limitações no README. `GET /api/agent/config` ainda responde sem sessão.
+Branch `cursor/login-por-usuario-1d56`, commit `68e03e6`. [DOC-SERVER-011](tasks/server/DOC-SERVER-011.md) em validação, 5/5. Login por nome de usuário ou e-mail. E-mail opcional. Migração `0016_nome_de_usuario` gera o usuário e não apaga o e-mail. `STYLO_AUTH=local` não entra mais sem senha. Se a única conta é o usuário técnico sem senha utilizável, o primeiro setup assume o mesmo id. A alpha [DOC-ENG-006](tasks/engineering/DOC-ENG-006.md) continua Proposta: falta o demo e as limitações no README. `GET /api/agent/config` ainda responde sem sessão.
 
 ## Referência
 
