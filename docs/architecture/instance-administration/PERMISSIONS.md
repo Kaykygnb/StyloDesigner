@@ -65,7 +65,7 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 | Credencial de integração comum | ADMIN autorizado cadastra ou substitui e não vê o valor depois | ADM-DEC-02 aprovada; ainda não aplicada |
 | Prazo de retenção da auditoria | Configuração sensível do OWNER principal. ADMIN não altera | ADM-DEC-02 e ADM-DEC-09 |
 | Abrir projeto privado por ser admin | Proibido. Não há exceção, nem de emergência auditada. Só os OWNERs, pela regra organizacional | ADM-DEC-07 aprovada; ainda não aplicada |
-| Delegar compartilhamento por agente | Capacidade explícita project.share, concedida por humano autorizado; teto por projeto/role | ADM-DEC-04; migração compatível de write atual |
+| Compartilhar projeto | `project.share` separado de write. Editar não autoriza convidar nem compartilhar. Não é poder global de ADMIN | ADM-DEC-04 aprovada; ainda não aplicada |
 | Alterar próprio grant/scope/autoridade | Agente não aumenta seu teto nem se autoaprova | Decisão de capacidades, nunca confiar em parâmetros fornecidos pelo agente |
 | Suspender delegante/rotacionar/revogar token | Suspensão bloqueia agentes por padrão proposto; sessão vinculada e autoridade revalidada | ADM-DEC-05; tratar operações em voo explicitamente |
 | Restaurar backup e trocar ou rotacionar a chave mestra | Só o OWNER, com autenticação reforçada e auditoria. ADMIN não faz | ADM-DEC-08 aprovada; ainda não aplicada |
@@ -95,3 +95,4 @@ Fonte: ADR 0002, seção da rodada. A tabela “comportamento atual” acima nã
 - Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal. É configuração sensível (ADM-DEC-02). ADMIN não altera.
 - ADM-DEC-02 está aprovada: ADMIN administra usuários comuns, equipes, agentes e configuração operacional no escopo delegado. Pode cadastrar ou substituir credencial de integração comum sem ver o segredo depois. Política crítica, propriedade, recuperação privilegiada e credencial mestra ficam com o OWNER. Ainda não aplicada. Tarefa DOC-SERVER-013.
 - EDITOR e COMMENTER não são papéis da instalação. São permissões de projeto (EDITOR, COMMENTER, VIEWER). A migração que preserva o acesso atual está na ADR 0002, seção 2.4, tarefa DOC-SERVER-012. Ainda não aplicada.
+- ADM-DEC-04 está aprovada: `project.share` é separado de write. Alguém pode editar sem convidar ou compartilhar. O agente ainda entra em `share_project` com `write`. Tarefa DOC-SERVER-015. Ainda não aplicada.

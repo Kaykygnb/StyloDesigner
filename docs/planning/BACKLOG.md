@@ -34,6 +34,7 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-SERVER-012 | Separar papel de projeto do papel da instalação | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.4 | [tarefa](tasks/server/DOC-SERVER-012.md) |
 | DOC-SERVER-013 | Aplicar a administração delegada | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §4; ADM-DEC-00; ADM-DEC-08 | [tarefa](tasks/server/DOC-SERVER-013.md) |
 | DOC-SERVER-014 | Acesso de OWNER a projeto privado | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.3; ADM-DEC-07 | [tarefa](tasks/server/DOC-SERVER-014.md) |
+| DOC-SERVER-015 | Separar compartilhar de editar | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002; ADM-DEC-04 | [tarefa](tasks/server/DOC-SERVER-015.md) |
 | DOC-STUDIO-006 | Planejar onboarding guiado e administração progressiva | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/studio/DOC-STUDIO-006.md) |
 | DOC-SERVER-010 | Projetar recuperação de contas e envio configurável pela GUI | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/server/DOC-SERVER-010.md) |
 | DOC-ENG-005 | Registrar visão, decisões e horizontes do produto | engenharia/docs | P1 | Concluída | [Grok 4.7] | 5/5 (100%) | ADR 0002 | [tarefa](tasks/engineering/DOC-ENG-005.md) |

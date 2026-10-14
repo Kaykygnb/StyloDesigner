@@ -71,14 +71,14 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 | ADM-DEC-01 | Aprovada em 2026-10-14 | Uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito |
 | ADM-DEC-02 | Aprovada em 2026-10-14. Texto na seção 4 da rodada | ADMIN no escopo delegado. Política crítica, propriedade, recuperação privilegiada e credencial mestra ficam com o OWNER. Integração comum: cadastrar ou substituir, sem ver o segredo depois |
 | ADM-DEC-03 | Aprovada em 2026-10-14. Texto na seção seguinte | O principal administra OWNERs secundários. Não amplia, por inferência, a proteção do principal a toda a matriz |
-| ADM-DEC-04 | Essencialidade/delegação aprovada como diretriz HD-ADMIN-03, contrato aberto | project.share separado de write é recomendação, não scope humano escolhido; não retirar compartilhamento dos agentes nem exigir ADMIN global sem prova/validação |
+| ADM-DEC-04 | Aprovada em 2026-10-14. Texto na seção da rodada | `project.share` é permissão separada de write. Dá para editar sem convidar ou compartilhar |
 | ADM-DEC-05 | Aprovada em 2026-10-14. Texto na seção seguinte | O código desta fotografia não cumpre a decisão: DOC-SERVER-007 viu agente válido após o dono suspenso. Não foi reexecutado aqui |
 | ADM-DEC-06 | Provisionamento autorizado e GUI estabelecidos, mecanismos abertos | Primeira conta humana é principal; impedir apropriação por visitante. Token de instalação, trust proxy e recuperação offline são alternativas técnicas, não decisões humanas adicionais |
 | ADM-DEC-07 | Aprovada em 2026-10-14. Texto na seção 2.3 | ADMIN não tem exceção, nem de emergência auditada. Só os OWNERs acessam projeto privado |
 | ADM-DEC-08 | Aprovada em 2026-10-14. Texto na seção seguinte | Restaurar backup e trocar ou rotacionar a chave mestra ficam com o OWNER, com autenticação reforçada e auditoria |
 | ADM-DEC-09 | Aprovada em 2026-10-14. Texto e prazo técnico na seção seguinte | O proprietário aceitou a recomendação inicial e delegou o prazo. O prazo não é decisão humana pendente |
 
-Continua aberta como decisão humana: o contrato de `project.share` (ADM-DEC-04). O compartilhamento em si já é diretriz (HD-ADMIN-03); o scope separado de write não foi escolhido. Mecanismos de bootstrap (ADM-DEC-06) são alternativas técnicas, não decisão humana pendente. Login federado ficou para o futuro (HD-RECOVERY-04) e não é prioridade imediata. Aprovadas e ainda sem implementação integral: administração delegada (ADM-DEC-02), administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05), acesso de OWNER a projeto privado sem exceção de ADMIN (ADM-DEC-07), restore e chave mestra (ADM-DEC-08) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico e, pela ADM-DEC-02, configuração sensível do OWNER. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha que ainda esteja aberta.
+Não resta decisão humana pendente nesta ADR. ADM-DEC-04 está aprovada: `project.share` é separado de write. Mecanismos de bootstrap (ADM-DEC-06) são alternativas técnicas, não decisão humana pendente. Login federado ficou para o futuro (HD-RECOVERY-04) e não é prioridade imediata. O procedimento excepcional de emergência do OWNER principal continua desenho de engenharia, não uma escolha em aberto. Aprovadas e ainda sem implementação integral: administração delegada (ADM-DEC-02), `project.share` separado de write (ADM-DEC-04), administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05), acesso de OWNER a projeto privado sem exceção de ADMIN (ADM-DEC-07), restore e chave mestra (ADM-DEC-08) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico e, pela ADM-DEC-02, configuração sensível do OWNER. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de implementação.
 
 ## Rodada de 2026-10-14 — texto do proprietário
 
@@ -169,6 +169,16 @@ ADMIN não restaura e não troca a chave. Criar ou listar backup não foi reclas
 
 Conflito com `31f16bf`: `POST /api/backups/:id/restore` usa `adminOf`, então ADMIN restaura hoje (`apps/server/src/routes/system.ts`). Não há rota de rotação da chave mestra neste registro. Não está implementado. A aplicação entra na DOC-SERVER-013.
 
+### ADM-DEC-04 — Compartilhar separado de editar
+
+Aprovada pelo proprietário em 2026-10-14:
+
+Compartilhar um projeto (`project.share`) é uma permissão ou scope separado de editar (write). Alguém pode editar sem poder convidar ou compartilhar.
+
+O dono do projeto continua podendo compartilhar. A decisão não entrega esse poder a todo EDITOR, não exige ADMIN global e não apaga a ferramenta de compartilhar. Tirar o acesso (`unshare_project`) fica na mesma permissão de compartilhar.
+
+Conflito com `31f16bf`: para pessoa, o membro EDITOR já edita e não compartilha; só o dono compartilha (`apps/server/src/services/sharing.ts`). Para agente, `share_project` e `unshare_project` pedem o scope `write` (`apps/server/src/workspace/index.ts`). Os scopes do agente são `read`, `comment`, `write` e `export` (`apps/server/src/services/agents.ts`). Não existe `project.share`. A aplicação é a [DOC-SERVER-015](../../planning/tasks/server/DOC-SERVER-015.md). Agente que hoje tem `write` e por isso compartilha recebe o scope novo na migração, para não perder o que já faz. Um `write` novo não inclui compartilhar. Nenhum runtime mudou nesta entrega.
+
 ### ADM-DEC-09 — Auditoria, diagnóstico e canal de eventos
 
 O proprietário aceitou a recomendação inicial dos documentos e acrescentou, em 2026-10-14:
@@ -213,3 +223,4 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — proprietário aprovou ADM-DEC-01: uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Não cria tabela de tenant. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-02, texto da seção 4. O prazo de retenção fica como configuração sensível do OWNER principal. ADMIN não o altera. Tarefa DOC-SERVER-013. Sem mudança de runtime. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-07 e ADM-DEC-08. ADMIN não acessa projeto privado, nem em emergência. Só os OWNERs acessam, pela regra da seção 2.3. Restaurar backup e trocar ou rotacionar a chave mestra ficam com o OWNER, com autenticação reforçada e auditoria. Tarefas DOC-SERVER-014 e DOC-SERVER-013. Sem mudança de runtime. [Grok 4.7].
+- 2026-10-14 — proprietário aprovou ADM-DEC-04: `project.share` é separado de write. Dá para editar sem convidar ou compartilhar. Tarefa DOC-SERVER-015. Sem mudança de runtime. [Grok 4.7].
