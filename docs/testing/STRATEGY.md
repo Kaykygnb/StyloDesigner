@@ -31,3 +31,9 @@ O processo de QA pela interface gráfica está em [docs/qa](../qa/README.md). O 
 ## Contrato do inventário
 
 `npm run docs:inventario -- --check` e `tests/tool-inventory.test.js` impedem drift entre catálogo, ligação de handlers e artefatos. O JSON preserva schemas e referências; [TOOL-INVENTORY.md](TOOL-INVENTORY.md) descreve limites da evidência. Testes de plugins acrescentam casos de metadata, exportação Tailwind e auditoria de página; referências textuais no inventário não equivalem a aprovação de todos os cenários.
+
+## Fixtures MCP e PostgreSQL descartável
+
+`tests/mcp-compatibilidade.test.js` limpa DATABASE_URL e usa PGlite/blobs em memória, segredo aleatório e configuração temporária, independentemente do ambiente herdado. `tests/postgres-integracao.test.js` usa uma URL criada exclusivamente para seu PostgreSQL temporário. Cleanup único fecha clientes MCP, aguarda saída dos servidores, para PostgreSQL e só então remove a pasta; falha de parada ou inicialização ainda em execução preserva a pasta e faz o teste falhar. Regressões em `tests/fixture-lifecycle.test.js`; DOC-ENG-003.
+
+Erros de provisionamento/initialize/start do PostgreSQL agora falham o teste em vez de serem pulados automaticamente. Se o desenvolvedor conscientemente não puder executar esse adapter, `STYLO_SKIP_POSTGRES_TEST=1 npm test` registra um skip explícito; essa execução não comprova PostgreSQL. A CI padrão deve executar o teste sem esse opt-out. Teste de escalada SIGTERM → SIGKILL é específico de POSIX e registra skip em Windows; os demais casos de cleanup não exigem essa simulação.

@@ -8,28 +8,35 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const freePort = () => new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
 
-async function startServer(t) {
+async function startServer(t, inheritedEnv = process.env) {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-mcp-cru-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }, stdio: 'ignore',
+    env: { ...inheritedEnv, DATABASE_URL: '', PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: randomBytes(32).toString('base64') }, stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
+  let startupError;
+  child.once('error', (error) => { startupError = error; });
   const base = `http://127.0.0.1:${port}`;
-  for (let i = 0, up = false; !up; i++) {
-    if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
-    try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
-    if (!up) await new Promise((r) => setTimeout(r, 25));
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    if (startupError) throw startupError;
+    if (child.exitCode !== null || child.signalCode !== null) throw new Error('Servidor de teste encerrou antes de ficar pronto.');
+    try { if ((await fetch(base + '/api/status', { signal: AbortSignal.timeout(1000) })).ok) return base; } catch { /* ainda subindo */ }
+    await new Promise((r) => setTimeout(r, 25));
   }
-  return base;
+  throw new Error('O servidor de teste não subiu em 60 s.');
 }
 
 /** Cliente MCP mínimo, sem SDK: POST JSON-RPC e cabeçalho Mcp-Session-Id após o initialize. */
@@ -146,4 +153,18 @@ test('cliente externo sem SDK: sessões diferentes não misturam o projeto atual
 
   await a.close();
   await b.close();
+});
+
+
+test('fixture MCP ignora DATABASE_URL, blobs e segredo herdados', async (t) => {
+  // URL deliberadamente inválida: nunca aponta para um banco real.
+  const base = await startServer(t, { ...process.env, DATABASE_URL: 'not-a-database-url', STYLO_BLOB_DIR: '/nao-usar-blobs-herdados', STYLO_SECRET_KEY: 'segredo-invalido' });
+  const health = await (await fetch(base + '/api/health')).json();
+  assert.equal(health.database.engine, 'pglite');
+  const client = rawClient(base, 'fixture-isolado');
+  await client.initialize();
+  try {
+    const created = await client.callTool('new_project', { name: 'Isolado' });
+    assert.equal(created.body.result.isError, false);
+  } finally { await client.close(); }
 });

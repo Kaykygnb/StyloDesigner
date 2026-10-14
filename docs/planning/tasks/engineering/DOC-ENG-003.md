@@ -3,8 +3,8 @@
 Responsável: [Codex]
 Estado: Em andamento
 Início: 2026-10-14 01:43 UTC
-Última atualização: 2026-10-14 01:43 UTC
-Progresso: 0/5 marcos (0%)
+Última atualização: 2026-10-14 01:52 UTC
+Progresso: 3/5 marcos (60%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -48,53 +48,53 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 
 ### #1 — Investigação
 
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Atividades executadas: Confirmar precedência de DATABASE_URL e hooks FIFO; reproduzir PANIC em PG real antes da correção.
+- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
+- Evidências: Log anterior /tmp/stylo-kimi-review-tests.log com PANIC/WAL ausente; teste mínimo confirmou ordem dos hooks.
+- Testes executados: Revisão e reprodução 3/3 anteriores; risco de env constatado estaticamente.
+- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
 
 ### #2 — Planejamento
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Cleanup único com recursos registrados antes de connect/start; clientes → filhos aguardados → PG → diretório; env MCP limpo e falhas não mascaradas.
+- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
+- Evidências: Helper restrito a testes; preservar pasta se parada/startup em execução falhar, sem alterar runtime.
+- Testes executados: Revisão do contrato e critérios.
+- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
 
 ### #3 — Implementação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Helper lifecycle, env descartável, segredo aleatório, prazo real startup, restart aguardado e PG log guard; opt-out explícito do teste PG.
+- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
+- Evidências: tests/helpers/fixture-lifecycle.mjs, dois fixtures e fixture-lifecycle.test.js; inventário regenerado e estratégia/regressões atualizadas.
+- Testes executados: Execução específica final 9/9; typecheck e inventário/check aprovados.
+- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
 
 ### #4 — Testes
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: em andamento
+- Responsável: [Codex]
+- Atividades executadas: Rodar suíte completa, revisar logs de cleanup e validar documentos.
+- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
+- Evidências: Log /tmp/stylo-fixture-full.log em andamento; targeted-final 9/9 sem skips/PANIC.
+- Testes executados: Resultado completo ainda pendente.
+- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
 
 ### #5 — Validação final
 
 - Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Responsável: [Codex]
+- Atividades executadas: Revisar critérios, consultar remoto e publicar fechamento.
+- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
+- Evidências: Publicação em preparação.
+- Testes executados: Pendente.
+- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
 
 ## Histórico de trabalho
 
@@ -116,18 +116,27 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 - Resultado: assumida; plano é cleanup único com clientes → processos confirmados → banco → diretório, sem apagar dados se parada falhar; limpar env no MCP e exigir opt-out explícito de PostgreSQL em vez de skip por qualquer erro.
 - Próximo passo: implementar, reproduzir env hostil em dados descartáveis e validar ausência de PANIC/processos/dados próprios.
 
+### 2026-10-14 01:52 UTC — [Codex] — #1–#3 correção e regressões
+
+- Investigado: encerramento antes da remoção, env herdado inválido e startup parcial; precedência de DATABASE_URL também existe em fixtures legados (seguimento separado).
+- Alterado: cleanup único aguardado, recursos registrados cedo, contexto MCP limpo, reinício sem sleep de encerramento e skip PG somente com opt-out explícito.
+- Arquivos: fixtures MCP/PG, helper, fixture-lifecycle.test.js, inventário, estratégia/regressões e esta tarefa.
+- Testes: targeted final 9/9, sem skips/PANIC; typecheck e geração/check aprovados; suíte completa em andamento.
+- Resultado: antes PG passava com PANIC; agora o hook exige ausência de PANIC/encerramento anormal e ausência do diretório após parada. Falha de parada/startup pendente preserva arquivos e falha visivelmente.
+- Próximo passo: terminar suíte, registrar publicação e concluir conforme aceite.
+
 ## Handoff atual
 
 Preparado por: [Codex]
 Destinatário: [Codex / próximo participante após transferência]
 Estado: Em execução
-Marco atual: #1 — Investigação
-Última atualização: 2026-10-14 01:43 UTC
+Marco atual: #4 — Testes
+Última atualização: 2026-10-14 01:52 UTC
 Commit de referência: `fb324741e8535fb61d80b6f9ba3fd8c3e89c2fdc`
 
 ### Estado atual
 
-Assunção registrada; reprodução anterior confirma cleanup incorreto. Nenhuma transferência de trabalho Kimi.
+Implementação pronta; testes específicos aprovados e suíte completa pendente. Nenhuma transferência de trabalho Kimi.
 
 ### Decisões tomadas
 
@@ -139,15 +148,15 @@ Dois fixtures MCP/PG, helper/regressões de lifecycle, inventário regenerado, e
 
 ### Evidências e testes
 
-Log da revisão em /tmp/stylo-kimi-review-tests.log; novos gates pendentes.
+Log anterior confirma PANIC; log final específico /tmp/stylo-fixture-targeted-final.log: 9/9; typecheck/check aprovados; suíte completa pendente.
 
 ### Pendências
 
-Implementação, testes específicos/completos, documentação e commit.
+Suíte completa, commit e fechamento documental.
 
 ### Próximas ações recomendadas
 
-Implementar e executar casos de env hostil, falha de encerramento/startup e PG real; publicar após gates.
+Conferir suíte e logs; publicar e atualizar evidências. Windows não valida simulação POSIX de SIGTERM ignorado; PG exige opt-out manual caso não possa ser executado.
 
 ### Riscos e cuidados
 

@@ -15,3 +15,4 @@
 | Administração accounts | ambiente E2E e CI obrigatória | `tests/e2e/run.mjs`, `ci.yml` | `studio-admin-fluxo.mjs`, `studio-login-fluxo.mjs` | dados compartilhados, servidor ausente, falha ignorada | DOC-ENG-002 |
 | Workspace humano | conta + sid | `studio-calls.ts`, `routes/studio.ts` | `studio-api` (accounts), `studio-login-fluxo.mjs` | acesso a documento alheio por reutilização de sid | DOC-SERVER-003 |
 | Compartilhamento ativo | downgrade/revogação/grant | `projects.access`, `workspace`, `routes/studio` | `studio-api` (accounts), `workspace` (MCP), `plugins` | papel/grant antigo permitir leitura ou mutação indevida | DOC-SERVER-004 |
+| Fixtures de QA automatizado | env herdado/encerramento/remoção | `tests/helpers/fixture-lifecycle.mjs`, fixtures MCP/PG | `fixture-lifecycle`, `mcp-compatibilidade`, `postgres-integracao` | banco real herdado, PANIC por remoção prematura, erro de startup mascarado | DOC-ENG-003 |

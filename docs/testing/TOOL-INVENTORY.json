@@ -1478,7 +1478,7 @@
       "testReferences": [
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 100
+          "line": 107
         },
         {
           "path": "tests/mcp-sdk.test.js",
@@ -4236,11 +4236,11 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 134
+          "line": 141
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 140
+          "line": 147
         },
         {
           "path": "tests/mcp-contas.test.js",
@@ -4474,7 +4474,7 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 107
+          "line": 114
         },
         {
           "path": "tests/mcp-sdk.test.js",
@@ -5834,7 +5834,7 @@
         },
         {
           "path": "tests/postgres-integracao.test.js",
-          "line": 123
+          "line": 137
         },
         {
           "path": "tests/workspace.test.ts",
@@ -6089,11 +6089,15 @@
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 105
+          "line": 112
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 131
+          "line": 138
+        },
+        {
+          "path": "tests/mcp-compatibilidade.test.js",
+          "line": 167
         },
         {
           "path": "tests/mcp-contas.test.js",
@@ -6357,7 +6361,7 @@
       "testReferences": [
         {
           "path": "tests/mcp-compatibilidade.test.js",
-          "line": 138
+          "line": 145
         },
         {
           "path": "tests/mcp-sdk.test.js",
@@ -6365,7 +6369,7 @@
         },
         {
           "path": "tests/postgres-integracao.test.js",
-          "line": 127
+          "line": 141
         },
         {
           "path": "tests/studio-api.test.js",
@@ -7749,7 +7753,7 @@
       "testReferences": [
         {
           "path": "tests/postgres-integracao.test.js",
-          "line": 128
+          "line": 142
         },
         {
           "path": "tests/studio-api.test.js",

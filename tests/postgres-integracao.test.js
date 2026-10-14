@@ -5,14 +5,16 @@
 // duas sessões → reinício do servidor com o mesmo banco (persistência/reconexão) →
 // falha de conexão (PostgreSQL derrubado: o servidor responde erro limpo e se recupera).
 // Nada toca em dados de produto: tudo em pastas temporárias e banco descartável.
-// Se o binário não puder ser provisionado nesta plataforma (ex. CI sem rede), o teste é pulado com aviso.
+// Falha de provisionamento é falha de teste. Opt-out consciente: STYLO_SKIP_POSTGRES_TEST=1.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, stat } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { cleanupFixture, stopChild, withTimeout } from './helpers/fixture-lifecycle.mjs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const freePort = () => new Promise((resolve) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); }); });
@@ -25,19 +27,25 @@ async function migrationSql() {
 }
 
 /** Sobe o servidor Stylo apontando para o PostgreSQL descartável; devolve helper de chamada HTTP. */
-async function startStylo(t, dbUrl, dir) {
+async function startStylo(fixture, dbUrl) {
+  const dir = fixture.dir;
   const port = await freePort();
   let log = '';
   const child = spawn(process.execPath, ['--import', 'tsx', mainTs], {
-    env: { ...process.env, PORT: String(port), DATABASE_URL: dbUrl, DESIGNER_CONFIG: join(dir, 'config.json'), STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 3).toString('base64') },
+    env: { ...process.env, PORT: String(port), DATABASE_URL: dbUrl, DESIGNER_CONFIG: join(dir, 'config.json'), STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: fixture.secret },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', (d) => { log += d; });
   child.stderr.on('data', (d) => { log += d; });
-  t.after(() => child.kill());
+  fixture.children.push(child);
+  let startupError;
+  child.once('error', (error) => { startupError = error; });
   const base = `http://127.0.0.1:${port}`;
-  for (let i = 0; i < 2400; i++) {
-    try { if ((await fetch(base + '/api/status')).ok) return { base, child }; } catch { /* subindo */ }
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    if (startupError) throw startupError;
+    if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Servidor de teste encerrou antes de ficar pronto: ${log.slice(-3000)}`);
+    try { if ((await fetch(base + '/api/status', { signal: AbortSignal.timeout(1000) })).ok) return { base, child }; } catch { /* subindo */ }
     await new Promise((r) => setTimeout(r, 25));
   }
   throw new Error(`o servidor não subiu em 60 s\n--- log do servidor ---\n${log.slice(-3000)}`);
@@ -57,13 +65,18 @@ const call = async (base, method, path, body, cookie) => {
 const doc = { name: 'Controle', pages: [{ id: 'p1', name: 'Página', children: [] }], assets: {}, styles: { colors: [], texts: [] } };
 
 test('postgresql descartavel: migrações, auth, projeto, agente, sessões, reinício e falha de conexão', async (t) => {
+  if (process.env.STYLO_SKIP_POSTGRES_TEST === '1') {
+    t.skip('Opt-out explícito STYLO_SKIP_POSTGRES_TEST=1; PostgreSQL não validado nesta execução.');
+    return;
+  }
   const dir = await mkdtemp(join(tmpdir(), 'stylo-pg-'));
+  const fixture = { dir, children: [], clients: [], postgres: null, secret: randomBytes(32).toString('base64') };
+  let pgLog = '';
+  // Um único hook garante ordem, inclusive se initialize/start ou o fluxo falharem.
   t.after(async () => {
-    // Windows segura arquivos do PostgreSQL por alguns segundos após o pg_ctl stop: tenta de novo
-    for (let attempt = 1; attempt <= 6; attempt++) {
-      try { await rm(dir, { recursive: true, force: true }); return; } catch { await new Promise((r) => setTimeout(r, 1500)); }
-    }
-    await rm(dir, { recursive: true, force: true }).catch(() => {});
+    await cleanupFixture(fixture);
+    assert.doesNotMatch(pgLog, /PANIC:|abnormal database system shutdown/, 'cleanup deve encerrar o banco antes de apagar WAL/dados');
+    await assert.rejects(stat(dir), { code: 'ENOENT' });
   });
 
   // 1. ambiente descartável
@@ -71,12 +84,13 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   const pgPort = await freePort();
   // persistent: true é obrigatório aqui — o teste derruba e ressobe o PostgreSQL na etapa de falha;
   // persistent: false apaga os dados no stop. A limpeza final é o rm da pasta temporária.
-  const pg = new EmbeddedPostgres({ databaseDir: join(dir, "pg"), port: pgPort, user: "stylo", password: "stylo-test", persistent: true });
-  try { await pg.initialise(); await pg.start(); } catch (err) {
-    t.skip(`PostgreSQL descartável indisponível nesta plataforma: ${err.message}`);
-    return;
-  }
-  t.after(async () => { await pg.stop().catch(() => {}); });
+  const pg = new EmbeddedPostgres({ databaseDir: join(dir, "pg"), port: pgPort, user: "stylo", password: "stylo-test", persistent: true,
+    onLog: (message) => { pgLog += String(message); }, onError: (error) => { pgLog += String(error); } });
+  fixture.postgres = pg;
+  fixture.initializing = true;
+  const initializing = pg.initialise().finally(() => { fixture.initializing = false; });
+  await withTimeout(initializing, 30000, 'initialize PostgreSQL');
+  await withTimeout(pg.start(), 10000, 'start PostgreSQL');
   await pg.createDatabase('stylo_validacao');
 
   // 2. migrações (mesmos arquivos SQL que o caminho PGlite aplica)
@@ -95,7 +109,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   const dbUrl = `postgresql://stylo:stylo-test@127.0.0.1:${pgPort}/stylo_validacao`;
 
   // 3. servidor no PostgreSQL: setup de conta, usuário, projeto e agente
-  const first = await startStylo(t, dbUrl, dir);
+  const first = await startStylo(fixture, dbUrl);
   const owner = await call(first.base, 'POST', '/api/auth/setup', { email: 'owner@stylo.test', name: 'Owner', password: 'senha-owner-segura' });
   assert.equal(owner.status, 201, 'setup no PostgreSQL');
   const ownerCookie = owner.cookie;
@@ -118,8 +132,8 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
   const mcp = new Client({ name: 'validacao-pg', version: '1.0.0' });
+  fixture.clients.push(mcp);
   await mcp.connect(new StreamableHTTPClientTransport(new URL(first.base + '/mcp'), { requestInit: { headers: { authorization: `Bearer ${agent.json.token}` } } }));
-  t.after(() => mcp.close());
   const listed = JSON.parse((await mcp.callTool({ name: 'list_projects', arguments: {} })).content.find((c) => c.type === 'text').text);
   assert.ok(listed.projects.some((p) => p.file === 'controle.json'), 'agente MCP com bearer lista o projeto no PostgreSQL');
 
@@ -128,14 +142,15 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   const shared = await call(first.base, 'POST', '/api/studio/call', { sid: 'aba-do-dono', tool: 'share_project', args: { email: 'editor@stylo.test', role: 'EDITOR' } }, ownerCookie);
   assert.equal(shared.status, 200, 'dono compartilha o projeto (PostgreSQL)');
 
-  // duas sessões no mesmo projeto se veem (PGlite externo, não memória)
+  // duas sessões no mesmo projeto se veem (PostgreSQL externo, não memória)
   const seenByEditor = await call(first.base, 'GET', '/api/projects/controle.json', undefined, editor.cookie);
   assert.equal(seenByEditor.status, 200, 'segunda sessão lê o projeto gravado pela primeira');
 
   // 4. reinício com o MESMO banco: persistência e reconexão
-  first.child.kill();
-  await new Promise((r) => setTimeout(r, 500));
-  const second = await startStylo(t, dbUrl, dir);
+  await mcp.close();
+  fixture.clients.splice(fixture.clients.indexOf(mcp), 1);
+  await stopChild(first.child);
+  const second = await startStylo(fixture, dbUrl);
   const relogin = await call(second.base, 'POST', '/api/auth/login', { email: 'owner@stylo.test', password: 'senha-owner-segura' });
   assert.equal(relogin.status, 200, 'conta sobrevive ao reinício do servidor');
   const survived = await call(second.base, 'GET', '/api/projects/controle.json', undefined, relogin.cookie);
@@ -144,7 +159,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   assert.ok(sessionsKept.json.some((a) => a.name === 'Agente PG'), 'agente sobrevive ao reinício');
 
   // 5. falha de conexão: derrubar o PostgreSQL não derruba o servidor; recupera ao voltar
-  await pg.stop();
+  await withTimeout(pg.stop(), 10000, 'stop PostgreSQL para simular indisponibilidade');
   await new Promise((r) => setTimeout(r, 800));
   const healthDown = await call(second.base, 'GET', '/api/health');
   assert.equal(healthDown.status, 503, 'health acusa o banco fora do ar');
@@ -154,7 +169,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   const stillUp = await call(second.base, 'GET', '/api/status');
   assert.equal(stillUp.status, 200, 'servidor segue de pé durante a queda do banco');
 
-  await pg.start();
+  await withTimeout(pg.start(), 10000, 'restart PostgreSQL');
   await new Promise((r) => setTimeout(r, 1500));
   const healthBack = await call(second.base, 'GET', '/api/health');
   assert.equal(healthBack.status, 200, 'health se recupera quando o PostgreSQL volta');
