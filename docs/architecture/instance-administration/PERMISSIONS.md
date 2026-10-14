@@ -89,3 +89,4 @@ Fonte: ADR 0002, seção da rodada. A tabela “comportamento atual” acima nã
 - Em instalação empresarial, OWNER da organização acessa projeto privado do espaço organizacional. O código atual não faz isso. ADM-DEC-07 (exceção de ADMIN) segue pendente.
 - Suspensão de usuário corta sessões e agentes vinculados e não devolve o token do agente na reativação (ADM-DEC-05).
 - Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal.
+- EDITOR e COMMENTER não são papéis da instalação. São permissões de projeto (EDITOR, COMMENTER, VIEWER). A migração que preserva o acesso atual está na ADR 0002, seção 2.4, tarefa DOC-SERVER-012. Ainda não aplicada.

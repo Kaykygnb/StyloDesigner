@@ -113,9 +113,17 @@ Conflito: hoje o conteúdo privado não abre por ser OWNER ou ADMIN da instalaç
 
 ### 2.4 Hierarquia de autoridade
 
-Papéis: OWNER principal, OWNER secundário, ADMIN, MEMBER, VIEWER. OWNER principal tem autoridade máxima. OWNERs secundários têm acesso organizacional amplo aos projetos empresariais, mas não podem substituir, suspender, remover ou rebaixar unilateralmente o principal. ADMINs têm poderes delegados e não recebem acesso universal implícito a projetos privados. MEMBER e VIEWER só acessam o autorizado. Autorização considera recurso, operação e escopo, não comparação numérica de papéis.
+Papéis da instalação: OWNER principal, OWNER secundário, ADMIN, MEMBER, VIEWER. OWNER principal tem autoridade máxima. OWNERs secundários têm acesso organizacional amplo aos projetos empresariais, mas não podem substituir, suspender, remover ou rebaixar unilateralmente o principal. ADMINs têm poderes delegados e não recebem acesso universal implícito a projetos privados. MEMBER e VIEWER só acessam o autorizado. Autorização considera recurso, operação e escopo, não comparação numérica de papéis.
 
-Conflito: o enum `Role` também tem EDITOR e COMMENTER globais. Não foram removidos. O proprietário precisa dizer se continuam. Papel de projeto (editor, commenter, viewer) é outro contexto e não foi apagado por esta lista.
+Detalhe técnico delegado em 2026-10-14: EDITOR e COMMENTER não são papéis da instalação. São níveis de permissão do projeto, junto com o VIEWER do projeto: EDITOR, COMMENTER, VIEWER. O VIEWER da instalação e o VIEWER do projeto são contextos diferentes. Um não vira o outro sozinho.
+
+O enum global `Role` ainda tem EDITOR e COMMENTER, e o painel oferece esses valores ao criar ou editar conta. Isso é conflito de implementação. A tarefa [DOC-SERVER-012](../../planning/tasks/server/DOC-SERVER-012.md) faz a migração. Não apaga conta, projeto, sessão nem vínculo:
+
+1. Conta com `User.role` EDITOR ou COMMENTER passa a MEMBER da instalação.
+2. Projeto cujo `ownerId` é essa pessoa continua dela. Não se cria membro extra no que ela já é dona.
+3. Linha `ProjectMember` que já existe fica com o papel de projeto que já tem.
+4. Não se cria `ProjectMember` em projeto que a pessoa não acessa hoje. O papel global não abre projeto alheio; o acesso atual é dono ou membro explícito (`apps/server/src/services/projects.ts`). Abrir todos os projetos alargaria o acesso.
+5. Os valores de projeto EDITOR, COMMENTER e VIEWER permanecem. O enum global perde EDITOR e COMMENTER só depois dos dados migrados. Em PostgreSQL, tirar valor de enum exige tipo novo e troca da coluna. A troca não apaga linha de `User`.
 
 ### 2.5 Administração de OWNERs (ADM-DEC-03 e HD-OWNERSHIP-05)
 
@@ -178,5 +186,6 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — preparação DOC-ADMIN-001 em 50a8d00: arquitetura proposta, investigação/review e aprovação beta ADM-DEC-00.
 - 2026-10-14 — proprietário humano estabeleceu HD-IDENTITY-01..04, HD-ONBOARDING-01..03, HD-OWNERSHIP-01..05, HD-ADMIN-01..04 e HD-RECOVERY-01..05. Codex registrou 21 IDs sem substituir autoria; recomendações anteriores foram reconciliadas, não convertidas em aprovação genérica. Engenharia de investigação/testes/restore segue; contratos estruturais dependem de projeto/revisão específica.
 - 2026-10-14 — proprietário aprovou as seções 2.1–2.7, ADM-DEC-05 e ADM-DEC-09. ADM-DEC-02 segue pendente. O prazo da ADM-DEC-09 foi delegado e registrado como detalhe técnico (365 / 30 / 7 dias). [Grok 4.7]. Sem mudança de runtime. Conflitos com o código e com HD-RECOVERY-05 ficam na seção da rodada.
+- 2026-10-14 — detalhe técnico delegado na seção 2.4: EDITOR e COMMENTER saem do papel global e ficam como permissão de projeto. A migração que preserva o acesso está na tarefa DOC-SERVER-012. Sem mudança de runtime. [Grok 4.7].
 - 2026-10-14 — o proprietário delegou a forma do login. Detalhe técnico na seção 2.1: usuário obrigatório e único, e-mail opcional, entrada por um ou por outro, migração gera o usuário sem apagar o e-mail. Tarefa DOC-SERVER-011. Bloqueia a alpha. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-01: uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Não cria tabela de tenant. [Grok 4.7].
