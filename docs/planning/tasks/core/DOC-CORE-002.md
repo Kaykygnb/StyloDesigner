@@ -4,7 +4,7 @@ Responsável: [Muse Spark]
 Estado: Em andamento
 Início: 2026-10-14 01:05 -03:00
 Última atualização: 2026-10-14 01:05 -03:00
-Progresso: 0/5 marcos (0%)
+Progresso: 2/5 marcos (40%)
 Participantes: [Muse Spark]
 
 ## Problema e evidências
@@ -42,21 +42,21 @@ Relacionar cada formato de exportação a operação, código, warnings, limites
 ## Marcos
 
 ### #1 — Investigação
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Muse Spark]
-- Atividades executadas: assunção conforme §2 após 007 ficar bloqueada em decisão humana; leitura de BACKLOG, DOC-CORE-001 (concluída, padrão de inventário + limites), CAPABILITIES; verificação de duplicação (001 = catálogo de ferramentas; esta = matriz por formato de exportação; sem sobreposição).
+- Atividades executadas: assunção conforme §2 após 007 ficar bloqueada em decisão humana; leitura de BACKLOG, DOC-CORE-001 (concluída, padrão de inventário + limites), CAPABILITIES; verificação de duplicação (001 = catálogo de ferramentas; esta = matriz por formato de exportação; sem sobreposição); leitura de `runner/export.ts`, `schema.ts:640-666`, `site-export.ts:167-209`, `export-react.ts:35-94`, `workspace/index.ts:226-237`, `routes/projects.ts:68-106`, `tools/content.ts`.
 - Arquivos alterados: este documento e BACKLOG.md (assunção).
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Evidências: mapa formato→código — `export_html` = `exportHtml`+`boundedUtf8Chunk` (256 KiB padrão, máx 1 MiB); `export_site` = `exportSite`/`exportReact` + metadados, `includeContent` com teto `agentContentLimit`, binários só via zip; `export_zip` = workspace (exige scope `export`, grava antes) + URLs site/react/project; `publish` = snapshot + audit + `READY[_WITH_WARNINGS]`; warnings em `site-export.ts:62-207` (prancheta invisível, largura fixa, protótipo, links), `export-react.ts:85` (JSX fallback), `media-runtime.ts:39` (player ausente); limites `DEFAULT 256 KiB / MAX 1 MiB` (`content.ts:2-8`); sem matriz única existente (só 1 menção em CAPABILITIES).
+- Testes executados: `exportacao + site-export + export-react + export-zip-http` — 32/32 aprovados.
+- Problemas encontrados: conteúdo de imagem nunca vai inline no `export_site` (só metadados + hint); fontes Google via rede e JS de protótipo não executado são limites externos a marcar não verificados.
 ### #2 — Planejamento
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Estado: concluído
+- Responsável: [Muse Spark]
+- Atividades executadas: matriz única em `docs/modules/core/EXPORT-MATRIX.md` (doc do módulo, junto ao código): uma linha por formato (HTML, site estático, React, ZIP, tokens/fontes/assets via publish) com operação, código, entrada/saída, warnings, limites e testes. Sem gerador/drift: superfície pequena (4 ferramentas + 2 endpoints) e referências de teste são candidatas, não certificação (lição da 001). Sem mudar formato (fora do escopo).
+- Arquivos alterados: este documento.
+- Evidências: decisão proporcional registrada; lacunas externas (CDN Google, publicação real, JS de protótipo) marcadas não verificadas na matriz.
+- Testes executados: base 32/32 da #1 continua válida.
+- Problemas encontrados: nenhum bloqueio.
 ### #3 — Implementação
 - Estado: pendente
 - Responsável: [Não atribuído]
@@ -100,6 +100,15 @@ Relacionar cada formato de exportação a operação, código, warnings, limites
 - Testes: ainda não executados.
 - Resultado: tarefa assumida; investigação de código de exportação autorizada (leitura + testes existentes, sem mudar formato).
 - Próximo passo: mapear `export_html/export_site/export_zip`, `site-export.ts`, `export-react.ts`, warnings/limites e testes `exportacao/site-export/export-react/export-zip-http`.
+
+### 2026-10-14 01:05 -03:00 — [Muse Spark] — #1 concluída e #2 planejada
+
+- Investigado: código de exportação (runner, schema, site-export, export-react, workspace, publish, content limits) e ausência de matriz única; testes de exportação 32/32.
+- Alterado: #1 e #2 concluídas; sem runtime.
+- Arquivos: este documento.
+- Testes: `exportacao + site-export + export-react + export-zip-http` 32/32; sem regressão de formato.
+- Resultado: mapa formato→operação/código/warnings/limites/testes pronto; matriz será `docs/modules/core/EXPORT-MATRIX.md`.
+- Próximo passo: #3 criar a matriz; #4 rodar gates pertinentes + validador.
 
 ## Handoff atual
 
