@@ -190,6 +190,8 @@ export function Home() {
         </div>
       </aside>
 
+      {/* fundo vivo e calmo: três manchas de tinta, desfocadas, que se movem bem devagar (paradas com "menos movimento") */}
+      <div className="home-field" aria-hidden="true"><i /><i /><i /></div>
       <main className="home-main" ref={homeMain}>
         {area !== 'projects' ? <Suspense fallback={<div className="center-note"><span className="spinner" /></div>}><WorkspacePanel tab={area} /></Suspense> : <>
         <section className={`home-hero${returning ? ' returning' : ''}`}>

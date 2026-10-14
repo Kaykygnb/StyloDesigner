@@ -62,6 +62,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const [assetUsage, setAssetUsage] = useState<Record<string, { useCount: number; orphan: boolean; projects: Array<{ file: string; name: string }> }>>({});
   const [libraryUsage, setLibraryUsage] = useState<"all" | "used" | "orphan">("all");
   const [libraryKind, setLibraryKind] = useState("all");
+  const [moreFilters, setMoreFilters] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [librarySource, setLibrarySource] = useState("all");
   const [libraryLicense, setLibraryLicense] = useState("all");
   const [libraryCredit, setLibraryCredit] = useState<"all" | "required" | "missing">("all");
@@ -130,8 +132,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const upload = async (file?: File) => {
     if (!file) return;
     try {
-      const a = await api.libraryUpload(file);
-      setAssets((x) => [a, ...x]);
+      const { asset } = await api.libraryUpload(file);
+      setAssets((x) => [asset, ...x.filter((item) => item.id !== asset.id)]);
       toast("ok", tr('library.assetUploaded'));
     } catch (e) {
       toast("error", String(e));
@@ -237,87 +239,73 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         <h1>{tr('account.title')}</h1>
         <p className="muted">{tr('account.subtitle')}</p>
         <div className="account-card">
-          <div className="row">
-            <button className="avatar" type="button" title={tr('account.changeAvatar')} style={{ background: accountColor, overflow: 'hidden', padding: 0 }} onClick={() => avatarInput.current?.click()}>{accountAvatar ? <img src={accountAvatar} alt={tr('account.title')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (accountName || user?.name || "?").slice(0, 1).toUpperCase()}</button>
-            <div>
-              <b>{user?.email || tr('account.noLogin')}</b>
-              {user?.role && (
-                <span className="faint">
-                  {tr(`role.${user.role}`) || user.role}
-                </span>
-              )}
+          <div className="account-identity">
+            <button className="avatar avatar-lg" type="button" title={tr('account.changeAvatar')} aria-label={tr('account.changeAvatar')} style={{ background: accountColor }} onClick={() => avatarInput.current?.click()}>{accountAvatar ? <img src={accountAvatar} alt="" /> : (accountName || user?.name || "?").slice(0, 1).toUpperCase()}<span className="avatar-edit" aria-hidden="true"><Icon name="image" size={12} /></span></button>
+            <div className="account-identity-text">
+              <b>{accountName || user?.name || tr('account.noLogin')}</b>
+              <span className="faint">{user?.email || tr('account.noLogin')}{user?.role ? ` · ${tr(`role.${user.role}`) || user.role}` : ''}</span>
+              <span className="hint">{tr('account.avatarHint')}</span>
             </div>
           </div>
-          <label className="small">
-            {tr('account.email')}
-            <input className="field" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
-          </label>
-          <label className="small">
-            {tr('account.name')}
-            <input
-              className="field"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-            />
-          </label>
-          <label className="small">
-            {tr('account.profileColor')}
-            <input
-              className="field"
-              type="color"
-              value={accountColor}
-              onChange={(e) => setAccountColor(e.target.value)}
-            />
-          </label>
+          <div className="form-grid">
+            <label className="small">
+              {tr('account.name')}
+              <input className="field" value={accountName} onChange={(e) => setAccountName(e.target.value)} />
+            </label>
+            <label className="small">
+              {tr('account.email')}
+              <input className="field" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
+            </label>
+            <label className="small color-field">
+              {tr('account.profileColor')}
+              <span className="color-field-row"><input type="color" value={accountColor} onChange={(e) => setAccountColor(e.target.value)} /><code>{accountColor.toUpperCase()}</code></span>
+            </label>
+          </div>
           <input ref={avatarInput} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 160 * 1024) { toast('error', t(language, 'ui.workspace.avatarTooBig')); return; } const reader = new FileReader(); reader.onload = () => setAccountAvatar(String(reader.result || '')); reader.readAsDataURL(file); }} />
-          <p className="hint">{tr('account.avatarHint')}</p>
-          <button
-            className="btn primary"
-            onClick={() =>
-              void api
-                .updateMe({ name: accountName, email: accountEmail, color: accountColor, avatar: accountAvatar || null })
-                .then((updated) => { app.set({ user: updated }); setAccountEmail(updated.email); toast("ok", tr('account.profileSaved')); })
-                .catch((e) => toast("error", String(e)))
-            }
-          >
-            {tr('account.saveProfile')}
-          </button>
+          <div className="card-actions">
+            <button
+              className="btn primary"
+              onClick={() =>
+                void api
+                  .updateMe({ name: accountName, email: accountEmail, color: accountColor, avatar: accountAvatar || null })
+                  .then((updated) => { app.set({ user: updated }); setAccountEmail(updated.email); toast("ok", tr('account.profileSaved')); })
+                  .catch((e) => toast("error", String(e)))
+              }
+            >
+              {tr('account.saveProfile')}
+            </button>
+          </div>
         </div>
         <div className="account-card">
           <b>{tr('account.changePassword')}</b>
-          <label className="small">
-            {tr('account.currentPassword')}
-            <input
-              className="field"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </label>
-          <label className="small">
-            {tr('account.newPassword')}
-            <input
-              className="field"
-              type="password"
-              value={nextPassword}
-              onChange={(e) => setNextPassword(e.target.value)}
-            />
-          </label>
-          <button
-            className="btn"
-            onClick={() =>
-              void api
-                .changePassword(currentPassword, nextPassword)
-                .then(() => {
-                  setCurrentPassword("");
-                  setNextPassword("");
-                  toast("ok", tr('account.passwordChanged'));
-                })
-                .catch((e) => toast("error", String(e)))
-            }
-          >
-            {tr('account.updatePassword')}
-          </button>
+          <div className="form-grid">
+            <label className="small">
+              {tr('account.currentPassword')}
+              <input className="field" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+            </label>
+            <label className="small">
+              {tr('account.newPassword')}
+              <input className="field" type="password" autoComplete="new-password" value={nextPassword} onChange={(e) => setNextPassword(e.target.value)} />
+            </label>
+          </div>
+          <div className="card-actions">
+            <button
+              className="btn"
+              disabled={!currentPassword || !nextPassword}
+              onClick={() =>
+                void api
+                  .changePassword(currentPassword, nextPassword)
+                  .then(() => {
+                    setCurrentPassword("");
+                    setNextPassword("");
+                    toast("ok", tr('account.passwordChanged'));
+                  })
+                  .catch((e) => toast("error", String(e)))
+              }
+            >
+              {tr('account.updatePassword')}
+            </button>
+          </div>
         </div>
         <div className="account-card">
           <div className="workspace-head">
@@ -374,11 +362,10 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             {tr('agents.new')}
           </button>
         </div>
-        <div className="workspace-metrics" aria-label={t(language, 'ui.workspace.workspaceOverview')}>
+        {agents.length > 0 && <div className="workspace-metrics two" aria-label={t(language, 'ui.workspace.workspaceOverview')}>
           <div><strong>{agents.filter((a) => a.status !== 'REVOKED').length}</strong><span>{t(language, 'ui.workspace.activeConnections')}</span></div>
           <div><strong>{agents.length}</strong><span>{t(language, 'ui.workspace.creativePartners')}</span></div>
-          <div><strong>24/7</strong><span>{t(language, 'ui.workspace.readyWhenYouAre')}</span></div>
-        </div>
+        </div>}
         {newAgentOpen && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setNewAgentOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-label={tr('agents.newTitle')}>
           <h3>{tr('agents.newTitle')}</h3><p className="muted small">{tr('agents.tokenOnce')}</p>
           <label className="small">{tr('agents.name')}<input className="field" autoFocus value={newAgentName} onChange={(e) => setNewAgentName(e.target.value)} placeholder={t(language, 'ui.workspace.agentNamePlaceholder')} /></label>
@@ -520,6 +507,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             <p className="muted">{tr('admin.subtitle')}</p>
           </div>
         </div>
+        <SectionNav label={t(language, 'ui.workspace.jumpTo')} />
         <div className="account-card">
           <b>{tr('admin.health')}</b>
           <p className="faint">Banco: {health?.database.engine ? tr('admin.local') : '—'} · {health?.database.ok ? tr('admin.connected') : tr('admin.unavailable')} · {health?.counts?.projects ?? '—'} {tr('admin.projectsCount')} · {health?.transport.editors ?? '—'} {tr('admin.editorsCount')}</p>
@@ -774,6 +762,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
       && (libraryUsage === "all" || (libraryUsage === "orphan" ? assetUsage[a.id]?.orphan : (assetUsage[a.id]?.useCount ?? 0) > 0))
       && (!tags.length || tags.every((tag) => (a.tags || []).includes(tag)));
   });
+  const advancedActive = [librarySource, libraryLicense, libraryCredit, librarySize, libraryDate, libraryUsage].filter((v) => v !== 'all').length + (libraryTag.trim() ? 1 : 0);
+  const clearFilters = () => { setQ(''); setLibraryKind('all'); setLibrarySource('all'); setLibraryLicense('all'); setLibraryCredit('all'); setLibrarySize('all'); setLibraryDate('all'); setLibraryUsage('all'); setLibraryTag(''); };
   return (
     <section className="workspace-section">
       <div className="workspace-head">
@@ -796,17 +786,24 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           </button>
         </>
       </div>
-      <div className="workspace-metrics" aria-label={t(language, 'ui.workspace.libraryOverview')}>
+      {assets.length > 0 && <div className="workspace-metrics" aria-label={t(language, 'ui.workspace.libraryOverview')}>
         <div><strong>{assets.length}</strong><span>{t(language, 'ui.workspace.assetsCollected')}</span></div>
         <div><strong>{filtered.length}</strong><span>{t(language, 'ui.workspace.visibleNow')}</span></div>
         <div><strong>{duplicateHashes.size}</strong><span>{t(language, 'ui.workspace.duplicatesToReview')}</span></div>
-      </div>
-      <div className="row wrap library-filters">
-        <input className="field" placeholder={tr('library.search')} value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>}
+      {/* o básico sempre à vista (busca e tipo); o resto dos filtros só para quem pede */}
+      <div className="library-filters">
+        <div className="search library-search"><Icon name="search" size={14} /><input className="field" placeholder={tr('library.search')} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <select className="field" aria-label={tr('library.type')} value={libraryKind} onChange={(e) => setLibraryKind(e.target.value)}>
           <option value="all">{tr('library.allTypes')}</option>
           {[...new Set(assets.map((a) => a.kind).filter(Boolean))].sort().map((kind) => <option key={kind} value={kind}>{kind}</option>)}
         </select>
+        <button type="button" className={`btn ghost${moreFilters ? ' active' : ''}`} aria-expanded={moreFilters} onClick={() => setMoreFilters((v) => !v)}>
+          <Icon name="sliders" size={14} /> {t(language, 'ui.workspace.moreFilters')}{advancedActive > 0 && <span className="badge">{advancedActive}</span>}
+        </button>
+        {selectedAssets.length > 0 && <button className="btn ghost sm" onClick={() => void api.libraryRemoveMany(selectedAssets).then(() => { setAssets((items) => items.filter((item) => !selectedAssets.includes(item.id))); setSelectedAssets([]); toast('ok', `${selectedAssets.length} ${tr('library.removeSelected').toLowerCase()}.`); }).catch((e) => toast('error', String(e)))}>{tr('library.removeSelected')} ({selectedAssets.length})</button>}
+      </div>
+      {moreFilters && <div className="library-filters more">
         <select className="field" aria-label={tr('library.source')} value={librarySource} onChange={(e) => setLibrarySource(e.target.value)}>
           <option value="all">{tr('library.allSources')}</option>
           {librarySources.map((source) => <option key={source} value={source}>{source}</option>)}
@@ -824,10 +821,19 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         <select className="field" aria-label={tr('library.date')} value={libraryDate} onChange={(e) => setLibraryDate(e.target.value as typeof libraryDate)}><option value="all">{tr('library.anyDate')}</option><option value="recent">{tr('library.recent')}</option></select>
         <select className="field" aria-label={tr('library.usage')} value={libraryUsage} onChange={(e) => setLibraryUsage(e.target.value as typeof libraryUsage)}><option value="all">{tr('library.anyUsage')}</option><option value="used">{tr('library.used')}</option><option value="orphan">{tr('library.orphan')}</option></select>
         <input className="field" placeholder={tr('library.tags')} value={libraryTag} onChange={(e) => setLibraryTag(e.target.value)} />
-        {selectedAssets.length > 0 && <button className="btn ghost sm" onClick={() => void api.libraryRemoveMany(selectedAssets).then(() => { setAssets((items) => items.filter((item) => !selectedAssets.includes(item.id))); setSelectedAssets([]); toast('ok', `${selectedAssets.length} ${tr('library.removeSelected').toLowerCase()}.`); }).catch((e) => toast('error', String(e)))}>{tr('library.removeSelected')} ({selectedAssets.length})</button>}
-      </div>
+        {advancedActive > 0 && <button type="button" className="btn ghost sm" onClick={clearFilters}>{t(language, 'ui.workspace.clearFilters')}</button>}
+      </div>}
       {loading ? (
         <div className="workspace-loading" aria-live="polite"><span /><span /><span /></div>
+      ) : !assets.length ? (
+        // biblioteca vazia: explica para que serve e aceita arquivos arrastados
+        <button type="button" className={`library-empty${dragging ? ' dragging' : ''}`} onClick={() => input.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); void upload(e.dataTransfer.files?.[0]); }}>
+          <span className="library-empty-art" aria-hidden="true"><i /><i /><i /><Icon name="upload" size={20} /></span>
+          <b>{t(language, 'ui.workspace.libraryEmptyTitle')}</b>
+          <span className="muted">{t(language, 'ui.workspace.libraryEmptyHint')}</span>
+        </button>
       ) : (
         <ul className="resource-list">
           {filtered.map((a) => (
@@ -836,7 +842,9 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
               {editingAsset === a.id ? <div className="grow">
                  <div className="row wrap"><input className="field" aria-label={tr('library.assetName')} value={assetDraft.name} onChange={(e) => setAssetDraft((v) => ({ ...v, name: e.target.value }))} /><input className="field" aria-label={tr('library.assetLicense')} value={assetDraft.license} onChange={(e) => setAssetDraft((v) => ({ ...v, license: e.target.value }))} /><select className="field" aria-label={tr('library.commercial')} value={assetDraft.commercial ? 'yes' : 'no'} onChange={(e) => setAssetDraft((v) => ({ ...v, commercial: e.target.value === 'yes' }))}><option value="yes">{tr('library.commercial')}: {tr('library.yes')}</option><option value="no">{tr('library.commercial')}: {tr('library.no')}</option></select><select className="field" aria-label={tr('library.attribution')} value={assetDraft.attribution} onChange={(e) => setAssetDraft((v) => ({ ...v, attribution: e.target.value as typeof v.attribution }))}><option value="none">{tr('library.noRequiredCredit')}</option><option value="optional">{tr('library.recommendedCredit')}</option><option value="required">{tr('library.requiredAttribution')}</option></select><input className="field" aria-label={tr('library.creditLabel')} placeholder={tr('library.creditOptional')} value={assetDraft.credit} onChange={(e) => setAssetDraft((v) => ({ ...v, credit: e.target.value }))} /><input className="field" aria-label={tr('library.tags')} placeholder={tr('library.tagsHint')} value={assetDraft.tags} onChange={(e) => setAssetDraft((v) => ({ ...v, tags: e.target.value }))} /></div>
                  <div className="row"><button className="btn primary sm" onClick={() => void saveAsset(a)}>{tr('library.save')}</button><button className="btn ghost sm" onClick={() => setEditingAsset(null)}>{tr('library.cancel')}</button></div>
-              </div> : <div>
+              </div> : <>
+              <span className="asset-thumb" aria-hidden="true">{(a.mime || '').startsWith('image/') ? <img src={`/api/library/${encodeURIComponent(a.id)}/file`} alt="" loading="lazy" /> : <Icon name={a.kind === 'font' ? 'fonttype' : 'file'} size={18} />}</span>
+              <div className="grow">
                 <b>{a.name}</b>
                 <span className="faint">
                   {a.mime} · {Math.ceil(a.size / 1024)} KB · {tr('library.origin')}:{" "}
@@ -848,7 +856,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                   {a.credit ? ` · ${tr('library.creditLabel')}: ${a.credit}` : ""}
                 </span>
                 <span className="faint" title={(assetUsage[a.id]?.projects || []).map((project) => project.file).join(', ')}>{tr('library.usageLabel')}: {assetUsage[a.id]?.useCount ?? 0} {tr('library.projectCount')}{assetUsage[a.id]?.orphan ? ` · ${tr('library.orphanLabel')}` : assetUsage[a.id]?.projects?.length ? ` · ${(assetUsage[a.id]?.projects || []).map((project) => project.name).join(', ')}` : ''}{a.hash && duplicateHashes.has(a.hash) ? ` · ${tr('library.duplicate')}` : ''}</span>
-              </div>}
+              </div></>}
               <div className="row">
                 <a className="btn ghost sm" href={`/api/library/${encodeURIComponent(a.id)}/file`} download={a.name}>{tr('library.download')}</a>
                 <label className="btn ghost sm">{tr('library.replace')}<input hidden type="file" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; void api.libraryReplace(a.id, file).then((updated) => { setAssets((items) => items.map((item) => item.id === updated.id ? updated : item)); toast('ok', tr('library.assetReplaced')); }).catch((e) => toast('error', String(e))); e.currentTarget.value = ''; }} /></label>
@@ -857,13 +865,31 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
               </div>
             </li>
           ))}
-          {!filtered.length && (
-            <li className="muted">{tr('library.notFound')}</li>
+          {assets.length > 0 && !filtered.length && (
+            <li className="muted">{tr('library.notFound')} <button type="button" className="btn ghost sm" onClick={clearFilters}>{t(language, 'ui.workspace.clearFilters')}</button></li>
           )}
         </ul>
       )}
     </section>
   );
+}
+
+// Atalhos para as seções de uma página longa (Administração): lê o título de cada cartão e rola até ele.
+function SectionNav({ label }: { label: string }) {
+  const nav = useRef<HTMLElement>(null);
+  const [items, setItems] = useState<Array<{ id: string; title: string }>>([]);
+  useEffect(() => {
+    const section = nav.current?.closest('.workspace-section');
+    if (!section) return;
+    const cards = [...section.querySelectorAll<HTMLElement>(':scope > .account-card')];
+    setItems(cards.flatMap((card, i) => {
+      const title = card.querySelector(':scope > b, :scope > .workspace-head > b')?.textContent?.trim();
+      if (!title) return [];
+      card.id ||= `secao-${i}`;
+      return [{ id: card.id, title }];
+    }));
+  }, []);
+  return <nav ref={nav} className="section-nav" aria-label={label}>{items.map((item) => <button key={item.id} type="button" onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{item.title}</button>)}</nav>;
 }
 
 function McpGuide({ newToken }: { newToken: string | null }) {

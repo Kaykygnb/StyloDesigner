@@ -54,6 +54,7 @@ try {
   await page.getByRole('button', { name: 'Library', exact: true }).click(); // as áreas da barra lateral têm o próprio nome como nome acessível
   await page.getByRole('heading', { name: 'Library' }).waitFor();
   await page.getByPlaceholder('Search name, type, tag, or credit').waitFor();
+  await page.getByRole('button', { name: 'More filters' }).click(); // filtros avançados ficam recolhidos
   assert.ok(await page.getByRole('combobox', { name: 'Filter by license' }).count() === 1);
   console.log('PASS biblioteca traduz filtros, busca e estados para inglês');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();

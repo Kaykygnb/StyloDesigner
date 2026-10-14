@@ -78,7 +78,8 @@ export const revokeSession = (id: string) => request<unknown>(`/api/me/sessions/
 export const revokeAllSessions = () => request<{ count: number }>('/api/me/sessions/revoke-all', json({}));
 export const changePassword = (current: string, next: string) => request<unknown>('/api/me/password', json({ current, next }));
 export const libraryList = (q = '') => request<{ assets: LibraryAsset[]; usage: { bytes: number; count: number } }>('/api/library' + (q ? `?q=${encodeURIComponent(q)}` : ''));
-export const libraryUpload = (file: File) => request<LibraryAsset>('/api/library', { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Name': encodeURIComponent(file.name) }, body: file });
+/** O servidor devolve { asset, existed } (existed = o mesmo conteúdo já estava na biblioteca). */
+export const libraryUpload = (file: File) => request<{ asset: LibraryAsset; existed: boolean }>('/api/library', { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Name': encodeURIComponent(file.name) }, body: file });
 export const libraryRemove = (id: string) => request<unknown>(`/api/library/${encodeURIComponent(id)}`, json({}, 'DELETE'));
 export const libraryRemoveMany = (ids: string[]) => request<{ removed: LibraryAsset[]; count: number }>('/api/library', json({ ids }, 'DELETE'));
 export const libraryUsageDetail = () => request<{ assets: Array<{ assetId: string; useCount: number; projectIds: string[]; projects: Array<{ id: string; file: string; name: string }>; orphan: boolean }> }>('/api/library/usage-detail');
