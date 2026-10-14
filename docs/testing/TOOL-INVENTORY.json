@@ -751,6 +751,18 @@
         {
           "path": "tests/arrange.test.ts",
           "line": 158
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 105
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 210
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -1231,6 +1243,18 @@
         {
           "path": "tests/studio-api.test.js",
           "line": 114
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 113
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 211
         },
         {
           "path": "tests/workspace.test.ts",
@@ -2113,6 +2137,42 @@
         {
           "path": "tests/studio-api.test.js",
           "line": 184
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 89
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 90
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 91
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 180
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 182
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 191
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 193
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 207
         },
         {
           "path": "tests/studio-ui.test.js",
@@ -3515,6 +3575,18 @@
           "line": 155
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 122
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 223
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 224
+        },
+        {
           "path": "tests/workspace.test.ts",
           "line": 52
         },
@@ -3628,6 +3700,10 @@
       ],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 229
+        },
         {
           "path": "tests/tool-inventory.test.js",
           "line": 21
@@ -4076,6 +4152,30 @@
         {
           "path": "tests/studio-api.test.js",
           "line": 200
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 157
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 158
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 202
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 203
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 234
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 235
         },
         {
           "path": "tests/workspace.test.ts",
@@ -4594,8 +4694,25 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 92
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 106
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 114
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 121
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "get_site_metadata",
@@ -6144,6 +6261,22 @@
           "line": 207
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 88
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 178
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 189
+        },
+        {
           "path": "tests/tokens.test.ts",
           "line": 26
         },
@@ -6380,6 +6513,14 @@
           "line": 183
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 186
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 195
+        },
+        {
           "path": "tests/studio-ui.test.js",
           "line": 166
         },
@@ -6587,8 +6728,25 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 103
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 111
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 119
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "rename_page",
@@ -7760,6 +7918,10 @@
           "line": 180
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 184
+        },
+        {
           "path": "tests/workspace.test.ts",
           "line": 195
         },
@@ -8056,8 +8218,29 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 101
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 109
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 117
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 212
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "ungroup_layers",
@@ -8642,6 +8825,18 @@
           "line": 201
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 93
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 208
+        },
+        {
           "path": "tests/tokens.test.ts",
           "line": 89
         },
@@ -8742,6 +8937,18 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 95
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 209
+        },
         {
           "path": "tests/update-layers-locks.test.ts",
           "line": 15

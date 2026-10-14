@@ -14,6 +14,6 @@ Não deve aplicar mutações persistentes diretamente. Ações passam por `apps/
 
 ## Verificação
 
-`tests/studio-ui.test.js`, testes de geometria/API e `npm run build`.
+`tests/studio-ui.test.js`, `tests/studio-parity.test.js` (paridade observável com o caller MCP, sem Chromium), testes de geometria/API e `npm run build`.
 
 `npm run test:e2e` verifica entrada humana e administração em produção, com cookies e contextos separados, além da navegação mobile (DOC-STUDIO-002 e DOC-ENG-002).
