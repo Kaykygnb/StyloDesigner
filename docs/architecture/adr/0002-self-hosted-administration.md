@@ -64,7 +64,7 @@ Autoria: **proprietário humano do projeto**, instrução “Registro de decisõ
 
 A implementação atual **ainda não atende** integralmente a esse modelo. OWNER principal não é hoje distinguido dos demais OWNERs; contas com senha já existem, mas STYLO_AUTH=local mantém bypass e identidade técnica. Registro não faz migração, não escolhe flags/tabelas, não converte e-mail empresarial em credencial coletiva e não promete SMTP/recuperação já presentes. Plano técnico detalhado em [identidade, onboarding e recuperação](../instance-administration/IDENTITY-ONBOARDING-RECOVERY.md).
 
-## Deliberações anteriores reconciliadas e questões ainda abertas
+## Deliberações anteriores reconciliadas
 
 | ID | Deliberação | Recomendação inicial / implicação |
 |---|---|---|
