@@ -3,8 +3,8 @@
 Responsável: [Codex]
 Estado: Em andamento
 Início: 2026-10-14 02:09 UTC
-Última atualização: 2026-10-14 02:09 UTC
-Progresso: 0/5 marcos (0%)
+Última atualização: 2026-10-14 02:11 UTC
+Progresso: 1/5 marcos (20%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -43,13 +43,13 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ### #1 — Investigação
 
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Atividades executadas: auditar subprocessos; comparar setup/preferência de openDb; reproduzir herança com variável sentinela sem abrir banco.
+- Arquivos alterados: esta tarefa/backlog/handoff; código de fixtures ainda intacto.
+- Evidências: DATABASE_URL=sentinela-invalida node --import ./tests/_setup.mjs mantém valor herdado; asserção falhou conforme esperado. 13 fixtures legados de servidor identificados: api-seguranca, api, assets-http, biblioteca-http, config-autorizacao, contas-http, gravacao-atomica, export-zip-http, mcp-contas, mcp-sdk, server, studio-api e studio-ui. A ponte mcp-stdio usa servidor HTTP stub próprio e não abre banco; fixtures MCP cru/PG já pertencem à ENG-003.
+- Testes executados: reprodução segura do setup em subprocesso Node 24; leitura estática dos env/hooks. Nenhuma conexão externa ou implementação nova nesta investigação.
+- Problemas encontrados: cleanup rm registrado antes de child.kill em fixtures legados; server.test.js também não fornece DESIGNER_CONFIG temporário. Corrigir setup global sozinho não cobre execução isolada dos arquivos sem --import setup; revisar ambos os caminhos.
 
 ### #2 — Planejamento
 
@@ -111,18 +111,27 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 - Resultado: DOC-ENG-004 assumida; não reservar simultaneamente demais tarefas livres. Visual continua sob direção/QA humanos.
 - Próximo passo: validar setup com env sentinela, aplicar helper de ambiente/cleanup aos fixtures e preservar PostgreSQL explicitamente provisionado.
 
+### 2026-10-14 02:11 UTC — [Codex] — #1 reprodução e inventário inicial
+
+- Investigado: 13 fixtures de servidor e ponte stdio distinta; env DATABASE_URL e configuração/ordem de cleanup.
+- Alterado: marco #1 concluído, progresso 1/5 e evidência preservada; nenhuma correção funcional/fixture aplicada ainda.
+- Arquivos: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Testes: setup com sentinela inválida falhou na asserção de isolamento, confirmando herança; sem chamar openDb ou conectar banco.
+- Resultado: problema do setup reproduzido com segurança; riscos de configuração padrão e cleanup corroborados por leitura, com lista de alcance.
+- Próximo passo: detalhar helper de env/cleanup, testar execução padrão e isolada, preservar PG com URL própria; só concluir após regressões.
+
 ## Handoff atual
 
 Preparado por: [Codex]
 Destinatário: [Codex / próximo participante após transferência]
 Estado: Em execução
-Marco atual: #1 — Investigação
-Última atualização: 2026-10-14 02:09 UTC
+Marco atual: #2 — Planejamento
+Última atualização: 2026-10-14 02:11 UTC
 Commit de referência: `726583500178eb39fa07e72106f5355d2d1a776f`
 
 ### Estado atual
 
-Auditoria inicial identificou env herdado e cleanup fora de ordem em fixtures legados; implementação e reprodução pendentes.
+Investigação #1 concluída: setup mantém URL sentinela herdada; 13 fixtures legados mapeados, com riscos de cleanup/configuração padrão. Planejamento e implementação pendentes.
 
 ### Decisões tomadas
 
@@ -134,11 +143,11 @@ Fixtures legados, tests/_setup.mjs, helper de lifecycle/ambiente, inventário de
 
 ### Evidências e testes
 
-Leitura dos fixtures e precedência em openDb; gates pendentes.
+Reprodução Node 24 confirmou env herdado sem conectar banco; auditoria estática de 13 fixtures. Gates de implementação pendentes.
 
 ### Pendências
 
-Reprodução sentinela, implementação, suíte e publicação final.
+Planejamento, implementação, reprodução de execução isolada, suíte e publicação final.
 
 ### Próximas ações recomendadas
 

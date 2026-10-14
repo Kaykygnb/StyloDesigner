@@ -18,7 +18,7 @@ Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] conc
 
 ## Em andamento
 
-- [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) — [Codex], assumida para isolamento/cleanup legado antes de outras P1 livres.
+- [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) — [Codex], assumida por risco de dados; #1 concluído (setup com URL sentinela herdada e 13 fixtures mapeados), planejamento/implementação pendentes.
 
 
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
