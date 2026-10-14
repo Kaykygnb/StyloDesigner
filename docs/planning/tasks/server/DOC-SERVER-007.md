@@ -149,7 +149,7 @@ Destinatário: [Revisor humano]
 Estado: Aguardando revisão do PR
 Marco atual: #5 — Validação final
 Última atualização: 2026-10-14 09:02 UTC
-Commit de referência: pendente do commit desta entrega, branch `cursor/canais-persistentes-e5d4`
+Commit de referência: `8f2ca04`, branch `cursor/canais-persistentes-e5d4`
 
 ### Estado atual
 

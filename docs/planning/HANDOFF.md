@@ -5,7 +5,7 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 ## Referência
 
 - Branch de trabalho: `cursor/canais-persistentes-e5d4` (base `v0.1.0-beta`)
-- Commit de referência: pendente do commit desta entrega
+- Commit de referência: `8f2ca04`
 - Última atualização: 2026-10-14 09:02 UTC — [Grok]
 
 ## Entrega desta sessão
