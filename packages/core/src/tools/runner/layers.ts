@@ -6,6 +6,7 @@ import { addComment } from '../../comments.js';
 import type { RunnerContext, ToolHandlers } from './types.ts';
 import { applyProps } from './properties.ts';
 import { summarize } from './presentation.ts';
+import { applyMoves } from './arrange.ts';
 export function createLayersTools(ctx: RunnerContext): ToolHandlers {
   const { store, commands, need, setLayoutMode, colorStyle, effectStyle, gradientStyle, targetList, insertAt, placeBeside } = ctx;
   /** `id` (uma) ou `ids` (várias): as camadas de uma alteração em lote. */
@@ -83,11 +84,22 @@ export function createLayersTools(ctx: RunnerContext): ToolHandlers {
       store.setSelection([inst.id]);
       return { created: summarize(inst, 1) };
     },
-    duplicate_layers({ ids = [] }) {
+    duplicate_layers({ ids = [], moves }) {
       ids.forEach(need);
       store.setSelection(ids);
-      commands.duplicate();
-      return { created: store.ui.selection.map((s) => summarize(store.get(s), 0)) };
+      // o commit do histórico fica para o fim da ferramenta (o do comando separaria duplicar e mover em dois passos)
+      const commit = store.commit;
+      store.commit = () => {};
+      try { commands.duplicate(); } finally { store.commit = commit; }
+      const created = [...store.ui.selection];
+      // `moves` leva as CÓPIAS para outro lugar na mesma chamada (um único Ctrl+Z desfaz duplicar e mover); id = o da ORIGINAL
+      if (moves?.length) {
+        const bad = moves.find((m: { id: string }) => !ids.includes(m.id));
+        if (bad) throw new Error(`moves: “${bad.id}” não está em ids (use o id da camada ORIGINAL).`);
+        if (created.length !== ids.length) throw new Error('Não deu para relacionar as cópias às originais; use move_layers depois.');
+        applyMoves(ctx, moves.map((m: { id: string }) => ({ ...m, id: created[ids.indexOf(m.id)] })));
+      }
+      return { created: created.map((s) => summarize(store.get(s), 0)) };
     },
     add_interaction({ id, action, target_id, url, transition = 'dissolve' }) {
       const n = need(id);

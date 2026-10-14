@@ -116,6 +116,9 @@ test('gestos do canvas: girar, caixa de seleção, mão, Alt+arrastar com camada
   assert.ok(Math.abs(orig.x - origin.x) < 1 && Math.abs(orig.y - origin.y) < 1, `o original ficou no lugar (${orig.x},${orig.y})`);
   const copy = rectsNow.find((n) => !rects.includes(n.id));
   assert.ok(copy && Math.abs(copy.x - origin.x) > 10, `a cópia andou (${copy?.x})`);
+  // duplicar e mover é UM passo: um Ctrl+Z tira a cópia de vez
+  await page.locator('.canvas-viewport').click({ position: { x: 5, y: 5 } }); await page.keyboard.press('Control+z'); await wait(1500);
+  assert.equal((await ofType('rect')).length, n0, 'um Ctrl+Z desfez a duplicação inteira');
 
   // ---- lápis: um traço à mão vira um vetor com curvas
   const p0 = (await ofType('path')).length;

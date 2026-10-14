@@ -712,9 +712,16 @@ ${PROP_HELP}`,
   defineTool({
     name: 'duplicate_layers',
     write: true,
-    description: 'Duplica camadas (com tudo dentro). Em flex/grid, a cópia entra logo depois do original.',
+    description: 'Duplica camadas (com tudo dentro). Em flex/grid, a cópia entra logo depois do original. Com moves, já leva as cópias para outro pai/posição na MESMA chamada (um único desfazer); em moves, id é o da camada ORIGINAL.',
     input: z.object({
       ids: z.array(z.string()),
+      moves: z.array(z.object({
+        id: z.string(),
+        parent_id: z.string().optional(),
+        index: z.number().int().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+      })).optional(),
     }),
   }),
   defineTool({

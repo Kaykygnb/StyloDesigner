@@ -145,20 +145,12 @@ export function createGestures(env: GestureEnv) {
 
   const commitMove = async (cur: Extract<Gesture, { kind: 'move' }>, duplicate: boolean) => {
     const s = S.current;
-    let ids = cur.items.filter((i) => !i.locked).map((i) => i.id);
-    if (duplicate) {
-      const out = await run<{ created?: { id: string }[] }>('duplicate_layers', { ids });
-      const created = out?.created?.map((c) => c.id) ?? [];
-      if (created.length !== ids.length) return;
-      ids = created;
-      select(created);
-    }
-    // `ids` só tem as camadas destravadas: o mapa precisa seguir a mesma lista (senão a cópia e o original se trocam)
-    const byId = new Map(cur.items.filter((i) => !i.locked).map((i, k) => [i.id, ids[k] ?? i.id]));
+    // só as destravadas se movem (e se duplicam); as `moves` usam o id da ORIGINAL, o servidor leva a cópia (duplicate_layers)
+    const ids = cur.items.filter((i) => !i.locked).map((i) => i.id);
     const moves: { id: string; parent_id?: string; index?: number; x?: number; y?: number }[] = [];
     for (const item of cur.items) {
       if (item.locked) continue;
-      const id = byId.get(item.id)!;
+      const id = item.id;
       const node = findNode(s.page.children, item.id);
       if (!node) continue;
       const canReparent = !item.board && !item.section;
@@ -183,6 +175,13 @@ export function createGestures(env: GestureEnv) {
       if (move.parent_id === undefined && move.index === undefined && move.x === undefined) continue;
       if (move.parent_id === undefined && move.index === undefined && Math.abs(cur.dx) + Math.abs(cur.dy) < 0.5) continue;
       moves.push(move);
+    }
+    if (duplicate) {
+      // duplicar e levar as cópias é UMA chamada: um único Ctrl+Z desfaz tudo
+      const out = await run<{ created?: { id: string }[] }>('duplicate_layers', { ids, ...(moves.length ? { moves } : {}) });
+      const created = out?.created?.map((c) => c.id) ?? [];
+      if (created.length) select(created);
+      return;
     }
     if (!moves.length) return;
     // uma só chamada: mudar de pai, de ordem e de posição vale um único desfazer

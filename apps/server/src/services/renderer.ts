@@ -28,8 +28,8 @@ export function createRenderer() {
     browserPromise ??= (async () => {
       try {
         const { chromium } = await import('playwright-core');
-        // STYLO_CHROMIUM_PATH: usar um Chromium que já existe (ex.: o pré-instalado em ambientes de nuvem), sem baixar outro
-        const executablePath = process.env.STYLO_CHROMIUM_PATH || undefined;
+        // STYLO_CHROMIUM_PATH (ou CHROMIUM_PATH): usar um Chromium que já existe (ex.: o pré-instalado em ambientes de nuvem), sem baixar outro
+        const executablePath = process.env.STYLO_CHROMIUM_PATH || process.env.CHROMIUM_PATH || undefined;
         return await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
       } catch (err: any) {
         browserPromise = null;
