@@ -1756,6 +1756,9 @@ const messages: Record<string, string> = {
   'ui.color.palette': '팔레트',
   // ui.fields
   'ui.fields.mixed': '혼합',
+  // ui.device
+  'ui.device.mobile': '휴대폰',
+  'ui.device.tablet': '태블릿',
 };
 
 export default messages;

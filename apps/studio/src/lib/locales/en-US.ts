@@ -1756,6 +1756,9 @@ const messages: Record<string, string> = {
   'ui.color.palette': 'Palette',
   // ui.fields
   'ui.fields.mixed': 'Mixed',
+  // ui.device
+  'ui.device.mobile': 'Phone',
+  'ui.device.tablet': 'Tablet',
 };
 
 export default messages;
