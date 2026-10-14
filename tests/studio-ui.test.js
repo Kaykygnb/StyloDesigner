@@ -19,7 +19,7 @@ const freePort = () => new Promise((resolve) => { const s = createServer(); s.li
 test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar texto e cor, camadas, atalhos, responsivo, conferir, agente ao vivo, aparência e exportação', async (t) => {
   const { chromium } = await import('playwright-core');
   let browser;
-  try { browser = await chromium.launch({ headless: true, ...(process.env.STYLO_CHROMIUM_PATH ? { executablePath: process.env.STYLO_CHROMIUM_PATH } : {}) }); } catch (err) {
+  try { browser = await chromium.launch({ headless: true, ...((process.env.STYLO_CHROMIUM_PATH || process.env.CHROMIUM_PATH) ? { executablePath: process.env.STYLO_CHROMIUM_PATH || process.env.CHROMIUM_PATH } : {}) }); } catch (err) {
     if (/Executable doesn't exist|n[ãa]o est[áa] dispon|Failed to launch/i.test(String(err.message))) { t.skip('Chromium do Playwright não instalado'); return; }
     throw err;
   }

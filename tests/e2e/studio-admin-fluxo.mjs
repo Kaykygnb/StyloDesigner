@@ -12,6 +12,8 @@ const errors = [];
 page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
+// A barra da home guarda Administração, Agentes e Conta no menu "Mais" (um <details>): abre antes de clicar
+const openMore = async () => { if (!(await page.locator('.home-more').evaluate((e) => e.open))) await page.locator('.home-more > summary').click(); };
 try {
   await page.goto(new URL('/studio/', base).href);
   await page.locator('.login-card, main').first().waitFor({ timeout: 30000 });
@@ -32,6 +34,7 @@ try {
     }
   }
   await page.getByRole('main').waitFor();
+  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
   assert.match(await page.locator('.workspace-section').innerText(), /Saúde do servidor|Plugins e provedores/);
@@ -43,19 +46,21 @@ try {
   console.log('PASS administração mostra origem e licença dos provedores de assets');
   await page.getByRole('button', { name: 'Aparência', exact: true }).click();
   await page.locator('.popover select').selectOption('en-US');
-  await page.getByRole('button', { name: 'Administration', exact: true }).click();
+  await openMore();
+  await page.getByRole('button', { name: 'Admin', exact: true }).click(); // o botão é curto em inglês; o título da página é "Administration"
   await page.getByRole('heading', { name: 'Administration' }).waitFor();
   assert.match(await page.locator('.workspace-section').innerText(), /Server health|Active plugins/);
   await page.getByText('Official source').first().waitFor();
   await page.getByText('License text').first().waitFor();
   console.log('PASS administração traduz títulos e ações para inglês');
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Library', exact: true }).click(); // as abas principais têm o nome acessível "Open {{name}}"
   await page.getByRole('heading', { name: 'Library' }).waitFor();
   await page.getByPlaceholder('Search name, type, tag, or credit').waitFor();
   assert.ok(await page.getByRole('combobox', { name: 'Filter by license' }).count() === 1);
   console.log('PASS biblioteca traduz filtros, busca e estados para inglês');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   await page.locator('.popover select').selectOption('pt-BR');
+  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
 
@@ -69,24 +74,26 @@ try {
   console.log('PASS criação de usuário gera senha temporária exibida uma única vez');
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Conexões MCP', exact: true }).click();
-  await page.getByRole('heading', { name: 'Conexões MCP' }).waitFor();
-  await page.getByRole('button', { name: 'Novo agente', exact: true }).click();
-  const agentDialog = page.getByRole('dialog', { name: 'Novo agente MCP' });
+  await openMore();
+  await page.getByRole('button', { name: 'Agentes', exact: true }).click();
+  await page.getByRole('heading', { name: 'Conexões criativas' }).waitFor();
+  await page.getByRole('button', { name: 'Adicionar conexão', exact: true }).click();
+  const agentDialog = page.getByRole('dialog', { name: 'Adicionar parceiro criativo' });
   await agentDialog.getByLabel('Nome').fill(`Agente E2E ${Date.now()}`);
-  await agentDialog.getByRole('button', { name: 'Criar agente', exact: true }).click();
-  await page.getByText('Token criado — copie agora').waitFor();
+  await agentDialog.getByRole('button', { name: 'Adicionar parceiro', exact: true }).click();
+  await page.getByText('Conexão criada — copie agora').waitFor();
   const token = await page.locator('.account-card .codebox code').first().innerText();
   assert.ok(token.length >= 20, 'token MCP deve existir');
   console.log('PASS cadastro de agente MCP gera token real');
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  assert.ok(await page.getByText('Token Bearer', { exact: true }).count() >= 1);
-  assert.ok(await page.getByText(/Endpoint:/).count() >= 1);
+  await page.locator('.connection-details > summary').click(); // a configuração avançada começa recolhida
+  assert.ok(await page.getByText('Token de acesso', { exact: true }).count() >= 1);
+  assert.ok(await page.getByText(/Endereço/).count() >= 1);
   assert.ok(await page.getByText('Testar conexão').count() >= 1);
   await page.getByRole('button', { name: 'Testar conexão', exact: true }).click();
-  await page.getByText('Conexão MCP respondendo.').waitFor();
+  await page.getByText('Conexão respondendo.').waitFor();
   console.log('PASS guia MCP mostra endpoint, Bearer e teste de conexão');
-  const guide = page.locator('.account-card').filter({ hasText: 'Guia de conexão' });
+  const guide = page.locator('.connection-details');
   const clientSelect = guide.getByLabel('Cliente MCP');
   for (const client of ['Codex', 'Quine', 'OpenCog']) {
     await clientSelect.selectOption({ label: client });
@@ -101,10 +108,11 @@ try {
   console.log('PASS guia MCP gera configuração real para Codex, Quine, OpenCog e Claude Code');
 
   const agentRow = page.locator('.resource-list > li').filter({ hasText: /Agente E2E/ }).last();
-  await agentRow.getByRole('button', { name: 'Revogar', exact: true }).click();
+  await agentRow.getByRole('button', { name: 'Pausar acesso', exact: true }).click();
   await agentRow.getByRole('button', { name: 'Aprovar', exact: true }).waitFor();
   console.log('PASS revogação e reaprovação do agente atualizam o estado');
 
+  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
   const verify = page.getByRole('button', { name: 'Verificar plugin', exact: true }).first();

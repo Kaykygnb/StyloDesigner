@@ -60,7 +60,7 @@ pre.code { margin: 0; padding: 10px; max-height: 280px; overflow: auto; backgrou
    Tela inicial (home de projetos)
    ========================================================================== */
 .home { height: 100%; display: flex; flex-direction: column; background: radial-gradient(circle at 8% 0%, rgb(255 79 163 / 10%), transparent 26%), radial-gradient(circle at 94% 84%, rgb(109 93 252 / 10%), transparent 28%), var(--bg); }
-.home-top { height: 68px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 28px; background: color-mix(in srgb, var(--surface) 84%, transparent); border-bottom: 1px solid color-mix(in srgb, #ff4fa3 25%, var(--border)); backdrop-filter: blur(18px) saturate(1.25); box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
+.home-top { position: relative; z-index: 30; /* acima do conteúdo: o menu "Mais" abre para baixo e os cartões também têm backdrop-filter */ height: 68px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 28px; background: color-mix(in srgb, var(--surface) 84%, transparent); border-bottom: 1px solid color-mix(in srgb, #ff4fa3 25%, var(--border)); backdrop-filter: blur(18px) saturate(1.25); box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
 .home-main { flex: 1; overflow: auto; padding: 48px max(28px, calc((100% - 1180px) / 2)); }
 .home-title { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 30px; flex-wrap: wrap; }
 .home-intro { flex: 1 1 520px; min-width: 300px; }
@@ -590,7 +590,8 @@ button.res-row:hover { background: var(--hover); border-color: var(--border); }
 }
 
 @media (max-width: 640px) {
-  .home-top { height: 58px; min-height: 58px; flex-wrap: nowrap; padding: 0 16px; }
+  /* sem backdrop-filter: ele faz o cabeçalho virar o "bloco de referência" do .home-nav (position: fixed) e a barra do rodapé subia para cima do cabeçalho */
+  .home-top { height: 58px; min-height: 58px; flex-wrap: nowrap; padding: 0 16px; backdrop-filter: none; background: color-mix(in srgb, var(--surface) 96%, transparent); }
   .language-picker { padding-inline: 6px; }
   .language-picker select { width: 31px; max-width: 31px; overflow: hidden; }
   .home-nav { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80; order: initial; min-width: 0; overflow: visible; justify-content: space-around; border-color: color-mix(in srgb, var(--pink) 35%, var(--border)); background: color-mix(in srgb, var(--surface) 84%, transparent); box-shadow: 0 12px 34px rgb(0 0 0 / 22%), 0 0 0 1px rgb(255 255 255 / 8%) inset; backdrop-filter: blur(18px) saturate(1.3); }

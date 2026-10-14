@@ -21,9 +21,9 @@ try {
   await owner.getByLabel('Senha', { exact: true }).fill(process.env.E2E_ADMIN_PASSWORD || 'SenhaE2E segura 123!');
   await owner.getByRole('button', { name: 'Entrar', exact: true }).click();
   await owner.getByRole('main').waitFor();
-  await owner.locator('.connect-card').getByRole('button', { name: 'Gerenciar conexões MCP', exact: true }).click();
-  await owner.getByRole('heading', { name: 'Conexões MCP', exact: true }).waitFor();
-  await owner.getByRole('button', { name: 'Projetos', exact: true }).click();
+  await owner.locator('.connect-card').getByRole('button', { name: 'Abrir conexões', exact: true }).click();
+  await owner.getByRole('heading', { name: 'Conexões criativas', exact: true }).waitFor();
+  await owner.getByRole('button', { name: 'Abrir Criar', exact: true }).click();
   console.log('PASS login rejeita senha incorreta e permite entrada válida; proprietário recebe guia MCP autenticado');
 
   const ownerSid = await owner.evaluate(() => sessionStorage.getItem('stylo.sid'));
@@ -73,12 +73,13 @@ try {
   await person.getByLabel('Repita a nova senha', { exact: true }).fill('Senha pessoal E2E 456!');
   await person.getByRole('button', { name: 'Salvar nova senha', exact: true }).click();
   await person.getByRole('main').waitFor();
+  await person.locator('.home-more > summary').click();
   assert.equal(await person.getByRole('button', { name: 'Administração', exact: true }).count(), 0);
   assert.equal(await person.getByRole('button', { name: 'Conexões MCP', exact: true }).count(), 0);
   assert.equal((await person.request.get(new URL('/api/users', base).href)).status(), 403);
   assert.equal((await person.request.get(new URL('/api/projects', base).href)).status(), 200);
   await person.reload();
-  await person.getByRole('heading', { name: 'Projetos', exact: true }).waitFor();
+  await person.getByRole('heading', { name: 'Vamos criar algo lindo?', exact: true }).waitFor(); // título da área de projetos
   assert.equal(await (await person.request.get(ownerSnapshotUrl)).json(), null, 'sid de outra conta não devolve o documento privado');
   const foreignRead = await person.request.post(new URL('/api/studio/call', base).href, { data: { sid: ownerSid, tool: 'get_document', args: {} } });
   assert.ok((await foreignRead.json()).error, 'sid de outra conta não permite ler ferramentas do workspace');
@@ -92,13 +93,14 @@ try {
   await person.getByRole('button', { name: 'Criar', exact: true }).click();
   await person.locator('.editor').waitFor();
   await person.getByRole('button', { name: /Projetos/ }).click();
-  await person.getByRole('heading', { name: 'Projetos', exact: true }).waitFor();
+  await person.getByRole('heading', { name: 'Vamos criar algo lindo?', exact: true }).waitFor(); // título da área de projetos
   await person.getByText('Projeto da pessoa E2E', { exact: true }).waitFor();
+  if (!(await person.locator('.home-more').evaluate((e) => e.open))) await person.locator('.home-more > summary').click();
   assert.equal(await person.getByRole('button', { name: 'Administração', exact: true }).count(), 0, 'ser dono de projeto não transforma a pessoa em administrador da instalação');
   assert.equal(await person.locator('.connect-card').count(), 0, 'editor não recebe instruções MCP que exigem administração');
   assert.ok(await person.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'navegação e saída cabem no celular');
   await person.screenshot({ path: join(artifacts, 'login-projects-mobile.png'), fullPage: true });
-  await person.getByRole('button', { name: /^Sair \(/ }).click();
+  await person.getByRole('button', { name: /^Sair/ }).click();
   await enter(temporaryPassword);
   await person.getByRole('alert').filter({ hasText: 'E-mail ou senha incorretos.' }).waitFor();
   await person.getByLabel('Senha', { exact: true }).fill('Senha pessoal E2E 456!');

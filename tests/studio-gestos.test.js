@@ -16,7 +16,7 @@ const freePort = () => new Promise((resolve) => { const s = createServer(); s.li
 test('gestos do canvas: girar, caixa de seleção, mão, Alt+arrastar com camada travada e lápis', async (t) => {
   const { chromium } = await import('playwright-core');
   let browser;
-  try { browser = await chromium.launch({ headless: true, ...(process.env.STYLO_CHROMIUM_PATH ? { executablePath: process.env.STYLO_CHROMIUM_PATH } : {}) }); } catch (err) {
+  try { browser = await chromium.launch({ headless: true, ...((process.env.STYLO_CHROMIUM_PATH || process.env.CHROMIUM_PATH) ? { executablePath: process.env.STYLO_CHROMIUM_PATH || process.env.CHROMIUM_PATH } : {}) }); } catch (err) {
     if (/Executable doesn't exist|n[ãa]o est[áa] dispon|Failed to launch/i.test(String(err.message))) { t.skip('Chromium do Playwright não instalado'); return; }
     throw err;
   }
