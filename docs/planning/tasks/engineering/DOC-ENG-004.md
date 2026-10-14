@@ -1,11 +1,11 @@
 # DOC-ENG-004 — Auditar isolamento e cleanup dos fixtures legados
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-14 01:52 UTC
+Responsável: [Codex]
+Estado: Em andamento
+Início: 2026-10-14 02:09 UTC
+Última atualização: 2026-10-14 02:09 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Codex]
 
 ## Problema e evidências
 
@@ -43,8 +43,8 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ### #1 — Investigação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
+- Estado: em andamento
+- Responsável: [Codex]
 - Atividades executadas:
 - Arquivos alterados:
 - Evidências:
@@ -101,6 +101,56 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 - Testes: leitura de código; reprodução legada pendente. Suíte normal desta sessão não usa URL externa real.
 - Resultado: hipótese e alcance registrados explicitamente, sem afirmar que todos os fixtures legados falham.
 - Próximo passo: assumir, inventariar e reproduzir por sentinela antes de decidir mudança de setup global ou helper.
+
+### 2026-10-14 02:09 UTC — [Codex] — assunção por criticidade
+
+- Investigado: backlog/remoto atual 7265835, handoff e fixtures; P0 abertas com Kimi aguardam revisão humana. Entre P1 livres, isolamento de dados tem precedência sobre restauração/paridade/exportação/redesign.
+- Alterado: responsável e início; janela de edição tests/setup/helpers/fixtures e documentação de regressão, sem assumir trabalho Kimi.
+- Arquivos: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Testes: auditoria estática inicial encontrou 13 fixtures de servidor legados e ponte stdio separada; reprodução segura e gates pendentes.
+- Resultado: DOC-ENG-004 assumida; não reservar simultaneamente demais tarefas livres. Visual continua sob direção/QA humanos.
+- Próximo passo: validar setup com env sentinela, aplicar helper de ambiente/cleanup aos fixtures e preservar PostgreSQL explicitamente provisionado.
+
+## Handoff atual
+
+Preparado por: [Codex]
+Destinatário: [Codex / próximo participante após transferência]
+Estado: Em execução
+Marco atual: #1 — Investigação
+Última atualização: 2026-10-14 02:09 UTC
+Commit de referência: `726583500178eb39fa07e72106f5355d2d1a776f`
+
+### Estado atual
+
+Auditoria inicial identificou env herdado e cleanup fora de ordem em fixtures legados; implementação e reprodução pendentes.
+
+### Decisões tomadas
+
+P0 Kimi preservadas; próxima P1 por risco de atingir banco/configuração real. Depois restore/migração, paridade Studio/MCP e exportação; redesign depende da direção visual humana.
+
+### Arquivos envolvidos
+
+Fixtures legados, tests/_setup.mjs, helper de lifecycle/ambiente, inventário de fixtures e regressões.
+
+### Evidências e testes
+
+Leitura dos fixtures e precedência em openDb; gates pendentes.
+
+### Pendências
+
+Reprodução sentinela, implementação, suíte e publicação final.
+
+### Próximas ações recomendadas
+
+Isolar env sem afetar URL própria PostgreSQL; aguardar processos antes da remoção; validar documentação/artefatos e suíte.
+
+### Riscos e cuidados
+
+Só dados/processos próprios; não reproduzir contra URL externa real. Preservar decisões e responsáveis Kimi, não iniciar QA visual por esta assunção.
+
+### Condições para conclusão
+
+Critérios existentes atendidos e evidências/gates publicados.
 
 ## Rollback
 

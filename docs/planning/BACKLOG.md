@@ -22,5 +22,5 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-STUDIO-004 | Investigar falha do E2E de painel web na etapa "Conferir" | studio/UX | P1 | Concluída | [Kimi] | 5/5 (100%) | — | [tarefa](tasks/studio/DOC-STUDIO-004.md) |
 | DOC-QA-001 | Preparar QA exploratório com ChatGPT Work | QA/documentação | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-STUDIO-003 (relação de evidências) | [tarefa](tasks/qa/DOC-QA-001.md) |
 | DOC-ENG-003 | Isolar banco e ordenar limpeza dos fixtures MCP/PostgreSQL | engenharia/testes | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-MCP-001, DOC-SERVER-001 (infraestrutura) | [tarefa](tasks/engineering/DOC-ENG-003.md) |
-| DOC-ENG-004 | Auditar isolamento e cleanup dos fixtures legados | engenharia/testes | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-ENG-003 | [tarefa](tasks/engineering/DOC-ENG-004.md) |
+| DOC-ENG-004 | Auditar isolamento e cleanup dos fixtures legados | engenharia/testes | P1 | Em andamento | [Codex] | 0/5 (0%) | DOC-ENG-003 | [tarefa](tasks/engineering/DOC-ENG-004.md) |
 | DOC-STUDIO-005 | Redesign visual e identidade do Studio | studio/design | P1 | Proposta | [Não atribuído] | 0/5 (0%) | direção visual humana; DOC-STUDIO-003 e DOC-QA-001 (insumos) | [tarefa](tasks/studio/DOC-STUDIO-005.md) |

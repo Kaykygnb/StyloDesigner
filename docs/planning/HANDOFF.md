@@ -18,6 +18,8 @@ Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] conc
 
 ## Em andamento
 
+- [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) — [Codex], assumida para isolamento/cleanup legado antes de outras P1 livres.
+
 
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
 
@@ -39,8 +41,9 @@ Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] conc
 ## Próximas prioridades
 
 1. Revisões humanas pendentes (DOC-SERVER-005 e DOC-MCP-001) — desbloqueiam o fim das P0/P0-MCP.
-2. [DOC-DB-001](tasks/database/DOC-DB-001.md) (P1) — restore/migração descartável: **desbloqueada** pela DOC-SERVER-001 (base de PostgreSQL descartável pronta).
-3. P1 sem responsável: [DOC-CORE-002](tasks/core/DOC-CORE-002.md) (matriz de exportação), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) (paridade de operações críticas).
+2. [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) (P1) — isolamento/cleanup, assumida por Codex; primeiro por risco a dados externos.
+3. [DOC-DB-001](tasks/database/DOC-DB-001.md) (P1) — restore/migração descartável: **desbloqueada** pela DOC-SERVER-001 (base de PostgreSQL descartável pronta).
+4. P1 sem responsável: [DOC-CORE-002](tasks/core/DOC-CORE-002.md) (matriz de exportação), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) (paridade de operações críticas).
 
 ## Decisões humanas pendentes
 
