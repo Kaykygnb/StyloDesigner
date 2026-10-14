@@ -5,6 +5,7 @@ import { app, initLanguage } from './lib/app';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/app.css';
+import './styles/workspace.css';
 import './styles/canvas.css';
 import './styles/inspector.css';
 import './styles/i18n.css';
