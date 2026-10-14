@@ -3,7 +3,7 @@
 Responsável: [Não atribuído]
 Estado: Proposta
 Início: —
-Última atualização: 2026-10-14 03:34 UTC
+Última atualização: 2026-10-14 08:50 UTC
 Progresso: 0/5 marcos (0%)
 Participantes: —
 
@@ -11,6 +11,8 @@ Participantes: —
 
 - Problema: Reset administrativo existe, mas não SMTP/recuperação e-mail/offline; credenciais/provedores precisam projeto.
 - Evidências observadas: ADR 0002 e IDENTITY-ONBOARDING-RECOVERY.md; conflitos factuais preservados.
+- Atualização 2026-10-14: o proprietário escolheu códigos offline de uso único para o OWNER principal e listou os requisitos da transferência. O procedimento de emergência continua a projetar. Não implementar a partir só desta nota.
+- Atualização seguinte: ADM-DEC-02 está aprovada. Recuperação privilegiada e credencial mestra ficam com o OWNER. Credencial de integração comum, como o envio de e-mail, pode ser cadastrada ou substituída por ADMIN autorizado, sem mostrar o segredo depois. Esta tarefa continua só o projeto.
 
 ## Objetivo
 
@@ -19,7 +21,7 @@ Entregar plano técnico revisado, com critérios/ensaios isolados e limites de a
 ## Escopo
 
 - Incluído: Projetar token hash/TTL/uso único, GUI SMTP/assistentes provider/testes/diagnóstico/cofre, offlinealternativas e compatibilidade institucional, envio opcional; fontes oficiais e revisão.
-- Fora do escopo: Não enviar mensagens ou implementar SMTP integral/federação/offline escolhido; não definir transferência excepcional em nome humano.
+- Fora do escopo: Não enviar mensagens ou implementar SMTP integral/federação. Códigos offline foram escolhidos pelo proprietário em 2026-10-14; o desenho ainda é esta tarefa, não uma implementação já autorizada. Não inventar regra nova de emergência (quantos códigos, quem reemite) sem voltar ao proprietário se a regra não estiver na ADR.
 
 ## Módulo e contratos afetados
 
@@ -95,6 +97,24 @@ Entregar plano técnico revisado, com critérios/ensaios isolados e limites de a
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 08:50 UTC — [Grok 4.7] — ADM-DEC-02 aprovada
+
+- Investigado: seção 4 da ADR 0002. Código offline é recuperação privilegiada. SMTP de envio é integração comum.
+- Alterado: a nota do problema. Tarefa continua Proposta.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: o desenho separa credencial mestra de credencial de integração. Não implementa SMTP.
+- Próximo passo: assumir quando for projetar.
+
+### 2026-10-14 08:45 UTC — [Grok 4.7] — nota de decisão
+
+- Investigado: códigos offline e requisitos de transferência aprovados na ADR 0002.
+- Alterado: problema e fora de escopo. Tarefa continua Proposta.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: o mecanismo de código deixou de ser alternativa em aberto. O desenho continua esta tarefa.
+- Próximo passo: assumir quando for projetar, sem implementar SMTP.
 
 ### 2026-10-14 03:34 UTC — [Codex] — proposta por diretriz humana
 
