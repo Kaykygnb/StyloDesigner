@@ -1,11 +1,11 @@
 # DOC-ENG-003 — Isolar banco e ordenar limpeza dos fixtures MCP/PostgreSQL
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-14 01:40 UTC
+Responsável: [Codex]
+Estado: Em andamento
+Início: 2026-10-14 01:43 UTC
+Última atualização: 2026-10-14 01:43 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Codex]
 
 ## Problema e evidências
 
@@ -48,8 +48,8 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 
 ### #1 — Investigação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
+- Estado: em andamento
+- Responsável: [Codex]
 - Atividades executadas:
 - Arquivos alterados:
 - Evidências:
@@ -106,6 +106,56 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 - Testes: MCP cru + PostgreSQL 3/3, sem skips (log local /tmp/stylo-kimi-review-tests.log); typecheck; validador 17 tarefas antes da proposta; inventário 120 válido. Revisão executou testes com DATABASE_URL vazia, TMPDIR próprio e blobs em memória.
 - Resultado: falha de cleanup reproduzida em logs embora teste passe; risco de banco herdado constatado estaticamente, sem executar contra dados externos. Nenhuma sessão Work/QA iniciada.
 - Próximo passo: assumir pelo protocolo, corrigir fixtures e validar recusas/cleanup sem suprimir erro inesperado.
+
+### 2026-10-14 01:43 UTC — [Codex] — assunção e plano
+
+- Investigado: beta atual fb32474, protocolo/backlog/handoff, reprodução anterior PANIC e env herdado; tarefa livre e sem mudanças remotas novas.
+- Alterado: responsável/estado e janela de edição exclusiva dos fixtures/helpers/regressões; tarefas Kimi preservadas.
+- Arquivos: esta tarefa, BACKLOG.md, HANDOFF.md; implementação começará após publicar a assunção.
+- Testes: evidência de revisão anterior; novos cenários de isolamento e lifecycle planejados.
+- Resultado: assumida; plano é cleanup único com clientes → processos confirmados → banco → diretório, sem apagar dados se parada falhar; limpar env no MCP e exigir opt-out explícito de PostgreSQL em vez de skip por qualquer erro.
+- Próximo passo: implementar, reproduzir env hostil em dados descartáveis e validar ausência de PANIC/processos/dados próprios.
+
+## Handoff atual
+
+Preparado por: [Codex]
+Destinatário: [Codex / próximo participante após transferência]
+Estado: Em execução
+Marco atual: #1 — Investigação
+Última atualização: 2026-10-14 01:43 UTC
+Commit de referência: `fb324741e8535fb61d80b6f9ba3fd8c3e89c2fdc`
+
+### Estado atual
+
+Assunção registrada; reprodução anterior confirma cleanup incorreto. Nenhuma transferência de trabalho Kimi.
+
+### Decisões tomadas
+
+Helper de testes para aguardar saída e cleanup com erros visíveis; nenhum handler do produto será modificado. Diretório só removido após recursos encerrarem. PostgreSQL indisponível não deve mascarar erros inesperados com skip genérico.
+
+### Arquivos envolvidos
+
+Dois fixtures MCP/PG, helper/regressões de lifecycle, inventário regenerado, estratégia/regressões e planejamento.
+
+### Evidências e testes
+
+Log da revisão em /tmp/stylo-kimi-review-tests.log; novos gates pendentes.
+
+### Pendências
+
+Implementação, testes específicos/completos, documentação e commit.
+
+### Próximas ações recomendadas
+
+Implementar e executar casos de env hostil, falha de encerramento/startup e PG real; publicar após gates.
+
+### Riscos e cuidados
+
+Somente processos/dados próprios; não executar contra URL real herdada; manter responsáveis Kimi e QA humano sem exploração.
+
+### Condições para conclusão
+
+Critérios desta tarefa atendidos, evidências e gates publicados.
 
 ## Rollback
 

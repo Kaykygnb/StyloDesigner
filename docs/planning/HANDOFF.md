@@ -16,6 +16,8 @@ Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] conc
 
 ## Em andamento
 
+- [DOC-ENG-003](tasks/engineering/DOC-ENG-003.md) — [Codex], correção de isolamento/cleanup dos fixtures em execução; responsáveis Kimi preservados.
+
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
 
 ## Aguardando revisão
