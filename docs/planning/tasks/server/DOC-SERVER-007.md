@@ -142,18 +142,27 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 - Resultado: canais persistentes revalidam identidade. Suspensão invalida sessão e credencial de agente sem apagar histórico. Reativação não devolve o token.
 - Próximo passo: revisão do PR draft. Não mergear.
 
+### 2026-10-14 09:40 UTC — integração com a proteção do principal
+
+- Investigado: a PR #18 reescreve `setSuspended`. A regra do principal e a revogação dos canais precisavam ficar juntas.
+- Alterado: a suspensão permitida ainda apaga sessões, revoga agentes ACTIVE e fecha SSE e MCP. O principal não é suspenso. Outro OWNER só é suspenso pelo principal, com reconfirmação e auditoria. Reativar não devolve o token.
+- Arquivos: `services/auth.ts`, `tests/servicos.test.ts`, `tests/canais-persistentes.test.js`, `tests/principal-autoridade.test.ts`.
+- Testes: a suíte desta integração.
+- Resultado: as duas regras convivem. O estado continua Em validação até o aceite humano. Documento privado de OWNER da instalação segue na DOC-SERVER-014.
+- Próximo passo: revisão humana do comportamento integrado.
+
 ## Handoff atual
 
 Preparado por: [Grok]
 Destinatário: [Revisor humano]
-Estado: Aguardando revisão do PR
+Estado: Integrada em `v0.1.0-beta` com a trava do principal; aguardando aceite humano
 Marco atual: #5 — Validação final
-Última atualização: 2026-10-14 09:02 UTC
-Commit de referência: `8f2ca04`, branch `cursor/canais-persistentes-e5d4`
+Última atualização: 2026-10-14 09:40 UTC
+Commit de referência: integração da PR #20 sobre a PR #18
 
 ### Estado atual
 
-5/5. Runtime dos canais alterado. PR draft para `v0.1.0-beta`, sem merge.
+5/5. Runtime dos canais alterado. A suspensão permitida revoga agentes ACTIVE e fecha canais. A conta principal continua protegida pela DOC-SERVER-006.
 
 ### Decisões tomadas
 

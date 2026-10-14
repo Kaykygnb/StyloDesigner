@@ -7,7 +7,7 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-CORE-001 | Inventário verificável de ferramentas | core | P0 | Concluída | [Codex] | 5/5 (100%) | — | [tarefa](tasks/core/DOC-CORE-001.md) |
 | DOC-CORE-002 | Matriz de exportação e warnings | core | P1 | Concluída | [Muse Spark] | 5/5 (100%) | DOC-CORE-001 | [tarefa](tasks/core/DOC-CORE-002.md) |
 | DOC-MCP-001 | Matriz de compatibilidade MCP | mcp | P0 | Em validação | [Codex] | 4/5 (80%) | DOC-CORE-001 | [tarefa](tasks/mcp/DOC-MCP-001.md) |
-| DOC-STUDIO-001 | Paridade das operações críticas | studio | P1 | Em andamento | [Muse Spark] | 2/5 (40%) | DOC-CORE-001 | [tarefa](tasks/studio/DOC-STUDIO-001.md) |
+| DOC-STUDIO-001 | Paridade das operações críticas | studio | P1 | Concluída | [Grok] | 5/5 (100%) | DOC-CORE-001 | [tarefa](tasks/studio/DOC-STUDIO-001.md) |
 | DOC-SERVER-001 | Validar adapters de persistência e rede | server/database | P1 | Concluída | [Kimi] | 5/5 (100%) | — | [tarefa](tasks/server/DOC-SERVER-001.md) |
 | DOC-DB-001 | Restore e migração descartáveis | database | P1 | Em validação | [Codex/restore_resume] | 4/5 (80%) | DOC-SERVER-001 | [tarefa](tasks/database/DOC-DB-001.md) |
 | DOC-PLUGIN-001 | Matriz de providers e licenças | plugins | P2 | Proposta | [Não atribuído] | 0/5 (0%) | credenciais de teste | [tarefa](tasks/plugins/DOC-PLUGIN-001.md) |
@@ -25,10 +25,17 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-ENG-004 | Auditar isolamento e cleanup dos fixtures legados | engenharia/testes | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-ENG-003 | [tarefa](tasks/engineering/DOC-ENG-004.md) |
 | DOC-STUDIO-005 | Redesign visual e identidade do Studio | studio/design | P1 | Proposta | [Não atribuído] | 0/5 (0%) | direção visual humana; DOC-STUDIO-003 e DOC-QA-001 (insumos) | [tarefa](tasks/studio/DOC-STUDIO-005.md) |
 | DOC-ADMIN-001 | Deliberar arquitetura de administração self-hosted | administration | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-SERVER-005 (aprovação beta) | [tarefa](tasks/administration/DOC-ADMIN-001.md) |
-| DOC-SERVER-006 | Validar autoridade contextual e proteção de OWNER | server | P0 | Em andamento | [Codex] | 1/5 (20%) | HD-OWNERSHIP-02/03; ADR0002 | [tarefa](tasks/server/DOC-SERVER-006.md) |
+| DOC-SERVER-006 | Validar autoridade contextual e proteção de OWNER | server | P0 | Em andamento | [Grok] | 5/6 (83%) | HD-OWNERSHIP-02/03; ADR0002 | [tarefa](tasks/server/DOC-SERVER-006.md) |
 | DOC-SERVER-007 | Validar identidade e revogação dos canais persistentes | server | P0 | Em validação | [Grok] | 5/5 (100%) | DOC-ADMIN-001; ADM-DEC-05/07/09 | [tarefa](tasks/server/DOC-SERVER-007.md) |
 | DOC-SERVER-008 | Preparar exposição pública e bootstrap seguro da instância | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-ADMIN-001; decisões ADR 0002 | [tarefa](tasks/server/DOC-SERVER-008.md) |
 | DOC-ADMIN-002 | Completar trilha de auditoria administrativa sensível | administration | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-ADMIN-001; decisões ADR 0002 | [tarefa](tasks/administration/DOC-ADMIN-002.md) |
 | DOC-SERVER-009 | Planejar migração do modo local para contas obrigatórias | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/server/DOC-SERVER-009.md) |
+| DOC-SERVER-011 | Implementar login por nome de usuário | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002; bloqueia DOC-ENG-006 | [tarefa](tasks/server/DOC-SERVER-011.md) |
+| DOC-SERVER-012 | Separar papel de projeto do papel da instalação | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.4 | [tarefa](tasks/server/DOC-SERVER-012.md) |
+| DOC-SERVER-013 | Aplicar a administração delegada | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §4; ADM-DEC-00; ADM-DEC-08 | [tarefa](tasks/server/DOC-SERVER-013.md) |
+| DOC-SERVER-014 | Acesso de OWNER a projeto privado | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002 §2.3; ADM-DEC-07 | [tarefa](tasks/server/DOC-SERVER-014.md) |
+| DOC-SERVER-015 | Separar compartilhar de editar | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | ADR 0002; ADM-DEC-04 | [tarefa](tasks/server/DOC-SERVER-015.md) |
 | DOC-STUDIO-006 | Planejar onboarding guiado e administração progressiva | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/studio/DOC-STUDIO-006.md) |
 | DOC-SERVER-010 | Projetar recuperação de contas e envio configurável pela GUI | server | P1 | Proposta | [Não atribuído] | 0/5 (0%) | HD na ADR 0002; SERVER006/008 relacionados | [tarefa](tasks/server/DOC-SERVER-010.md) |
+| DOC-ENG-005 | Registrar visão, decisões e horizontes do produto | engenharia/docs | P1 | Concluída | [Grok 4.7] | 5/5 (100%) | ADR 0002 | [tarefa](tasks/engineering/DOC-ENG-005.md) |
+| DOC-ENG-006 | Preparar a alpha pública local | engenharia | P1 | Proposta | [Não atribuído] | 0/5 (0%) | PRs #17 e #18; DOC-SERVER-011 | [tarefa](tasks/engineering/DOC-ENG-006.md) |

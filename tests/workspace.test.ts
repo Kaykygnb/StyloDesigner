@@ -113,6 +113,9 @@ test('membro VIEWER lê o projeto de outra pessoa mas não altera; EDITOR altera
   const opened = await t.workspace.call('open_project', { file: 'compartilhado.json' }, { sid: 'v', actor: visitante });
   assert.equal(opened.role, 'VIEWER');
   assert.match((await t.workspace.call('create_layer', { type: 'rect' }, { sid: 'v', actor: visitante })).error, /só pode ler/);
+  const zip = await t.workspace.call('export_zip', {}, { sid: 'v', actor: visitante });
+  assert.match(zip.error, /só pode ler ou comentar/);
+  assert.equal(zip.site_zip_url, undefined);
   await t.db.projectMember.update({ where: { projectId_userId: { projectId: project.id, userId: t.other.id } }, data: { role: 'EDITOR' } });
   await t.workspace.call('open_project', { file: 'compartilhado.json' }, { sid: 'v', actor: visitante });
   assert.equal((await t.workspace.call('create_layer', { type: 'rect', props: { name: 'Do editor' } }, { sid: 'v', actor: visitante })).error, undefined);

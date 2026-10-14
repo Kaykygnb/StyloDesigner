@@ -36,11 +36,13 @@ test('PGlite real: snapshot anterior à migration restaura projeto no próximo b
     const expected = await projectsFor(db).load(owner, 'restore.json');
     const hash = checksum(expected.doc);
     const beforeMigrations = await db.$queryRawUnsafe<{ name: string }[]>('SELECT name FROM "_stylo_migrations" ORDER BY name');
-    assert.equal(beforeMigrations.at(-1)?.name, '0014_agent_type');
+    assert.equal(beforeMigrations.at(-1)?.name, '0015_autoridade_principal');
     // Reconstitui explicitamente o estado do contrato imediatamente anterior
     // a 0014, somente neste banco descartável. Não é um backup histórico real.
+    // 0015 também sai, porque ela é posterior: o reopen precisa reaplicá-la.
+    await db.$executeRawUnsafe('DROP TABLE "Installation"');
     await db.$executeRawUnsafe('ALTER TABLE "Agent" DROP COLUMN "type"');
-    await db.$executeRawUnsafe('DELETE FROM "_stylo_migrations" WHERE name = \'0014_agent_type\'');
+    await db.$executeRawUnsafe('DELETE FROM "_stylo_migrations" WHERE name IN (\'0014_agent_type\', \'0015_autoridade_principal\')');
     const backups = createBackups({ dbDir: dir, db, postgres: false });
     const snapshot = await backups.create();
     assert(snapshot.bytes > 0);
@@ -76,6 +78,7 @@ test('PGlite real: snapshot anterior à migration restaura projeto no próximo b
     assert.deepEqual(restoredAgent.scopes, ['read']);
     assert(await handle.db.agentProject.findUnique({ where: { agentId_projectId: { agentId: agent.id, projectId: expected.id } } }), 'grant original preservado');
     assert.equal(restoredAgent.type, 'mcp', 'migration 0014 aplicada realmente');
+    assert.equal((await handle.db.installation.findUniqueOrThrow({ where: { id: 1 } })).principalUserId, null, 'migration 0015 volta sem escolher principal');
     assert.deepEqual(await handle.db.$queryRawUnsafe('SELECT name FROM "_stylo_migrations" ORDER BY name'), beforeMigrations);
     const dirs = await readdir(root);
     assert(dirs.some(name => name.startsWith('db.before-migrations-')), 'backup preventivo de migração existe');

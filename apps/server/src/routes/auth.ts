@@ -49,6 +49,7 @@ export function authRoutes(s: Services, id: Identity) {
   r.delete('/me/sessions/:id', async (c) => c.json(await s.auth.revokeSession((await id.userOf(c)).id, c.req.param('id'))));
   r.post('/me/sessions/revoke-all', async (c) => c.json(await s.auth.revokeAllSessions((await id.userOf(c)).id)));
   r.post('/me/password', async (c) => { const me = await id.passwordUserOf(c); const b = await readObject(c); return c.json(await s.auth.changePassword(me.id, String(b.current || ''), String(b.next || ''))); });
+  r.post('/me/reconfirm', async (c) => { const me = await id.userOf(c); const b = await readObject(c); return c.json(await s.auth.reconfirm(me.id, String(b.password || ''))); });
 
   const accountsOnly = (name: string) => { if (s.authMode === 'local') throw httpError(404, `Este servidor está no modo local (sem login). Ligue STYLO_AUTH=accounts para usar ${name}.`); };
 
@@ -78,26 +79,26 @@ export function authRoutes(s: Services, id: Identity) {
   r.post('/users', async (c) => {
     const actor = await id.adminOf(c);
     const b = await readObject(c);
-    const password = String(b.password || '') || newToken('stylo_pwd').slice(-16);
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
-    if (role === 'OWNER' && actor.role !== 'OWNER') throw httpError(403, 'Só o proprietário pode criar outro proprietário.');
-    const user = await s.auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password, role });
+    const requested = String(b.password || '');
+    const password = role === 'OWNER' ? requested : (requested || newToken('stylo_pwd').slice(-16));
+    const user = await s.auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password, role }, false, actor);
+    const temporaryPassword = role === 'OWNER' || requested ? undefined : password;
     if (b.avatar !== undefined || b.color !== undefined) {
-      return c.json({ user: await s.auth.updateUser(user.id, { avatar: b.avatar === null ? null : b.avatar === undefined ? undefined : String(b.avatar), color: b.color === undefined ? undefined : String(b.color) }), temporaryPassword: String(b.password || '') ? undefined : password }, 201);
+      return c.json({ user: await s.auth.updateUser(user.id, { avatar: b.avatar === null ? null : b.avatar === undefined ? undefined : String(b.avatar), color: b.color === undefined ? undefined : String(b.color) }), temporaryPassword }, 201);
     }
-    return c.json({ user, temporaryPassword: String(b.password || '') ? undefined : password }, 201);
+    return c.json({ user, temporaryPassword }, 201);
   });
   r.put('/users/:id', async (c) => {
     const actor = await id.adminOf(c);
     const b = await readObject(c);
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
-    if (role === 'OWNER' && actor.role !== 'OWNER') throw httpError(403, 'Só o proprietário pode promover um proprietário.');
-    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }));
+    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }, actor));
   });
-  r.post('/users/:id/reset-password', async (c) => { await id.adminOf(c); return c.json(await s.auth.resetPassword(c.req.param('id'))); });
+  r.post('/users/:id/reset-password', async (c) => { const actor = await id.adminOf(c); const b = await readObject(c); return c.json(await s.auth.resetPassword(c.req.param('id'), actor, b.password === undefined ? undefined : String(b.password))); });
   r.post('/users/:id/revoke-sessions', async (c) => { await id.adminOf(c); return c.json(await s.auth.revokeAllSessions(c.req.param('id'))); });
-  r.post('/users/:id/suspend', async (c) => { await id.adminOf(c); const b = await readObject(c); return c.json(await s.auth.setSuspended(c.req.param('id'), b.suspended !== false)); });
-  r.delete('/users/:id', async (c) => { await id.adminOf(c); return c.json(await s.auth.deleteUser(c.req.param('id'))); });
+  r.post('/users/:id/suspend', async (c) => { const actor = await id.adminOf(c); const b = await readObject(c); return c.json(await s.auth.setSuspended(c.req.param('id'), b.suspended !== false, actor)); });
+  r.delete('/users/:id', async (c) => { const actor = await id.adminOf(c); return c.json(await s.auth.deleteUser(c.req.param('id'), actor)); });
   r.get('/users/:id/projects', async (c) => {
     await id.adminOf(c);
     const target = (await s.auth.users()).find((u) => u.id === c.req.param('id'));

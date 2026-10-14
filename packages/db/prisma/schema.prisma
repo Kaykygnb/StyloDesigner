@@ -70,6 +70,16 @@ model User {
   operations  Operation[]
   notes       Note[]
   authEvents  AuthEvent[]
+  /// Instalação em que esta conta é a autoridade principal, se for o caso.
+  principalOf Installation? @relation("InstallationPrincipal")
+}
+
+/// Autoridade principal da instalação. Uma linha só (id = 1).
+/// principalUserId nulo = banco antigo ainda sem designação; ninguém é escolhido por data ou id.
+model Installation {
+  id              Int     @id @default(1)
+  principalUserId String? @unique @db.Uuid
+  principal       User?   @relation("InstallationPrincipal", fields: [principalUserId], references: [id], onDelete: Restrict)
 }
 
 model AuthEvent {
