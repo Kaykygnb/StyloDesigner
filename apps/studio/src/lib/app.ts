@@ -202,10 +202,14 @@ export async function openProject(file: string): Promise<void> {
   } catch (e) { toast('error', messageOf(e)); } finally { app.set({ busy: app.get().busy - 1 }); }
 }
 
-export async function createProject(name: string): Promise<void> {
+/** Uma primeira tela já pronta no projeto novo (ex.: site 1440×900 ou celular 390×844). */
+export interface StarterScreen { name: string; w: number; h: number }
+
+export async function createProject(name: string, screen?: StarterScreen): Promise<void> {
   try {
     app.set({ busy: app.get().busy + 1 });
     const out = await api.tool<{ file: string }>('new_project', { name: name.trim() || tl('ui.home.untitled') });
+    if (screen) await api.tool('build_layout', { tree: { type: 'frame', props: { name: screen.name, w: screen.w, h: screen.h, fill: '#FFFFFF' } } });
     lastDocKey = '';
     app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null, syncNotice: null });
     await refreshDoc();

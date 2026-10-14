@@ -5,7 +5,7 @@ import { afterLogin, persistAccountPreferences, setLanguage, signedOut, useApp }
 import { SUPPORTED_LANGUAGES, t } from '../lib/i18n';
 import { Brand } from '../ui/Brand';
 import { Icon } from '../ui/Icon';
-import { LayerStack } from '../ui/LayerStack';
+import { InkStack } from '../ui/InkStack';
 
 export function Login() {
   const auth = useApp((s) => s.auth);
@@ -48,7 +48,7 @@ export function Login() {
             <li><Icon name="code" size={14} /> {t(language, 'ui.login.featCode')}</li>
             <li><Icon name="spark" size={14} /> {t(language, 'ui.login.featCollab')}</li>
           </ul>
-          <LayerStack className="login-stack" />
+          <InkStack className="login-stack" />
           <div className="login-proof"><span className="dot ok" /> {t(language, 'ui.login.yourCreativeSpaceReadyWhen')}</div>
         </section>
         <Brand size={30} className="login-mobile-brand" />

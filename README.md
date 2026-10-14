@@ -145,6 +145,7 @@ Pontos de partida para ler o código:
 - `packages/core/src/tools/schema.ts`: a lista de ferramentas que o editor e os agentes usam.
 - `apps/studio/src/editor/canvas/gestures.ts`: os gestos do canvas (mover, redimensionar, girar, desenhar).
 - `apps/server/src/main.ts`: como o servidor é montado.
+- `apps/studio/src/ui/ink3d/scene.ts`: a pilha de camadas em 3D (three.js) da página inicial e do login; só é baixada quando aparece e cai para a versão em CSS sem WebGL.
 
 ## Testes
 

@@ -1,12 +1,12 @@
 // A entrada do painel: seus projetos, criar um novo e conectar um agente.
 import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { thumbUrl } from '../lib/api';
-import { createProject, loadProjects, type Language, openProject, persistAccountPreferences, setLanguage, signedOut, toast, useApp } from '../lib/app';
+import { createProject, loadProjects, type Language, openProject, persistAccountPreferences, setLanguage, signedOut, type StarterScreen, toast, useApp } from '../lib/app';
 import * as api from '../lib/api';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { Brand } from '../ui/Brand';
 import { openCommandPalette, useCommands } from '../ui/CommandPalette';
-import { LayerStack } from '../ui/LayerStack';
+import { InkStack } from '../ui/InkStack';
 import { Icon } from '../ui/Icon';
 import { useTilt } from '../ui/useTilt';
 import { formatRelativeTime, SUPPORTED_LANGUAGES, t, tp } from '../lib/i18n';
@@ -36,15 +36,30 @@ function ProjectCard({ file, thumb, name, meta, onOpen }: { file: string; thumb:
   );
 }
 
-// Pontos de partida: cada um com uma composição própria de tintas sobrepostas.
-function StarterCard({ kind, title, variant, onStart }: { kind: string; title: string; variant: number; onStart: () => void }) {
+// Pontos de partida de verdade: cada um cria um projeto já com algo dentro (uma tela, ou um site inteiro de exemplo).
+function StarterCard({ kind, title, meta, variant, busy, onStart }: { kind: string; title: string; meta: string; variant: number; busy: boolean; onStart: () => void }) {
   const tilt = useTilt(7);
   return (
-    <button className="starter-card" style={tilt.style} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave} onClick={onStart}>
+    <button className="starter-card" style={tilt.style} onPointerMove={tilt.onPointerMove} onPointerLeave={tilt.onPointerLeave} onClick={onStart} disabled={busy} aria-busy={busy}>
       <span className={`starter-art sa-${variant}`} aria-hidden="true"><i /><i /><i /><b /></span>
-      <span className="starter-copy"><small>{kind}</small><b>{title}</b><em>{t(useApp((s) => s.language), 'ui.home.startNow')}</em></span>
+      <span className="starter-copy"><small>{kind}</small><b>{title}</b><span className="starter-meta">{meta}</span></span>
+      <span className="starter-go" aria-hidden="true">{busy ? <span className="spinner" /> : <Icon name="plus" size={14} />}</span>
     </button>
   );
+}
+
+/** Cumprimento pela hora do dia (com o nome só quando há contas: no modo local o "nome" é genérico). */
+function greeting(language: Language, name?: string): string {
+  const h = new Date().getHours();
+  const part = h >= 5 && h < 12 ? 'Morning' : h >= 12 && h < 18 ? 'Afternoon' : 'Evening';
+  return name ? t(language, `ui.home.greet${part}Named`, { name }) : t(language, `ui.home.greet${part}`);
+}
+
+/** Um nome que ainda não existe na lista (o servidor recusa nomes repetidos). */
+function freeName(base: string, taken: string[]): string {
+  const used = new Set(taken.map((n) => n.toLowerCase()));
+  if (!used.has(base.toLowerCase())) return base;
+  for (let i = 2; ; i++) if (!used.has(`${base} ${i}`.toLowerCase())) return `${base} ${i}`;
 }
 
 function fileSize(bytes: number): string {
@@ -83,7 +98,34 @@ export function Home() {
     await createProject(name);
     setName('');
   };
-  const startFrom = (template: string) => { setName(template); setCreating(true); homeMain.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const [starting, setStarting] = useState<number | null>(null);
+  const taken = (projects ?? []).flatMap((p) => [p.name || pretty(p.file), p.file.replace(/\.json$/i, '')]);
+  const recent = useMemo(() => [...(projects ?? [])].sort((a, b) => b.modified - a.modified)[0] ?? null, [projects]);
+  const returning = !!recent;
+  const touch = typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches;
+  const screenName = t(language, 'ui.home.starterScreenName');
+  const starters: Array<{ kind: string; title: string; meta: string; run: () => Promise<void> }> = [
+    { kind: 'Desktop · 1440 × 900', title: t(language, 'ui.home.starterSiteTitle'), meta: t(language, 'ui.home.starterSiteMeta'),
+      run: () => createProject(freeName(t(language, 'ui.home.starterSiteTitle'), taken), { name: screenName, w: 1440, h: 900 } satisfies StarterScreen) },
+    { kind: `${t(language, 'ui.home.starterMobileKind')} · 390 × 844`, title: t(language, 'ui.home.starterMobileTitle'), meta: t(language, 'ui.home.starterMobileMeta'),
+      run: () => createProject(freeName(t(language, 'ui.home.starterMobileTitle'), taken), { name: screenName, w: 390, h: 844 }) },
+    { kind: t(language, 'ui.home.starterExampleKind'), title: t(language, 'ui.home.starterExampleTitle'), meta: t(language, 'ui.home.starterExampleMeta'),
+      run: async () => {
+        // o site de exemplo (o mesmo dos testes do núcleo) só é baixado quando alguém pede
+        const { buildSampleShowcase } = await import('@stylo/core/sample-vitrine.js');
+        const doc = buildSampleShowcase() as { name?: string };
+        const named = freeName(t(language, 'ui.home.starterExampleName'), taken);
+        doc.name = named;
+        const created = await api.importProject(named, doc);
+        await openProject(created.file);
+        void loadProjects();
+      } },
+  ];
+  const start = async (i: number) => {
+    if (starting !== null) return;
+    setStarting(i);
+    try { await starters[i].run(); } catch (e) { toast('error', e instanceof Error ? e.message : String(e)); } finally { setStarting(null); }
+  };
 
   useCommands('home', () => [
     { id: 'home:new', group: t(language, 'ui.command.groupActions'), icon: 'plus', label: t(language, 'ui.home.newProject'), run: () => { setArea('projects'); setCreating(true); } },
@@ -134,8 +176,11 @@ export function Home() {
         <div className="home-side-foot">
           <label className="language-picker" title={t(language, 'ui.home.interfaceLanguage')}>
             <Icon name="globe" size={14} />
-            <select aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>
-              {SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short} · {item.label}</option>)}
+            {/* o rótulo visível muda com a largura (nome inteiro ou só a sigla); o select transparente por cima é que recebe o clique */}
+            <span className="lang-current" aria-hidden="true"><span className="lang-long">{SUPPORTED_LANGUAGES.find((l) => l.value === language)?.label}</span><span className="lang-short">{SUPPORTED_LANGUAGES.find((l) => l.value === language)?.short}</span></span>
+            <Icon name="chevrondown" size={12} />
+            <select className="lang-overlay" aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>
+              {SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
           <AppearanceMenu />
@@ -147,11 +192,11 @@ export function Home() {
 
       <main className="home-main" ref={homeMain}>
         {area !== 'projects' ? <Suspense fallback={<div className="center-note"><span className="spinner" /></div>}><WorkspacePanel tab={area} /></Suspense> : <>
-        <section className="home-hero">
+        <section className={`home-hero${returning ? ' returning' : ''}`}>
           <div className="home-intro">
-            <span className="home-greeting">{t(language, 'ui.home.greeting', { name: user?.name || t(language, 'ui.home.greetingFallback') })}</span>
-            <h1>{t(language, 'ui.home.makeSomethingBrilliant')}</h1>
-            <p className="home-subtitle">{t(language, 'ui.home.pickAStartingPoint')}</p>
+            <span className="home-greeting">{greeting(language, auth?.mode === 'accounts' ? user?.name : undefined)}</span>
+            <h1>{t(language, returning ? 'ui.home.welcomeBack' : 'ui.home.makeSomethingBrilliant')}</h1>
+            <p className="home-subtitle">{t(language, returning ? 'ui.home.welcomeBackHint' : 'ui.home.pickAStartingPoint')}</p>
             {creating ? (
               <form className="new-project" onSubmit={submit}>
                 <input autoFocus className="field" placeholder={t(language, 'ui.home.projectNameEGPlant')} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} aria-label={t(language, 'ui.home.projectName')} onKeyDown={(e) => { if (e.key === 'Escape') { setCreating(false); setName(''); } }} />
@@ -160,24 +205,21 @@ export function Home() {
               </form>
             ) : (
               <div className="home-quick-actions">
-                <button className="btn primary lg" aria-label={t(language, 'ui.home.newProject')} onClick={() => setCreating(true)} disabled={busy > 0}><Icon name="plus" size={16} /> {t(language, 'ui.home.createProject')}</button>
-                <button className="btn lg" onClick={() => importInput.current?.click()} disabled={busy > 0}><Icon name="upload" size={15} /> {t(language, 'ui.home.importProject')}</button>
+                {recent && (
+                  <button className="btn primary lg continue-btn" aria-label={t(language, 'ui.home.continueProjectAria', { name: recent.name || pretty(recent.file) })} onClick={() => void openProject(recent.file)} disabled={busy > 0}>
+                    <Icon name="play" size={14} /><span className="ellipsis">{t(language, 'ui.home.continueProject', { name: recent.name || pretty(recent.file) })}</span>
+                  </button>
+                )}
+                <button className={`btn lg${recent ? '' : ' primary'}`} aria-label={t(language, 'ui.home.newProject')} onClick={() => setCreating(true)} disabled={busy > 0}><Icon name="plus" size={16} /> {t(language, recent ? 'ui.home.newProject' : 'ui.home.createProject')}</button>
+                <button className={`btn lg${recent ? ' ghost' : ''}`} onClick={() => importInput.current?.click()} disabled={busy > 0}><Icon name="upload" size={15} /> {t(language, 'ui.home.importProject')}</button>
               </div>
             )}
             <input ref={importInput} hidden type="file" accept=".stylo,.json,application/json" onChange={(e) => void importProjectFile(e.target.files?.[0])} />
           </div>
-          <LayerStack className="home-stack" />
-        </section>
-
-        <section className="starter-strip" aria-labelledby="starter-title">
-          <div className="section-heading"><h2 id="starter-title">{t(language, 'ui.home.chooseYourStartingPoint')}</h2><button className="btn ghost sm" onClick={() => setArea('library')}>{t(language, 'ui.home.seeAll')}</button></div>
-          <div className="starter-grid">
-            {[
-              ['Editorial', t(language, 'ui.home.starterEditorial')],
-              ['Studio', t(language, 'ui.home.starterStudio')],
-              ['Atelier', t(language, 'ui.home.starterAtelier')],
-            ].map(([kind, title], i) => <StarterCard key={title} kind={kind} title={title} variant={i} onStart={() => startFrom(title)} />)}
-          </div>
+          <figure className="home-stack-wrap">
+            <InkStack className="home-stack" />
+            <figcaption>{t(language, touch ? 'ui.home.stackCaptionTouch' : 'ui.home.stackCaption')}</figcaption>
+          </figure>
         </section>
 
         {error && (
@@ -186,20 +228,11 @@ export function Home() {
 
         {projects === null && !error && <div className="home-loading" aria-live="polite"><div className="loading-cards"><i /><i /><i /><i /></div><p><span className="spinner" /> {t(language, 'ui.home.loadingYourSpace')}</p></div>}
 
-        {projects && !projects.length && !error && (
-          <div className="empty-home">
-            <div className="empty-home-art" aria-hidden="true"><span /><span /><span /></div>
-            <h2>{t(language, 'ui.home.startYourFirstProject')}</h2>
-            <p className="muted">{t(language, 'ui.home.aBlankCanvasReadyFor')}</p>
-            <button className="btn primary" onClick={() => setCreating(true)}><Icon name="plus" size={15} /> {t(language, 'ui.home.createProject')}</button>
-          </div>
-        )}
-
         {projects && projects.length > 0 && (
           <section className="project-list-section" aria-labelledby="project-list-title">
             <div className="section-heading">
               <h2 id="project-list-title">{t(language, 'ui.home.yourProjects')} <span className="count">{projects.length}</span></h2>
-              <div className="search"><Icon name="search" size={14} /><input className="field" placeholder={t(language, 'ui.home.searchProjects')} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t(language, 'ui.home.searchProjects')} />{query && <button type="button" className="search-clear" aria-label={t(language, 'ui.home.clearSearch')} title={t(language, 'ui.home.clearSearch')} onClick={() => setQuery('')}><Icon name="close" size={12} /></button>}</div>
+              {projects.length > 3 && <div className="search"><Icon name="search" size={14} /><input className="field" placeholder={t(language, 'ui.home.searchProjects')} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t(language, 'ui.home.searchProjects')} />{query && <button type="button" className="search-clear" aria-label={t(language, 'ui.home.clearSearch')} title={t(language, 'ui.home.clearSearch')} onClick={() => setQuery('')}><Icon name="close" size={12} /></button>}</div>}
             </div>
             <ul className="cards">
               {shown.map((p) => (
@@ -211,6 +244,15 @@ export function Home() {
               ))}
               {!shown.length && <li className="muted pad">{t(language, 'ui.home.nothingFound')} <button className="btn ghost sm" onClick={() => setQuery('')}>{t(language, 'ui.home.clearSearch')}</button></li>}
             </ul>
+          </section>
+        )}
+
+        {projects && (
+          <section className="starter-strip" aria-labelledby="starter-title">
+            <div className="section-heading"><h2 id="starter-title">{t(language, returning ? 'ui.home.startSomethingNew' : 'ui.home.chooseHowToStart')}</h2></div>
+            <div className="starter-grid">
+              {starters.map((st, i) => <StarterCard key={i} kind={st.kind} title={st.title} meta={starting === i ? t(language, 'ui.home.starterCreating') : st.meta} variant={i} busy={starting === i} onStart={() => void start(i)} />)}
+            </div>
           </section>
         )}
 

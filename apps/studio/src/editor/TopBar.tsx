@@ -39,7 +39,7 @@ export function TopBar() {
       <button className="topbar-home" onClick={closeProject} title={t(language, 'top.projects')} aria-label={t(language, 'top.projects')}><LogoMark size={22} /></button>
       <button className="project-title project-title-btn" title={t(language, 'ui.topbar.project')} onClick={() => openProjectDialog()}>
         <b className="ellipsis">{doc.name || file}</b>
-        <span className={`faint small project-status ${busy > 0 ? 'is-busy' : live ? 'is-live' : 'is-off'}`}>{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.live') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
+        <span className={`faint small project-status ${busy > 0 ? 'is-busy' : live ? 'is-live' : 'is-off'}`}>{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.saved') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
       </button>
       {syncNotice ? <button className="notice ok sync-notice" title={t(language, 'collab.dismissChange')} onClick={dismissSyncNotice}>
         {t(language, 'collab.changedBy')} <b>{syncNotice.by}</b> · {t(language, 'collab.dismissChange')}
