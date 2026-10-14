@@ -1,11 +1,11 @@
 # DOC-STUDIO-004 — Investigar falha do E2E de painel web na etapa "Conferir"
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-14 00:25 UTC
+Responsável: [Kimi]
+Estado: Em andamento
+Início: 2026-10-14 00:40 UTC
+Última atualização: 2026-10-14 00:40 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Kimi]
 
 - **Módulo:** studio/UX
 - **Prioridade:** P1
@@ -23,13 +23,14 @@ Participantes: —
 ## Marcos
 
 ### #1 — Investigação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: em andamento
+- Responsável: [Kimi]
+- Atividades executadas: assumida após reprodução prévia na árvore limpa durante a regressão da DOC-MCP-001.
 - Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
+- Evidências: falha em `tests/studio-ui.test.js:155` ("a conferência mostra o resultado"): após clicar em "Conferir" e aguardar `.side-panel h4`, nenhum `.issues li` nem `.notice.ok` aparece.
+- Testes executados: `tests/studio-ui.test.js` isolado — falha repetida (2×).
 - Problemas encontrados: —
+
 ### #2 — Planejamento
 - Estado: pendente
 - Responsável: [Não atribuído]
@@ -64,6 +65,15 @@ Participantes: —
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-14 00:40 UTC — [Kimi] — #1 Investigação (assunção)
+
+- Investigado: proposta registrada por [Kimi] durante a DOC-MCP-001; falha reproduzida na árvore limpa do commit `28a7c42` (dois runs isolados iguais).
+- Alterado: responsável registrado como [Kimi], estado `Em andamento`, marco #1 em andamento.
+- Arquivos: esta tarefa e BACKLOG.md.
+- Testes: `tests/studio-ui.test.js` isolado — falha na linha 155.
+- Resultado: tarefa assumida conforme protocolo §2, após autorização do proprietário.
+- Próximo passo: mapear o fluxo "Conferir" no Studio (botão → chamada de API → painel) e capturar o que o painel realmente renderiza na falha.
 
 ### 2026-10-14 00:25 UTC — [Kimi] — proposta
 
