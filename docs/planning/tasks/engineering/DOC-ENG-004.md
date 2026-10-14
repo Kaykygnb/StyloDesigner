@@ -3,8 +3,8 @@
 Responsável: [Codex]
 Estado: Em andamento
 Início: 2026-10-14 02:09 UTC
-Última atualização: 2026-10-14 02:11 UTC
-Progresso: 1/5 marcos (20%)
+Última atualização: 2026-10-14 02:20 UTC
+Progresso: 3/5 marcos (60%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -28,7 +28,7 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ## Dependências, riscos e bloqueios
 
-- Dependência: helper DOC-ENG-003; proposta não altera código nesta entrada.
+- Dependência: helper DOC-ENG-003 reutilizado; sem alteração de runtime.
 - Riscos: mudar testes PostgreSQL legítimos que usam URL própria; mascarar falha com skip; cleanup encerrar processo alheio.
 - Bloqueios: nenhum conhecido; reproduzir somente com sentinela inofensiva e recursos descartáveis.
 
@@ -53,23 +53,23 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ### #2 — Planejamento
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Helper isolatedServerEnv exige configuração própria, limpa URL/blobs/chaves herdados e permite overrides explícitos; cleanupFixture único fecha clientes, aguarda filhos e só então remove diretório. Preservar PG provisionado e modos accounts/dev dos cenários.
+- Arquivos alterados: tests/_setup.mjs, tests/helpers/test-env.mjs, tests/test-env.test.js e 13 fixtures; inventário regenerado.
+- Evidências: execução direta sem setup, DATABASE_URL sentinela inválida e segredo/blobs hostis; API/autorização/MCP funcionam com recursos próprios.
+- Testes executados: regressões específicas 10/10; typecheck aprovado. Suíte completa em execução.
+- Problemas encontrados: nenhum nas regressões específicas; não usar valores herdados como overrides.
 
 ### #3 — Implementação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: Aplicado helper de ambiente e cleanup aos 13 fixtures mapeados; server.test usa configuração temporária; clientes MCP fecham antes do servidor. Setup padrão também limpa URL/blobs/chaves. Dois testes novos cobrem ambiente hostil, configuração obrigatória e override explícito de URL própria.
+- Arquivos alterados: tests/_setup.mjs, tests/helpers/test-env.mjs, tests/test-env.test.js e 13 fixtures; inventário regenerado.
+- Evidências: execução direta sem setup, DATABASE_URL sentinela inválida e segredo/blobs hostis; API/autorização/MCP funcionam com recursos próprios.
+- Testes executados: regressões específicas 10/10; typecheck aprovado. Suíte completa em execução.
+- Problemas encontrados: nenhum nas regressões específicas; não usar valores herdados como overrides.
 
 ### #4 — Testes
 
@@ -120,18 +120,27 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 - Resultado: problema do setup reproduzido com segurança; riscos de configuração padrão e cleanup corroborados por leitura, com lista de alcance.
 - Próximo passo: detalhar helper de env/cleanup, testar execução padrão e isolada, preservar PG com URL própria; só concluir após regressões.
 
+### 2026-10-14 02:20 UTC — [Codex] — #2/#3 implementação e testes específicos
+
+- Investigado: ambientes e ordem de encerramento dos 13 fixtures legados; PostgreSQL explícito preservado.
+- Alterado: helper de env, setup padrão, configurações temporárias e lifecycle compartilhado; clientes fecham antes dos filhos. Sem código funcional do produto.
+- Arquivos: tests/_setup.mjs, tests/helpers/test-env.mjs, tests/test-env.test.js, 13 fixtures, inventário e documentação de testes.
+- Testes: execução sem setup com env hostil, 10/10 aprovados; typecheck aprovado; inventário regenerado. Suíte completa em execução.
+- Resultado: marcos #2/#3 concluídos com proteção exercitada sem dados externos.
+- Próximo passo: registrar suíte/validator/drift, publicar e concluir apenas com gates verdes.
+
 ## Handoff atual
 
 Preparado por: [Codex]
 Destinatário: [Codex / próximo participante após transferência]
 Estado: Em execução
-Marco atual: #2 — Planejamento
-Última atualização: 2026-10-14 02:11 UTC
+Marco atual: #4 — Testes
+Última atualização: 2026-10-14 02:20 UTC
 Commit de referência: `726583500178eb39fa07e72106f5355d2d1a776f`
 
 ### Estado atual
 
-Investigação #1 concluída: setup mantém URL sentinela herdada; 13 fixtures legados mapeados, com riscos de cleanup/configuração padrão. Planejamento e implementação pendentes.
+Marcos #1–#3 concluídos; isolamento e cleanup corrigidos nos 13 fixtures. Específicos 10/10 sem setup global e typecheck aprovados; suíte completa em execução.
 
 ### Decisões tomadas
 
@@ -147,7 +156,7 @@ Reprodução Node 24 confirmou env herdado sem conectar banco; auditoria estáti
 
 ### Pendências
 
-Planejamento, implementação, reprodução de execução isolada, suíte e publicação final.
+Suíte completa, gates documentais e publicação final.
 
 ### Próximas ações recomendadas
 
@@ -163,4 +172,4 @@ Critérios existentes atendidos e evidências/gates publicados.
 
 ## Rollback
 
-Nenhuma implementação nesta proposta. Reverter alterações futuras de fixture apenas com isolamento equivalente e preservar evidências.
+Reverter alterações de fixture apenas com isolamento equivalente; preservar evidências e não voltar a herdar DATABASE_URL/configuração externa.

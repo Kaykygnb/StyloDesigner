@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // O painel web usado como uma pessoa usa, num navegador de verdade (Chromium do Playwright; sem ele o teste é pulado).
 // Atenção: o mouse NATIVO apertado sobre um iframe sem scripts derruba navegadores automatizados (defeito do Chromium em modo
 // automatizado; num navegador comum com janela não acontece). Por isso os arrastos aqui são feitos com eventos de mouse enviados por script.
@@ -24,13 +26,14 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   t.after(() => browser.close());
 
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-ui-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' }),
     stdio: 'inherit',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
@@ -158,7 +161,7 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   await page.getByRole('tab', { name: 'Agentes' }).click();
   const client = new Client({ name: 'Agente de teste', version: '1.0.0' }, {});
   await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
-  t.after(() => client.close());
+  fixture.clients.push(client);
   const file = await page.evaluate(() => window.__stylo.get().file);
   await client.callTool({ name: 'open_project', arguments: { file } });
   const rows = await page.locator('.layer-row').count();

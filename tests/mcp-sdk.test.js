@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // O servidor MCP conversa com o CLIENTE OFICIAL do SDK (o mesmo protocolo que Claude Code, Codex etc. usam):
 // initialize com instruções, lista de ferramentas, chamada, imagem como conteúdo, erro como isError e sessão encerrada.
 import { test } from 'node:test';
@@ -15,12 +17,13 @@ const freePort = () => new Promise((resolve) => { const s = createServer(); s.li
 
 async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-sdk-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }, stdio: 'ignore',
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }), stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
@@ -28,7 +31,7 @@ async function startServer(t) {
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
-  return base;
+  return { base, fixture };
 }
 
 async function connect(base, name = 'Claude Code') {
@@ -39,9 +42,9 @@ async function connect(base, name = 'Claude Code') {
 const text = (r) => JSON.parse(r.content.find((c) => c.type === 'text').text);
 
 test('cliente oficial: initialize traz as instruções, tools/list o catálogo atual, e uma sessão trabalha de ponta a ponta', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const client = await connect(base);
-  t.after(() => client.close());
+  fixture.clients.push(client);
 
   assert.equal(client.getServerVersion().name, 'projeto-designer');
   assert.match(client.getInstructions(), /new_project/);
@@ -84,10 +87,10 @@ test('cliente oficial: initialize traz as instruções, tools/list o catálogo a
 });
 
 test('cliente oficial: sessões diferentes não misturam o projeto atual e cada uma tem o seu agente', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const a = await connect(base, 'Claude Code');
   const b = await connect(base, 'Codex');
-  t.after(() => Promise.all([a.close(), b.close()]));
+  fixture.clients.push(a, b);
   await a.callTool({ name: 'new_project', arguments: { name: 'Isolado' } });
   const semProjeto = await b.callTool({ name: 'get_document', arguments: {} });
   assert.equal(semProjeto.isError, true);
@@ -101,7 +104,7 @@ test('cliente oficial: sessões diferentes não misturam o projeto atual e cada 
 });
 
 test('encerrar a sessão (DELETE) tira o agente da presença', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const client = await connect(base, 'Cursor');
   await client.callTool({ name: 'list_projects', arguments: {} });
   assert.equal((await (await fetch(base + '/api/presence')).json()).agents.length, 1);

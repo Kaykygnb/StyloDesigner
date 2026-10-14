@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // A ponte do painel web: o navegador chama as MESMAS ferramentas do MCP, pelo mesmo workspace. Servidor real, como nos outros testes HTTP.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,26 +16,27 @@ const freePort = () => new Promise((resolve) => { const s = createServer(); s.li
 
 async function startServer(t, authMode = 'local') {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-studio-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: authMode, STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: authMode, STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 9).toString('base64') }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }
     if (!up) await new Promise((r) => setTimeout(r, 25));
   }
-  return base;
+  return { base, fixture };
 }
 
 const json = { 'Content-Type': 'application/json' };
 
 test('painel: a entrada (/) leva para /studio/, e /studio/ entrega a página do painel', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const root = await fetch(base + '/', { redirect: 'manual' });
   assert.equal(root.status, 302);
   assert.equal(root.headers.get('location'), '/studio/');
@@ -53,7 +56,7 @@ test('painel: a entrada (/) leva para /studio/, e /studio/ entrega a página do 
 });
 
 test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entradas e recusa abusos', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const call = (body) => fetch(base + '/api/studio/call', { method: 'POST', headers: json, body: JSON.stringify(body) });
   const sid = 'web-teste-0123456789ab';
 
@@ -104,7 +107,7 @@ test('ponte /api/studio: chama as ferramentas, devolve o documento, valida entra
 });
 
 test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois de cada edição (regressão: janela de 10 s)', async (t) => {
-  const base = await startServer(t);
+  const { base, fixture } = await startServer(t);
   const sid = 'web-teste-bloqueio-001';
   const call = async (tool, args) => (await fetch(base + '/api/studio/call', { method: 'POST', headers: json, body: JSON.stringify({ sid, tool, args }) })).json();
   const novo = await call('new_project', { name: 'Dois' });
@@ -112,7 +115,7 @@ test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois
 
   const client = new Client({ name: 'Agente do teste', version: '1.0.0' }, {});
   await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
-  t.after(() => client.close());
+  fixture.clients.push(client);
   const mcp = async (name, args) => JSON.parse((await client.callTool({ name, arguments: args })).content[0].text);
   await mcp('open_project', { file: novo.file });
 
@@ -128,7 +131,7 @@ test('pessoa no painel e agente no MCP no mesmo projeto não se bloqueiam depois
 });
 
 test('accounts: sid reutilizado não lê nem altera workspace de outra conta', async (t) => {
-  const base = await startServer(t, 'accounts');
+  const { base, fixture } = await startServer(t, 'accounts');
   const request = async (cookie, method, path, body) => fetch(base + path, {
     method, headers: { ...json, ...(cookie ? { cookie } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -159,7 +162,7 @@ test('accounts: sid reutilizado não lê nem altera workspace de outra conta', a
 });
 
 test('accounts: workspace aberto respeita downgrade, revogação e novo compartilhamento', async (t) => {
-  const base = await startServer(t, 'accounts');
+  const { base, fixture } = await startServer(t, 'accounts');
   const request = (cookie, method, path, body) => fetch(base + path, {
     method, headers: { ...json, ...(cookie ? { cookie } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),

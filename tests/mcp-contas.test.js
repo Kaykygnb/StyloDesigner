@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // O servidor em modo "contas": login, conta mestre, agentes com token no MCP, atividade registrada e isolamento entre pessoas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,13 +14,14 @@ const freePort = () => new Promise((resolve) => { const s = createServer(); s.li
 
 test('modo contas: setup, login, token de agente no MCP, log de atividade, revogação e isolamento', async (t) => {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-contas-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'accounts', DESIGNER_DB_DIR: 'memory' },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'accounts', DESIGNER_DB_DIR: 'memory' }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {

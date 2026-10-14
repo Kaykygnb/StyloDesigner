@@ -5,7 +5,7 @@ Estado: Em validação
 Início: 2026-10-13 22:22 UTC
 Última atualização: 2026-10-13 23:15 UTC
 Progresso: 4/5 marcos (80%)
-Participantes: [Kimi]
+Participantes: [Kimi], [Codex]
 
 ## Problema e evidências
 
@@ -89,7 +89,16 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 ### 2026-10-13 23:15 UTC — [Kimi] — handoff da tarefa
 
 - Investigado: nada de código; fechamento da sessão com a tarefa em `Em validação`.
-- Alterado: seção `## Handoff atual` criada com o estado real (gates implementados, testes 608/608, revisão humana pendente); criado `docs/planning/HANDOFF.md` geral e protocolo §10 em `TASK-PROTOCOL.md` (handoff passa a fazer parte do padrão do projeto).
+- Alterado: seção `### 2026-10-14 02:22 UTC — [Codex] — revisão técnica independente por criticidade
+
+- Investigado: implementação dos gates e regressão config-autorizacao; handoff exige revisão humana da escolha adminOf vs ownerOf, distinta do teste técnico.
+- Alterado: registro da revisão; responsável implementador [Kimi] e pendência humana preservados. Nenhuma política alterada nem aprovação humana inferida.
+- Arquivos: este documento.
+- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte completa em execução.
+- Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
+- Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
+
+## Handoff atual` criada com o estado real (gates implementados, testes 608/608, revisão humana pendente); criado `docs/planning/HANDOFF.md` geral e protocolo §10 em `TASK-PROTOCOL.md` (handoff passa a fazer parte do padrão do projeto).
 - Arquivos: esta tarefa, `HANDOFF.md`, `TASK-PROTOCOL.md`, `_TEMPLATE.md`, `validate-tasks.mjs` (handoff obrigatório para tarefas em voo).
 - Testes: `node docs/planning/validate-tasks.mjs` — 15 tarefas válidas.
 - Resultado: continuidade garantida para o revisor humano ou próximo agente.
@@ -130,6 +139,15 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Testes: pendentes nesta proposta.
 - Resultado: hipótese/escopo de validação marcado explicitamente como Proposto.
 - Próximo passo: descobrir duplicações novamente, assumir e reproduzir antes de implementar.
+
+### 2026-10-14 02:22 UTC — [Codex] — revisão técnica independente por criticidade
+
+- Investigado: implementação dos gates e regressão config-autorizacao; handoff exige revisão humana da escolha adminOf vs ownerOf, distinta do teste técnico.
+- Alterado: registro da revisão; responsável implementador [Kimi] e pendência humana preservados. Nenhuma política alterada nem aprovação humana inferida.
+- Arquivos: este documento.
+- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte completa em execução.
+- Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
+- Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
 
 ## Handoff atual
 

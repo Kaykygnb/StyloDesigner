@@ -16,3 +16,10 @@
 | Workspace humano | conta + sid | `studio-calls.ts`, `routes/studio.ts` | `studio-api` (accounts), `studio-login-fluxo.mjs` | acesso a documento alheio por reutilização de sid | DOC-SERVER-003 |
 | Compartilhamento ativo | downgrade/revogação/grant | `projects.access`, `workspace`, `routes/studio` | `studio-api` (accounts), `workspace` (MCP), `plugins` | papel/grant antigo permitir leitura ou mutação indevida | DOC-SERVER-004 |
 | Fixtures de QA automatizado | env herdado/encerramento/remoção | `tests/helpers/fixture-lifecycle.mjs`, fixtures MCP/PG | `fixture-lifecycle`, `mcp-compatibilidade`, `postgres-integracao` | banco real herdado, PANIC por remoção prematura, erro de startup mascarado | DOC-ENG-003 |
+
+## Isolamento dos fixtures legados (DOC-ENG-004)
+
+- `tests/test-env.test.js`: subprocesso com setup e sentinelas inválidas verifica limpeza de DATABASE_URL, banco/blobs em memória e credenciais novas; helper exige configuração própria e preserva overrides explícitos. Nenhuma conexão externa nessa regressão.
+- Fixtures API, assets, biblioteca, configuração, contas, gravação atômica, ZIP, MCP SDK/contas, servidor e Studio API/UI usam `isolatedServerEnv` e um hook `cleanupFixture`, com clientes antes dos filhos e remoção após saída confirmada. `server.test.js` agora tem configuração temporária própria.
+- Execução direta sem setup global, env hostil: `DATABASE_URL=sentinela-invalida STYLO_BLOB_DIR=/nao-usar-blobs STYLO_SECRET_KEY=herdado node --import tsx --test --test-timeout=90000 tests/test-env.test.js tests/fixture-lifecycle.test.js tests/api.test.js tests/config-autorizacao.test.js tests/mcp-sdk.test.js`.
+- PostgreSQL real continua exclusivamente provisionado por `tests/postgres-integracao.test.js`, com URL própria; não passar env humano como overrides do helper. Cleanup não encerra processos alheios. A regressão de SIGKILL POSIX permanece explicitamente ignorada em Windows.

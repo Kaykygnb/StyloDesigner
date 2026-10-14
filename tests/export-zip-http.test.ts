@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -53,10 +55,11 @@ const freePort = () => new Promise<number>((resolve) => { const server = createS
 test('rotas ZIP entregam HTML/React íntegros e isolam projetos por conta', { timeout: 90000 }, async (t) => {
   const { createNode, makeDoc } = await import(pathToFileURL(join(repo, 'packages/core/src/model.ts')).href);
   const temporary = await mkdtemp(join(tmpdir(), 'stylo-zip-http-'));
-  t.after(() => rm(temporary, { recursive: true, force: true }));
+  const fixture = { dir: temporary, children: [] as import("node:child_process").ChildProcess[], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
-  const child = spawn(process.execPath, ['--import', 'tsx', join(repo, 'apps/server/src/main.ts')], { cwd: repo, env: { ...process.env, PORT: String(port), STYLO_AUTH: 'accounts', DESIGNER_CONFIG: join(temporary, 'config.json'), DESIGNER_DB_DIR: 'memory' }, stdio: 'ignore' });
-  t.after(async () => { if (child.exitCode !== null) return; const exited = new Promise<void>((resolve) => child.once('exit', () => resolve())); child.kill(); await exited; });
+  const child = spawn(process.execPath, ['--import', 'tsx', join(repo, 'apps/server/src/main.ts')], { cwd: repo, env: isolatedServerEnv({ PORT: String(port), STYLO_AUTH: 'accounts', DESIGNER_CONFIG: join(temporary, 'config.json'), DESIGNER_DB_DIR: 'memory' }), stdio: 'ignore' });
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; ; i++) {
     if (child.exitCode !== null) throw new Error('Servidor encerrou antes de subir');

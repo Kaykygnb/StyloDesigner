@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Testes de segurança do servidor local: origem exata (porta incluída) e limite de corpo por rota.
 // Sobe o servidor real com configuração e pasta TEMPORÁRIAS (nunca toca nos projetos de ninguém).
 import { test } from 'node:test';
@@ -24,13 +26,14 @@ async function unusedPort() {
 /** Sobe o servidor e devolve `call(method, path, body, headers)`; usa http.request porque o fetch não deixa fixar `Origin`. */
 async function startServer(t) {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-seg-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await unusedPort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const call = (method, path, body, headers = {}) => new Promise((resolve, reject) => {
     const data = body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body);
     const req = request({ host: '127.0.0.1', port, method, path, headers: { ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}), ...headers } }, (res) => {

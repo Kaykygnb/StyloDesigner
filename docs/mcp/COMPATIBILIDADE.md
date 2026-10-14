@@ -8,11 +8,11 @@ Transporte do servidor: Streamable HTTP em `/mcp` (`WebStandardStreamableHTTPSer
 
 | Cliente | Versão | initialize | tools/list | tools/call | Sessão (Mcp-Session-Id) | Bearer/contas | Texto | Imagem | Erro (isError / JSON-RPC) |
 |---|---|---|---|---|---|---|---|---|---|
-| SDK oficial TypeScript (`@modelcontextprotocol/sdk`) | 1.32.1 | ✔ | ✔ (120) | ✔ | ✔ | ✔ (`mcp-contas`) | ✔ | parcial¹ | ✔ |
+| SDK oficial TypeScript (`@modelcontextprotocol/sdk`) | 1.32.1 | ✔ | ✔ (120) | ✔ | ✔ | ✔ (`mcp-contas`) | ✔ | não verificado¹ | ✔ |
 | Ponte stdio (`apps/server/bin/mcp.mjs`) | próprio (repo) | — | — | — | — | — | — | — | ✔² |
-| Cliente HTTP cru (JSON-RPC manual) | protocolo 2025-11-25 | ✔ | ✔ (120) | ✔ | ✔ | não aplicável³ | ✔ | parcial¹ | ✔ (-32700, -32602, isError) |
+| Cliente HTTP cru (JSON-RPC manual) | protocolo 2025-11-25 | ✔ | ✔ (120) | ✔ | ✔ | não aplicável³ | ✔ | não verificado¹ | ✔ (-32700, -32602, isError) |
 
-¹ **Imagem: lacuna consciente.** Conteúdo do tipo `image` só é produzido por `get_image`, que exige renderer com navegador — indisponível no servidor de teste e nos clientes acima. Ferramentas como `generate_qr_code` (PNG) devolvem dataURL dentro do conteúdo de **texto**. Verificação manual: abrir o Studio, chamar `get_image` por um cliente com renderer e conferir `content[].type === 'image'`.
+¹ **Imagem: lacuna consciente.** Conteúdo do tipo `image` só é produzido por `get_image`, que exige Chromium no servidor. Os testes desta matriz não chamam essa ferramenta; portanto, a disponibilidade do renderer e a apresentação de imagem nesses clientes não foram verificadas nesta rodada. Ferramentas como `generate_qr_code` (PNG) devolvem dataURL dentro do conteúdo de **texto**. Verificação manual: disponibilizar Chromium no servidor, abrir um projeto pelo cliente MCP, chamar `get_image` e conferir `content[].type === 'image'`.
 
 ² A ponte stdio foi validada no comportamento de falha: respostas HTTP inesperadas (ex. 403) viram erro MCP claro para a IA (`tests/mcp-stdio.test.js`). O caminho feliz stdio usa o mesmo gateway HTTP internamente.
 
@@ -36,7 +36,7 @@ Transporte do servidor: Streamable HTTP em `/mcp` (`WebStandardStreamableHTTPSer
 
 - **Configuração:** `fetch`/curl falando JSON-RPC 2.0 puro em `POST /mcp`, sem biblioteca MCP.
 - **Fluxo:** pedido sem sessão → 400; JSON inválido → -32700; `initialize` → sessão + `serverInfo` + instruções; `tools/list` → 120 ferramentas; `tools/call` → texto/isError; ferramenta inexistente → -32602; `DELETE` → sessão encerrada (404 depois); duas sessões isoladas com presença nomeada.
-- **Resultado:** 2 testes em `tests/mcp-compatibilidade.test.js`, todos passando.
+- **Resultado:** 3 testes em `tests/mcp-compatibilidade.test.js` (incluindo isolamento do ambiente adicionado por DOC-ENG-003), todos passando.
 
 Reprodução manual com curl (servidor local em `STYLO_AUTH=local`):
 
@@ -66,13 +66,17 @@ Em modo contas, acrescentar `-H "Authorization: Bearer stylo_agt_..."` em todos 
 
 | Cliente | Motivo | Risco | Como validar |
 |---|---|---|---|
-| Claude Desktop | não instalável/automátizável aqui | baixo — usa Streamable HTTP, coberto pelo SDK oficial | apontar `http://<host>:<porta>/mcp` nas configurações e chamar `list_projects` |
-| Cursor / Windsurf | idem | baixo — idem | configurar URL do servidor em `STYLO_AUTH=accounts` com token de agente |
+| Claude Desktop | não instalável/automátizável aqui | não avaliado — teste do SDK não comprova integração desse cliente | apontar `http://<host>:<porta>/mcp` nas configurações e chamar `list_projects` |
+| Cursor / Windsurf | idem | não avaliado — integração desse cliente ainda não testada | configurar URL do servidor em `STYLO_AUTH=accounts` com token de agente |
 | ChatGPT Work / outros hosted | exigem URL pública + credenciais | médio — rede exposta exige modo contas e política de agentes `closed`/`approval` | expor com reverse proxy local, bearer obrigatório, validar `initialize` + `tools/list` |
-| Conteúdo de imagem (`get_image`) | exige renderer com navegador | baixo — caminho separado do transporte | com Studio aberto, chamar `get_image` e conferir `content[].type === 'image'` |
+| Conteúdo de imagem (`get_image`) | exige renderer com navegador | não avaliado — geração e apresentação da imagem ainda não testadas | com Chromium no servidor e projeto aberto pelo cliente MCP, chamar `get_image` e conferir `content[].type === 'image'` |
 
-Estas lacunas permanecem **explicitamente não verificadas** por decisão de escopo (DOC-MCP-001): nenhuma delas bloqueia o subconjunto `initialize`/`tools/list`/`tools/call`/sessão/texto/erro, que é o que os clientes externos usam.
+Estas lacunas permanecem **explicitamente não verificadas** por decisão de escopo (DOC-MCP-001): a evidência automatizada cobre apenas os caminhos e operações indicados acima. Ela não comprova compatibilidade completa de clientes GUI/hosted, imagem ou do caminho feliz stdio. A aceitação das lacunas para a beta permanece pendente na tarefa.
 
 ## Regressão
 
-Antes de alterar o gateway, rode: `tests/mcp-sdk.test.js`, `tests/mcp-stdio.test.js`, `tests/mcp-contas.test.js`, `tests/mcp-compatibilidade.test.js` e os testes de segurança de API. Remover esta validação é só apagar este documento e o teste de compatibilidade — nenhum fixture adicional foi criado.
+Antes de alterar o gateway, rode: `tests/mcp-sdk.test.js`, `tests/mcp-stdio.test.js`, `tests/mcp-contas.test.js`, `tests/mcp-compatibilidade.test.js` e os testes de segurança de API. Preservar os testes e registrar novas evidências na matriz quando ampliar a cobertura.
+
+## Revisão técnica independente
+
+[Codex] recebeu o handoff de [Kimi] em 2026-10-14: a implementação original permanece atribuída a Kimi. A matriz distingue agora operações verificadas de integração ainda não testada; risco baixo não é inferido do uso do mesmo transporte. QA GUI com ChatGPT Work continua independente, orientado por `docs/qa/WORK-GUIDE.md`, sem exigir conexão MCP. Gates desta revisão e aceite de escopo são registrados em DOC-MCP-001.

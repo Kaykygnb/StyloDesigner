@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -14,13 +16,14 @@ const freePort = () => new Promise((resolve) => {
 
 async function start(t) {
   const dir = await mkdtemp(join(tmpdir(), 'stylo-contas-'));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fixture = { dir: dir, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64') },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64') }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; i < 2400; i++) {
     try { if ((await fetch(base + '/api/status')).ok) return { base, cookie: '' }; } catch { /* subindo */ }

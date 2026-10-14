@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Testes da API de salvamento do server.js: sobe o servidor real com configuração e pasta TEMPORÁRIAS
 // (nunca toca na sua pasta de projetos) e confere gravar/ler/listar, proteção contra conflito, versões e segurança.
 import { test } from 'node:test';
@@ -25,15 +27,16 @@ const doc = (name) => ({ name, pages: [{ id: 'p1', name: 'Página 1', children: 
 
 test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, renomear e segurança', async (t) => {
   const tmp = await mkdtemp(join(tmpdir(), 'designer-api-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await unusedPort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
     // Este teste exercita apenas a persistência da API. O servidor real exige
     // contas por padrão; o modo local fica explícito somente neste teste legado.
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'local' },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_AUTH: 'local' }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {

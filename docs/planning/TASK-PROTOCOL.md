@@ -75,6 +75,10 @@ Use exatamente um destes estados:
 - Use locks, presença, atividade ou coordenação de threads quando disponíveis.
 - Se não houver mecanismo técnico, declare a janela de edição no histórico.
 
+### Continuidade por etapa
+
+Uma tarefa pode passar do agente implementador para outro agente revisor: entregar o handoff indicando marco, evidências, pendências e destinatário; o próximo registra o aceite e a transferência no histórico antes de continuar. Preserve quem executou cada marco e seus commits. Revise os gates e critérios antes de concluir; abrir uma revisão técnica não exige repetir a implementação nem criar tarefa duplicada. Revisão humana é necessária quando a tarefa explicita uma decisão humana, não por todo handoff entre agentes. Atualize o backlog e o handoff geral para mostrar quem continua e o que falta.
+
 ## 7. Backlog
 
 `BACKLOG.md` é um índice curto. Cada linha deve permitir localizar ID, título, módulo, prioridade, estado, responsável, progresso, dependências e link. O documento individual é a fonte de verdade do estado, marcos e histórico; não replique o histórico no backlog.

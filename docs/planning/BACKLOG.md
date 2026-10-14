@@ -6,7 +6,7 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 |---|---|---|---:|---|---|---:|---|---|
 | DOC-CORE-001 | Inventário verificável de ferramentas | core | P0 | Concluída | [Codex] | 5/5 (100%) | — | [tarefa](tasks/core/DOC-CORE-001.md) |
 | DOC-CORE-002 | Matriz de exportação e warnings | core | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/core/DOC-CORE-002.md) |
-| DOC-MCP-001 | Matriz de compatibilidade MCP | mcp | P0 | Em andamento | [Kimi] | 4/5 (80%) | DOC-CORE-001 | [tarefa](tasks/mcp/DOC-MCP-001.md) |
+| DOC-MCP-001 | Matriz de compatibilidade MCP | mcp | P0 | Em revisão | [Codex] | 4/5 (80%) | DOC-CORE-001 | [tarefa](tasks/mcp/DOC-MCP-001.md) |
 | DOC-STUDIO-001 | Paridade das operações críticas | studio | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-CORE-001 | [tarefa](tasks/studio/DOC-STUDIO-001.md) |
 | DOC-SERVER-001 | Validar adapters de persistência e rede | server/database | P1 | Concluída | [Kimi] | 5/5 (100%) | — | [tarefa](tasks/server/DOC-SERVER-001.md) |
 | DOC-DB-001 | Restore e migração descartáveis | database | P1 | Proposta | [Não atribuído] | 0/5 (0%) | DOC-SERVER-001 | [tarefa](tasks/database/DOC-DB-001.md) |
@@ -22,5 +22,5 @@ O backlog é um índice. O documento individual, ligado na última coluna, é a 
 | DOC-STUDIO-004 | Investigar falha do E2E de painel web na etapa "Conferir" | studio/UX | P1 | Concluída | [Kimi] | 5/5 (100%) | — | [tarefa](tasks/studio/DOC-STUDIO-004.md) |
 | DOC-QA-001 | Preparar QA exploratório com ChatGPT Work | QA/documentação | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-STUDIO-003 (relação de evidências) | [tarefa](tasks/qa/DOC-QA-001.md) |
 | DOC-ENG-003 | Isolar banco e ordenar limpeza dos fixtures MCP/PostgreSQL | engenharia/testes | P1 | Concluída | [Codex] | 5/5 (100%) | DOC-MCP-001, DOC-SERVER-001 (infraestrutura) | [tarefa](tasks/engineering/DOC-ENG-003.md) |
-| DOC-ENG-004 | Auditar isolamento e cleanup dos fixtures legados | engenharia/testes | P1 | Em andamento | [Codex] | 1/5 (20%) | DOC-ENG-003 | [tarefa](tasks/engineering/DOC-ENG-004.md) |
+| DOC-ENG-004 | Auditar isolamento e cleanup dos fixtures legados | engenharia/testes | P1 | Em andamento | [Codex] | 3/5 (60%) | DOC-ENG-003 | [tarefa](tasks/engineering/DOC-ENG-004.md) |
 | DOC-STUDIO-005 | Redesign visual e identidade do Studio | studio/design | P1 | Proposta | [Não atribuído] | 0/5 (0%) | direção visual humana; DOC-STUDIO-003 e DOC-QA-001 (insumos) | [tarefa](tasks/studio/DOC-STUDIO-005.md) |

@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Gravação atômica de arquivos de configuração: nunca deixa JSON truncado, serializa gravações concorrentes
 // e não deixa arquivo temporário para trás.
 import { test } from 'node:test';
@@ -37,7 +39,8 @@ test('writeJsonAtomic: falha não corrompe o arquivo anterior nem deixa .tmp', a
 
 test('servidor: configuração corrompida vira cópia .corrompido e o servidor sobe com o padrão', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'designer-atomic-'));
-  t.after(() => rm(dir, { recursive: true, force: true }));
+  const fixture = { dir: dir, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const cfg = join(dir, 'config.json');
   await writeFile(cfg, '{"pexels":{"apiKey":"abc"},"folder":'); // truncado no meio
   const probe = createProbeServer();
@@ -46,8 +49,8 @@ test('servidor: configuração corrompida vira cópia .corrompido e o servidor s
   const { port } = probe.address();
   probe.close();
   await once(probe, 'close');
-  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], { env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: cfg }, stdio: 'ignore' });
-  t.after(() => child.kill());
+  const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], { env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: cfg }), stdio: 'ignore' });
+  fixture.children.push(child);
   let ok = false;
   for (let i = 0; i < 400 && !ok; i++) {
     try { ok = (await fetch(`http://127.0.0.1:${port}/api/status`)).ok; } catch { await new Promise((r) => setTimeout(r, 25)); }

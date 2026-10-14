@@ -1,15 +1,15 @@
 # DOC-MCP-001 — Matriz de compatibilidade MCP
 
-Responsável: [Kimi]
-Estado: Em andamento
+Responsável: [Codex]
+Estado: Em revisão
 Início: 2026-10-13 23:45 UTC
-Última atualização: 2026-10-14 00:30 UTC
+Última atualização: 2026-10-14 02:18 UTC
 Progresso: 4/5 marcos (80%)
-Participantes: [Kimi]
+Participantes: [Kimi], [Codex]
 
 - **Módulo:** mcp
 - **Prioridade:** P0
-- **Estado:** Proposto
+- **Estado:** Em revisão
 - **Problema/evidência:** o cliente oficial do SDK tem testes; clientes MCP externos não foram validados individualmente.
 - **Objetivo:** registrar o subconjunto de protocolo e diferenças observadas por cliente.
 - **Escopo:** initialize, tools/list, tools/call, sessão, bearer, texto/imagem/erro.
@@ -59,12 +59,12 @@ Participantes: [Kimi]
 - Problemas encontrados: falha ambiental pré-existente do E2E de painel web (DOC-STUDIO-004).
 ### #5 — Validação final
 - Estado: em andamento
-- Responsável: [Kimi]
-- Atividades executadas: aceite endereçado — cada cliente testado tem versão, configuração, fluxo e resultado anexados; lacunas (GUI/hosted e conteúdo de imagem) permanecem explicitamente não verificadas com justificativa e roteiro manual. Pendente apenas o estado `Em validação`/`Concluída` conforme revisão.
-- Arquivos alterados: —
-- Evidências: `docs/mcp/COMPATIBILIDADE.md`; validador de tarefas ok.
-- Testes executados: `node docs/planning/validate-tasks.mjs`.
-- Problemas encontrados: —
+- Responsável: [Codex]
+- Atividades executadas: handoff de Kimi recebido; revisão técnica da matriz corrigiu inferências não sustentadas por testes. Marcos #1–#4 e histórico original permanecem atribuídos a Kimi. Aceite humano das lacunas ainda pendente.
+- Arquivos alterados: docs/mcp/COMPATIBILIDADE.md, documentação de planejamento.
+- Evidências: matriz distingue imagem não verificada, stdio somente falha e clientes GUI/hosted sem evidência de compatibilidade.
+- Testes executados: SDK/autorização específicos aprovados; typecheck e validador aprovados; suíte atual em execução.
+- Problemas encontrados: não interpretar transporte comum como integração verificada; não vincular QA GUI do Work a MCP obrigatório.
 
 ## Histórico de trabalho
 
@@ -103,18 +103,27 @@ Participantes: [Kimi]
 - Resultado: tarefa continua Proposta e não atribuída.
 - Próximo passo: consultar duplicações e assumir explicitamente.
 
+### 2026-10-14 02:18 UTC — [Codex] — aceite de transferência para revisão técnica
+
+- Investigado: handoff preparado por [Kimi] para próximo agente, commits publicados cc9bec8/1c39a54/a502ba7 e matriz atual; remoto b4ae89d sem avanço concorrente na consulta.
+- Alterado: transferência de responsável anterior [Kimi] para novo [Codex], aceita nesta entrada por solicitação humana de continuidade por criticidade. Estado Em revisão, 4/5; implementação/histórico Kimi preservados. Janela: matriz MCP e documentação desta revisão.
+- Arquivos: esta tarefa, docs/mcp/COMPATIBILIDADE.md, BACKLOG.md e HANDOFF.md.
+- Testes: inspeção cruzada matriz/fixtures/renderer; reexecução dos gates em andamento junto à ENG-004. Não foram testados clientes GUI ou imagens nesta revisão.
+- Resultado: corrigidas afirmações sem evidência sobre imagem, classificação baixa de risco por transporte e contagem desatualizada dos testes. A falha Studio foi corrigida e os commits já foram publicados; não repetir essas pendências antigas.
+- Próximo passo: registrar gates atuais, revisar escopo residual; aceitação humana das lacunas continua pendente.
+
 ## Handoff atual
 
-Preparado por: [Kimi]
-Destinatário: [Próximo agente] ou [Revisor humano]
-Estado: Aguardando continuidade
+Preparado por: [Codex]
+Destinatário: [Codex / revisor humano]
+Estado: Em revisão
 Marco atual: #5 — Validação final
-Última atualização: 2026-10-14 00:30 UTC
+Última atualização: 2026-10-14 02:18 UTC
 Commit de referência: `cc9bec8` na branch `v0.1.0-beta`
 
 ### Estado atual
 
-Marcos #1–#4 concluídos. Cliente HTTP cru (sem SDK) validado com 2 testes novos; matriz `docs/mcp/COMPATIBILIDADE.md` publicada com 3 clientes aprovados e lacunas explícitas. Regressão: MCP + inventário 8/8, typecheck e build verdes; única falha da suíte é pré-existente (DOC-STUDIO-004).
+Marcos #1–#4 concluídos por Kimi. Codex aceitou revisão técnica; matriz ajustada para limitar conclusões ao que os testes verificam. Alterações originais já publicadas; falha DOC-STUDIO-004 corrigida. Gates atuais em execução; GUI/imagem/stdio feliz seguem não verificados.
 
 ### Decisões tomadas
 
@@ -133,12 +142,12 @@ Marcos #1–#4 concluídos. Cliente HTTP cru (sem SDK) validado com 2 testes nov
 
 ### Pendências
 
-- Commitar e publicar as mudanças locais; mover marco #5 para concluído e estado para `Em validação`/`Concluída` após revisão.
+- Publicar ajustes desta revisão e registrar gates; só concluir #5 após aceite de escopo.
 - Revisão humana da matriz (principalmente a classificação das lacunas).
 
 ### Próximas ações recomendadas
 
-1. Commitar (teste + matriz + inventário + DOC-STUDIO-004) e dar push na `v0.1.0-beta`.
+1. Registrar gates da revisão e publicar ajustes na `v0.1.0-beta`.
 2. Atualizar `HANDOFF.md` geral com a DOC-MCP-001.
 3. Revisão: conferir se as lacunas declaradas são aceitáveis como "explicitamente não verificadas".
 

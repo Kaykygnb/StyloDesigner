@@ -1,3 +1,8 @@
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer as createProbeServer } from 'node:net';
@@ -17,13 +22,16 @@ async function unusedPort() {
 
 test('servidor entrega assets, bloqueia arquivos privados e traversal', async (t) => {
   // codex: escolhe uma porta livre e espera o servidor ficar pronto para evitar colisões entre execuções.
+  const tmp = await mkdtemp(join(tmpdir(), 'designer-server-'));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await unusedPort();
   const serverPath = fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url));
   const child = spawn(process.execPath, ['--import', 'tsx', serverPath], {
-    env: { ...process.env, PORT: String(port), STYLO_DEV: '1' },
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), STYLO_DEV: '1' }),
     stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
 
   const base = `http://127.0.0.1:${port}`;
   let ready = false;

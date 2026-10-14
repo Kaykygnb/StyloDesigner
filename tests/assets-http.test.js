@@ -1,3 +1,5 @@
+import { isolatedServerEnv } from './helpers/test-env.mjs';
+import { cleanupFixture } from './helpers/fixture-lifecycle.mjs';
 // Imagens por HTTP: o editor grava o projeto com data URLs; o servidor guarda as imagens fora do JSON, devolve data URLs
 // ao ler e serve cada imagem por endereço (sha256).
 import { test } from 'node:test';
@@ -15,12 +17,13 @@ const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8B
 
 test('projeto com imagem: ler devolve data URL e a imagem sai por /assets/<sha256> com cache imutável', async (t) => {
   const tmp = await mkdtemp(join(tmpdir(), 'stylo-assets-'));
-  t.after(() => rm(tmp, { recursive: true, force: true }));
+  const fixture = { dir: tmp, children: [], clients: [] };
+  t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...process.env, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }, stdio: 'ignore',
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local' }), stdio: 'ignore',
   });
-  t.after(() => child.kill());
+  fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
