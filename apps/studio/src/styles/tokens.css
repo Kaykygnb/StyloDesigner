@@ -1,0 +1,122 @@
+/* ==========================================================================
+   Design tokens do Stylo Studio
+   Superfícies neutras em camadas (grafite no escuro, cinza frio no claro);
+   só o destaque (--accent) é escolhido pela pessoa e NUNCA toca no projeto.
+   Densidade de editor: texto base 12px, controles 26–30px, cantos 5–11px.
+   ========================================================================== */
+
+:root {
+  /* ---------- destaque (configurável) ---------- */
+  --accent: #4c8dff;
+  --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-strong: color-mix(in srgb, var(--accent) 84%, black);
+  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
+  --on-accent: #ffffff;
+
+  /* ---------- direção premium ---------- */
+  --pink: #ff4fa3;
+  --violet: #6d5dfc;
+  --amber: #ffcf70;
+  --cyan: #63e6ff;
+  --gradient-spectacle: linear-gradient(135deg, var(--pink), var(--violet));
+  --gradient-surface: linear-gradient(135deg, color-mix(in srgb, var(--pink) 9%, var(--surface)), color-mix(in srgb, var(--violet) 8%, var(--surface)));
+  --glow-pink: 0 12px 34px rgb(255 79 163 / 16%);
+  --glow-violet: 0 12px 34px rgb(109 93 252 / 16%);
+  --glass-border: color-mix(in srgb, var(--pink) 24%, var(--border));
+  --glass-bg: color-mix(in srgb, var(--surface) 84%, transparent);
+
+  /* ---------- tipografia ---------- */
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ---------- cantos ---------- */
+  --radius-s: 5px;
+  --radius: 7px;
+  --radius-l: 11px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* ---------- movimento ---------- */
+  --dur-1: 0.12s;
+  --dur-2: 0.18s;
+  --ease: cubic-bezier(0.2, 0.65, 0.25, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---------- semânticos (independentes de tema) ---------- */
+  --danger: #ef5b5b;
+  --warn: #e0a030;
+  --ok: #3fb67a;
+
+  /* ---------- layout ---------- */
+  --topbar-h: 52px;
+  --left-w: 284px;
+  --right-w: 340px;
+  --fs: 12px;
+}
+
+/* ---------- tema escuro (padrão) ---------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0d0b12;
+  --surface: #15121c;
+  --surface-2: #1a1b20;
+  --surface-3: #222429;
+  --border: #27292f;
+  --border-strong: #34363e;
+
+  --text: #ecedef;
+  --text-2: #a3a7b2;
+  --text-3: #71757f;
+
+  --canvas: #100d19;
+
+  --hover: rgb(255 255 255 / 8%);
+  --active: rgb(255 255 255 / 13%);
+
+  --shadow-s: 0 1px 2px rgb(0 0 0 / 35%);
+  --shadow: 0 8px 24px rgb(0 0 0 / 42%), 0 2px 6px rgb(0 0 0 / 32%);
+  --shadow-m: 0 12px 32px rgb(0 0 0 / 48%), 0 3px 8px rgb(0 0 0 / 36%);
+  --shadow-l: 0 24px 64px rgb(0 0 0 / 55%), 0 4px 12px rgb(0 0 0 / 4%);
+
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
+  --ok-soft: color-mix(in srgb, var(--ok) 14%, transparent);
+}
+
+/* ---------- tema claro ---------- */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f7f3f8;
+  --surface: #fffdfd;
+  --surface-2: #f6eff6;
+  --surface-3: #e7e9ee;
+  --border: #e4e6eb;
+  --border-strong: #d3d6dd;
+
+  --text: #191a1e;
+  --text-2: #5d616c;
+  --text-3: #8f939e;
+
+  --canvas: #eee8f1;
+
+  --hover: rgb(20 24 40 / 5%);
+  --active: rgb(20 24 40 / 8%);
+
+  --shadow-s: 0 1px 2px rgb(16 24 40 / 7%);
+  --shadow: 0 10px 30px rgb(16 24 40 / 12%), 0 2px 6px rgb(16 24 40 / 6%);
+  --shadow-m: 0 14px 38px rgb(16 24 40 / 15%), 0 3px 8px rgb(16 24 40 / 7%);
+  --shadow-l: 0 24px 60px rgb(16 24 40 / 20%), 0 4px 12px rgb(16 24 40 / 8%);
+
+  --accent-contrast: #2f6bdf;
+
+  --danger-soft: #fdecec;
+  --warn-soft: #fdf3e1;
+  --ok-soft: #e6f5ec;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}

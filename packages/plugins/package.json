@@ -1,0 +1,16 @@
+{
+  "name": "@stylo/plugins",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plugins embutidos do Stylo: identidade visual, (em breve) provedores de assets, exportadores.",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "lucide-static": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.6"
+  }
+}

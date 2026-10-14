@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Stylo">
+  <!-- Stylo: um "S" formado por dois blocos encaixados (como caixas do box model do CSS) -->
+  <rect width="32" height="32" rx="8" fill="#0b0c0e"/>
+  <path d="M8 7h16v4.5H12.5v2.25H18v4.5H8z" fill="#4c8dff"/>
+  <path d="M19.5 13.75H24V25H8v-4.5h11.5z" fill="#a9c6ff"/>
+</svg>
