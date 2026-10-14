@@ -65,9 +65,16 @@ export function projectRoutes(s: Services, id: Identity) {
     }
   });
 
+  /** O zip entrega o projeto para download. VIEWER lê o canvas, mas não leva o pacote. */
+  const loadZip = async (c: Parameters<Identity['userOf']>[0], file: string) => {
+    const name = checkName(file);
+    const loaded = await s.projects.load(await id.userOf(c), name);
+    if (loaded.role === 'VIEWER') throw httpError(403, 'Você só pode ler ou comentar este projeto.');
+    return { name, doc: loaded.doc };
+  };
+
   r.get('/projects/:file/react.zip', async (c) => {
-    const name = checkName(c.req.param('file'));
-    const { doc } = await s.projects.load(await id.userOf(c), name);
+    const { name, doc } = await loadZip(c, c.req.param('file'));
     const site = exportReact(doc);
     const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
     return c.body(zip, 200, {
@@ -77,8 +84,7 @@ export function projectRoutes(s: Services, id: Identity) {
   });
 
   r.get('/projects/:file/site.zip', async (c) => {
-    const name = checkName(c.req.param('file'));
-    const { doc } = await s.projects.load(await id.userOf(c), name);
+    const { name, doc } = await loadZip(c, c.req.param('file'));
     const site = exportSite(doc, { vendor: vendorFiles });
     const zip = Buffer.from(createZip(site.files.map(({ path, content }) => ({ path, content }))));
     return c.body(zip, 200, {

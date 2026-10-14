@@ -4,13 +4,30 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 ## Referência
 
-- Branch: `v0.1.0-beta`
-- Commit de referência: `50a8d00d006316175667397ac433ad4b6403832f`
-- Última atualização: 2026-10-14 03:42 UTC — [Codex]
+- Branch de trabalho: `cursor/studio-mcp-parity-950d`, atualizada sobre `v0.1.0-beta` já com a ADR 0002 e o plano da alpha (PR #19)
+- Commit da matriz: `aabece8`
+- Commit do zip de VIEWER: `d9a7b5a`
+- Última atualização: 2026-10-14 09:20 UTC — integração da PR #17 sobre a PR #19
 
 ## Entrega atual
 
-[DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) concluída, 5/5: 13 fixtures legados com ambiente isolado e cleanup ordenado; teste de servidor usa configuração temporária. Específicos hostis sem setup 10/10; suíte 622/622, zero falhas/skips, incluindo PostgreSQL real e Studio UI automatizado. Typecheck, inventário e validador (20 tarefas) aprovados. Sem mudança funcional ou QA exploratório. Implementação publicada em f8f8141; CI remota ainda não consultada.
+[DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) concluída, 5/5. Matriz em `tests/studio-parity.test.js`: callers reais do Studio e do MCP, projetos PGlite equivalentes, comparação por forma (documento, seleção, undo/redo, metadados de `export_site`, trilha `USER`×`AGENT`) e recusa de escrita (escopo `read` e papel `VIEWER`).
+
+Decisão do proprietário em 2026-10-14, aplicada nesta entrega: papel de projeto VIEWER não baixa nem exporta o zip. `export_zip` (caller do painel e do MCP) e os GET `site.zip`/`react.zip` recusam com `Você só pode ler ou comentar este projeto.`, antes de gravar. O agente só de leitura do dono continua na mensagem de scope. COMMENTER segue podendo baixar. `export_site`, `export_html` e `export_tokens` continuam leitura.
+
+[DOC-ENG-005](tasks/engineering/DOC-ENG-005.md) já está em `v0.1.0-beta`: decisões da ADR 0002, inventário vetorial e alpha local. Nenhum runtime nessa entrega.
+
+## Continuidade
+
+- [DOC-SERVER-007](tasks/server/DOC-SERVER-007.md) permanece com investigação e plano concluídos. A PR #17 registrava o marco #3 bloqueado por ADM-DEC-05/07/09. Essas decisões foram aprovadas na ADR 0002 (PR #19). O arquivo da tarefa não foi editado nessa PR. A implementação continua fora desta entrega.
+- [DOC-SERVER-006](tasks/server/DOC-SERVER-006.md) segue em 1/5 com [Codex]: principal protegido ainda não existe no runtime. Próximo passo é desenhar invariantes e migração; nenhum patch estrutural genérico. A PR #19 também não editou essa tarefa.
+- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) continua Em validação 4/5: aceite humano das lacunas GUI/hosted/imagem/stdio feliz.
+- [DOC-DB-001](tasks/database/DOC-DB-001.md) continua Em validação 4/5: restore PGlite provado; pg_dump/pg_restore pendente.
+- [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) continua com [Codex], execução exploratória guiada pelo proprietário. A 001 não cobre revisão visual.
+
+## Próxima prioridade
+
+DOC-SERVER-006, P0, investigação do principal. Não escolher o principal por heurística nem ampliar autoridade. A recusa de zip para VIEWER já foi decidida e implementada na 001; não reabrir esse ponto.
 
 ## Continuidade e deliberação administrativa
 
@@ -31,10 +48,14 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 ## Próximas prioridades e limites
 
-Continuar planejamento/reprodução P0SERVER006 e investigação SERVER007; avançar restore independente. Não manter projeto aguardando decisões futuras: registrar bloqueio apenas na alteração específica. Questões abertas: tenancy/equipes, poderes sensíveis/acesso excepcional, transferência/recuperação principal, agentes/emvoo, backup/chaves, federação e auditoria/retenção.
+Continuar planejamento/reprodução P0SERVER006 e investigação SERVER007; avançar restore independente. Não manter projeto aguardando decisões futuras: registrar bloqueio apenas na alteração específica. Questões abertas: tenancy/equipes, poderes sensíveis/acesso excepcional, transferência/recuperação principal, agentes/emvoo, backup/chaves, federação e auditoria/retenção. A PR #19 registrou na ADR 0002 as decisões humanas dessa lista que o proprietário aprovou; este parágrafo histórico não reabre o que a ADR já decidiu.
 
 Perfil local sem senha é legado a migrar com preservação; não removido nesta sessão. Modelo principal não existe ainda; contato institucional não é conta coletiva. Registro revisado independentemente; validador28, links147 e diff aprovados. Só documentos e prova de teste PGlite nesta entrega; nenhum runtime alterado.
 
 ## Cuidados
 
-Não testar contra bancos/dados externos herdados. Novos fixtures usam configuração própria; PostgreSQL usa URL provisionada explicitamente. Conferir remoto e aceitar handoff antes de continuar; não duplicar tarefas nem apagar autores anteriores.
+Não testar contra bancos ou dados externos herdados. Novos fixtures usam configuração própria; PostgreSQL usa URL provisionada explicitamente. Conferir remoto e aceitar handoff antes de continuar; não duplicar tarefas nem apagar autores anteriores.
+
+## Registro de produto — 2026-10-14 08:45 UTC — [Grok 4.7]
+
+Branch de trabalho: `cursor/produto-horizontes-alpha-4159`, base `v0.1.0-beta` em `31f16bf`. [DOC-ENG-005](tasks/engineering/DOC-ENG-005.md) concluída: decisões 2.1–2.7, ADM-DEC-05 e ADM-DEC-09 na ADR 0002; prazo de retenção é detalhe técnico e configuração sensível do OWNER principal. ADM-DEC-02 está aprovada; a aplicação é [DOC-SERVER-013](tasks/server/DOC-SERVER-013.md). ADM-DEC-07 e ADM-DEC-08 estão aprovadas: ADMIN não acessa projeto privado; restore e chave mestra ficam com o OWNER ([DOC-SERVER-014](tasks/server/DOC-SERVER-014.md) e DOC-SERVER-013). ADM-DEC-04 está aprovada: `project.share` é separado de write ([DOC-SERVER-015](tasks/server/DOC-SERVER-015.md)). Não resta decisão humana pendente na ADR. Inventário vetorial e alpha local em [EVOLUTION.md](../product/EVOLUTION.md). [DOC-ENG-006](tasks/engineering/DOC-ENG-006.md) é Proposta e espera as PRs #17 e #18 e a DOC-SERVER-011 (login por nome de usuário, bloqueio da alpha). ADM-DEC-01 está aprovada: uma organização por instalação na beta. Multi-tenant não é requisito. EDITOR e COMMENTER saem do papel global e ficam no projeto; a migração sem apagar dados é [DOC-SERVER-012](tasks/server/DOC-SERVER-012.md). DOC-SERVER-006 e DOC-SERVER-007 não foram editados. Nenhum runtime alterado.

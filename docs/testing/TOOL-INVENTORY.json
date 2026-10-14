@@ -123,27 +123,15 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 248
-        },
-        {
-          "path": "tests/workspace.test.ts",
           "line": 251
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 256
+          "line": 254
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 264
-        },
-        {
-          "path": "tests/workspace.test.ts",
-          "line": 265
-        },
-        {
-          "path": "tests/workspace.test.ts",
-          "line": 266
+          "line": 259
         },
         {
           "path": "tests/workspace.test.ts",
@@ -151,11 +139,23 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 286
+          "line": 268
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 288
+          "line": 269
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 270
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 289
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 291
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -429,7 +429,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 246
+        "line": 248
       },
       "scope": "comment",
       "lock": "sem lock por chamada",
@@ -443,39 +443,39 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 151
+          "line": 154
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 155
+          "line": 158
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 161
+          "line": 164
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 163
+          "line": 166
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 171
+          "line": 174
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 184
+          "line": 187
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 185
+          "line": 188
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 482
+          "line": 485
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 490
+          "line": 493
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -751,6 +751,18 @@
         {
           "path": "tests/arrange.test.ts",
           "line": 158
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 105
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 210
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -1233,8 +1245,20 @@
           "line": 114
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 113
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 211
+        },
+        {
           "path": "tests/workspace.test.ts",
-          "line": 418
+          "line": 421
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -1313,15 +1337,7 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 378
-        },
-        {
-          "path": "tests/workspace.test.ts",
-          "line": 385
-        },
-        {
-          "path": "tests/workspace.test.ts",
-          "line": 387
+          "line": 381
         },
         {
           "path": "tests/workspace.test.ts",
@@ -1329,7 +1345,15 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 406
+          "line": 390
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 391
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 409
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -2115,6 +2139,42 @@
           "line": 184
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 89
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 90
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 91
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 180
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 182
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 191
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 193
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 207
+        },
+        {
           "path": "tests/studio-ui.test.js",
           "line": 168
         },
@@ -2164,67 +2224,67 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 118
+          "line": 121
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 138
+          "line": 141
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 187
+          "line": 190
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 231
+          "line": 234
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 312
+          "line": 315
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 313
+          "line": 316
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 341
+          "line": 344
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 375
+          "line": 378
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 376
+          "line": 379
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 404
+          "line": 407
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 405
+          "line": 408
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 431
+          "line": 434
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 456
+          "line": 459
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 481
+          "line": 484
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 490
+          "line": 493
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 494
+          "line": 497
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -3515,20 +3575,32 @@
           "line": 155
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 122
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 223
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 224
+        },
+        {
           "path": "tests/workspace.test.ts",
           "line": 52
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 314
-        },
-        {
-          "path": "tests/workspace.test.ts",
-          "line": 318
+          "line": 317
         },
         {
           "path": "tests/workspace.test.ts",
           "line": 321
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 324
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -3629,6 +3701,34 @@
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
         {
+          "path": "tests/export-zip-http.test.ts",
+          "line": 114
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 228
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 231
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 241
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 245
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 248
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 256
+        },
+        {
           "path": "tests/tool-inventory.test.js",
           "line": 21
         },
@@ -3638,11 +3738,15 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 139
+          "line": 116
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 322
+          "line": 142
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 325
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -3804,15 +3908,15 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 347
+          "line": 350
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 433
+          "line": 436
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 438
+          "line": 441
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4061,7 +4165,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 260
+        "line": 262
       },
       "scope": "read",
       "lock": "sem lock por chamada",
@@ -4078,16 +4182,40 @@
           "line": 200
         },
         {
-          "path": "tests/workspace.test.ts",
-          "line": 170
+          "path": "tests/studio-parity.test.js",
+          "line": 157
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 158
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 202
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 203
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 236
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 237
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 172
+          "line": 173
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 484
+          "line": 175
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 487
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4336,31 +4464,31 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 346
+          "line": 349
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 350
+          "line": 353
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 354
+          "line": 357
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 358
+          "line": 361
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 484
+          "line": 487
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 488
+          "line": 491
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 490
+          "line": 493
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4406,23 +4534,23 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 130
+          "line": 133
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 232
+          "line": 235
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 390
+          "line": 393
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 394
+          "line": 397
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 395
+          "line": 398
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4494,7 +4622,7 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 343
+          "line": 346
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -4594,8 +4722,25 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 92
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 106
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 114
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 121
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "get_site_metadata",
@@ -4956,7 +5101,7 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 300
+          "line": 303
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -5029,7 +5174,7 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 460
+          "line": 463
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -5578,7 +5723,7 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 270
+          "line": 273
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -5701,7 +5846,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 267
+        "line": 269
       },
       "scope": "read",
       "lock": "sem lock por chamada",
@@ -5715,15 +5860,15 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 199
+          "line": 202
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 207
+          "line": 210
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 484
+          "line": 487
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -5760,7 +5905,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 251
+        "line": 253
       },
       "scope": "read",
       "lock": "sem lock por chamada",
@@ -5774,31 +5919,31 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 158
+          "line": 161
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 165
+          "line": 168
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 166
+          "line": 169
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 167
+          "line": 170
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 186
+          "line": 189
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 484
+          "line": 487
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 490
+          "line": 493
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -6144,6 +6289,22 @@
           "line": 207
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 88
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 178
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 189
+        },
+        {
           "path": "tests/tokens.test.ts",
           "line": 26
         },
@@ -6193,75 +6354,75 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 129
+          "line": 132
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 137
+          "line": 140
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 150
+          "line": 153
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 181
+          "line": 184
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 194
+          "line": 197
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 216
+          "line": 219
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 230
+          "line": 233
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 246
+          "line": 249
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 285
+          "line": 288
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 299
+          "line": 302
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 311
+          "line": 314
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 340
+          "line": 343
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 374
+          "line": 377
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 403
+          "line": 406
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 417
+          "line": 420
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 430
+          "line": 433
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 455
+          "line": 458
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 477
+          "line": 480
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -6360,6 +6521,14 @@
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
         {
+          "path": "tests/export-zip-http.test.ts",
+          "line": 108
+        },
+        {
+          "path": "tests/export-zip-http.test.ts",
+          "line": 112
+        },
+        {
           "path": "tests/mcp-compatibilidade.test.js",
           "line": 145
         },
@@ -6378,6 +6547,22 @@
         {
           "path": "tests/studio-api.test.js",
           "line": 183
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 186
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 195
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 239
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 254
         },
         {
           "path": "tests/studio-ui.test.js",
@@ -6405,43 +6590,43 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 117
+          "line": 120
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 122
+          "line": 125
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 157
+          "line": 160
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 182
+          "line": 185
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 183
+          "line": 186
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 204
+          "line": 207
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 209
+          "line": 212
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 287
+          "line": 290
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 458
+          "line": 461
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 479
+          "line": 482
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -6587,8 +6772,25 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 103
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 111
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 119
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "rename_page",
@@ -6800,7 +7002,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 256
+        "line": 258
       },
       "scope": "comment",
       "lock": "sem lock por chamada",
@@ -6814,7 +7016,7 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 164
+          "line": 167
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -6900,7 +7102,7 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 457
+          "line": 460
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -7739,7 +7941,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 268
+        "line": 270
       },
       "scope": "owner",
       "lock": "sem lock por chamada",
@@ -7752,6 +7954,14 @@
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
         {
+          "path": "tests/export-zip-http.test.ts",
+          "line": 110
+        },
+        {
+          "path": "tests/export-zip-http.test.ts",
+          "line": 122
+        },
+        {
           "path": "tests/postgres-integracao.test.js",
           "line": 142
         },
@@ -7760,12 +7970,12 @@
           "line": 180
         },
         {
-          "path": "tests/workspace.test.ts",
-          "line": 195
+          "path": "tests/studio-parity.test.js",
+          "line": 184
         },
         {
-          "path": "tests/workspace.test.ts",
-          "line": 197
+          "path": "tests/studio-parity.test.js",
+          "line": 252
         },
         {
           "path": "tests/workspace.test.ts",
@@ -7773,19 +7983,27 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 205
+          "line": 200
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 478
+          "line": 201
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 480
+          "line": 208
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 487
+          "line": 481
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 483
+        },
+        {
+          "path": "tests/workspace.test.ts",
+          "line": 490
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -8056,8 +8274,29 @@
       },
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
-      "testReferences": [],
-      "testStatus": "sem menção literal encontrada; cobertura não determinada"
+      "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 101
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 109
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 117
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 212
+        }
+      ],
+      "testStatus": "menções textuais; cobertura comportamental não auditada"
     },
     {
       "name": "ungroup_layers",
@@ -8146,7 +8385,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 272
+        "line": 274
       },
       "scope": "owner",
       "lock": "sem lock por chamada",
@@ -8172,11 +8411,11 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 206
+          "line": 209
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 483
+          "line": 486
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -8642,6 +8881,18 @@
           "line": 201
         },
         {
+          "path": "tests/studio-parity.test.js",
+          "line": 93
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 208
+        },
+        {
           "path": "tests/tokens.test.ts",
           "line": 89
         },
@@ -8675,15 +8926,15 @@
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 349
+          "line": 352
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 353
+          "line": 356
         },
         {
           "path": "tests/workspace.test.ts",
-          "line": 357
+          "line": 360
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"
@@ -8742,6 +8993,18 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 95
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 159
+        },
+        {
+          "path": "tests/studio-parity.test.js",
+          "line": 209
+        },
         {
           "path": "tests/update-layers-locks.test.ts",
           "line": 15
@@ -8830,7 +9093,7 @@
       "dispatch": "workspace.PROJECT",
       "handler": {
         "path": "apps/server/src/workspace/index.ts",
-        "line": 266
+        "line": 268
       },
       "scope": "read",
       "lock": "sem lock por chamada",
@@ -8844,7 +9107,7 @@
       "testReferences": [
         {
           "path": "tests/workspace.test.ts",
-          "line": 217
+          "line": 220
         }
       ],
       "testStatus": "menções textuais; cobertura comportamental não auditada"

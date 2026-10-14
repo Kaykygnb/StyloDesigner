@@ -43,7 +43,7 @@ Código HTML/CSS/SVG/URL de projeto e entrada de agente são não confiáveis me
 
 ## Autorização recomendada
 
-Manter RBAC existente como base. Acrescentar, quando aprovado, capacidades explícitas e regras de contexto apenas onde o papel amplo é insuficiente: `instance.config.operational`, `instance.security.manage`, `instance.credentials.manage`, `users.manage`, `owners.manage`, `project.share`, `agents.delegate`, `backups.restore`. Esses nomes são **vocabulário proposto**, não endpoints ou scopes implementados. Não substituir read/comment/write/export unilateralmente.
+Manter RBAC existente como base. Acrescentar capacidades explícitas e regras de contexto apenas onde o papel amplo é insuficiente: `instance.config.operational`, `instance.security.manage`, `instance.credentials.manage`, `users.manage`, `owners.manage`, `project.share`, `agents.delegate`, `backups.restore`. `project.share` foi aprovado na ADM-DEC-04 como scope separado de write e ainda não está implementado. Os outros nomes seguem vocabulário proposto, não endpoints. Não substituir read/comment/write/export unilateralmente.
 
 Cada decisão recebe principal autenticado, ação, recurso/alvo, papel global ou membership apropriado, estado atual, modo local/accounts e intenção. Validar no servidor antes do efeito; manter ausência de mutação parcial. Para agente, permissão efetiva proposta é a interseção: agente ativo + delegante autorizado/ativo + grant + scopes/capacidade + papel no projeto + regra da ferramenta. Não usar união de poderes nem role global do dono como passe administrativo.
 

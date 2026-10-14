@@ -12,7 +12,7 @@ Fonte normativa: [21 decisões/diretrizes humanas na ADR 0002](../adr/0002-self-
 | Titularidade institucional | User tem e-mail pessoal; sem cadastro distinto de instituição/principal | Comparar metadados de instância com entidades novas; contato empresarial não autentica nem substitui pessoa administradora |
 | Administração scoped/progressiva | Global adminOf amplo; membership por projeto já existe; não há setores/tenants | Mapear capabilities/contexto por conjuntos de projetos antes de criar hierarquia obrigatória; não dar leitura privada global |
 | Recuperação por e-mail GUI | Reset temporário por admin e troca própria existentes; nenhum serviço SMTP/recovery-token identificado | Projetar tokens e envio/gui/cofre com testes isolados; envio real só com destinatário/credenciais expressamente autorizados |
-| Recuperação offline/transferência | Sem procedimento completo identificado | Comparar alternativas e riscos, preservando dados/provas; não escolher mecanismo definitivo em nome humano |
+| Recuperação offline/transferência | Sem procedimento completo identificado. Em 2026-10-14 o proprietário escolheu códigos offline de uso único e listou os requisitos da transferência. O procedimento de emergência continua a projetar | Desenhar em DOC-SERVER-010. Não tratar acesso ao banco como recuperação. Não implementar nesta atualização de registro |
 
 ### Plano de migração local (DOC-SERVER-009)
 
@@ -38,20 +38,22 @@ GUI administrativa deve conter SMTP customizado, assistência de provedor, opç�
 
 Guardar credenciais em serviço protegido existente onde adequado; não equiparar máscara na resposta a cifragem em repouso. Chave de cifragem/rotação/backup ainda precisa de política; OAuth de SMTP e OAuth de login federado têm finalidades diferentes. Não solicitar login Google/Vich Hub ou client secrets nesta rodada.
 
-### Alternativas offline — não escolhidas pelo humano
+### Alternativas offline
+
+Em 2026-10-14 o proprietário escolheu códigos offline de uso único, com proteção adequada. A linha abaixo deixa de ser “não escolhida”. O procedimento excepcional de emergência continua a projetar. As outras linhas não foram escolhidas.
 
 | Alternativa | Vantagem | Risco / validação necessária |
 |---|---|---|
-| Códigos de recuperação individuais, hash/uso único | Sem internet; usuário guarda prova fora da máquina | Perda/furto de códigos, reemissão, vínculo principal e MFA; não implementar definitivo sem deliberação |
+| Códigos de recuperação individuais, hash/uso único | Sem internet; usuário guarda prova fora da máquina. **Escolhida em 2026-10-14 para o OWNER principal** | Perda ou furto, reemissão, vínculo com o principal. Desenhar sem tratar acesso ao banco como recuperação |
 | Procedimento local do operador com prova de controle da instalação | Recupera caso sem todos admins/e-mail; combina com self-hosted | Acesso ao SO pode já alcançar DB/chaves; definir registro, backup e transferência sem backdoor remoto ou senha fixa |
 | Outro OWNER ajuda pelo fluxo aprovado | Facilita empresa com sócios | OWNER adicional não pode tomar principal; assistência não equivale a reset arbitrário ou concessão de OWNER |
 | Restaurar backup verificado | Recuperação de desastre de dados | Não é mecanismo geral de senha; pode reintroduzir credenciais/sessões antigas, requer política e conjunto completo |
 
-Transferência legítima é requisito; o procedimento excepcional, prova, quórum/prazos e controles não foram definidos pelo humano. Implementação federada permanece possibilidade futura sem prioridade imediata; Vich Hub requer verificação de protocolo/compatibilidade, não assumir OAuth/OIDC existente.
+Transferência legítima é requisito. Em 2026-10-14 o proprietário definiu os seis passos (autenticação reforçada, sucessor indicado, aceite, operação atômica, auditoria, sessões). O procedimento excepcional de emergência continua a projetar. Não acrescentar quórum ou prazo que ele não pediu. Implementação federada permanece possibilidade futura sem prioridade imediata; Vich Hub requer verificação de protocolo/compatibilidade, não assumir OAuth/OIDC existente.
 
 ## Fronteiras de autorização para continuar
 
-Permitido agora: registro, investigação/reprodução descartável, desenho técnico/review, testes e correções pequenas comprovadas dentro de tarefa autorizada; continuar restore existente. Não autorizado genericamente: remoção destrutiva local, migração de produção, implantação integral de SMTP/tenancy/principal, envio real e grandes refatorações. Quando decisão aberta bloqueia efeito específico, registrar e seguir trabalho independente, não paralisar projeto.
+Permitido agora: registro, investigação/reprodução descartável, desenho técnico/review, testes e correções pequenas comprovadas dentro de tarefa autorizada; continuar restore existente. Não autorizado genericamente: remoção destrutiva local, migração de produção, implantação integral de SMTP, multi-tenant ou do principal, envio real e grandes refatorações. ADM-DEC-01 já aprova uma organização por instalação; isso não autoriza a alternativa de várias organizações. Quando decisão aberta bloqueia efeito específico, registrar e seguir trabalho independente, não paralisar projeto.
 
 ## Provedores de envio — pesquisa oficial, não interoperabilidade testada
 

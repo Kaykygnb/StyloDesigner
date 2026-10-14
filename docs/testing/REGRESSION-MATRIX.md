@@ -5,7 +5,7 @@
 | Documento | criar/abrir/versão | `model.ts`, `workspace`, `projects` | `versao`, `project-identity`, `db` | migração/perda | DOC-DB-001 |
 | Camadas | update/batch/layout | `runner/layers.ts`, `batch.ts`, `layout.ts` | `update-layers*`, `arrange*` | mutação parcial | DOC-CORE-001 |
 | MCP | list/call/session | `schema.ts`, `gateway.ts`, `agent-calls.ts` | `mcp-*`, `agent-*` | contrato/escopo | DOC-MCP-001 |
-| Studio | editar/exportar | `apps/studio`, `studio-calls.ts` | `studio-ui`, `studio-api` | divergência UI/MCP | DOC-STUDIO-001 |
+| Studio | editar/exportar | `apps/studio`, `studio-calls.ts` | `studio-ui`, `studio-api`, `studio-parity` | divergência UI/MCP | DOC-STUDIO-001 |
 | Exportação | HTML/React/ZIP | `site-export.ts`, `export-react.ts` | `export*`, `site-export` | saída inválida | DOC-CORE-002 |
 | Assets | biblioteca/providers | `library.ts`, `blobs.ts`, plugins | `biblioteca*`, `assets*` | rede/licença | DOC-PLUGIN-001 |
 | Auth | login/agent scopes | `auth.ts`, `identity.ts`, `agents.ts` | `conta*`, `api-seguranca` | acesso indevido | DOC-SERVER-001 |
@@ -27,3 +27,7 @@
 ## Restore PGlite real retomado (DOC-DB-001)
 
 `tests/restore-pglite.test.ts` prova snapshot/preparação de restore, banco ativo intacto até fechamento, restauração/migração0014 real, projeto/PNG/versão/membership/grant com hashes/contagens, cópia de segurança posterior reaberta e falha de fonte ausente com original intacto. Fixture pré0014 reconstituída por SQL em banco sintético, não backup histórico real. Combinado restore/backups/db5/5; não comprova pg_dump/pg_restore, biblioteca de blobs externos, gestão de chaves ou escrita concorrente. Sem alteração de runtime.
+
+## Paridade Studio × MCP (DOC-STUDIO-001)
+
+`tests/studio-parity.test.js` executa o mesmo roteiro pelos callers reais (`createStudioCaller` e `createToolCaller`) em projetos PGlite equivalentes: criação, update unitário, lote, arranjo, `build_layout`, undo/redo, seleção, metadados de `export_site` e trilha `get_activity` por ator (`USER` × `AGENT`). A comparação ignora ids gerados. Agente com escopo `read` e pessoa `VIEWER` recusam as mesmas famílias de escrita sem alterar documento nem auditoria. `export_zip` de VIEWER no painel e o agente desse membro com scope `export` recebem a mesma recusa das escritas e não devolvem URL; o agente só de leitura do dono continua na mensagem de scope. COMMENTER no painel ainda recebe o endereço. O download HTTP do zip recusa VIEWER em `tests/export-zip-http.test.ts`. A matriz nova não abre Chromium nem o transporte HTTP/SDK.

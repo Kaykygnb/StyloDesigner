@@ -10,7 +10,7 @@ Priorizar segurança/recuperação e tarefas existentes. Concluir documentação
 | 3 — Auditoria e recuperação para piloto | Eventos administrativos rastreáveis sem segredos; DB/blobs/config/chave recuperáveis por procedimento testado; operador comprova round-trip antes de oferecer restore | DOC-ADMIN-002 + **DOC-DB-001 existente**; DOC-SERVER-001/002 bases concluídas |
 | 4 — Administração cotidiana compreensível | Melhorar painel existente, estados por seção, confirmação de impacto, acesso por capacidade e orientação sem JSON nas operações comuns | DOC-STUDIO-001/003 e QA-JRN-012; DOC-STUDIO-005 para estética, sem misturar com segurança |
 | 5 — Evolução conforme necessidade | Convites com validade, recuperação fora de banda guiada, rotação de chave/versionamento, quotas/telemetria ou allowlist de ferramentas se demanda comprovar | Abrir tarefas específicas só após decisões e deduplicação; não requisitos compulsórios de beta |
-| Futuro — Multi-organização | Caso comercial e isolamento completo aprovado, migração/rollback/testes cruzados | Nova ADR; não implementar tenancy agora |
+| Futuro — Multi-organização | Não é requisito da beta. ADM-DEC-01 aprovou uma organização por instalação | Nova decisão humana e nova ADR antes de qualquer multi-tenant |
 
 ## Critério de MVP self-hosted empresarial
 
@@ -39,7 +39,7 @@ Próximo agente lê inventário, ADR/matriz, backlog e handoff; registra aceite/
 
 A rodada humana foi encerrada por enquanto; não esperar nova resposta para investigação/testes e tarefas independentes autorizadas. Rastreabilidade completa na ADR e no plano de identidade/onboarding/recuperação.
 
-1. DOC-SERVER-006: investigar/provar proteção OWNER e desenho de principal conforme HD-OWNERSHIP-02/03; poder de reset/transferência e matriz restante não escolhidos.
+1. DOC-SERVER-006: investigar/provar proteção OWNER e desenho de principal conforme HD-OWNERSHIP-02/03. ADM-DEC-02, ADM-DEC-07 e ADM-DEC-08 estão aprovadas e ainda não aplicadas (DOC-SERVER-013 e DOC-SERVER-014).
 2. DOC-DB-001 retomada: prova PGlite real e migração em dados sintéticos; não escolhe estratégia final de produção/chaves. PostgreSQL restore separado da validação de persistência SERVER001.
 3. DOC-SERVER-009: projeto de transição do acesso local, ownership/agents/chaves e rollback; sem remover paths nesta rodada.
 4. DOC-STUDIO-006: planejamento de onboarding progressivo GUI reaproveitando telas, sem departamentos obrigatórios ou nova identidade.

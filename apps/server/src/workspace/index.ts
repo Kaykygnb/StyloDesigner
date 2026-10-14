@@ -224,8 +224,10 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
       return { ok: true, saved: entry.file };
     },
     async export_zip(_args, sid, actor) {
+      const { entry, role } = need(sid);
+      // Papel do projeto antes do escopo e antes de gravar: VIEWER não leva o pacote, mesmo com scope export.
+      if (role === 'VIEWER') throw new Error('Você só pode ler ou comentar este projeto.');
       if (!has(actor, 'export')) throw new Error('Este agente não tem permissão de exportar.');
-      const { entry } = need(sid);
       if ((await entry.store.saveNow()) === false) throw new Error('Não consegui gravar o projeto antes de exportar.');
       const site = exportSite(entry.store.state.doc, { vendor: vendorFiles });
       const base = `${baseUrl()}/api/projects/${encodeURIComponent(entry.file)}`;
