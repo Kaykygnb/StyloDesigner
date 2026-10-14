@@ -5,17 +5,17 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `cc9bec8` (matriz de compatibilidade MCP e teste de cliente externo)
-- Última atualização deste resumo: 2026-10-14 00:35 UTC — [Kimi]
-- Entrega anterior de [Codex]: DOC-SERVER-004, DOC-CORE-001 e DOC-QA-001 concluídas (commits até `80818cd`).
+- Commit de referência: `1c39a54` (correção do E2E de painel web, DOC-STUDIO-004)
+- Última atualização deste resumo: 2026-10-14 01:10 UTC — [Kimi]
+- Entregas anteriores: [Codex] DOC-SERVER-004, DOC-CORE-001 e DOC-QA-001 (commits até `80818cd`).
 
 ## Estado geral
 
-[Kimi] sincronizou a branch (7 commits de [Codex]) e assumiu a DOC-MCP-001, última P0 aberta. Gates locais: typecheck limpo, build ok, MCP + inventário 8/8. Suíte completa com uma falha pré-existente e ambiental (`studio-ui.test.js:155`, etapa "Conferir" — registrada em DOC-STUDIO-004, reproduzida na árvore limpa; CI de [Codex] aprovou 613/613).
+Quality gates verdes nesta máquina: typecheck limpo, `npm test` 615/615, build ok. A falha que restava do E2E "Conferir" era do teste (sleep fixo curto; `check_design` leva ~6–9 s aqui), corrigida em `1c39a54` — sem regressão de produto. Observação não investigada: duas chamadas `check_design` idênticas por clique no botão Conferir.
 
 ## Em andamento
 
-- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — [Kimi], #5 validação: matriz de compatibilidade publicada (cliente HTTP cru novo, 2 testes; lacunas GUI/hosted e imagem explícitas); mudanças locais a publicar.
+- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — [Kimi], #5 validação: matriz de compatibilidade publicada (`cc9bec8`); aguardando revisão das lacunas declaradas.
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
 
 ## Aguardando revisão
@@ -28,15 +28,15 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 
 ## Alterações recentes relevantes
 
-- [Kimi] `tests/mcp-compatibilidade.test.js` (novo) + `docs/mcp/COMPATIBILIDADE.md` (novo) + inventário de ferramentas regenerado (drift check do DOC-CORE-001 exige `npm run docs:inventario` ao adicionar testes que citam ferramentas).
-- [Codex] `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004); QA exploratório preparado (DOC-QA-001, guia em `docs/qa/WORK-GUIDE.md`).
-- Proposta nova: [DOC-STUDIO-004](tasks/studio/DOC-STUDIO-004.md) — investigar falha do E2E de painel web na etapa "Conferir" (P1, não atribuída).
+- `1c39a54` test(studio): espera condicional no passo Conferir do E2E (DOC-STUDIO-004 concluída por [Kimi], 5/5).
+- `cc9bec8` test(mcp): cliente externo sem SDK + matriz de compatibilidade (DOC-MCP-001, [Kimi]).
+- `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004, [Codex]).
 
 ## Próximas prioridades
 
-1. Publicar a entrega da [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) e revisar as lacunas declaradas na matriz.
-2. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) (decisão humana pendente: `adminOf` vs `ownerOf`).
-3. P1 abertas sem responsável: [DOC-SERVER-001](tasks/server/DOC-SERVER-001.md), [DOC-CORE-002](tasks/core/DOC-CORE-002.md), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md), [DOC-DB-001](tasks/database/DOC-DB-001.md), [DOC-STUDIO-004](tasks/studio/DOC-STUDIO-004.md).
+1. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) (decisão humana: `adminOf` vs `ownerOf`).
+2. Revisar as lacunas declaradas na matriz MCP de [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md).
+3. P1 abertas sem responsável: [DOC-SERVER-001](tasks/server/DOC-SERVER-001.md), [DOC-CORE-002](tasks/core/DOC-CORE-002.md), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md), [DOC-DB-001](tasks/database/DOC-DB-001.md).
 
 ## Decisões humanas pendentes
 
