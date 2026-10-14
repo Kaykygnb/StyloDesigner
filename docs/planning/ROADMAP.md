@@ -37,8 +37,32 @@ Não foi aprovada migração para microserviços. A decisão atual é manter mon
 
 ## Deliberação self-hosted (2026-10-14)
 
-[Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. Organização única é recomendação, não decisão humana já aprovada. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.
+[Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. ADM-DEC-01 aprovou uma organização por instalação na beta. Multi-tenant não é requisito. O parágrafo abaixo desta data que ainda chamasse isso de recomendação fica superado por essa aprovação. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.
 
 ## Retomada por diretrizes humanas HD
 
-Registro canônico21HD na ADR0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias final; principal protegido e múltiplosOWNERs, GUI progressiva e e-mail opcional definidos. Tenancy e contratos abertos não aprovados por inferência. SERVER006 investigação P0 retomada1/5 com reprodução sintética; DB001 restore real retomado4/5. Novas propostas SERVER009/STUDIO006/SERVER010 cobrem recortes ausentes sem duplicarbootstrap/autoridade/QA. Sem remover legado/migrarprodução/implementarSMTP nesta rodada. Engenharia rotineira/provas isoladas prossegue sem nova deliberação geral.
+Registro canônico 21 HD na ADR 0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias no alvo; principal protegido e múltiplos OWNERs, GUI progressiva e e-mail opcional definidos. ADM-DEC-01 está aprovada: uma organização por instalação na beta. Multi-tenant não é requisito. ADM-DEC-02 está aprovada: ADMIN no escopo delegado; o prazo de retenção é configuração sensível do OWNER principal. ADM-DEC-07 está aprovada: ADMIN não acessa projeto privado. ADM-DEC-08 está aprovada: restore e chave mestra ficam com o OWNER. ADM-DEC-04 está aprovada: `project.share` é separado de write. Não resta decisão humana pendente nesta ADR. Bootstrap e o procedimento de emergência seguem como desenho técnico. Login federado ficou para o futuro. Sem remover legado, migrar produção ou implementar SMTP nesta rodada.
+
+## Horizontes (2026-10-14)
+
+Detalhe e inventário em [EVOLUTION.md](../product/EVOLUTION.md). Não são versões.
+
+- **A.** Beta estável e alpha local. Tarefas já abertas: DOC-SERVER-006 (PR #18), DOC-SERVER-007, DOC-SERVER-008, DOC-SERVER-009, DOC-STUDIO-003, DOC-STUDIO-006, DOC-SERVER-010, DOC-ADMIN-002. Preparação da alpha: DOC-ENG-006.
+- **B.** CSS, protótipo e SVG em cima do que o código já faz. O editor vetorial não se reescreve.
+- **C.** Remake visual (DOC-STUDIO-005), 3D, PDF, slides e comportamento programável, como adaptadores. Propriedade organizacional, transferência e códigos offline já têm decisão e não têm implementação.
+
+## Alpha pública local
+
+Alvo: a pessoa instala na própria máquina, cria conta e desenha. Não é site na internet.
+
+Entra o que já existe: layout, texto, componentes, vetor, protótipo de navegar entre telas, comentários, exportação HTML/React/tokens/zip, agentes nas ferramentas reais, contas com senha.
+
+Não entra: 3D, PDF, PPTX, React Native, JavaScript livre, remake visual, transferência de principal, códigos offline, OWNER abrindo projeto privado, suspensão completa de agente em voo, hospedagem pública (DOC-SERVER-008).
+
+Antes de publicar:
+
+1. Merge da PR #17 e da PR #18. DOC-SERVER-011 concluída: o login da conta obrigatória usa nome de usuário, com e-mail opcional.
+2. O que responder sem login, se o processo sair da máquina, fica no mínimo da ADM-DEC-09. O canal de eventos verifica identidade. O padrão da alpha é escutar só na máquina local.
+3. `npm install` e `npm start` com Node 22 funcionam na primeira tentativa. O README da alpha não ensina entrar sem conta.
+4. README com demo: conta, frame, texto ou vetor, exportar HTML.
+5. Limitações conhecidas nesse README: protótipo não roda no site exportado; SVG omite o que `svgimport.js` e `svg.js` declaram; sem PDF, PPTX e 3D.

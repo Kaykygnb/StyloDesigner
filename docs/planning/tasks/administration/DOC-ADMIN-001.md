@@ -93,6 +93,15 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 
 ## Histórico de trabalho
 
+### 2026-10-14 08:50 UTC — [Grok 4.7] — nota posterior
+
+- Investigado: ADM-DEC-01 foi aprovada depois desta tarefa.
+- Alterado: nenhum critério desta tarefa. O registro novo está na ADR 0002.
+- Arquivos: este documento, só esta nota.
+- Testes: não executados.
+- Resultado: uma organização por instalação na beta. Multi-tenant não é requisito. Esta tarefa continua Concluída.
+- Próximo passo: não reabrir DOC-ADMIN-001 para implementar tenant.
+
 ### 2026-10-14 02:39 UTC — [Codex] — proposta após investigação e deduplicação
 
 - Investigado: backlog e inventário administrativo, investigações independentes e ADR 0002.
