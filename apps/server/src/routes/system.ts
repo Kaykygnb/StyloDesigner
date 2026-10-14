@@ -1,11 +1,11 @@
 /**
  * routes/system.ts — STATUS, CONFIGURAÇÃO, PERFIL LOCAL, PRESENÇA E AVISOS AO VIVO
  *   GET  /api/status              { ok, keepVersions }
- *   GET  /api/health              diagnóstico seguro do servidor e do banco
+ *   GET  /api/health              diagnóstico do servidor e do banco (só com sessão; anônimo recebe 401)
  *   PUT  /api/config              { keepVersions? } (só administradores)
  *   GET|PUT /api/account          perfil da conta local (modo local; assina comentários e aparece na presença)
- *   GET  /api/presence            quem está no servidor (pessoas e agentes)
- *   GET  /api/agent/events        Server-Sent Events para o editor (presence e project)
+ *   GET  /api/presence            quem está no servidor, filtrado pelo que a conta pode ver
+ *   GET  /api/agent/events        Server-Sent Events do editor (sessão obrigatória; presença e projeto autorizados)
  *   GET|PUT /api/agent/config     endereço do MCP, chave do Pexels (as chaves NUNCA são devolvidas; PUT só administradores)
  */
 
@@ -20,6 +20,9 @@ import { httpError } from '../http-error.js';
 import type { Services } from '../context.js';
 import type { Identity } from '../http/identity.js';
 import { readObject } from '../http/guards.js';
+import { sessionTokenOf } from '../http/identity.js';
+import { checkName } from '../services/projects.js';
+import type { PublicUser } from '../services/auth.js';
 
 export function systemRoutes(s: Services, identity: Identity) {
   const r = new Hono();
@@ -28,6 +31,12 @@ export function systemRoutes(s: Services, identity: Identity) {
   r.get('/status', (c) => c.json({ ok: true, ...publicConfig() }));
   r.get('/health', async (c) => {
     const checkedAt = new Date().toISOString();
+    // Sem sessão: 401. Se o banco caiu antes de autenticar, só o mínimo, sem mensagem interna.
+    let user: PublicUser | null = null;
+    try { user = await identity.userOf(c); } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) throw err;
+      return c.json({ ok: false, checkedAt }, 503);
+    }
     try {
       const [database, migrations, users, projects] = await Promise.all([
         s.db.$queryRawUnsafe<Array<{ ok: number }>>('SELECT 1 AS ok'),
@@ -102,10 +111,47 @@ export function systemRoutes(s: Services, identity: Identity) {
     return c.json(next);
   });
 
-  r.get('/presence', (c) => c.json(s.presence.snapshot()));
+  r.get('/presence', async (c) => {
+    const user = await identity.userOf(c);
+    const snap = s.presence.snapshot() as { people: Array<{ projectFile?: string }>; agents: Array<{ projectFile?: string }>; activity: Array<{ projectFile?: string }> };
+    if (user.role === 'OWNER') return c.json(snap);
+    const visible = new Set((await s.projects.list(user)).map((project) => project.file));
+    const see = (file?: string) => !file || visible.has(file);
+    return c.json({ people: snap.people.filter((person) => see(person.projectFile)), agents: snap.agents.filter((agent) => see(agent.projectFile)), activity: snap.activity.filter((item) => see(item.projectFile)) });
+  });
   r.get('/connections', async (c) => { await identity.adminOf(c); return c.json(s.events.list()); });
   r.delete('/connections/:id', async (c) => { await identity.adminOf(c); if (!s.events.close(c.req.param('id'))) throw httpError(404, 'Conexão não encontrada.'); return c.json({ ok: true }); });
-  r.get('/agent/events', (c) => s.events.handler(c));
+  r.get('/agent/events', async (c) => {
+    const user = await identity.userOf(c);
+    const token = sessionTokenOf(c);
+    const requested = String(c.req.query('file') || '').slice(0, 240);
+    let projectFile = '';
+    if (requested) {
+      let slug = requested;
+      try { slug = checkName(requested); } catch { throw httpError(403, 'Você não tem acesso a este projeto.'); }
+      if (user.role === 'OWNER') {
+        const found = await s.db.project.findFirst({ where: { slug }, select: { id: true } });
+        if (!found) throw httpError(403, 'Você não tem acesso a este projeto.');
+      } else {
+        try { await s.projects.load(user, slug); } catch { throw httpError(403, 'Você não tem acesso a este projeto.'); }
+      }
+      projectFile = slug;
+    }
+    const allowsProject = async (event: { projectId?: string }) => {
+      if (!event.projectId) return false;
+      if (user.role === 'OWNER') return !!(await s.db.project.findUnique({ where: { id: event.projectId }, select: { id: true } }));
+      try { await s.projects.access(user, event.projectId); return true; } catch { return false; }
+    };
+    const sessionLive = async () => {
+      if (s.authMode === 'local') {
+        const fresh = await s.db.user.findUnique({ where: { id: user.id }, select: { suspended: true } });
+        return !!fresh && !fresh.suspended;
+      }
+      const current = token ? await s.auth.userFromToken(token) : null;
+      return !!current && !current.suspended && !current.mustChangePassword;
+    };
+    return s.events.handler(c, { userId: user.id, name: user.name, color: user.color, projectFile, sessionLive, allowsProject });
+  });
 
   const pexelsKey = () => {
     const cfg = s.config.get();

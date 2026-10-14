@@ -117,6 +117,35 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
   await close();
 });
 
+test('suspensão: corta sessão e credencial do agente; reativar a conta não devolve o token nem apaga o histórico', async () => {
+  const { db, close } = await createDb({ pglite: {} });
+  const auth = createAuth(db);
+  const agents = createAgents(db);
+  const owner = await auth.setup({ email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
+  const { token: session } = await auth.login('dono@x.com', 'senha-do-dono');
+  const { agent, token } = await agents.create(owner.id, { name: 'Claude Code' });
+  const project = await db.project.create({ data: { slug: 'privado.json', name: 'Privado', ownerId: owner.id, doc: doc('Privado'), size: 10 } });
+  await db.operation.create({ data: { projectId: project.id, actorType: 'AGENT', agentId: agent.id, tool: 'create_layer', summary: 'criou', layerIds: [] } });
+  const suspended = await auth.setSuspended(owner.id, true);
+  assert.equal(suspended.suspended, true);
+  assert.equal(await auth.userFromToken(session), null, 'a sessão web deixa de valer');
+  await assert.rejects(auth.login('dono@x.com', 'senha-do-dono'), /incorretos/);
+  await assert.rejects(agents.authenticate(token), /revogado|suspensa/);
+  const kept = await db.agent.findUniqueOrThrow({ where: { id: agent.id } });
+  assert.equal(kept.status, 'REVOKED');
+  assert.equal(kept.name, 'Claude Code', 'a identidade histórica do agente permanece');
+  assert.equal(await db.project.count({ where: { id: project.id } }), 1);
+  assert.equal(await db.operation.count({ where: { agentId: agent.id } }), 1);
+  const restored = await auth.setSuspended(owner.id, false);
+  assert.equal(restored.suspended, false);
+  await assert.rejects(agents.authenticate(token), /revogado/, 'reativar a conta não reativa a credencial do agente');
+  assert.equal((await db.agent.findUniqueOrThrow({ where: { id: agent.id } })).status, 'REVOKED');
+  const events = await auth.authEvents(owner.id);
+  assert.ok(events.some((event) => event.kind === 'user.suspend'));
+  assert.ok(events.some((event) => event.kind === 'user.restore'));
+  await close();
+});
+
 test('projetos: conflito por revisão, versões a cada intervalo com limite, papéis e renomear', async () => {
   const { db, close } = await createDb({ pglite: {} });
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });

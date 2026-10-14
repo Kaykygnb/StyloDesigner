@@ -105,7 +105,9 @@ const opened = await (async () => {
 })();
 const { db, close: closeDb } = opened;
 
-const auth = createAuth(db);
+let onUserSuspended: (userId: string) => void = () => {};
+let onCredentialRevoked: (agentId: string) => void = () => {};
+const auth = createAuth(db, { onUserSuspended: (userId) => onUserSuspended(userId) });
 // O servidor sempre inicia com autenticação por contas. O modo local não é mais o padrão de produção;
 // STYLO_AUTH=local continua reservado para testes/desenvolvimento explícito.
 const authMode = process.env.STYLO_AUTH === 'local' ? 'local' : 'accounts';
@@ -133,7 +135,7 @@ const library = createLibrary({ db, blobs });
 const secrets = createSecrets(db, await loadSecretKey(configFile.replace(/(\.config)?\.json$/i, '') + '.secret'));
 const assetServices = createAssetServices({ library, secrets, sources: createAssetSources(db), config });
 const plugins = createPlugins({ plugins: builtinPlugins, enabled: config.get().plugins?.enabled, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
-const agents = createAgents(db);
+const agents = createAgents(db, { onCredentialRevoked: (agentId) => onCredentialRevoked(agentId) });
 const backups = createBackups({ dbDir, db, postgres: !!process.env.DATABASE_URL });
 workspace = createWorkspace({
   projects, notes, sharing, operations, agentProjectAccess: (agentId, projectId) => authMode === 'local' ? Promise.resolve(true) : agents.projectAccess(agentId, projectId), grantAgentProject: (agentId, projectId) => agents.grantProject(agentId, projectId), plugins, presence: () => presence.snapshot(),
@@ -156,6 +158,8 @@ const caller = createToolCaller({ workspace, presence, events });
 /** Instruções entregues aos agentes (o arquivo é lido a cada sessão nova: editar muda o comportamento sem reiniciar). */
 const instructions = () => readFile(join(here, 'instrucoes-agente.txt'), 'utf8').catch(() => AGENT_INSTRUCTIONS);
 const mcp = createMcpGateway({ s: services, identity, caller, instructions, version: VERSION });
+onUserSuspended = (userId) => { events.closeForUser(userId); mcp.closeForOwner(userId); };
+onCredentialRevoked = (agentId) => mcp.closeForAgent(agentId);
 const studio = createStudioCaller({ workspace, presence, events });
 const app = createApp(services, identity, mcp, assetServices, studio);
 const api = getRequestListener(app.fetch);

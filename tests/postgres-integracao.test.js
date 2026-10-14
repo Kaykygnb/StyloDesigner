@@ -161,7 +161,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
   // 5. falha de conexão: derrubar o PostgreSQL não derruba o servidor; recupera ao voltar
   await withTimeout(pg.stop(), 10000, 'stop PostgreSQL para simular indisponibilidade');
   await new Promise((r) => setTimeout(r, 800));
-  const healthDown = await call(second.base, 'GET', '/api/health');
+  const healthDown = await call(second.base, 'GET', '/api/health', undefined, relogin.cookie);
   assert.equal(healthDown.status, 503, 'health acusa o banco fora do ar');
   assert.equal(healthDown.json.ok, false);
   const duringOutage = await call(second.base, 'GET', '/api/projects', undefined, relogin.cookie);
@@ -171,7 +171,7 @@ test('postgresql descartavel: migrações, auth, projeto, agente, sessões, rein
 
   await withTimeout(pg.start(), 10000, 'restart PostgreSQL');
   await new Promise((r) => setTimeout(r, 1500));
-  const healthBack = await call(second.base, 'GET', '/api/health');
+  const healthBack = await call(second.base, 'GET', '/api/health', undefined, relogin.cookie);
   assert.equal(healthBack.status, 200, 'health se recupera quando o PostgreSQL volta');
   assert.equal(healthBack.json.database.engine, 'postgresql');
   const projectBack = await call(second.base, 'GET', '/api/projects/controle.json', undefined, relogin.cookie);

@@ -10,6 +10,7 @@
  *   closed    só entra quem tem token criado pela conta mestre
  */
 
+import { timingSafeEqual } from 'node:crypto';
 import type { Db } from '@stylo/db/client.ts';
 import { httpError } from '../http-error.js';
 import { newToken, sha256 } from './auth.js';
@@ -20,8 +21,13 @@ export interface AgentIdentity { id: string; name: string; type: string; ownerId
 
 const clean = (name: string) => String(name || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60) || 'Agente';
 const identity = (a: { id: string; name: string; type: string; ownerId: string; scopes: string[] }): AgentIdentity => ({ id: a.id, name: a.name, type: a.type, ownerId: a.ownerId, scopes: a.scopes });
+const sameHash = (a: string, b: string) => {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+};
 
-export function createAgents(db: Db) {
+export function createAgents(db: Db, hooks: { onCredentialRevoked?: (agentId: string) => void } = {}) {
   /** A conta mestre cria um agente já ativo e recebe o token (mostrado só agora). */
   async function create(ownerId: string, input: { name: string; type?: string; scopes?: string[] }) {
     const scopes = (input.scopes?.length ? input.scopes : ['read', 'comment', 'write', 'export']).filter((s) => (SCOPES as readonly string[]).includes(s));
@@ -30,19 +36,46 @@ export function createAgents(db: Db) {
     return { agent: identity(agent), token };
   }
 
-  /** Autentica pelo token. Lança 401/403 com o motivo para o programa mostrar à pessoa. */
-  async function authenticate(token: string): Promise<AgentIdentity> {
-    const agent = await db.agent.findUnique({ where: { tokenHash: sha256(token) } });
+  async function loadActive(where: { id: string } | { tokenHash: string }) {
+    const agent = await db.agent.findUnique({ where, include: { owner: { select: { suspended: true } } } });
     if (!agent) throw httpError(401, 'Token de agente inválido.');
     if (agent.status === 'REVOKED') throw httpError(401, 'Este agente foi revogado pela conta mestre.');
     if (agent.status === 'PENDING') throw httpError(403, 'Este agente ainda não foi aprovado pela conta mestre.');
+    if (agent.owner?.suspended) throw httpError(401, 'A conta dona deste agente está suspensa.');
+    return agent;
+  }
+
+  /** Autentica pelo token. Lança 401/403 com o motivo para o programa mostrar à pessoa. */
+  async function authenticate(token: string): Promise<AgentIdentity> {
+    const agent = await loadActive({ tokenHash: sha256(token) });
     await db.agent.update({ where: { id: agent.id }, data: { lastSeenAt: new Date() }, select: { id: true } });
     return identity(agent);
+  }
+
+  /**
+   * Reconfere a credencial presa à sessão, sem bearer novo.
+   * Token rotacionado, revogação e dono suspenso recusam. Escopos voltam atualizados.
+   */
+  async function revalidateBound(id: string, credentialHash: string): Promise<AgentIdentity> {
+    const agent = await db.agent.findUnique({ where: { id }, include: { owner: { select: { suspended: true } } } });
+    if (!agent || agent.status !== 'ACTIVE') throw httpError(401, 'Este agente foi revogado pela conta mestre.');
+    if (!sameHash(agent.tokenHash, credentialHash)) throw httpError(401, 'O token deste agente foi rotacionado. Abra uma sessão nova.');
+    if (agent.owner?.suspended) throw httpError(401, 'A conta dona deste agente está suspensa.');
+    await db.agent.update({ where: { id: agent.id }, data: { lastSeenAt: new Date() }, select: { id: true } });
+    return identity(agent);
+  }
+
+  async function credentialHash(id: string): Promise<string> {
+    const agent = await db.agent.findUnique({ where: { id }, select: { tokenHash: true } });
+    if (!agent) throw httpError(401, 'Token de agente inválido.');
+    return agent.tokenHash;
   }
 
   /** Modo local, sem token: acha (ou cria) o agente pelo nome do programa, conforme a política. */
   async function forClient(ownerId: string, clientName: string, policy: AgentPolicy): Promise<AgentIdentity> {
     if (policy === 'closed') throw httpError(401, 'Este servidor só aceita agentes com token. Peça um à conta mestre.');
+    const owner = await db.user.findUnique({ where: { id: ownerId }, select: { suspended: true } });
+    if (owner?.suspended) throw httpError(401, 'A conta dona deste agente está suspensa.');
     const name = clean(clientName);
     const found = await db.agent.findFirst({ where: { ownerId, name } });
     if (found) {
@@ -74,6 +107,7 @@ export function createAgents(db: Db) {
     const token = newToken('stylo_agt');
     const agent = await db.agent.update({ where: { id }, data: { tokenHash: sha256(token), status: 'ACTIVE' } }).catch(() => null);
     if (!agent) throw httpError(404, 'Agente não encontrado.');
+    hooks.onCredentialRevoked?.(id);
     return { agent: identity(agent), token };
   }
 
@@ -95,7 +129,13 @@ export function createAgents(db: Db) {
   const list = async (ownerId?: string) => (await db.agent.findMany({ where: ownerId ? { ownerId } : {}, orderBy: { createdAt: 'asc' } }))
     .map((a) => ({ ...identity(a), status: a.status, createdAt: a.createdAt, lastSeenAt: a.lastSeenAt }));
 
-  return { create, rotate, authenticate, forClient, approve: (id: string) => setStatus(id, 'ACTIVE'), revoke: (id: string) => setStatus(id, 'REVOKED'), setScopes, list, projectAccess, grantProject, revokeProject, projects };
+  async function revoke(id: string) {
+    const agent = await setStatus(id, 'REVOKED');
+    hooks.onCredentialRevoked?.(id);
+    return agent;
+  }
+
+  return { create, rotate, authenticate, revalidateBound, credentialHash, forClient, approve: (id: string) => setStatus(id, 'ACTIVE'), revoke, setScopes, list, projectAccess, grantProject, revokeProject, projects };
 }
 
 export type Agents = ReturnType<typeof createAgents>;

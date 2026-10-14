@@ -44,7 +44,7 @@ const checkCredentials = (email: string, name: string, password: string) => {
   if (password.length < 8) throw httpError(400, 'A senha precisa ter pelo menos 8 caracteres.');
 };
 
-export function createAuth(db: Db) {
+export function createAuth(db: Db, hooks: { onUserSuspended?: (userId: string) => void } = {}) {
   const loginAttempts = new Map<string, { count: number; since: number }>();
   const recordAuth = (userId: string | null, email: string, kind: string) => db.authEvent.create({ data: { userId, email, kind } }).catch(() => undefined);
   /** Há alguma conta de pessoa (fora o usuário técnico do modo local)? */
@@ -88,7 +88,7 @@ export function createAuth(db: Db) {
   async function userFromToken(token: string): Promise<PublicUser | null> {
     if (!token) return null;
     const s = await db.session.findUnique({ where: { tokenHash: sha256(token) }, include: { user: true } });
-    if (!s || s.expiresAt < new Date()) return null;
+    if (!s || s.expiresAt < new Date() || s.user.suspended) return null;
     return publicUser(s.user);
   }
 
@@ -172,7 +172,15 @@ export function createAuth(db: Db) {
   async function setSuspended(id: string, suspended: boolean) {
     const user = await db.user.update({ where: { id }, data: { suspended } }).catch(() => null);
     if (!user) throw httpError(404, 'Conta não encontrada.');
-    if (suspended) await db.session.deleteMany({ where: { userId: id } });
+    if (suspended) {
+      await db.session.deleteMany({ where: { userId: id } });
+      // Invalida credenciais ativas. Reativar a conta não as devolve. O registro do agente fica.
+      await db.agent.updateMany({ where: { ownerId: id, status: 'ACTIVE' }, data: { status: 'REVOKED' } });
+      await recordAuth(id, user.email, 'user.suspend');
+      hooks.onUserSuspended?.(id);
+    } else {
+      await recordAuth(id, user.email, 'user.restore');
+    }
     return publicUser(user);
   }
 

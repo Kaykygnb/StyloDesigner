@@ -21,6 +21,10 @@ export interface McpSession {
   activeCalls: number;
   closing: boolean;
   lastSeen: number;
+  /** Hash da credencial que abriu a sessão. Não é o token. */
+  credentialHash: string;
+  /** Disparado quando a credencial deixa de valer. Quem observa o sinal para; o passo já em execução pode concluir. */
+  abort: AbortController;
 }
 
 export function createToolCaller({ workspace, presence, events }: { workspace: Workspace; presence: any; events: Events }) {

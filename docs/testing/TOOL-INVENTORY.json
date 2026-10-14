@@ -2099,6 +2099,10 @@
           "line": 57
         },
         {
+          "path": "tests/servicos.test.ts",
+          "line": 128
+        },
+        {
           "path": "tests/studio-api.test.js",
           "line": 83
         },
@@ -5829,6 +5833,14 @@
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
         {
+          "path": "tests/canais-persistentes.test.js",
+          "line": 141
+        },
+        {
+          "path": "tests/canais-persistentes.test.js",
+          "line": 173
+        },
+        {
           "path": "tests/mcp-sdk.test.js",
           "line": 109
         },
@@ -6086,6 +6098,10 @@
         {
           "path": "tests/biblioteca.test.ts",
           "line": 306
+        },
+        {
+          "path": "tests/canais-persistentes.test.js",
+          "line": 156
         },
         {
           "path": "tests/mcp-compatibilidade.test.js",
@@ -6359,6 +6375,10 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/canais-persistentes.test.js",
+          "line": 180
+        },
         {
           "path": "tests/mcp-compatibilidade.test.js",
           "line": 145
@@ -7751,6 +7771,10 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/canais-persistentes.test.js",
+          "line": 182
+        },
         {
           "path": "tests/postgres-integracao.test.js",
           "line": 142

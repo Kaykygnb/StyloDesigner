@@ -1,11 +1,11 @@
 # DOC-SERVER-007 — Validar identidade e revogação dos canais persistentes
 
-Responsável: [Muse Spark]
-Estado: Em andamento
+Responsável: [Grok]
+Estado: Em validação
 Início: 2026-10-14 00:52 -03:00
-Última atualização: 2026-10-14 00:52 -03:00
-Progresso: 2/5 marcos (40%)
-Participantes: [Muse Spark]
+Última atualização: 2026-10-14 09:02 UTC
+Progresso: 5/5 marcos (100%)
+Participantes: [Muse Spark], [Grok]
 
 ## Problema e evidências
 
@@ -36,12 +36,12 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 
 ## Critérios de aceitação
 
-- [ ] Evidências específicas reproduzíveis ou limites explícitos, sem dados reais; escopo sem duplicação.
-- [ ] Política necessária aprovada antes de implementação; testes/gates e handoff coerentes com resultados reais.
+- [x] Evidências específicas reproduzíveis ou limites explícitos, sem dados reais; escopo sem duplicação.
+- [x] Política necessária aprovada antes de implementação; testes/gates e handoff coerentes com resultados reais.
 
-- [ ] Testes descartáveis de SID com bearer omitido/trocado, token rotacionado/revogado, scopes alterados e dono suspenso; identidade da sessão não migra silenciosamente.
-- [ ] SSE exercita anônimo, identidade/projeto forjados por query, notificações de projeto alheio e sessão revogada; expectativas de audiência aprovadas.
-- [ ] Protocolos/limites e HTTP local preservados; efeito de revogação em operações já iniciadas explicitado sem prometer cancelamento não implementado.
+- [x] Testes descartáveis de SID com bearer omitido/trocado, token rotacionado/revogado, scopes alterados e dono suspenso; identidade da sessão não migra silenciosamente.
+- [x] SSE exercita anônimo, identidade/projeto forjados por query, notificações de projeto alheio e sessão revogada; expectativas de audiência aprovadas.
+- [x] Protocolos/limites e HTTP local preservados; efeito de revogação em operações já iniciadas explicitado sem prometer cancelamento não implementado.
 
 ## Marcos
 
@@ -67,33 +67,33 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 
 ### #3 — Implementação
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Grok]
+- Atividades executadas: sessão MCP presa ao agente; POST/GET/DELETE revalidam a credencial; bearer de outro agente não troca a sessão; suspensão apaga sessões web, marca agentes ACTIVE como REVOKED e fecha canais; reativar a conta não devolve o token; SSE exige sessão, ignora identidade da query e filtra projeto (membro, dono ou OWNER da instalação; ADMIN sem membership não recebe); health e presença exigem sessão; `/api/status` continua público.
+- Arquivos alterados: `apps/server/src/mcp/gateway.ts`, `agent-calls.ts`, `events.ts`, `routes/system.ts`, `services/auth.ts`, `services/agents.ts`, `main.ts`; testes e docs listados no histórico.
+- Evidências: `tests/canais-persistentes.test.js` e `tests/servicos.test.ts` (suspensão).
+- Testes executados: específicos aprovados antes da suíte; ver #5.
+- Problemas encontrados: fechar a sessão na hora fazia o teste antigo de revogação ver 404. Sessão encerrada por credencial passa a responder 401. Transporte MCP e SSE não foi redesenhado.
 
 ### #4 — Testes
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Grok]
+- Atividades executadas: fixture HTTP de contas para SID e SSE; teste de serviço da suspensão; ajuste de `mcp-contas` preservado (401); `contas-http` confere que a query não define a pessoa; health do PostgreSQL usa a sessão.
+- Arquivos alterados: `tests/canais-persistentes.test.js`, `tests/servicos.test.ts`, `tests/contas-http.test.js`, `tests/postgres-integracao.test.js`.
+- Evidências: canais e serviços aprovados; suíte completa em #5.
+- Testes executados: `node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/servicos.test.ts tests/canais-persistentes.test.js tests/mcp-contas.test.js tests/mcp-compatibilidade.test.js`.
+- Problemas encontrados: nenhum depois do 401 da sessão encerrada.
 
 ### #5 — Validação final
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Grok]
+- Atividades executadas: typecheck, suíte, inventário, build, e2e e validador. PR draft para `v0.1.0-beta`, sem merge.
+- Arquivos alterados: os desta entrega; inventário regenerado só com as menções do teste novo.
+- Evidências: `npm run typecheck` aprovado. `npm test` 626/626, zero falhas e zero skips, em 2026-10-14 09:02 UTC. A primeira suíte, sem Chromium, teve 2 falhas de renderer e 19 skips; depois de `npx playwright install chromium`, a suíte repetida ficou limpa. `npm run build` aprovado. `npm run test:e2e` aprovado, incluindo suspensão e reativação de login. `npm run docs:inventario -- --check` válido (120 ferramentas). `node docs/planning/validate-tasks.mjs` 28 tarefas. `git diff --check` sem erro.
+- Testes executados: `npm run typecheck`; `npm test`; `npm run build`; `npm run test:e2e`; `npm run docs:inventario -- --check`; `node docs/planning/validate-tasks.mjs`; `git diff --check`.
+- Problemas encontrados: abrir ou gravar documento privado só por ser OWNER da instalação não foi feito aqui. A audiência do canal segue a decisão; o acesso ao documento fica para a tarefa que o PR #19 chama de DOC-SERVER-014. Transferência de responsabilidade não ganhou API nova: o compartilhamento existente continua. Uma ferramenta que já passou da checagem do sinal pode concluir o passo atual.
 
 ## Histórico de trabalho
 
@@ -133,48 +133,61 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 - Resultado: ADM-RISK-02 confirmado em código + comportamento de revogação/escopos/ /suspensão reproduzido; ADM-RISK-05 reproduzido (dono suspenso não revoga agente); ADM-RISK-09 confirmado estático (SSE sem binding/ACL/revogação).
 - Próximo passo: aguardar política humana ADM-DEC-05/07/09 antes de #3; avaliar então fixtures permanentes e regressões; nova tarefa só se o escopo se dividir (ex.: SSE × MCP) após aceite.
 
+### 2026-10-14 09:02 UTC — [Grok] — transferência e #3 a #5
+
+- Investigado: handoff de [Muse Spark], gateway, events, agents, auth, PRs abertos #17, #18 e #19. ADM-DEC-05/07/09 aprovadas pelo proprietário. #18 altera `auth.ts` na proteção do principal; #19 registra as decisões e aponta acesso de documento privado para outra tarefa; #17 mexe em Studio e inventário.
+- Alterado: responsável de [Muse Spark] para [Grok]. Motivo: política desbloqueada e implementação pedida nesta sessão. Histórico anterior preservado.
+- Arquivos: gateway, events, system, auth, agents, main, testes `canais-persistentes`, `servicos`, `contas-http`, `postgres-integracao`, README do servidor, CURRENT-STATE, PERMISSIONS, matriz de regressão, inventário, esta tarefa, backlog e handoff.
+- Testes: `npm test` 626/626, zero falhas e zero skips. Typecheck, build, e2e, inventário `--check` e validador aprovados.
+- Resultado: canais persistentes revalidam identidade. Suspensão invalida sessão e credencial de agente sem apagar histórico. Reativação não devolve o token.
+- Próximo passo: revisão do PR draft. Não mergear.
+
 ## Handoff atual
 
-Preparado por: [Muse Spark]
+Preparado por: [Grok]
 Destinatário: [Revisor humano]
-Estado: Aguardando política humana; investigação e plano concluídos
-Marco atual: #3 — Implementação (bloqueada por decisão)
-Última atualização: 2026-10-14 00:52 -03:00
-Commit de referência: `b6eca87` na branch `v0.1.0-beta`
+Estado: Aguardando revisão do PR
+Marco atual: #5 — Validação final
+Última atualização: 2026-10-14 09:02 UTC
+Commit de referência: pendente do commit desta entrega, branch `cursor/canais-persistentes-e5d4`
 
 ### Estado atual
 
-#1 e #2 concluídas (2/5, 40%). Nenhuma mudança de runtime. #3-#5 exigem aprovação de política antes de implementar, conforme critérios da tarefa.
+5/5. Runtime dos canais alterado. PR draft para `v0.1.0-beta`, sem merge.
 
 ### Decisões tomadas
 
-Investigação sintética/documentação pode preceder aprovação de política; nenhuma autorização estrutural inferida de DOC-SERVER-005 ou do registro HD. Implementação de vinculação/filtragem só após política aprovada.
+ADM-DEC-05: suspensão revoga agentes ACTIVE e sessões; reativar a conta não reativa o token; o registro permanece. Credencial presa à sessão MCP; bearer alheio não migra a identidade. O sinal aborta chamada que ainda observa o sinal. Passo que já passou dessa checagem pode terminar.
+
+ADM-DEC-07, só na audiência do canal: OWNER da instalação recebe evento de projeto privado; ADMIN sem membership não recebe e não há exceção. Abrir ou gravar o documento por esse papel não mudou. O PR #19 reserva isso a outra tarefa.
+
+ADM-DEC-09: sem sessão, o canal de eventos recusa. Health e presença exigem sessão. Status continua o mínimo público. Modo local segue com o usuário técnico.
 
 ### Arquivos envolvidos
 
-Esta tarefa, `docs/planning/BACKLOG.md`; leitura de `apps/server/src/mcp/gateway.ts`, `apps/server/src/events.ts`, `apps/server/src/routes/system.ts`, `apps/server/src/http/identity.ts`, `apps/server/src/services/agents.ts`, `docs/architecture/instance-administration/CURRENT-STATE.md`.
+`apps/server/src/mcp/gateway.ts`, `apps/server/src/mcp/agent-calls.ts`, `apps/server/src/events.ts`, `apps/server/src/routes/system.ts`, `apps/server/src/services/auth.ts`, `apps/server/src/services/agents.ts`, `apps/server/src/main.ts`, `tests/canais-persistentes.test.js`, `tests/servicos.test.ts`.
 
 ### Evidências e testes
 
-Reprodução PGlite memória: `authenticateAntesRevogar:true`, `revogarErro:401`, `tokenAntigoAposRotacaoErro:401`, `tokenNovoAposRotacaoOk:true`, `scopes:["read"]`, `agenteValeAposDonoSuspenso:true`. Pertinentes 17/17 (mcp-contas, mcp-sdk, mcp-compatibilidade, presenca, config-autorizacao); validador 28 tarefas. Estático: gateway.ts:137 só reautentica com bearer; gateway.ts:141-144 GET/DELETE sem reautenticação; events.ts:35-58 + system.ts:108 SSE sem auth/ACL. Limites: sem dados reais; sem prova de corrida/rede; sem cancelamento de operações em voo.
+`npm test` 626/626, zero falhas e zero skips, 2026-10-14 09:02 UTC. Typecheck, build, e2e, inventário `--check` (120) e validador (28) aprovados. Sem dados reais e sem `DATABASE_URL` herdado.
 
 ### Pendências
 
-Concluir #1 com fixtures descartáveis; planejar #2; aguardar decisão humana ADM-DEC-05/07/09 antes de qualquer #3.
+Revisão humana do PR. Acesso de OWNER ao documento privado, fora do canal. API nova de transferência de responsabilidade. Cancelamento do passo que já entrou na ferramenta.
 
 ### Próximas ações recomendadas
 
-1. Reproduzir em processo descartável: SID sem bearer, bearer trocado, token rotacionado/revogado, scopes alterados, dono suspenso; SSE anônimo, query forjada, sessão revogada.
-2. Registrar resultados/limites sem dados reais e sem prometer cancelamento de operações em voo.
-3. Desenhar #2 com regressões e condições de aceite.
+1. Revisar o PR sem mergear.
+2. Ao integrar com #18, manter dentro de `setSuspended` a revogação dos agentes ACTIVE e o hook que fecha os canais.
+3. Não tratar este PR como a abertura de documento privado para todo OWNER.
 
 ### Riscos e cuidados
 
-Não confundir risco estático com exploração; não ampliar autoridade nem duplicar DOC-SERVER-006/DOC-MCP-001; não usar dados/bancos externos herdados; usar configuração própria e fechar recursos (close/finally).
+#18 reescreve `setSuspended` e `auth.ts`. #17 e #19 também editam backlog, handoff, PERMISSIONS e inventário. O slug na presença filtrada pode coincidir entre donos. Modo local não pede login.
 
 ### Condições para conclusão
 
-Critérios de aceitação cumpridos com política aprovada antes de implementar, testes/gates proporcionais e handoff coerente com resultados reais.
+Revisão do PR aceita. Critérios desta tarefa já têm evidência de execução.
 
 ## Rollback
 

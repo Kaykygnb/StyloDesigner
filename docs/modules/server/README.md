@@ -12,6 +12,10 @@ Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige p
 
 Workspaces ativos revalidam o papel atual da pessoa por ID do projeto antes de ferramentas que dependem dele; agentes também precisam manter seu grant. O snapshot HTTP do Studio usa o mesmo gate. Downgrade atualiza o papel e recusa escrita, revogação recusa leitura/escrita, e novo compartilhamento pode permitir continuar sem reabrir. A consulta não hidrata documento/assets. A verificação acontece no início da chamada e não cancela operações já em execução (DOC-SERVER-004).
 
+Sessão MCP fica presa ao agente que a abriu. Bearer de outro agente não troca essa identidade. Pedido sem bearer revalida a credencial presa: token rotacionado, revogação, escopo reduzido e dono suspenso passam a valer em POST, GET e DELETE. Suspender a conta apaga as sessões web, marca os agentes ACTIVE como REVOKED e fecha os canais daquela conta. Reativar a conta não devolve essas credenciais. O registro do agente, o projeto e o log de operações permanecem. Uma ferramenta que já passou da checagem do sinal pode concluir o passo atual; a próxima chamada e o canal persistente não seguem (DOC-SERVER-007).
+
+`GET /api/agent/events` exige sessão. A query não escolhe usuário nem inscreve projeto sem acesso. Evento de projeto vai para dono, membro ou OWNER da instalação. ADMIN sem membership não recebe projeto privado e não há exceção de emergência. `GET /api/health` e `GET /api/presence` exigem sessão. `GET /api/status` continua sendo o mínimo público. No modo local o usuário técnico segue como a identidade, sem login.
+
 ## Não deve fazer
 
 Não deve duplicar regras do modelo ou implementar uma segunda versão de ferramentas.

@@ -22,7 +22,7 @@
 | Health/status/presença/configuração pública | Acessíveis, sujeitos a guard Host/Origin | Idem | Idem | Acessíveis sem identidade; não afirmar ausência de metadados sensíveis |
 | Setup primeiro OWNER, count=0 | Não requer conta anterior | Não requer conta anterior | Não requer conta anterior | Endpoint público sujeito aos guards atuais |
 
-SSE /agent/events atualmente não passa por userOf; nome/projeto declarados por query não demonstram identidade nem ACL. Broadcast de projeto não filtra por membership. Validação/revogação específica proposta em DOC-SERVER-007.
+SSE `/agent/events` exige `userOf`. Nome e id da query não são identidade. O arquivo na query só entra se a conta pode ver o projeto. O broadcast de projeto vai para dono, membro ou OWNER da instalação; ADMIN sem membership não recebe e não há exceção de emergência. Suspensão e revogação de sessão fecham o canal (DOC-SERVER-007). Abrir ou gravar o documento privado só por ser OWNER da instalação não faz parte deste canal.
 
 Sessão humana exige validação via auth; token de agente não é token de usuário. Não confundir SSE de editor, cookie da pessoa e SID MCP. Legado atual: no modo local o usuário técnico é OWNER e não há limite de identidade multiusuário equivalente a accounts; parte das rotas de contas responde 404.
 
@@ -45,7 +45,7 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 
 | Ação | Requisitos atuais | Limite da evidência |
 |---|---|---|
-| Iniciar por bearer | Token válido, agente ACTIVE | Sem expiração do token; suspensão do dono não conferida explicitamente em authenticate |
+| Iniciar por bearer | Token válido, agente ACTIVE e dono não suspenso | Sem expiração do token. Suspensão do dono revoga o agente ACTIVE; reativar a conta não devolve o token (DOC-SERVER-007) |
 | Abrir projeto | Acesso do dono + grant agente/projeto | Grant é binário, não role/scope por projeto |
 | Ler/editar/exportar/comentar | Grant/acesso atual, read/write/export/comment e regra da ferramenta; comment também aceita write | Revalidação no início; catálogo completo não significa todas ferramentas executáveis |
 | Compartilhar projeto | Dono com role OWNER + agente write | Já existe delegação ampla de compartilhamento; não é prova de autoelevação |

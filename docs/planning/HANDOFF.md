@@ -4,9 +4,13 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 ## Referência
 
-- Branch: `v0.1.0-beta`
-- Commit de referência: `50a8d00d006316175667397ac433ad4b6403832f`
-- Última atualização: 2026-10-14 03:42 UTC — [Codex]
+- Branch de trabalho: `cursor/canais-persistentes-e5d4` (base `v0.1.0-beta`)
+- Commit de referência: pendente do commit desta entrega
+- Última atualização: 2026-10-14 09:02 UTC — [Grok]
+
+## Entrega desta sessão
+
+[DOC-SERVER-007](tasks/server/DOC-SERVER-007.md) em validação, 5/5, [Grok]. Sessão MCP não troca de agente. SSE, health e presença exigem sessão. Suspensão revoga agentes ACTIVE e não os devolve na reativação. `npm test` 626/626. PR draft, sem merge. Não abre documento privado para todo OWNER; isso fica fora deste canal. #18 altera `setSuspended`: preservar a revogação dos agentes e o fechamento dos canais.
 
 ## Entrega atual
 

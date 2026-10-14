@@ -73,8 +73,9 @@ test('contas: cadastro, agente MCP, autorização por projeto e revogação', as
   assert.equal(stream.status, 200);
   const connections = await call('GET', '/api/connections');
   assert.equal(connections.status, 200);
-  const live = connections.json.find((connection) => connection.personId === 'editor-e2e');
-  assert.ok(live, 'a conexão SSE deve aparecer para o administrador');
+  const live = connections.json.find((connection) => connection.name === 'Owner');
+  assert.ok(live, 'a conexão SSE deve aparecer para o administrador com a identidade da sessão');
+  assert.notEqual(live.personId, 'editor-e2e', 'a query não escolhe a identidade da conexão');
   const closeConnection = await call('DELETE', `/api/connections/${live.id}`, {});
   assert.equal(closeConnection.status, 200);
   streamAbort.abort();
