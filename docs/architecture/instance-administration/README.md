@@ -2,7 +2,7 @@
 
 Deliberação documental da beta, tarefa [DOC-ADMIN-001](../../planning/tasks/administration/DOC-ADMIN-001.md). Referência de código: `v0.1.0-beta`, `7055b65f83db15f4aac3ea8a783bc8a9d4665b1e`, 2026-10-14. Código funcional não alterado nesta rodada.
 
-A recomendação é **uma instalação por organização**, com vários usuários, projetos e agentes, preservando o monólito modular. Organização é o contexto operacional da instalação; não existe entidade tenant nova nem isolamento multi-organização implementado. Para empresas independentes, instalações independentes por enquanto.
+**ADM-DEC-01 aprovada:** uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Vários usuários, projetos e agentes ficam nessa instalação, no monólito modular. Não existe entidade tenant e não se cria uma só por causa desta decisão. Empresas independentes usam instalações independentes.
 
 - [Estado atual e evidências](CURRENT-STATE.md): capacidades, cobertura e riscos.
 - [Arquitetura recomendada](ARCHITECTURE.md): responsabilidades, fluxos e fronteiras.
