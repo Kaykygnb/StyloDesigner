@@ -80,8 +80,7 @@ export function authRoutes(s: Services, id: Identity) {
     const b = await readObject(c);
     const password = String(b.password || '') || newToken('stylo_pwd').slice(-16);
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
-    if (role === 'OWNER' && actor.role !== 'OWNER') throw httpError(403, 'Só o proprietário pode criar outro proprietário.');
-    const user = await s.auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password, role });
+    const user = await s.auth.createUser({ email: String(b.email || ''), name: String(b.name || ''), password, role }, false, actor);
     if (b.avatar !== undefined || b.color !== undefined) {
       return c.json({ user: await s.auth.updateUser(user.id, { avatar: b.avatar === null ? null : b.avatar === undefined ? undefined : String(b.avatar), color: b.color === undefined ? undefined : String(b.color) }), temporaryPassword: String(b.password || '') ? undefined : password }, 201);
     }
@@ -91,8 +90,7 @@ export function authRoutes(s: Services, id: Identity) {
     const actor = await id.adminOf(c);
     const b = await readObject(c);
     const role = ['OWNER', 'ADMIN', 'EDITOR', 'COMMENTER', 'VIEWER', 'MEMBER'].includes(String(b.role)) ? String(b.role) as any : undefined;
-    if (role === 'OWNER' && actor.role !== 'OWNER') throw httpError(403, 'Só o proprietário pode promover um proprietário.');
-    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }));
+    return c.json(await s.auth.updateUser(c.req.param('id'), { name: b.name === undefined ? undefined : String(b.name), email: b.email === undefined ? undefined : String(b.email), color: b.color === undefined ? undefined : String(b.color), avatar: b.avatar === undefined ? undefined : b.avatar === null ? null : String(b.avatar), role }, actor));
   });
   r.post('/users/:id/reset-password', async (c) => { await id.adminOf(c); return c.json(await s.auth.resetPassword(c.req.param('id'))); });
   r.post('/users/:id/revoke-sessions', async (c) => { await id.adminOf(c); return c.json(await s.auth.revokeAllSessions(c.req.param('id'))); });

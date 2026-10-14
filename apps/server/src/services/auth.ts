@@ -3,7 +3,8 @@
  *
  * - Senha: scrypt (do próprio Node, sem dependência) com sal por usuário.
  * - Sessão: token aleatório de 256 bits; só o hash (sha256) vai para o banco. Vale 30 dias.
- * - A PRIMEIRA conta criada (`setup`) é a conta mestre (OWNER): aprova pessoas e agentes. Depois disso só o dono cria contas.
+ * - A PRIMEIRA conta humana (`setup`) vira a autoridade principal da instalação e recebe papel OWNER.
+ *   Vários OWNER podem existir; só o principal concede esse papel. Banco antigo fica sem principal até designação explícita.
  * - Modo local (sem login): existe um usuário técnico "local" que age no lugar da pessoa; ninguém consegue entrar com ele.
  */
 
@@ -49,19 +50,60 @@ export function createAuth(db: Db) {
   const recordAuth = (userId: string | null, email: string, kind: string) => db.authEvent.create({ data: { userId, email, kind } }).catch(() => undefined);
   /** Há alguma conta de pessoa (fora o usuário técnico do modo local)? */
   const hasAccounts = async () => (await db.user.count({ where: { email: { not: LOCAL_EMAIL } } })) > 0;
+  /** Conta apontada como autoridade principal, ou null se o banco ainda não foi designado. */
+  const principalId = async () => (await db.installation.findUnique({ where: { id: 1 }, select: { principalUserId: true } }))?.principalUserId ?? null;
 
-  /** Cria a conta mestre. Só funciona enquanto não existe nenhuma conta. */
-  async function setup(input: { email: string; name: string; password: string }): Promise<PublicUser> {
-    if (await hasAccounts()) throw httpError(409, 'Já existe uma conta mestre.');
-    return createUser({ ...input, role: 'OWNER' }, true);
+  const grantMessage = (kind: 'create' | 'promote', designated: boolean) => designated
+    ? 'Só a autoridade principal pode conceder o papel de proprietário.'
+    : kind === 'create' ? 'Só o proprietário pode criar outro proprietário.' : 'Só o proprietário pode promover um proprietário.';
+
+  /** Concede OWNER: o principal, quando existe; qualquer OWNER só enquanto ninguém foi designado. */
+  async function assertCanGrantOwner(actor: { id: string; role: UserRole } | undefined, kind: 'create' | 'promote') {
+    const designated = await principalId();
+    if (designated) {
+      if (actor?.id === designated) return;
+      throw httpError(403, grantMessage(kind, true));
+    }
+    if (actor?.role === 'OWNER') return;
+    throw httpError(403, grantMessage(kind, false));
   }
 
-  /** Cria uma conta. Quem chama (a conta mestre) é conferido na rota. */
-  async function createUser(input: { email: string; name: string; password: string; role?: UserRole }, skipDuplicateCheck = false): Promise<PublicUser> {
+  /** A principal não perde papel, acesso nem a própria conta. Não se aplica enquanto o ponteiro está vazio. */
+  async function assertPrincipalPreserved(id: string) {
+    if ((await principalId()) === id) throw httpError(403, 'A autoridade principal não pode ser suspensa, rebaixada ou excluída.');
+  }
+
+  /** Cria a primeira conta humana e a grava como principal. Só funciona enquanto não existe nenhuma. */
+  async function setup(input: { email: string; name: string; password: string }): Promise<PublicUser> {
+    const email = input.email.trim().toLowerCase();
+    if (email === LOCAL_EMAIL) throw httpError(400, 'Este e-mail é reservado ao modo local.');
+    checkCredentials(email, input.name, input.password);
+    const name = input.name.trim().slice(0, 60);
+    const passwordHash = hashPassword(input.password);
+    try {
+      return await db.$transaction(async (tx) => {
+        const installation = await tx.installation.findUnique({ where: { id: 1 }, select: { principalUserId: true } });
+        if (!installation) throw httpError(500, 'A instalação não tem registro de autoridade principal.');
+        if (installation.principalUserId || (await tx.user.count({ where: { email: { not: LOCAL_EMAIL } } })) > 0) throw httpError(409, 'Já existe uma conta mestre.');
+        const user = await tx.user.create({ data: { email, name, passwordHash, role: 'OWNER', mustChangePassword: false } });
+        const claimed = await tx.installation.updateMany({ where: { id: 1, principalUserId: null }, data: { principalUserId: user.id } });
+        if (claimed.count !== 1) throw httpError(409, 'Já existe uma conta mestre.');
+        return publicUser(user);
+      });
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'P2002') throw httpError(409, 'Já existe uma conta mestre.');
+      throw error;
+    }
+  }
+
+  /** Cria uma conta. Papel OWNER exige o ator autorizado; o setup não passa por aqui. */
+  async function createUser(input: { email: string; name: string; password: string; role?: UserRole }, skipDuplicateCheck = false, actor?: { id: string; role: UserRole }): Promise<PublicUser> {
     const email = input.email.trim().toLowerCase();
     checkCredentials(email, input.name, input.password);
+    const role = input.role ?? 'MEMBER';
+    if (role === 'OWNER' && !skipDuplicateCheck) await assertCanGrantOwner(actor, 'create');
     if (!skipDuplicateCheck && (await db.user.findUnique({ where: { email } }))) throw httpError(409, 'Já existe uma conta com este e-mail.');
-    const user = await db.user.create({ data: { email, name: input.name.trim().slice(0, 60), passwordHash: hashPassword(input.password), role: input.role ?? 'MEMBER', mustChangePassword: !skipDuplicateCheck } });
+    const user = await db.user.create({ data: { email, name: input.name.trim().slice(0, 60), passwordHash: hashPassword(input.password), role, mustChangePassword: !skipDuplicateCheck } });
     return publicUser(user);
   }
 
@@ -105,13 +147,19 @@ export function createAuth(db: Db) {
     return (await db.user.findMany({ where: { email: { not: LOCAL_EMAIL } }, orderBy: { createdAt: 'asc' } })).map(publicUser);
   }
 
-  async function updateUser(id: string, input: { name?: string; email?: string; color?: string | null; avatar?: string | null; role?: UserRole; preferences?: AccountPreferences }): Promise<PublicUser> {
+  async function updateUser(id: string, input: { name?: string; email?: string; color?: string | null; avatar?: string | null; role?: UserRole; preferences?: AccountPreferences }, actor?: { id: string; role: UserRole }): Promise<PublicUser> {
     const name = input.name?.trim();
     if (name !== undefined && !name) throw httpError(400, 'Diga o nome.');
     const email = input.email?.trim().toLowerCase();
     if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw httpError(400, 'E-mail inválido.');
     if (email && (await db.user.findFirst({ where: { email, NOT: { id } } }))) throw httpError(409, 'Já existe uma conta com este e-mail.');
     if (input.avatar !== undefined && input.avatar !== null && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(input.avatar) || input.avatar.length > 220_000)) throw httpError(400, 'Avatar inválido ou grande demais. Use PNG, JPEG ou WebP de até 160 KB.');
+    if (input.role !== undefined) {
+      const current = await db.user.findUnique({ where: { id }, select: { role: true } });
+      if (!current) throw httpError(404, 'Conta não encontrada.');
+      if (input.role === 'OWNER' && current.role !== 'OWNER') await assertCanGrantOwner(actor, 'promote');
+      if (input.role !== 'OWNER') await assertPrincipalPreserved(id);
+    }
     const user = await db.user.update({ where: { id }, data: { ...(name !== undefined ? { name: name.slice(0, 60) } : {}), ...(email !== undefined ? { email } : {}), ...(input.color !== undefined ? { color: input.color?.slice(0, 32) || null } : {}), ...(input.avatar !== undefined ? { avatar: input.avatar } : {}), ...(input.role !== undefined ? { role: input.role } : {}), ...(input.preferences !== undefined ? { preferences: input.preferences as any } : {}) } }).catch(() => null);
     if (!user) throw httpError(404, 'Conta não encontrada.');
     return publicUser(user);
@@ -164,19 +212,21 @@ export function createAuth(db: Db) {
   async function deleteUser(id: string) {
     const user = await db.user.findUnique({ where: { id } });
     if (!user) throw httpError(404, 'Conta não encontrada.');
+    await assertPrincipalPreserved(id);
     if (user.role === 'OWNER') throw httpError(400, 'A conta mestre não pode ser excluída.');
     await db.user.delete({ where: { id } });
     return { ok: true };
   }
 
   async function setSuspended(id: string, suspended: boolean) {
+    if (suspended) await assertPrincipalPreserved(id);
     const user = await db.user.update({ where: { id }, data: { suspended } }).catch(() => null);
     if (!user) throw httpError(404, 'Conta não encontrada.');
     if (suspended) await db.session.deleteMany({ where: { userId: id } });
     return publicUser(user);
   }
 
-  return { hasAccounts, setup, createUser, updateUser, changePassword, sessions, allSessions, authEvents, revokeSession, revokeAnySession, resetPassword, revokeAllSessions, deleteUser, setSuspended, login, userFromToken, logout, localUser, users };
+  return { hasAccounts, principalId, setup, createUser, updateUser, changePassword, sessions, allSessions, authEvents, revokeSession, revokeAnySession, resetPassword, revokeAllSessions, deleteUser, setSuspended, login, userFromToken, logout, localUser, users };
 }
 
 export type Auth = ReturnType<typeof createAuth>;
