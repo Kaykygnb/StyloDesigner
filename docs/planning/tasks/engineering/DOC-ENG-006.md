@@ -30,13 +30,13 @@ Uma pessoa com Node 22 segue o README, sobe o servidor na primeira tentativa, cr
 
 ## Dependências, riscos e bloqueios
 
-- Dependências: merge da PR #17 e da PR #18 na `v0.1.0-beta` antes de começar a implementação. DOC-SERVER-007 é quem investiga o canal; coordenar para não duplicar.
+- Dependências: merge da PR #17 e da PR #18 na `v0.1.0-beta`. DOC-SERVER-011 (login por nome de usuário) bloqueia esta alpha, porque o fluxo de conta obrigatória depende dela. DOC-SERVER-007 é quem investiga o canal; coordenar para não duplicar.
 - Riscos: anunciar alpha em rede aberta com SSE anônimo; documentar `STYLO_AUTH=local` como o caminho feliz.
-- Bloqueios: não assumir enquanto #17 e #18 não estiverem na beta.
+- Bloqueios: não assumir enquanto #17 e #18 não estiverem na beta e DOC-SERVER-011 não estiver concluída.
 
 ## Critérios de aceitação
 
-- [ ] PRs #17 e #18 mergeadas na beta usada pela alpha.
+- [ ] PRs #17 e #18 mergeadas na beta usada pela alpha. DOC-SERVER-011 concluída: login por usuário ou e-mail, e-mail opcional, contas antigas com usuário gerado.
 - [ ] `npm install` e `npm start` com Node 22 abrem o Studio e a primeira conta vira OWNER. O README não ensina modo sem conta como caminho da alpha.
 - [ ] Se o processo for alcançado de outra máquina, o canal de eventos exige identidade e a resposta pública não traz auditoria, diagnóstico detalhado nem aviso ao vivo. Instalação só local precisa desse limite escrito e verificado.
 - [ ] README com demo: criar conta, frame, texto ou vetor, exportar HTML. Limitações conhecidas no mesmo texto (protótipo não roda no site exportado; SVG omite o que `svgimport.js` e `svg.js` já declaram; sem PDF, PPTX e 3D).
@@ -95,6 +95,15 @@ Uma pessoa com Node 22 segue o README, sobe o servidor na primeira tentativa, cr
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 08:40 UTC — [Grok 4.7] — bloqueio da alpha
+
+- Investigado: o fluxo de conta obrigatória depende do login por nome de usuário.
+- Alterado: dependência e critério. DOC-SERVER-011 bloqueia esta tarefa.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: continua Proposta.
+- Próximo passo: não assumir antes de #17, #18 e DOC-SERVER-011.
 
 ### 2026-10-14 08:45 UTC — [Grok 4.7] — criação
 

@@ -56,7 +56,7 @@ Isto é ausência verificada (não há tipo, ferramenta ou leitor), distinta dos
 | PDF e PPTX | Nenhuma ferramenta ou dependência desses formatos |
 | Modelo 3D / glTF | Nenhum tipo de camada 3D |
 | JavaScript de comportamento no documento | Protótipo é declarativo (`trigger`, `action`, `transition` em `model.ts`). O site exportado avisa que a interação de protótipo não roda (`site-export.ts`) |
-| Conta sem e-mail | `User.email` é obrigatório e único; `login` busca por e-mail (`auth.ts`). O campo `name` é nome de exibição |
+| Conta sem e-mail | Ainda não está no código: `User.email` é obrigatório e o login busca por e-mail (`auth.ts`). A forma do login já foi delegada e está na ADR 0002 (DOC-SERVER-011): usuário obrigatório, e-mail opcional |
 | OWNER principal no runtime desta fotografia | O schema em `31f16bf` não tem ponteiro de principal. A PR #18, não mergeada, adiciona esse ponteiro |
 | Canal de eventos com identidade | `GET /api/agent/events` aceita nome e projeto pela query (`events.ts`, `system.ts`) |
 | Suspensão que corta o agente | DOC-SERVER-007 registrou agente ainda válido depois do dono suspenso. Não reexecutei esse teste nesta entrega |
@@ -122,4 +122,4 @@ Entra: o editor atual (layout, texto, componentes, vetor como acima, protótipo 
 
 Não entra: 3D, PDF, PPTX, React Native, JavaScript livre, remake visual, transferência de principal, códigos offline, acesso automático de OWNER a projeto privado, suspensão completa de agente em voo.
 
-Bloqueios antes de publicar: merge das PRs #17 e #18; segurança do que responder sem login se o processo for alcançado fora da máquina; `npm install` e `npm start` na primeira tentativa; README com um demo curto; limitações conhecidas escritas nesse README. Tarefa: [DOC-ENG-006](../planning/tasks/engineering/DOC-ENG-006.md).
+Bloqueios antes de publicar: merge das PRs #17 e #18; login por nome de usuário (DOC-SERVER-011), porque a conta obrigatória depende dele; segurança do que responder sem login se o processo for alcançado fora da máquina; `npm install` e `npm start` na primeira tentativa; README com um demo curto; limitações conhecidas escritas nesse README. Tarefa: [DOC-ENG-006](../planning/tasks/engineering/DOC-ENG-006.md).

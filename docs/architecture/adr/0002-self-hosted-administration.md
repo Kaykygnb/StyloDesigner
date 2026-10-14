@@ -88,7 +88,16 @@ Autoria: proprietário. Registro por [Grok 4.7]. O texto abaixo é o que foi apr
 
 Toda instalação exige conta, inclusive uso local individual. Primeiro usuário = OWNER principal. Conta funciona localmente sem autenticação externa. Nome de usuário obrigatório; senha obrigatória; e-mail não obrigatório no local; autenticação aplica-se às integrações e ao FeatMCP; provedores externos de identidade podem vir depois. Não criar modo pessoal que contorne o sistema de contas.
 
-Conflito com o código em `31f16bf`: `STYLO_AUTH=local` entra sem senha e cria usuário técnico OWNER (`auth.ts`). `User.email` é obrigatório, único, e é a chave do login. `name` é nome de exibição, não um identificador de login. Não foi escolhido aqui se “nome de usuário” é um login novo ou o nome que já existe. Isso precisa do proprietário.
+Conflito com o código em `31f16bf`: `STYLO_AUTH=local` entra sem senha e cria usuário técnico OWNER (`auth.ts`). `User.email` é obrigatório, único, e é a chave do login. `name` é nome de exibição.
+
+O proprietário delegou a forma do login aos engenheiros. Detalhe técnico, não decisão humana nova:
+
+- O nome de usuário é o identificador de login. É obrigatório, único sem distinguir maiúsculas, e separado do nome de exibição (`name`).
+- O e-mail é opcional e pode ser nulo. Quando existe, também serve para entrar e continua único sem distinguir maiúsculas.
+- O login aceita usuário ou e-mail. A comparação não distingue maiúsculas. Texto com `@` procura e-mail; o resto procura usuário. O nome de usuário não contém `@`.
+- Contas que já existem recebem um nome de usuário na migração e não perdem o e-mail. A geração usa a parte local do e-mail, em minúsculas, só letras e dígitos. Se não sobrar nada, o valor é `user`. Colisão recebe sufixo `-2`, `-3`, e assim por diante. O nome de exibição não muda.
+
+Implementação, migração e testes: DOC-SERVER-011. Isso bloqueia a alpha, porque o fluxo de conta obrigatória depende desse login. Ainda não está no código.
 
 ### 2.2 Uso individual e empresarial
 
@@ -169,3 +178,4 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — preparação DOC-ADMIN-001 em 50a8d00: arquitetura proposta, investigação/review e aprovação beta ADM-DEC-00.
 - 2026-10-14 — proprietário humano estabeleceu HD-IDENTITY-01..04, HD-ONBOARDING-01..03, HD-OWNERSHIP-01..05, HD-ADMIN-01..04 e HD-RECOVERY-01..05. Codex registrou 21 IDs sem substituir autoria; recomendações anteriores foram reconciliadas, não convertidas em aprovação genérica. Engenharia de investigação/testes/restore segue; contratos estruturais dependem de projeto/revisão específica.
 - 2026-10-14 — proprietário aprovou as seções 2.1–2.7, ADM-DEC-05 e ADM-DEC-09. ADM-DEC-02 segue pendente. O prazo da ADM-DEC-09 foi delegado e registrado como detalhe técnico (365 / 30 / 7 dias). [Grok 4.7]. Sem mudança de runtime. Conflitos com o código e com HD-RECOVERY-05 ficam na seção da rodada.
+- 2026-10-14 — o proprietário delegou a forma do login. Detalhe técnico na seção 2.1: usuário obrigatório e único, e-mail opcional, entrada por um ou por outro, migração gera o usuário sem apagar o e-mail. Tarefa DOC-SERVER-011. Bloqueia a alpha. [Grok 4.7].

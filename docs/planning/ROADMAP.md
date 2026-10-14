@@ -61,7 +61,7 @@ Não entra: 3D, PDF, PPTX, React Native, JavaScript livre, remake visual, transf
 
 Antes de publicar:
 
-1. Merge da PR #17 e da PR #18.
+1. Merge da PR #17 e da PR #18. DOC-SERVER-011 concluída: o login da conta obrigatória usa nome de usuário, com e-mail opcional.
 2. O que responder sem login, se o processo sair da máquina, fica no mínimo da ADM-DEC-09. O canal de eventos verifica identidade. O padrão da alpha é escutar só na máquina local.
 3. `npm install` e `npm start` com Node 22 funcionam na primeira tentativa. O README da alpha não ensina entrar sem conta.
 4. README com demo: conta, frame, texto ou vetor, exportar HTML.

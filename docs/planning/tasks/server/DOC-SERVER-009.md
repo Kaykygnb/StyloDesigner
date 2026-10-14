@@ -30,7 +30,7 @@ Entregar plano técnico revisado, com critérios/ensaios isolados e limites de a
 
 ## Dependências, riscos e bloqueios
 
-- Dependências: DOC-SERVER-006/008; DOC-DB-001 para restore; projeto administrativo existente. Investigação pode preceder implementação das dependências.
+- Dependências: DOC-SERVER-006/008; DOC-DB-001 para restore; projeto administrativo existente. O contrato de login por nome de usuário é DOC-SERVER-011; esta tarefa não o redefine. Investigação pode preceder implementação das dependências.
 - Riscos: Perda de dados/autoridade/chaves; retirar identidade técnica sem preservar cascades; inventar decisão humana.
 - Bloqueios: Implementação estrutural requer projeto/review específico; planejamento autorizado e não bloqueia engenharia independente.
 
@@ -95,6 +95,15 @@ Entregar plano técnico revisado, com critérios/ensaios isolados e limites de a
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 08:40 UTC — [Grok 4.7] — nota
+
+- Investigado: login por nome de usuário ficou em DOC-SERVER-011.
+- Alterado: dependência. Esta tarefa não redefine esse contrato.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: continua Proposta.
+- Próximo passo: o mesmo de antes, sem reabrir o formato do login.
 
 ### 2026-10-14 03:34 UTC — [Codex] — proposta por diretriz humana
 
