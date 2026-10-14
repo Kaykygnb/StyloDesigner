@@ -1,12 +1,14 @@
-// Barra superior do editor: voltar aos projetos, tamanho de aparelho, desfazer/refazer, conferir e exportar.
+// Barra superior do editor: projeto à esquerda, tamanho de tela no meio e, à direita, comandos, desfazer, ver, agentes,
+// apresentar e exportar. Conferir e histórico ficam no menu de painéis, na barra de status e no Ctrl K.
 import { canEdit, redo, undo } from '../lib/actions';
-import { app, closeProject, dismissSyncNotice, runChecks, setDevice, setPanel, useApp } from '../lib/app';
+import { app, closeProject, dismissSyncNotice, setDevice, setPanel, useApp } from '../lib/app';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
 import { LogoMark } from '../ui/Brand';
 import { openCommandPalette } from '../ui/CommandPalette';
 import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
 import { openProjectDialog } from './ProjectDialog';
+import { ViewMenu } from './ViewMenu';
 import { t } from '../lib/i18n';
 
 export function TopBar() {
@@ -19,7 +21,6 @@ export function TopBar() {
   const live = useApp((s) => s.live);
   const liveStatus = useApp((s) => s.liveStatus);
   const language = useApp((s) => s.language);
-  const issues = useApp((s) => s.issues);
   const syncNotice = useApp((s) => s.syncNotice);
   const editable = canEdit();
   const bps = breakpointsOf(doc);
@@ -51,18 +52,13 @@ export function TopBar() {
       <button className="btn ghost icon" aria-label={t(language, 'top.undo')} title={t(language, 'top.undo')} disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
       <button className="btn ghost icon" aria-label={t(language, 'top.redo')} title={t(language, 'top.redo')} disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
       <span className="sep" />
-      <button className={`btn ghost${panel === 'issues' ? ' active' : ''}`} title={t(language, 'ui.topbar.check')} onClick={() => { setPanel('issues'); if (!issues) void runChecks(); }}>
-        <Icon name="alert" size={16} /><span className="lbl">{t(language, 'top.check')}</span>{issues?.length ? <span className={`badge ${issues.some((i) => i.severity === 'erro') ? 'error' : 'warn'}`}>{issues.length}</span> : null}
-      </button>
+      <ViewMenu />
       <button className={`btn ghost${panel === 'agents' ? ' active' : ''}`} title={t(language, 'ui.topbar.agents')} onClick={() => setPanel('agents')}>
         <Icon name="users" size={16} /><span className="lbl">{t(language, 'top.agents')}</span>{here > 1 ? <span className="badge">{here}</span> : null}
       </button>
-      <button className={`btn ghost${panel === 'versions' ? ' active' : ''}`} title={t(language, 'ui.topbar.history')} onClick={() => setPanel('versions')}>
-        <Icon name="history" size={15} /><span className="lbl">{t(language, 'top.history')}</span>
-      </button>
       <span className="sep" />
-      <button className="btn ghost" title={t(language, 'ui.topbar.present')} onClick={() => app.set({ presenting: true })}>
-        <Icon name="play" size={15} /><span className="lbl">{t(language, 'top.present')}</span>
+      <button className="btn ghost icon" aria-label={t(language, 'ui.topbar.present')} title={t(language, 'ui.topbar.present')} onClick={() => app.set({ presenting: true })}>
+        <Icon name="play" size={15} />
       </button>
       <button className="btn primary" onClick={() => setPanel('export')}><Icon name="download" size={15} /> {t(language, 'top.export')}</button>
       <AppearanceMenu />

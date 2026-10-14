@@ -25,6 +25,7 @@ import { boundFindResponse } from '@stylo/core/tools/runner/search.ts';
 import { toolByName, validateToolArgs } from '@stylo/core/tools/schema.js';
 import type { Plugins } from '../plugins.js';
 import { makeDoc } from '@stylo/core/model.js';
+import { projectBrief } from '@stylo/core/brief.ts';
 import { exportSite } from '@stylo/core/site-export.js';
 import { exportReact } from '@stylo/core/export-react.ts';
 import { vendorFiles } from '../services/vendor.ts';
@@ -36,7 +37,7 @@ import type { Sharing } from '../services/sharing.js';
 import type { Operations } from '../services/operations.js';
 
 const IDLE_MS = 10 * 60 * 1000;
-const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip', 'add_note', 'list_notes', 'resolve_note', 'get_activity', 'who_is_here', 'list_members', 'share_project', 'unshare_project']);
+const PROJECT_TOOLS = new Set(['list_projects', 'new_project', 'open_project', 'save_project', 'export_zip', 'add_note', 'list_notes', 'get_project_map', 'resolve_note', 'get_activity', 'who_is_here', 'list_members', 'share_project', 'unshare_project']);
 
 /** Quem está pedindo: uma pessoa ou um agente. `userId` é a conta com a qual se acessa o banco. */
 export interface Actor {
@@ -252,6 +253,11 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
       const { entry } = here(sid);
       const list = await notes.list(entry.id, { layerId: layer_id, kind: kind ? kindOf(kind) : undefined, includeResolved: include_resolved !== false, limit });
       return { count: list.length, notes: list.map(iso) };
+    },
+    async get_project_map({ depth }: any, sid: string) {
+      const { entry } = here(sid);
+      const list = await notes.list(entry.id, { includeResolved: true, limit: 500 });
+      return projectBrief(entry.store.state.doc, { depth, notes: list as any });
     },
     async resolve_note({ id, resolved }: any, sid: string) {
       const { entry } = here(sid);

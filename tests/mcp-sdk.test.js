@@ -49,7 +49,7 @@ test('cliente oficial: initialize traz as instruções, tools/list o catálogo a
   assert.equal(client.getServerVersion().name, 'projeto-designer');
   assert.match(client.getInstructions(), /new_project/);
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 120, "97 ferramentas do núcleo + 10 de assets + plugins de identidade, acessibilidade, Tailwind, SEO, QR");
+  assert.equal(tools.length, 121, "98 ferramentas do núcleo + 10 de assets + plugins de identidade, acessibilidade, Tailwind, SEO, QR");
   assert.ok(tools.find((x) => x.name === 'generate_qr_code').annotations.readOnlyHint);
   assert.ok(tools.find((x) => x.name === 'accessibility_audit').annotations.readOnlyHint);
   assert.ok(tools.find((x) => x.name === 'get_site_metadata').annotations.readOnlyHint);

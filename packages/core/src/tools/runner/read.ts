@@ -10,9 +10,13 @@ import { modesOf } from '../../modes.js';
 import type { RunnerContext, ToolHandlers, ToolArgs } from './types.ts';
 import { summarize } from './presentation.ts';
 import { findLayers } from './search.ts';
+import { projectBrief } from '../../brief.ts';
 export function createReadTools(ctx: RunnerContext): ToolHandlers {
   const { store, need, folder } = ctx;
   return {
+    get_project_map({ depth = 4 } = {}) {
+      return projectBrief(store.state.doc, { depth });
+    },
     get_document({ depth = 3 } = {}) {
       const d = Math.max(0, Math.min(8, Number(depth) || 3));
       const doc = store.state.doc;

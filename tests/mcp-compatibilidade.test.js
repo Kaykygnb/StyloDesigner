@@ -101,7 +101,7 @@ test('cliente externo sem SDK: initialize, tools/list, tools/call, erros de prot
 
   // tools/list pela sessão aberta
   const tools = await client.listTools();
-  assert.equal(tools.body.result.tools.length, 120);
+  assert.equal(tools.body.result.tools.length, 121);
 
   // tools/call: resultado em texto JSON, sem isError
   const scale = await client.callTool('color_scale', { color: '#2F6AE0' });

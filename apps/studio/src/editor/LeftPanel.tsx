@@ -45,9 +45,10 @@ export function LeftFlyout() {
   const language = useApp((s) => s.language);
   return (
     <aside className="left-panel docked" aria-label={t(language, 'left.aria')}>
-      <div className="panel-head flyout-head">
+      {/* Camadas já tem os títulos "Páginas" e "Camadas" nas seções; o cabeçalho só aparece nas outras abas */}
+      {tab !== 'layers' && <div className="panel-head flyout-head">
         <h3>{t(language, TABS.find((x) => x.id === tab)?.key ?? 'left.layers')}</h3>
-      </div>
+      </div>}
       <div className="left-body">
         {tab === 'layers' && <LayersTab />}
         {tab === 'assets' && <AssetsTab />}

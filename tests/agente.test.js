@@ -115,7 +115,7 @@ test('ferramentas de criação grande existem e estão marcadas certo (escrita �
 });
 
 test('MCP completo: catálogo atual com exportação, assets, SVG e edição CSS; destrutivas marcadas', () => {
-  assert.equal(AGENT_TOOLS.length, 97);
+  assert.equal(AGENT_TOOLS.length, 98);
   assert.equal(mcpTools().find((tool) => tool.name === 'export_site').annotations.readOnlyHint, true);
   const destructive = mcpTools().filter((t) => t.annotations.destructiveHint).map((t) => t.name).sort();
   assert.deepEqual(destructive, ['delete_layers', 'delete_page']);

@@ -859,6 +859,14 @@ ${PROP_HELP}`,
     }),
   }),
   defineTool({
+    name: 'get_project_map',
+    write: false, needs: 'read',
+    description: 'Resumo do projeto em Markdown para quem vai CONSTRUIR o produto: telas e tamanhos, breakpoints, design system (cores, textos, medidas, componentes), estrutura com os textos reais, navegação, decisões e pendências. Comece por aqui ao receber um protótipo do Stylo.',
+    input: z.object({
+      depth: z.number().int().describe('profundidade da estrutura de cada tela, 1 a 8 (padrão 4)').optional(),
+    }),
+  }),
+  defineTool({
     name: 'list_notes',
     write: false, needs: 'read',
     description: 'Lista as notas do projeto, da mais antiga à mais nova, com autor (pessoa ou agente) e se foram resolvidas. LEIA as notas de decisão ao abrir um projeto que você não conhece.',

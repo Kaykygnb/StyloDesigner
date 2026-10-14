@@ -134,3 +134,9 @@
 .ctx-hint { margin-left: 18px; font: 11px var(--mono); color: var(--text-3); white-space: nowrap; }
 .ctx-item:hover:not(:disabled) .ctx-hint, .ctx-item:focus-visible .ctx-hint { color: inherit; opacity: 0.85; }
 .ctx-sep { height: 1px; margin: 4px 6px; background: var(--border); }
+
+/* grades de layout dos frames (só guia; não entram no código) */
+.layout-grids { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 3; }
+.layout-grid { position: absolute; overflow: hidden; pointer-events: none; }
+.layout-grid-band, .layout-grid-cells { position: absolute; pointer-events: none; }
+.layout-grid-cells { inset: 0; }

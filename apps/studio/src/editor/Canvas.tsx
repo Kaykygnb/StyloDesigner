@@ -15,6 +15,7 @@ import { BoardFrame, type Box as RawBox, type BoardPointer } from './BoardFrame'
 import { breakpointsOf } from './devices';
 import { canvasMenuItems, layerMenuItems } from './menus';
 import { Rulers } from './Rulers';
+import { LayoutGrids } from './canvas/LayoutGrids';
 import { PenOverlay, type PenPoint } from './PenOverlay';
 import { toParent } from './canvas/frame';
 import { pathD, pathFromStroke } from './canvas/path';
@@ -40,6 +41,7 @@ export function Canvas() {
   const pendingEdit = useApp((s) => s.pendingEdit);
   const rulers = useApp((s) => s.rulers);
   const showGuides = useApp((s) => s.guides);
+  const showGrids = useApp((s) => s.layoutGrids);
   const language = useApp((s) => s.language);
   const page = pageOf(doc, pageId);
   const editable = canEdit();
@@ -244,6 +246,7 @@ export function Canvas() {
   // ---------------------------------------------------------------- alvos de encaixe
   const snapTargets = (movingIds: string[]) => {
     const s = S.current;
+    if (!app.get().snap) return { rects: [] as Box[], guidesX: [] as number[], guidesY: [] as number[] };
     const first = movingIds[0];
     const parent = parentOf(s.page.children, first);
     const moving = new Set(movingIds.flatMap((id) => { const n = findNode(s.page.children, id); return n ? flatten([n]).map((x) => x.id) : []; }));
@@ -473,6 +476,7 @@ export function Canvas() {
             })}
           </svg>}
 
+          {showGrids && <LayoutGrids frames={flatten(boards).filter((n) => n.type === 'frame' && Array.isArray(n.grids) && n.grids.length > 0)} aabbOf={aabbOf} />}
           <SelectionOverlay
             zoom={zoom} gesture={gesture} selection={sel} editable={editable && !bp} hoverBox={hoverBox}
             pageGuides={showGuides && rulers ? page.guides ?? [] : []}

@@ -110,6 +110,7 @@ export function ExportPanel() {
   const [publishes, setPublishes] = useState<Array<{ id: string; format: string; status: string; createdAt: string; warnings?: string[]; download?: string; label?: string | null }>>([]);
   const [publishWarnings, setPublishWarnings] = useState<string[]>([]);
   const [publishLabel, setPublishLabel] = useState('');
+  const [brief, setBrief] = useState<{ markdown: string; stats: Record<string, number> } | null>(null);
   const language = useApp((s) => s.language);
   useEffect(() => { void projectPublishing(file).then(setPublishes).catch(() => setPublishes([])); }, [file]);
   const publish = async (format: 'html' | 'react') => {
@@ -121,6 +122,16 @@ export function ExportPanel() {
     setBusy(true);
     try { setTokens((await tool<{ files: { path: string; content: string }[] }>('export_tokens', { format })).files); }
     catch (e) { toast('error', e instanceof Error ? e.message : String(e)); setTokens(null); } finally { setBusy(false); }
+  };
+  const loadBrief = async () => {
+    setBusy(true);
+    try { setBrief(await tool<{ markdown: string; stats: Record<string, number> }>('get_project_map', {})); }
+    catch (e) { toast('error', e instanceof Error ? e.message : String(e)); } finally { setBusy(false); }
+  };
+  const downloadBrief = () => {
+    if (!brief) return;
+    const url = URL.createObjectURL(new Blob([brief.markdown], { type: 'text/markdown' }));
+    const a = document.createElement('a'); a.href = url; a.download = `${(file || 'projeto').replace(/\.json$/i, '')}-resumo.md`; a.click(); URL.revokeObjectURL(url);
   };
   const downloadProject = () => {
     if (!doc) return;
@@ -138,8 +149,21 @@ export function ExportPanel() {
       <section className="export-section export-agent">
         <h5><Icon name="spark" size={14} /> {t(language, 'export.forAgent')}</h5>
         <p className="muted small">{t(language, 'export.forAgentHint')}</p>
+        {brief ? (
+          <div className="export-brief">
+            <div className="export-brief-stats"><span>{tp(language, 'export.briefScreens', brief.stats.screens)} · {tp(language, 'export.briefComponents', brief.stats.components)} · {tp(language, 'export.briefFlows', brief.stats.interactions)}</span>
+              <button className="btn ghost icon sm" disabled={busy} onClick={() => void loadBrief()} title={t(language, 'export.refreshSummary')} aria-label={t(language, 'export.refreshSummary')}><Icon name="rotate" size={14} /></button></div>
+            <pre className="export-brief-text" tabIndex={0}>{brief.markdown}</pre>
+            <div className="row wrap">
+              <button className="btn primary" onClick={() => void copy(brief.markdown, language)}><Icon name="copy" size={15} /> {t(language, 'export.copySummary')}</button>
+              <button className="btn" onClick={downloadBrief}><Icon name="download" size={15} /> .md</button>
+            </div>
+          </div>
+        ) : (
+          <button className="btn primary" disabled={busy} onClick={() => void loadBrief()}><Icon name="spark" size={15} /> {t(language, 'export.makeSummary')}</button>
+        )}
         <div className="row wrap">
-          <button className="btn primary" onClick={() => void copy(t(language, 'export.briefText', { name: doc?.name || file, file, endpoint: `${location.origin}/mcp` }), language)}><Icon name="copy" size={15} /> {t(language, 'export.copyBrief')}</button>
+          <button className="btn" onClick={() => void copy(t(language, 'export.briefText', { name: doc?.name || file, file, endpoint: `${location.origin}/mcp` }), language)}><Icon name="copy" size={15} /> {t(language, 'export.copyBrief')}</button>
           <button className="btn" onClick={downloadProject}><Icon name="download" size={15} /> {t(language, 'export.document')}</button>
         </div>
       </section>

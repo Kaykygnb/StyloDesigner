@@ -991,3 +991,25 @@ button.res-row:hover { background: var(--hover); border-color: var(--border); }
   .left-panel, .right-panel { width: calc(100vw - 16px - var(--rail-w)); }
   .shortcut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* barra de status: itens clicáveis */
+.sb-btn { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.sb-btn:hover { background: var(--hover); color: var(--text-2); }
+.sb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* menu Ver (réguas, guias, encaixe, grades) */
+.view-menu { width: 300px; display: flex; flex-direction: column; gap: 2px; }
+.view-menu h4 { margin-bottom: 4px; }
+.view-opt { display: grid; grid-template-columns: 18px 1fr auto auto; align-items: center; gap: 10px; width: 100%; padding: 8px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.view-opt:hover:not(:disabled) { background: var(--hover); }
+.view-opt:disabled { opacity: .5; cursor: default; }
+.view-opt > svg { color: var(--text-3); }
+.view-opt.on > svg { color: var(--accent); }
+.view-opt-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.view-opt-text b { font-weight: 600; font-size: 13px; }
+.view-opt kbd { font-size: 10.5px; white-space: nowrap; }
+.view-opt .switch { position: relative; width: 28px; height: 16px; border-radius: 99px; background: var(--border-strong); transition: background .15s; }
+.view-opt .switch span { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.view-opt.on .switch { background: var(--accent); }
+.view-opt.on .switch span { transform: translateX(12px); }
+.view-clear { align-self: flex-start; margin-top: 6px; }

@@ -83,6 +83,10 @@ export interface AppState {
   pendingEdit: string | null;
   rulers: boolean;
   guides: boolean;
+  /** encaixe ao mover/redimensionar (nas vizinhas e nas guias) */
+  snap: boolean;
+  /** mostrar as grades de layout (colunas/linhas) dos frames */
+  layoutGrids: boolean;
 }
 
 export const ACCENTS = ['#4c8dff', '#7c5cff', '#0f9d8a', '#2f9e44', '#d9822b', '#d6409f', '#e5484d', '#8b8d98'];
@@ -112,6 +116,7 @@ export const app = createStore<AppState>({
   menu: null, dialog: null, renaming: null, tool: 'move',
   panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
   rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
+  snap: readPref<boolean>('stylo.snap', true), layoutGrids: readPref<boolean>('stylo.layoutGrids', true),
 });
 
 export const useApp = <T,>(selector: (s: AppState) => T): T => useStore(app, selector);
@@ -264,6 +269,8 @@ export const setDevice = (device: Device) => app.set({ device });
 export const setZoom = (zoom: number) => app.set({ zoom: Math.min(16, Math.max(0.02, zoom)) });
 export const setRulers = (rulers: boolean) => { app.set({ rulers }); writePref('stylo.rulers', rulers); };
 export const setGuides = (guides: boolean) => { app.set({ guides }); writePref('stylo.guides', guides); };
+export const setSnap = (snap: boolean) => { app.set({ snap }); writePref('stylo.snap', snap); };
+export const setLayoutGrids = (layoutGrids: boolean) => { app.set({ layoutGrids }); writePref('stylo.layoutGrids', layoutGrids); };
 export const setPanel = (panel: Panel) => app.set({ panel });
 export function setPage(id: string) { app.set({ pageId: id, selection: [], hover: null }); }
 
