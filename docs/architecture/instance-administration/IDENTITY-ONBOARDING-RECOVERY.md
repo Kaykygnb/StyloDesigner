@@ -53,7 +53,7 @@ Transferência legítima é requisito. Em 2026-10-14 o proprietário definiu os 
 
 ## Fronteiras de autorização para continuar
 
-Permitido agora: registro, investigação/reprodução descartável, desenho técnico/review, testes e correções pequenas comprovadas dentro de tarefa autorizada; continuar restore existente. Não autorizado genericamente: remoção destrutiva local, migração de produção, implantação integral de SMTP/tenancy/principal, envio real e grandes refatorações. Quando decisão aberta bloqueia efeito específico, registrar e seguir trabalho independente, não paralisar projeto.
+Permitido agora: registro, investigação/reprodução descartável, desenho técnico/review, testes e correções pequenas comprovadas dentro de tarefa autorizada; continuar restore existente. Não autorizado genericamente: remoção destrutiva local, migração de produção, implantação integral de SMTP, multi-tenant ou do principal, envio real e grandes refatorações. ADM-DEC-01 já aprova uma organização por instalação; isso não autoriza a alternativa de várias organizações. Quando decisão aberta bloqueia efeito específico, registrar e seguir trabalho independente, não paralisar projeto.
 
 ## Provedores de envio — pesquisa oficial, não interoperabilidade testada
 

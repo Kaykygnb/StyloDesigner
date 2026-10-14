@@ -24,7 +24,7 @@ Alternativa C considerada: instâncias independentes para empresas independentes
 
 ## Recomendação
 
-Recomendar **A na beta**, organização como contexto operacional único, sem tabela fictícia de tenant. Formalizar administração como domínio interno composto sobre identity/auth/agents/config/backups/operations existentes. Evoluir WorkspacePanel e programação via ferramentas. A recomendação anterior de preservar modo local permanente foi superada por HD-IDENTITY-01/02/04: preservar caminhos e dados apenas durante transição avaliada, não oferecer bypass humano permanente. RBAC atual mais regras contextuais/capacidades apenas nos pontos aprovados; não implantar motor externo de políticas ou microserviço de administração.
+**ADM-DEC-01 aprovada em 2026-10-14:** uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. A recomendação técnica que já acompanhava A continua: organização como contexto operacional único, sem tabela fictícia de tenant. Formalizar administração como domínio interno composto sobre identity/auth/agents/config/backups/operations existentes. Evoluir WorkspacePanel e programação via ferramentas. A recomendação anterior de preservar modo local permanente foi superada por HD-IDENTITY-01/02/04: preservar caminhos e dados apenas durante transição avaliada, não oferecer bypass humano permanente. RBAC atual mais regras contextuais/capacidades apenas nos pontos aprovados; não implantar motor externo de políticas ou microserviço de administração.
 
 MCP continua transporte das ferramentas. Proteção de identidade/revogação de sessão é requisito de autorização de agentes a verificar, não pretexto para mover administração da VPS ao MCP. Não há nova integração de firewall/SO/provedor.
 
@@ -68,7 +68,7 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 
 | ID | Deliberação | Recomendação inicial / implicação |
 |---|---|---|
-| ADM-DEC-01 | Escopo de tenancy não decidido | Intenção de pessoa/empresa instalar sua instância favorece A; não é aprovação de multi-tenancy nem de exclusão definitiva. A permanece recomendação técnica |
+| ADM-DEC-01 | Aprovada em 2026-10-14 | Uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito |
 | ADM-DEC-02 | Pendente. Reafirmada pendente em 2026-10-14. Não registrar como aprovada | Operação comum delegada; segurança/credenciais críticas/privilégios OWNER ou capacidade explícita auditada. Identificar tipos de segredo, não bloquear toda integração indistintamente |
 | ADM-DEC-03 | Aprovada em 2026-10-14. Texto na seção seguinte | O principal administra OWNERs secundários. Não amplia, por inferência, a proteção do principal a toda a matriz |
 | ADM-DEC-04 | Essencialidade/delegação aprovada como diretriz HD-ADMIN-03, contrato aberto | project.share separado de write é recomendação, não scope humano escolhido; não retirar compartilhamento dos agentes nem exigir ADMIN global sem prova/validação |
@@ -78,7 +78,7 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 | ADM-DEC-08 | Backup, chave e poderes de restore | Conjunto DB/blobs/config/chave, proteção/retenção e prova de restore; quem pode restaurar/rotacionar chave mestre precisa de autoridade específica |
 | ADM-DEC-09 | Aprovada em 2026-10-14. Texto e prazo técnico na seção seguinte | O proprietário aceitou a recomendação inicial e delegou o prazo. O prazo não é decisão humana pendente |
 
-Continuam abertas: multi-tenancy (ADM-DEC-01); o que ADMIN pode fazer de sensível (ADM-DEC-02); contrato de `project.share` (ADM-DEC-04); acesso excepcional de ADMIN a projeto privado (ADM-DEC-07); backup, chave e restore (ADM-DEC-08); mecanismos de bootstrap (ADM-DEC-06); login federado. Aprovadas e ainda sem implementação integral: administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico, não item pendente. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha pendente.
+Continuam abertas: o que ADMIN pode fazer de sensível (ADM-DEC-02); contrato de `project.share` (ADM-DEC-04); acesso excepcional de ADMIN a projeto privado (ADM-DEC-07); backup, chave e restore (ADM-DEC-08); mecanismos de bootstrap (ADM-DEC-06); login federado. Aprovadas e ainda sem implementação integral: administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico, não item pendente. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha pendente.
 
 ## Rodada de 2026-10-14 — texto do proprietário
 
@@ -103,7 +103,7 @@ Implementação, migração e testes: DOC-SERVER-011. Isso bloqueia a alpha, por
 
 Mesma fundação de identidade, autorização e documentos. Individual: simples, sem painéis empresariais desnecessários. Empresarial: usuários, equipes, admins, permissões, auditoria, compartilhamento. Não construir duas aplicações.
 
-Não decide tenancy (ADM-DEC-01 permanece pendente).
+ADM-DEC-01, aprovada em seguida, fixa uma organização por instalação na beta. Multi-tenant não é requisito. Esta seção não pede uma segunda aplicação.
 
 ### 2.3 Propriedade organizacional
 
@@ -165,9 +165,9 @@ Conflito com `31f16bf`: `GET /api/health` devolve migrações, contagens, motor 
 
 ## Consequências e caminho de evolução
 
-Se A for adotada, ganha setup mais simples, continuidade com contratos existentes e administração comum pela GUI. Essa alternativa limita hospedagem compartilhada entre empresas numa instalação e exige múltiplas instalações/disciplina operacional; a decisão definitiva de tenancy permanece aberta. Riscos atuais não desaparecem ao escolher organização única: hierarquia OWNER, revogação de agentes, bootstrap/origem pública, backup completo e auditoria permanecem gates.
+A está aprovada para a beta (ADM-DEC-01): uma organização por instalação. O código em `31f16bf` já não tem entidade de tenant; não há conflito a resolver com uma tabela nova. Empresas diferentes seguem em instalações diferentes. Riscos atuais não desaparecem com isso: hierarquia OWNER, revogação de agentes, bootstrap, backup e auditoria permanecem.
 
-Só propor B após demanda real: ADR de migração, papéis de plataforma/organização separados, org context obrigatório e isolamento de todos os recursos, testes cruzados, quotas, restauração por tenant, rollback e migração de instâncias existentes. Preparação atual são fronteiras de domínio e documentação, sem implementar multi-tenancy.
+Multi-tenant não é requisito. Não implementar a alternativa B nesta beta. Reabri-la pede decisão humana nova, com migração, papéis separados e isolamento demonstrado. Equipes e setores dentro da instalação continuam sem entidade obrigatória.
 
 ## Validação e retorno
 
@@ -179,3 +179,4 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — proprietário humano estabeleceu HD-IDENTITY-01..04, HD-ONBOARDING-01..03, HD-OWNERSHIP-01..05, HD-ADMIN-01..04 e HD-RECOVERY-01..05. Codex registrou 21 IDs sem substituir autoria; recomendações anteriores foram reconciliadas, não convertidas em aprovação genérica. Engenharia de investigação/testes/restore segue; contratos estruturais dependem de projeto/revisão específica.
 - 2026-10-14 — proprietário aprovou as seções 2.1–2.7, ADM-DEC-05 e ADM-DEC-09. ADM-DEC-02 segue pendente. O prazo da ADM-DEC-09 foi delegado e registrado como detalhe técnico (365 / 30 / 7 dias). [Grok 4.7]. Sem mudança de runtime. Conflitos com o código e com HD-RECOVERY-05 ficam na seção da rodada.
 - 2026-10-14 — o proprietário delegou a forma do login. Detalhe técnico na seção 2.1: usuário obrigatório e único, e-mail opcional, entrada por um ou por outro, migração gera o usuário sem apagar o e-mail. Tarefa DOC-SERVER-011. Bloqueia a alpha. [Grok 4.7].
+- 2026-10-14 — proprietário aprovou ADM-DEC-01: uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Não cria tabela de tenant. [Grok 4.7].

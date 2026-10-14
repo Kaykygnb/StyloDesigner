@@ -37,11 +37,11 @@ Não foi aprovada migração para microserviços. A decisão atual é manter mon
 
 ## Deliberação self-hosted (2026-10-14)
 
-[Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. Organização única é recomendação, não decisão humana já aprovada. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.
+[Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. ADM-DEC-01 aprovou uma organização por instalação na beta. Multi-tenant não é requisito. O parágrafo abaixo desta data que ainda chamasse isso de recomendação fica superado por essa aprovação. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.
 
 ## Retomada por diretrizes humanas HD
 
-Registro canônico 21 HD na ADR 0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias no alvo; principal protegido e múltiplos OWNERs, GUI progressiva e e-mail opcional definidos. Tenancy e contratos abertos não foram aprovados por inferência. Sem remover legado, migrar produção ou implementar SMTP nesta rodada.
+Registro canônico 21 HD na ADR 0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias no alvo; principal protegido e múltiplos OWNERs, GUI progressiva e e-mail opcional definidos. ADM-DEC-01 está aprovada: uma organização por instalação na beta. Multi-tenant não é requisito. Os outros contratos abertos não foram aprovados por inferência. Sem remover legado, migrar produção ou implementar SMTP nesta rodada.
 
 ## Horizontes (2026-10-14)
 
