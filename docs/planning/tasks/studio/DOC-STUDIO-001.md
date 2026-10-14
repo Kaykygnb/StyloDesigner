@@ -107,7 +107,7 @@ Participantes: [Muse Spark], [Grok]
 - Alterado: o proprietário decidiu em 2026-10-14 que VIEWER não baixa nem exporta o zip. A recusa usa `Você só pode ler ou comentar este projeto.`, a mesma das escritas, e acontece antes de gravar. O papel vem antes do scope `export`, então o agente de um membro VIEWER também é recusado mesmo com scope de exportação. O agente só de leitura do dono continua em `Este agente não tem permissão de exportar.` COMMENTER não foi incluído e segue podendo baixar. O painel pede `export_zip` antes de abrir o zip e não oferece o JSON local a VIEWER. Sem ADR: o gate reutiliza a mensagem e o papel que já existiam; não cria papel, scope nem contrato novo. A recomendação anterior de abrir outra tarefa foi substituída por este pedido, na mesma entrega e na PR #17.
 - Arquivos: `apps/server/src/workspace/index.ts`, `apps/server/src/routes/projects.ts`, `apps/studio/src/editor/Panels.tsx`, `tests/studio-parity.test.js`, `tests/workspace.test.ts`, `tests/export-zip-http.test.ts`, matriz de exportação, permissões, regressão, READMEs, inventário, esta tarefa e o handoff geral.
 - Testes: foco em `studio-parity`, `workspace` e `export-zip-http`; `npm run typecheck`; `npm run build`; `npm test` 626/626, zero falhas e zero skips; `docs:inventario --check`; validador 28 tarefas.
-- Resultado: VIEWER não recebe URL nem o zip HTTP. Dono, EDITOR e COMMENTER continuam recebendo o pacote quando o restante da autorização permite.
+- Resultado: VIEWER não recebe URL nem o zip HTTP. Dono, EDITOR e COMMENTER continuam recebendo o pacote quando o restante da autorização permite. Commit `d9a7b5a`.
 - Próximo passo: nenhum nesta tarefa. Próxima do backlog: DOC-SERVER-006.
 
 ## Handoff atual
@@ -117,7 +117,7 @@ Destinatário: [Próximo agente]
 Estado: Concluída; decisão de zip de VIEWER implementada nesta entrega
 Marco atual: #5 — Validação final
 Última atualização: 2026-10-14 07:34 UTC
-Commit de referência: `aabece8` e o commit desta decisão, na branch `cursor/studio-mcp-parity-950d` (base de planejamento `31f16bf` em `v0.1.0-beta`)
+Commit de referência: `aabece8` (matriz) e `d9a7b5a` (zip de VIEWER), na branch `cursor/studio-mcp-parity-950d` (base de planejamento `31f16bf` em `v0.1.0-beta`)
 
 ### Estado atual
 

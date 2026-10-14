@@ -6,6 +6,7 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 - Branch de trabalho: `cursor/studio-mcp-parity-950d` (base `v0.1.0-beta`, planejamento em `31f16bf`)
 - Commit da matriz: `aabece8`
+- Commit do zip de VIEWER: `d9a7b5a`
 - Última atualização: 2026-10-14 07:34 UTC — [Grok]
 
 ## Entrega atual
