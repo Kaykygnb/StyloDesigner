@@ -5833,6 +5833,10 @@
           "line": 106
         },
         {
+          "path": "tests/postgres-integracao.test.js",
+          "line": 123
+        },
+        {
           "path": "tests/workspace.test.ts",
           "line": 87
         }
@@ -6358,6 +6362,10 @@
         {
           "path": "tests/mcp-sdk.test.js",
           "line": 95
+        },
+        {
+          "path": "tests/postgres-integracao.test.js",
+          "line": 127
         },
         {
           "path": "tests/studio-api.test.js",
@@ -7739,6 +7747,10 @@
       "dependencyCandidates": [],
       "dependencyStatus": "referências diretas no corpo do handler; dependências transitivas não auditadas",
       "testReferences": [
+        {
+          "path": "tests/postgres-integracao.test.js",
+          "line": 128
+        },
         {
           "path": "tests/studio-api.test.js",
           "line": 177

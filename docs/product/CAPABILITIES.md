@@ -14,5 +14,5 @@
 | Locks e presença | Verificado | `presence.js`, `studio-calls.ts`, `agent-calls.ts` |
 | Biblioteca de assets | Verificado | `services/library.ts`, `blobs.ts`, plugins de assets |
 | Plugins embutidos | Implementado; cobertura varia | `packages/plugins/src`, `plugins.test.ts` |
-| PostgreSQL externo | Implementado não verificado | `packages/db`, `DATABASE_URL`; sem execução externa registrada |
-| Clientes MCP além do SDK oficial | Implementado não verificado | contrato HTTP existe; cliente oficial é o validado |
+| PostgreSQL externo | Verificado descartável | `packages/db`, `DATABASE_URL`; `tests/postgres-integracao.test.js` sobe PostgreSQL temporário (DOC-SERVER-001) |
+| Clientes MCP além do SDK oficial | Verificado | `tests/mcp-compatibilidade.test.js` com JSON-RPC cru; lacunas GUI/hosted explícitas em `docs/mcp/COMPATIBILIDADE.md` (DOC-MCP-001) |

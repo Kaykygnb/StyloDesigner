@@ -5,22 +5,21 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `1c39a54` (correção do E2E de painel web, DOC-STUDIO-004)
-- Última atualização deste resumo: 2026-10-14 01:10 UTC — [Kimi]
-- Entregas anteriores: [Codex] DOC-SERVER-004, DOC-CORE-001 e DOC-QA-001 (commits até `80818cd`).
+- Commit de referência: a publicar (DOC-SERVER-001: teste PostgreSQL descartável + docs)
+- Última atualização deste resumo: 2026-10-14 01:45 UTC — [Kimi]
 
 ## Estado geral
 
-Quality gates verdes nesta máquina: typecheck limpo, `npm test` 615/615, build ok. A falha que restava do E2E "Conferir" era do teste (sleep fixo curto; `check_design` leva ~6–9 s aqui), corrigida em `1c39a54` — sem regressão de produto. Observação não investigada: duas chamadas `check_design` idênticas por clique no botão Conferir.
+Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] concluiu a DOC-SERVER-001: PostgreSQL externo agora é verificado de forma descartável e reproduzível (`tests/postgres-integracao.test.js` sobe um PostgreSQL real, aplica migrações, roda fluxo auth/projeto/agente, reinício e falha de conexão). Docs de produto atualizadas ("implementado não verificado" → verificado). Restam duas tarefas [Kimi] aguardando revisão humana (DOC-SERVER-005, DOC-MCP-001).
 
 ## Em andamento
 
-- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — [Kimi], #5 validação: matriz de compatibilidade publicada (`cc9bec8`); aguardando revisão das lacunas declaradas.
 - [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
 
 ## Aguardando revisão
 
-- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) — gates de autorização em `PUT /api/config` e `PUT /api/agent/config` (anônimo 401, MEMBER 403, OWNER/ADMIN ok). Revisor: humano.
+- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) — gates `adminOf` nos PUTs de configuração. Revisor: humano (decisão `adminOf` vs `ownerOf`).
+- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — matriz de compatibilidade MCP; revisar lacunas declaradas (GUI/hosted e imagem).
 
 ## Bloqueios importantes
 
@@ -28,17 +27,17 @@ Quality gates verdes nesta máquina: typecheck limpo, `npm test` 615/615, build 
 
 ## Alterações recentes relevantes
 
-- `1c39a54` test(studio): espera condicional no passo Conferir do E2E (DOC-STUDIO-004 concluída por [Kimi], 5/5).
-- `cc9bec8` test(mcp): cliente externo sem SDK + matriz de compatibilidade (DOC-MCP-001, [Kimi]).
-- `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004, [Codex]).
+- [Kimi] `tests/postgres-integracao.test.js` (novo) + devDependency `embedded-postgres` + docs de produto (DOC-SERVER-001 concluída, 5/5).
+- [Kimi] `1c39a54` correção do E2E Conferir (DOC-STUDIO-004 concluída); `cc9bec8` matriz MCP + cliente externo sem SDK.
+- [Codex] `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004).
 
 ## Próximas prioridades
 
-1. Revisar e concluir [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) (decisão humana: `adminOf` vs `ownerOf`).
-2. Revisar as lacunas declaradas na matriz MCP de [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md).
-3. P1 abertas sem responsável: [DOC-SERVER-001](tasks/server/DOC-SERVER-001.md), [DOC-CORE-002](tasks/core/DOC-CORE-002.md), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md), [DOC-DB-001](tasks/database/DOC-DB-001.md).
+1. Revisões humanas pendentes (DOC-SERVER-005 e DOC-MCP-001) — desbloqueiam o fim das P0/P0-MCP.
+2. [DOC-DB-001](tasks/database/DOC-DB-001.md) (P1) — restore/migração descartável: **desbloqueada** pela DOC-SERVER-001 (base de PostgreSQL descartável pronta).
+3. P1 sem responsável: [DOC-CORE-002](tasks/core/DOC-CORE-002.md) (matriz de exportação), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) (paridade de operações críticas).
 
 ## Decisões humanas pendentes
 
 - Aprovar ou pedir ajustes na política `adminOf` para os PUTs de configuração (DOC-SERVER-005).
-- Aceitar como "explicitamente não verificadas" as lacunas da matriz MCP: clientes GUI/hosted (Claude Desktop, Cursor, Windsurf, ChatGPT Work) e conteúdo de imagem (`get_image` exige renderer).
+- Aceitar como "explicitamente não verificadas" as lacunas da matriz MCP: clientes GUI/hosted e conteúdo de imagem.

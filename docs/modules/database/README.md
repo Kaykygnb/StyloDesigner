@@ -12,4 +12,4 @@ Não deve conter regras de apresentação, ferramentas MCP ou geometria.
 
 ## Verificação
 
-Testes de migração, projetos, contas, backups e biblioteca. PostgreSQL externo ainda não foi executado nesta revisão.
+Testes de migração, projetos, contas, backups e biblioteca. PostgreSQL externo é verificado de forma descartável por `tests/postgres-integracao.test.js` (DOC-SERVER-001): sobe um PostgreSQL temporário, aplica as migrações, roda fluxo auth/projeto/agente, reinício do servidor e falha de conexão.

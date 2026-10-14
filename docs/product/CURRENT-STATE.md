@@ -8,7 +8,7 @@ Verificação complementar em 2026-10-13: checkout da beta baseado em `cb22f9685
 - Servidor local Hono/Node com Studio servido em `/studio/`, API HTTP e gateway MCP.
 - Documento com páginas, camadas, estilos, variáveis, breakpoints, comentários, assets e metadados.
 - Runner único no núcleo para ferramentas de leitura e escrita.
-- Persistência local via PGlite/Prisma; adapter PostgreSQL existe no código, mas não foi validado contra um PostgreSQL externo nesta revisão.
+- Persistência local via PGlite/Prisma; adapter PostgreSQL validado contra PostgreSQL externo descartável em `tests/postgres-integracao.test.js` (DOC-SERVER-001).
 - Studio e MCP usam adaptadores diferentes para autorização, presença e locks, mas chamam a mesma implementação de ferramentas.
 - Suíte atual: 607 testes aprovados, 0 falhas, 0 cancelados e 0 ignorados no último `npm test` executado em Node 24.19.0, com Chromium instalado.
 - Typecheck dos cinco workspaces, build de produção do Studio e testes aprovados localmente em Node 24.19.0; CI da implementação também aprovada em Node 22/24, build/documentação e E2E accounts.
