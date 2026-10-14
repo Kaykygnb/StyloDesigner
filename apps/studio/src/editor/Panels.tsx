@@ -135,8 +135,24 @@ export function ExportPanel() {
   return (
     <div className="side-panel">
       <div className="export-hero"><h4>{t(language, 'export.title')}</h4><p className="muted small">{t(language, 'export.hint')}</p></div>
+      <section className="export-section export-agent">
+        <h5><Icon name="spark" size={14} /> {t(language, 'export.forAgent')}</h5>
+        <p className="muted small">{t(language, 'export.forAgentHint')}</p>
+        <div className="row wrap">
+          <button className="btn primary" onClick={() => void copy(t(language, 'export.briefText', { name: doc?.name || file, file, endpoint: `${location.origin}/mcp` }), language)}><Icon name="copy" size={15} /> {t(language, 'export.copyBrief')}</button>
+          <button className="btn" onClick={downloadProject}><Icon name="download" size={15} /> {t(language, 'export.document')}</button>
+        </div>
+      </section>
+      <section className="export-section">
+        <h5><Icon name="users" size={14} /> {t(language, 'export.forPeople')}</h5>
+        <p className="muted small">{t(language, 'export.forPeopleHint')}</p>
+        <div className="export-downloads"><a className="btn primary block" href={siteZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.siteZip')}</a><a className="btn block" href={reactZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.reactZip')}</a><button className="btn block" onClick={importProjectFile}><Icon name="upload" size={15} /> {t(language, 'export.import')}</button></div>
+      </section>
+      <section className="export-section">
+        <h5><Icon name="history" size={14} /> {t(language, 'export.registerTitle')}</h5>
+        <p className="muted small">{t(language, 'export.registerHint')}</p>
       <div className="export-card"><label className="field-label">{t(language, 'export.label')}<input className="field" value={publishLabel} onChange={(e) => setPublishLabel(e.target.value)} placeholder={t(language, 'export.placeholder')} maxLength={120} /></label><div className="row"><button className="btn primary" disabled={busy} onClick={() => void publish('html')}>{t(language, 'export.html')}</button><button className="btn" disabled={busy} onClick={() => void publish('react')}>{t(language, 'export.react')}</button></div></div>
-      <div className="export-downloads"><a className="btn primary block" href={siteZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.siteZip')}</a><a className="btn block" href={reactZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.reactZip')}</a><button className="btn block" onClick={downloadProject}><Icon name="download" size={15} /> {t(language, 'export.document')}</button><button className="btn block" onClick={importProjectFile}><Icon name="upload" size={15} /> {t(language, 'export.import')}</button></div>
+      </section>
       <h4>{t(language, 'export.recent')}</h4>
       {publishWarnings.length > 0 && <div className="notice warn"><b>{t(language, 'export.warningTitle')}</b><ul>{publishWarnings.slice(0, 8).map((warning, index) => <li key={index}>{warning}</li>)}</ul>{publishWarnings.length > 8 && <span className="faint">{t(language, 'export.moreWarnings', { count: publishWarnings.length - 8 })}</span>}</div>}
       <ul className="activity">{publishes.map((p) => <li key={p.id}><span className={`badge ${p.status === 'READY_WITH_WARNINGS' ? 'warn' : 'ok'}`} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{t(language, `export.status.${p.status}`)}</span><span>{p.format.toUpperCase()}{p.label && !p.label.startsWith('Publicação ') ? ` · ${p.label}` : ''} · {formatDate(language, p.createdAt, { dateStyle: 'short', timeStyle: 'short' })}{p.download ? <> · <a href={p.download} download>{t(language, 'export.download')}</a></> : null}{p.warnings?.length ? <details><summary className="faint small">{t(language, 'export.warnings', { count: p.warnings.length })}</summary><ul className="faint small">{p.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details> : null}</span></li>)}{!publishes.length && <li className="faint">{t(language, 'export.noPublishes')}</li>}</ul>
