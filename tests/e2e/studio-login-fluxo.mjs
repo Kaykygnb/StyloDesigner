@@ -92,7 +92,7 @@ try {
   await person.getByRole('button', { name: 'Criar', exact: true }).click();
   await person.locator('.editor').waitFor();
   await person.getByRole('button', { name: /Projetos/ }).click();
-  await person.getByRole('heading', { name: 'Vamos criar algo lindo?', exact: true }).waitFor(); // título da área de projetos
+  await person.getByRole('heading', { name: 'Continue de onde parou.', exact: true }).waitFor(); // com projeto, a área de projetos convida a continuar
   await person.getByText('Projeto da pessoa E2E', { exact: true }).waitFor();
   assert.equal(await person.getByRole('button', { name: 'Administração', exact: true }).count(), 0, 'ser dono de projeto não transforma a pessoa em administrador da instalação');
   assert.equal(await person.locator('.connect-card').count(), 0, 'editor não recebe instruções MCP que exigem administração');
