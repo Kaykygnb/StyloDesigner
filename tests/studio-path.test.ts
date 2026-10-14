@@ -17,7 +17,6 @@ test('pathFromStroke: caixa da curva, sem as alças, e pontos relativos', () => 
   assert.equal(points[0].hin, null);
   assert.deepEqual(points[0].hout, { x: 0, y: Math.round((100 - y0) * 100) / 100 });
 });
-});
 
 test('pathFromStroke: traço de um ponto só continua com caixa mínima de 1×1', () => {
   const r = pathFromStroke([{ x: 5, y: 5 }, { x: 5, y: 5 }], false);
