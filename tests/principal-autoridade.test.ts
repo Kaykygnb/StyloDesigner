@@ -6,7 +6,9 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
 import { createDb } from '@stylo/db/client.ts';
-import { createAuth, LOCAL_EMAIL } from '../apps/server/src/services/auth.ts';
+import { createAuth, LOCAL_EMAIL, STEP_UP_MS } from '../apps/server/src/services/auth.ts';
+import { createAgents } from '../apps/server/src/services/agents.ts';
+import { allTools } from '@stylo/core/tools/schema.ts';
 import { createIdentity } from '../apps/server/src/http/identity.ts';
 import { authRoutes } from '../apps/server/src/routes/auth.ts';
 import type { Services } from '../apps/server/src/context.ts';
@@ -81,7 +83,7 @@ test('setup designa a primeira conta humana; o usuário técnico e uma segunda c
   }
 });
 
-test('principal designado: negativas não mutam; OWNER adicional não é o principal; legado sem ponteiro não bloqueia todo OWNER', async () => {
+test('principal designado: negativas não mutam; sem ponteiro ninguém altera OWNER', async () => {
   const { db, close, auth } = await memory();
   try {
     const local = await auth.localUser();
@@ -120,9 +122,13 @@ test('principal designado: negativas não mutam; OWNER adicional não é o princ
     assert.equal(memberDemote.status, 403);
     assert.equal((await snapshot(db, principal.id)).role, 'OWNER');
 
+    const step = await call(principalLogin.token, 'POST', '/me/reconfirm', { password: PASSWORD });
+    assert.equal(step.status, 200);
     const createdOwner = await call(principalLogin.token, 'POST', '/users', { email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
     assert.equal(createdOwner.status, 201);
     assert.equal(createdOwner.json.user?.role, 'OWNER');
+    assert.equal('temporaryPassword' in createdOwner.json, false);
+    assert.equal(JSON.stringify(createdOwner.json).includes(PASSWORD), false);
     const secondId = createdOwner.json.user!.id;
     assert.notEqual(secondId, principal.id);
     assert.equal(await auth.principalId(), principal.id);
@@ -145,8 +151,9 @@ test('principal designado: negativas não mutam; OWNER adicional não é o princ
     assert.equal(suspendedMember.status, 200);
     assert.equal(suspendedMember.json.suspended, true);
     const demotedSecond = await call(adminLogin.token, 'PUT', '/users/' + secondId, { role: 'ADMIN' });
-    assert.equal(demotedSecond.status, 200);
-    assert.equal(demotedSecond.json.role, 'ADMIN');
+    assert.equal(demotedSecond.status, 403);
+    assert.match(String(demotedSecond.json.error), /autoridade principal/);
+    assert.equal((await db.user.findUniqueOrThrow({ where: { id: secondId } })).role, 'OWNER');
     assert.equal((await db.user.findUniqueOrThrow({ where: { id: principal.id } })).role, 'OWNER');
     const renamed = await call(adminLogin.token, 'PUT', '/users/' + principal.id, { name: 'Principal atualizado', role: 'OWNER' });
     assert.equal(renamed.status, 200);
@@ -154,12 +161,183 @@ test('principal designado: negativas não mutam; OWNER adicional não é o princ
 
     await db.installation.update({ where: { id: 1 }, data: { principalUserId: null } });
     assert.equal(await auth.principalId(), null);
-    const legacy = await auth.updateUser(principal.id, { role: 'MEMBER' }, { id: secondId, role: 'OWNER' });
-    assert.equal(legacy.role, 'MEMBER', 'sem designação, a proteção não se estende a todo OWNER');
-    await db.user.update({ where: { id: principal.id }, data: { role: 'OWNER' } });
+    await assert.rejects(auth.updateUser(principal.id, { role: 'MEMBER' }, { id: secondId, role: 'OWNER', email: 'socio@synthetic.test' }), /autoridade principal/);
+    assert.equal((await db.user.findUniqueOrThrow({ where: { id: principal.id } })).role, 'OWNER', 'sem designação, ninguém rebaixa um OWNER');
     await db.installation.update({ where: { id: 1 }, data: { principalUserId: principal.id } });
     await assert.rejects(auth.updateUser(principal.id, { role: 'MEMBER' }, { id: admin.id, role: 'ADMIN' }), /autoridade principal/);
     assert.equal((await db.user.findUniqueOrThrow({ where: { id: principal.id } })).role, 'OWNER');
+  } finally {
+    await close();
+  }
+});
+
+test('só o principal administra outro OWNER: reconfirmação, auditoria e senha que não volta', async () => {
+  const { db, close, auth } = await memory();
+  try {
+    const local = await auth.localUser();
+    const principal = await auth.setup({ email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
+    assert.equal(principal.principal, true);
+    const admin = await auth.createUser({ email: 'admin@synthetic.test', name: 'Admin', password: PASSWORD, role: 'ADMIN' });
+    await auth.changePassword(admin.id, PASSWORD, 'senha-admin-2');
+    const principalLogin = await auth.login(principal.email, PASSWORD);
+    const adminLogin = await auth.login(admin.email, 'senha-admin-2');
+    const app = httpApp(db, auth, local);
+    const call = async (token: string, method: string, path: string, body?: unknown) => {
+      const response = await app.request('/api' + path, { method, headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+      return { status: response.status, json: await response.json() as Record<string, unknown> };
+    };
+    const ownerEvents = async () => (await db.authEvent.findMany({ select: { kind: true, email: true } })).map((event) => `${event.email} ${event.kind}`);
+
+    const early = await call(principalLogin.token, 'POST', '/users', { email: 'cedo@synthetic.test', name: 'Cedo', password: PASSWORD, role: 'OWNER' });
+    assert.equal(early.status, 403);
+    assert.match(String(early.json.error), /Confirme sua senha/);
+    assert.equal(await db.user.count({ where: { email: 'cedo@synthetic.test' } }), 0);
+
+    const adminGrant = await call(adminLogin.token, 'POST', '/users', { email: 'admin-owner@synthetic.test', name: 'Não', password: PASSWORD, role: 'OWNER' });
+    assert.equal(adminGrant.status, 403);
+    assert.match(String(adminGrant.json.error), /Só a autoridade principal/);
+    assert.doesNotMatch(String(adminGrant.json.error), /Confirme sua senha/);
+
+    const wrong = await call(principalLogin.token, 'POST', '/me/reconfirm', { password: 'senha-errada' });
+    assert.equal(wrong.status, 400);
+    assert.match(String(wrong.json.error), /senha atual está incorreta/);
+    assert.equal(JSON.stringify(wrong.json).includes('senha-errada'), false);
+    const step = await call(principalLogin.token, 'POST', '/me/reconfirm', { password: PASSWORD });
+    assert.equal(step.status, 200);
+    assert.match(String(step.json.until), /^\d{4}-\d{2}-\d{2}T/);
+    assert.ok((await ownerEvents()).some((kind) => kind.endsWith(' step-up')));
+    assert.equal(JSON.stringify(await db.authEvent.findMany()).includes(PASSWORD), false);
+
+    const missing = await call(principalLogin.token, 'POST', '/users', { email: 'sem-senha@synthetic.test', name: 'Sem', role: 'OWNER' });
+    assert.equal(missing.status, 400);
+    assert.match(String(missing.json.error), /não será mostrada de volta/);
+    assert.equal(await db.user.count({ where: { email: 'sem-senha@synthetic.test' } }), 0);
+
+    const created = await call(principalLogin.token, 'POST', '/users', { email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' });
+    assert.equal(created.status, 201);
+    const second = created.json.user as { id: string; role: string; principal?: boolean };
+    assert.equal(second.role, 'OWNER');
+    assert.equal(second.principal, false);
+    assert.equal('temporaryPassword' in created.json, false);
+    assert.equal(JSON.stringify(created.json).includes(PASSWORD), false);
+    assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.grant:${second.id}`)));
+    const listed = await call(principalLogin.token, 'GET', '/users');
+    const rows = listed.json as unknown as Array<{ id: string; principal?: boolean }>;
+    assert.equal(rows.find((row) => row.id === principal.id)?.principal, true);
+    assert.equal(rows.find((row) => row.id === second.id)?.principal, false);
+
+    await auth.changePassword(second.id, PASSWORD, 'senha-socio-2');
+    const secondLogin = await auth.login('socio@synthetic.test', 'senha-socio-2');
+    const beforeSecond = await snapshot(db, second.id);
+    const beforePrincipal = await snapshot(db, principal.id);
+    for (const [token, path, body] of [
+      [adminLogin.token, '/users/' + second.id + '/suspend', { suspended: true }],
+      [adminLogin.token, '/users/' + second.id + '/reset-password', { password: 'senha-nova-admin' }],
+      [secondLogin.token, '/users/' + principal.id + '/suspend', { suspended: true }],
+      [secondLogin.token, '/users/' + principal.id + '/reset-password', { password: 'senha-nova-socio' }],
+      [secondLogin.token, '/users/' + second.id + '/suspend', { suspended: true }],
+    ] as const) {
+      const denied = await call(token, 'POST', path, body);
+      assert.equal(denied.status, 403, path);
+      assert.doesNotMatch(String(denied.json.error), /Confirme sua senha/);
+      assert.equal('temporaryPassword' in denied.json, false);
+    }
+    const adminDemote = await call(adminLogin.token, 'PUT', '/users/' + second.id, { role: 'MEMBER' });
+    const secondRemove = await call(secondLogin.token, 'DELETE', '/users/' + principal.id);
+    assert.equal(adminDemote.status, 403);
+    assert.equal(secondRemove.status, 403);
+    assert.deepEqual(await snapshot(db, second.id), beforeSecond);
+    assert.deepEqual(await snapshot(db, principal.id), beforePrincipal);
+    assert.equal((await ownerEvents()).some((kind) => /owner\.(suspend|demote|remove|reset):/.test(kind)), false);
+
+    const selfReset = await call(principalLogin.token, 'POST', '/users/' + principal.id + '/reset-password', { password: 'senha-nova-principal' });
+    assert.equal(selfReset.status, 403);
+    assert.match(String(selfReset.json.error), /não pode ser suspensa, rebaixada, removida ou ter a senha/);
+    assert.deepEqual(await snapshot(db, principal.id), beforePrincipal);
+
+    const resetMissing = await call(principalLogin.token, 'POST', '/users/' + second.id + '/reset-password', {});
+    assert.equal(resetMissing.status, 400);
+    assert.deepEqual(await snapshot(db, second.id), beforeSecond);
+    const nextPassword = 'senha-definida-aqui';
+    const reset = await call(principalLogin.token, 'POST', '/users/' + second.id + '/reset-password', { password: nextPassword });
+    assert.equal(reset.status, 200);
+    assert.deepEqual(Object.keys(reset.json).sort(), ['mustChangePassword', 'ok']);
+    assert.equal(reset.json.ok, true);
+    assert.equal(reset.json.mustChangePassword, true);
+    assert.equal(JSON.stringify(reset.json).includes(nextPassword), false);
+    const resetSnapshot = await snapshot(db, second.id);
+    assert.notEqual(resetSnapshot.passwordHash, beforeSecond.passwordHash);
+    assert.equal(resetSnapshot.mustChangePassword, true);
+    assert.equal(resetSnapshot.sessions, 0);
+    assert.equal(resetSnapshot.role, 'OWNER');
+    assert.equal(JSON.stringify(await db.authEvent.findMany()).includes(nextPassword), false);
+    assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.reset:${second.id}`)));
+
+    const suspended = await call(principalLogin.token, 'POST', '/users/' + second.id + '/suspend', { suspended: true });
+    assert.equal(suspended.status, 200);
+    assert.equal(suspended.json.suspended, true);
+    assert.equal((await snapshot(db, second.id)).suspended, true);
+    const restored = await call(principalLogin.token, 'POST', '/users/' + second.id + '/suspend', { suspended: false });
+    assert.equal(restored.status, 200);
+    assert.equal((await snapshot(db, second.id)).suspended, false);
+    assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.suspend:${second.id}`)));
+    assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.restore:${second.id}`)));
+
+    await db.project.create({ data: { slug: 'loja.json', name: 'Loja', ownerId: second.id, doc: { pages: [] } } });
+    const blocked = await call(principalLogin.token, 'DELETE', '/users/' + second.id);
+    assert.equal(blocked.status, 409);
+    assert.match(String(blocked.json.error), /Transfira os projetos/);
+    assert.equal(await db.user.count({ where: { id: second.id } }), 1);
+    assert.equal((await ownerEvents()).some((kind) => kind.includes(`owner.remove:${second.id}`)), false);
+    await db.project.deleteMany({ where: { ownerId: second.id } });
+    const removed = await call(principalLogin.token, 'DELETE', '/users/' + second.id);
+    assert.equal(removed.status, 200);
+    assert.equal(await db.user.count({ where: { id: second.id } }), 0);
+    assert.ok((await ownerEvents()).some((kind) => kind.includes(`owner.remove:${second.id}`)));
+
+    const member = await auth.createUser({ email: 'membro@synthetic.test', name: 'Membro', password: PASSWORD, role: 'MEMBER' });
+    const memberReset = await call(adminLogin.token, 'POST', '/users/' + member.id + '/reset-password', {});
+    assert.equal(memberReset.status, 200);
+    assert.equal(typeof memberReset.json.temporaryPassword, 'string');
+    assert.notEqual(memberReset.json.temporaryPassword, PASSWORD);
+
+    const pending = await auth.createUser({ email: 'pendente@synthetic.test', name: 'Pendente', password: PASSWORD, role: 'MEMBER' });
+    const pendingLogin = await auth.login(pending.email, PASSWORD);
+    const pendingStep = await call(pendingLogin.token, 'POST', '/me/reconfirm', { password: PASSWORD });
+    assert.equal(pendingStep.status, 403);
+    assert.match(String(pendingStep.json.error), /senha temporária/);
+
+    const agent = await createAgents(db).create(principal.id, { name: 'Agente' });
+    for (const [method, path] of [['POST', '/users'], ['POST', '/users/' + member.id + '/suspend'], ['POST', '/users/' + member.id + '/reset-password'], ['DELETE', '/users/' + member.id]] as const) {
+      const denied = await call(agent.token, method, path, { email: 'agente@synthetic.test', name: 'Agente', password: PASSWORD, role: 'ADMIN', suspended: true });
+      assert.equal(denied.status, 401, method + ' ' + path);
+    }
+    assert.equal(await db.user.count({ where: { email: 'agente@synthetic.test' } }), 0);
+    const toolNames = allTools().map((tool) => tool.name);
+    for (const name of ['create_user', 'update_user', 'delete_user', 'suspend_user', 'reset_password', 'grant_owner']) assert.equal(toolNames.includes(name), false, name);
+  } finally {
+    await close();
+  }
+});
+
+test('a janela de reconfirmação expira e a senha errada entra no limite', async () => {
+  let now = Date.parse('2026-10-14T08:00:00Z');
+  const { db, close } = await createDb({ pglite: {} });
+  const auth = createAuth(db, { now: () => now });
+  try {
+    const principal = await auth.setup({ email: 'principal@synthetic.test', name: 'Principal', password: PASSWORD });
+    await auth.reconfirm(principal.id, PASSWORD);
+    await auth.createUser({ email: 'socio@synthetic.test', name: 'Sócio', password: PASSWORD, role: 'OWNER' }, false, principal);
+    now += STEP_UP_MS;
+    await assert.rejects(auth.createUser({ email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal), /Confirme sua senha/);
+    assert.equal(await db.user.count({ where: { email: 'outro@synthetic.test' } }), 0);
+    now += 1;
+    await auth.reconfirm(principal.id, PASSWORD);
+    const again = await auth.createUser({ email: 'outro@synthetic.test', name: 'Outro', password: PASSWORD, role: 'OWNER' }, false, principal);
+    assert.equal(again.role, 'OWNER');
+
+    for (let attempt = 0; attempt < 8; attempt++) await assert.rejects(auth.reconfirm(principal.id, 'senha-errada'), /senha atual está incorreta/);
+    await assert.rejects(auth.reconfirm(principal.id, PASSWORD), /Muitas tentativas/);
   } finally {
     await close();
   }

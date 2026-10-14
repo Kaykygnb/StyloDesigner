@@ -78,6 +78,7 @@ export const closeConnection = (id: string) => request<{ ok: true }>(`/api/conne
 export const revokeSession = (id: string) => request<unknown>(`/api/me/sessions/${encodeURIComponent(id)}`, json({}, 'DELETE'));
 export const revokeAllSessions = () => request<{ count: number }>('/api/me/sessions/revoke-all', json({}));
 export const changePassword = (current: string, next: string) => request<unknown>('/api/me/password', json({ current, next }));
+export const reconfirm = (password: string) => request<{ until: string }>('/api/me/reconfirm', json({ password }));
 export const libraryList = (q = '') => request<{ assets: LibraryAsset[]; usage: { bytes: number; count: number } }>('/api/library' + (q ? `?q=${encodeURIComponent(q)}` : ''));
 export const libraryUpload = (file: File) => request<LibraryAsset>('/api/library', { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Name': encodeURIComponent(file.name) }, body: file });
 export const libraryRemove = (id: string) => request<unknown>(`/api/library/${encodeURIComponent(id)}`, json({}, 'DELETE'));
@@ -87,9 +88,9 @@ export const libraryUpdate = (id: string, body: unknown) => request<LibraryAsset
 export const libraryReplace = (id: string, file: File) => request<LibraryAsset>(`/api/library/${encodeURIComponent(id)}/replace`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Name': encodeURIComponent(file.name) }, body: file });
 export const agentsList = () => request<AgentInfo[]>('/api/agents');
 export const usersList = () => request<PublicUser[]>('/api/users');
-export const createUser = (body: { email: string; name: string; role?: PublicUser['role']; color?: string; avatar?: string | null }) => request<{ user: PublicUser; temporaryPassword?: string }>('/api/users', json(body));
+export const createUser = (body: { email: string; name: string; password?: string; role?: PublicUser['role']; color?: string; avatar?: string | null }) => request<{ user: PublicUser; temporaryPassword?: string }>('/api/users', json(body));
 export const updateUser = (id: string, body: { name?: string; email?: string; color?: string | null; avatar?: string | null; role?: PublicUser['role'] }) => request<PublicUser>(`/api/users/${encodeURIComponent(id)}`, { ...json(body), method: 'PUT' });
-export const resetUserPassword = (id: string) => request<{ temporaryPassword: string }>(`/api/users/${encodeURIComponent(id)}/reset-password`, json({}));
+export const resetUserPassword = (id: string, body: { password?: string } = {}) => request<{ temporaryPassword?: string; ok?: boolean; mustChangePassword?: boolean }>(`/api/users/${encodeURIComponent(id)}/reset-password`, json(body));
 export const revokeUserSessions = (id: string) => request<unknown>(`/api/users/${encodeURIComponent(id)}/revoke-sessions`, json({}));
 export const setUserSuspended = (id: string, suspended: boolean) => request<PublicUser>(`/api/users/${encodeURIComponent(id)}/suspend`, json({ suspended }));
 export const deleteUser = (id: string) => request<unknown>(`/api/users/${encodeURIComponent(id)}`, json({}, 'DELETE'));

@@ -20,7 +20,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     null,
   );
   const [newUserOpen, setNewUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'MEMBER' as api.PublicUser['role'], color: '#6d5dfc', avatar: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'MEMBER' as api.PublicUser['role'], color: '#6d5dfc', avatar: '' });
+  const [stepUpUntil, setStepUpUntil] = useState(0);
   const [editUserDraft, setEditUserDraft] = useState<(api.PublicUser & { avatar: string }) | null>(null);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
@@ -182,14 +183,31 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const rotate = async (agent: api.AgentInfo) => { try { const result = await api.rotateAgent(agent.id); setNewToken(result.token); toast('ok', `Token de ${agent.name} rotacionado.`); } catch (e) { toast('error', String(e)); } };
   const showAgentActivity = async (agent: api.AgentInfo) => { try { const rows = await api.agentActivity(agent.id); setAgentActivity((x) => ({ ...x, [agent.id]: rows })); } catch (e) { toast('error', String(e)); } };
   const showAgentProjects = async (agent: api.AgentInfo) => { try { const rows = await api.agentProjects(agent.id); setAgentProjects((x) => ({ ...x, [agent.id]: rows })); } catch (e) { toast('error', String(e)); } };
+  const ensureStepUp = async () => {
+    if (stepUpUntil > Date.now()) return true;
+    const password = await askText(tr('admin.reconfirmTitle'), '', { secret: true, okLabel: tr('admin.reconfirmOk'), message: tr('admin.reconfirmHint') });
+    if (!password) return false;
+    try {
+      const result = await api.reconfirm(password);
+      const until = Date.parse(result.until);
+      if (!Number.isFinite(until)) throw new Error(tr('admin.reconfirmTitle'));
+      setStepUpUntil(until);
+      return true;
+    } catch (e) {
+      toast('error', String(e));
+      return false;
+    }
+  };
   const createUser = async () => {
     if (!newUser.email.trim() || !newUser.name.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    if (newUser.role === 'OWNER' && !(await ensureStepUp())) return;
     try {
-      const created = await api.createUser({ ...newUser, email: newUser.email.trim(), name: newUser.name.trim(), avatar: newUser.avatar || null });
+      const created = await api.createUser({ ...newUser, email: newUser.email.trim(), name: newUser.name.trim(), password: newUser.password || undefined, avatar: newUser.avatar || null });
       setUsers((x) => [...x, created.user]);
-      setTemporaryPassword(created.temporaryPassword || null);
+      setTemporaryPassword(newUser.role === 'OWNER' ? null : created.temporaryPassword || null);
+      if (newUser.role === 'OWNER') toast('ok', tr('admin.ownerPasswordSet'));
       setNewUserOpen(false);
-      setNewUser({ name: '', email: '', role: 'MEMBER', color: '#6d5dfc', avatar: '' });
+      setNewUser({ name: '', email: '', password: '', role: 'MEMBER', color: '#6d5dfc', avatar: '' });
     } catch (e) {
       toast("error", String(e));
     }
@@ -201,6 +219,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     if (!editUserDraft) return;
     const { id, name, email, color, avatar, role } = editUserDraft;
     if (!name.trim() || !email.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    const previous = users.find((item) => item.id === id);
+    if (previous && previous.role !== role && (previous.role === 'OWNER' || role === 'OWNER') && !(await ensureStepUp())) return;
     try {
       const updated = await api.updateUser(id, { name: name.trim(), email: email.trim(), color, avatar: avatar || null, role });
       setUsers((x) => x.map((v) => (v.id === id ? updated : v)));
@@ -212,15 +232,25 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   };
   const resetUser = async (u: api.PublicUser) => {
     try {
+      if (u.role === 'OWNER') {
+        if (!(await ensureStepUp())) return;
+        const password = await askText(tr('admin.ownerPassword'), '', { secret: true, okLabel: tr('admin.resetPassword'), message: tr('admin.ownerPasswordHint') });
+        if (!password) return;
+        await api.resetUserPassword(u.id, { password });
+        setTemporaryPassword(null);
+        toast('ok', tr('admin.ownerPasswordSet'));
+        return;
+      }
       const result = await api.resetUserPassword(u.id);
-      setTemporaryPassword(result.temporaryPassword);
+      setTemporaryPassword(result.temporaryPassword || null);
       toast("ok", "Senha temporária gerada.");
     } catch (e) {
       toast("error", String(e));
     }
   };
-  const setRole = async (u: api.PublicUser, role: api.PublicUser["role"]) => { try { const updated = await api.updateUser(u.id, { role }); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', 'Função atualizada.'); } catch (e) { toast('error', String(e)); } };
-  const toggleSuspended = async (u: api.PublicUser) => { try { const updated = await api.setUserSuspended(u.id, !u.suspended); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', updated.suspended ? 'Usuário suspenso.' : 'Usuário reativado.'); } catch (e) { toast('error', String(e)); } };
+  const setRole = async (u: api.PublicUser, role: api.PublicUser["role"]) => { if ((u.role === 'OWNER' || role === 'OWNER') && !(await ensureStepUp())) return; try { const updated = await api.updateUser(u.id, { role }); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', 'Função atualizada.'); } catch (e) { toast('error', String(e)); } };
+  const toggleSuspended = async (u: api.PublicUser) => { if (u.role === 'OWNER' && !(await ensureStepUp())) return; try { const updated = await api.setUserSuspended(u.id, !u.suspended); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', updated.suspended ? 'Usuário suspenso.' : 'Usuário reativado.'); } catch (e) { toast('error', String(e)); } };
+  const removeUser = async (u: api.PublicUser) => { if (u.role === 'OWNER' && !(await ensureStepUp())) return; try { await api.deleteUser(u.id); setUsers((x) => x.filter((v) => v.id !== u.id)); } catch (e) { toast('error', String(e)); } };
   const showUserProjects = async (u: api.PublicUser) => { try { const rows = await api.userProjects(u.id); setUserProjects((x) => ({ ...x, [u.id]: rows })); } catch (e) { toast('error', String(e)); } };
   const saveProvider = async (provider: api.ProviderInfo) => {
     const key = (providerKeys[provider.id] || '').trim();
@@ -573,7 +603,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           <h3>{tr('admin.editUser')}</h3>
           <label className="small">{tr('account.name')}<input className="field" autoFocus value={editUserDraft.name} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, name: e.target.value }))} /></label>
           <label className="small">E-mail<input className="field" type="email" value={editUserDraft.email} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, email: e.target.value }))} /></label>
-          <label className="small">{tr('admin.accessLevel')}<select className="field" value={editUserDraft.role} disabled={editUserDraft.id === user?.id} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, role: e.target.value as api.PublicUser['role'] }))}><option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option><option value="OWNER">{tr('admin.owner')}</option></select></label>
+          <label className="small">{tr('admin.accessLevel')}<select className="field" value={editUserDraft.role} disabled={editUserDraft.id === user?.id || Boolean(editUserDraft.principal) || (editUserDraft.role === 'OWNER' && !user?.principal)} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, role: e.target.value as api.PublicUser['role'] }))}>{(user?.principal || editUserDraft.role === 'OWNER') && <option value="OWNER">{tr('admin.owner')}</option>}<option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option></select></label>
           <label className="small">{tr('account.profileColor')}<input className="field" type="color" value={editUserDraft.color || '#6d5dfc'} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, color: e.target.value }))} /></label>
           <label className="small">{tr('admin.profilePhoto')}<input className="field" type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setEditUserDraft((v) => v && ({ ...v, avatar: String(reader.result || '') })); reader.readAsDataURL(file); }} /></label>
           <div className="row modal-actions"><span className="grow"/><button className="btn" onClick={() => setEditUserDraft(null)}>{tr('actions.cancel')}</button><button className="btn primary" onClick={() => void saveEditedUser()}>{tr('comments.save')}</button></div>
@@ -626,11 +656,11 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                 <div>
                   <b>{u.name}</b>
                   <span className="faint">
-                    {u.email} · {tr(`role.${u.role}`)} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (language === 'en-US' ? 'password change pending' : 'troca de senha pendente') : tr('admin.active')}
+                    {u.email} · {tr(`role.${u.role}`)}{u.principal ? ` · ${tr('admin.principal')}` : ''} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (language === 'en-US' ? 'password change pending' : 'troca de senha pendente') : tr('admin.active')}
                   </span>
                 </div>
                 <div className="row">
-                  {u.id !== user?.id && <select className="field" value={u.role} onChange={(e) => void setRole(u, e.target.value as api.PublicUser["role"])}><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option><option value="MEMBER">{tr('admin.member')}</option></select>}
+                  {u.id !== user?.id && (u.role !== 'OWNER' || (Boolean(user?.principal) && !u.principal)) && <select className="field" value={u.role} onChange={(e) => void setRole(u, e.target.value as api.PublicUser["role"])}>{user?.principal && <option value="OWNER">{tr('admin.owner')}</option>}<option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option><option value="MEMBER">{tr('admin.member')}</option></select>}
                   <button
                     className="btn ghost sm"
                     onClick={() => void editUser(u)}
@@ -638,13 +668,13 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                     {tr('admin.edit')}
                   </button>
                   <button className="btn ghost sm" onClick={() => void showUserProjects(u)}>{tr('admin.projectsAction')}</button>
-                  <button
+                  {(u.role !== 'OWNER' || (Boolean(user?.principal) && !u.principal)) && <button
                     className="btn ghost sm"
                     onClick={() => void resetUser(u)}
                   >
                     {tr('admin.resetPassword')}
-                  </button>
-                  {u.id !== user?.id && (
+                  </button>}
+                  {u.id !== user?.id && (u.role !== 'OWNER' || (Boolean(user?.principal) && !u.principal)) && (
                     <button className="btn ghost sm" onClick={() => void toggleSuspended(u)}>{u.suspended ? tr('admin.reactivate') : tr('admin.suspend')}</button>
                   )}
                   {u.id !== user?.id && (
@@ -660,18 +690,8 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                       {tr('admin.revokeSessions')}
                     </button>
                   )}
-                  {u.id !== user?.id && u.role !== "OWNER" && (
-                    <button
-                      className="btn sm"
-                      onClick={() =>
-                        void api
-                          .deleteUser(u.id)
-                          .then(() =>
-                            setUsers((x) => x.filter((v) => v.id !== u.id)),
-                          )
-                          .catch((e) => toast("error", String(e)))
-                      }
-                    >
+                  {u.id !== user?.id && (u.role !== 'OWNER' || (Boolean(user?.principal) && !u.principal)) && (
+                    <button className="btn sm" onClick={() => void removeUser(u)}>
                       {tr('admin.delete')}
                     </button>
                   )}
@@ -690,7 +710,9 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           <h3>{tr('admin.newUserTitle')}</h3><p className="muted small">{tr('admin.newUserHint')}</p>
           <label className="small">{tr('account.name')}<input className="field" autoFocus value={newUser.name} onChange={(e) => setNewUser((v) => ({ ...v, name: e.target.value }))} /></label>
           <label className="small">{tr('account.email')}<input className="field" type="email" value={newUser.email} onChange={(e) => setNewUser((v) => ({ ...v, email: e.target.value }))} /></label>
-          <label className="small">{tr('admin.accessLevel')}<select className="field" value={newUser.role} onChange={(e) => setNewUser((v) => ({ ...v, role: e.target.value as api.PublicUser['role'] }))}><option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option></select></label>
+          <label className="small">{tr('admin.accessLevel')}<select className="field" value={newUser.role} onChange={(e) => setNewUser((v) => ({ ...v, role: e.target.value as api.PublicUser['role'] }))}><option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option>{user?.principal && <option value="OWNER">{tr('admin.owner')}</option>}</select></label>
+          {newUser.role === 'OWNER' && <label className="small">{tr('admin.ownerPassword')}<input className="field" type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser((v) => ({ ...v, password: e.target.value }))} /></label>}
+          {newUser.role === 'OWNER' && <p className="hint">{tr('admin.ownerPasswordHint')}</p>}
           <label className="small">{tr('account.profileColor')}<input className="field" type="color" value={newUser.color} onChange={(e) => setNewUser((v) => ({ ...v, color: e.target.value }))} /></label>
           <label className="small">{tr('admin.profilePhoto')}<input className="field" type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setNewUser((v) => ({ ...v, avatar: String(reader.result || '') })); reader.readAsDataURL(file); }} /></label>
           <div className="row modal-actions"><span className="grow"/><button className="btn" onClick={() => setNewUserOpen(false)}>{tr('actions.cancel')}</button><button className="btn primary" onClick={() => void createUser()}>{tr('admin.createUser')}</button></div>

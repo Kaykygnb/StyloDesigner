@@ -9,6 +9,7 @@ export interface DialogState {
   message?: string;
   value?: string;
   multiline?: boolean;
+  secret?: boolean;
   okLabel?: string;
   danger?: boolean;
   resolve: (v: string | boolean | null) => void;
@@ -17,7 +18,7 @@ export interface DialogState {
 const open = <T,>(d: Omit<DialogState, 'resolve'>) => new Promise<T>((resolve) => app.set({ dialog: { ...d, resolve: resolve as DialogState['resolve'] } }));
 
 /** Pergunta um texto; devolve null se a pessoa cancelar. */
-export const askText = (title: string, value = '', opts: { message?: string; multiline?: boolean; okLabel?: string } = {}) =>
+export const askText = (title: string, value = '', opts: { message?: string; multiline?: boolean; secret?: boolean; okLabel?: string } = {}) =>
   open<string | null>({ kind: 'text', title, value, ...opts });
 /** Pede confirmação; devolve true/false. */
 export const confirmDialog = (title: string, message?: string, opts: { okLabel?: string; danger?: boolean } = {}) =>
@@ -45,7 +46,7 @@ function DialogView({ dialog }: { dialog: DialogState }) {
         {dialog.message && <p className="muted small">{dialog.message}</p>}
         {dialog.kind === 'text' && (dialog.multiline
           ? <textarea ref={field} className="field" rows={5} value={value} onChange={(e) => setValue(e.target.value)} />
-          : <input ref={field} className="field" value={value} onChange={(e) => setValue(e.target.value)} />)}
+          : <input ref={field} className="field" type={dialog.secret ? 'password' : 'text'} autoComplete={dialog.secret ? 'current-password' : undefined} value={value} onChange={(e) => setValue(e.target.value)} />)}
         <div className="row modal-actions">
           <span className="grow" />
           <button className="btn" onClick={() => finish(dialog.kind === 'text' ? null : false)}>Cancelar</button>
