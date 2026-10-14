@@ -71,11 +71,11 @@ export async function setProps(ids: string[], props: Record<string, unknown>): P
   if (!ids.length || !canEdit()) return;
   const { device, editState } = state();
   if (editState && device === 'desktop') {
-    for (const id of ids) await run('set_state', { id, state: editState, props });
+    await run('set_state', { ids, state: editState, props }); // todas juntas: um único Ctrl+Z
     return;
   }
   if (device !== 'desktop') {
-    for (const id of ids) await run('set_responsive', { id, breakpoint: device, props });
+    await run('set_responsive', { ids, breakpoint: device, props });
     return;
   }
   if (ids.length === 1) await run('update_layer', { id: ids[0], props });

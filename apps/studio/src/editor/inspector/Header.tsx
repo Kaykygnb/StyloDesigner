@@ -44,7 +44,7 @@ export function BpBanner({ c }: { c: Ctx }) {
       <span>{tr('inspector.header.responsive', { name: bp.name })}</span>
       {touched.length > 0 && !c.readOnly && (
         <button type="button" className="btn sm" title={tr('inspector.header.resetResponsive', { name: bp.name })}
-          onClick={() => { void (async () => { for (const x of touched) await run('set_responsive', { id: x.id, breakpoint: bp.id, reset: true }); })(); }}>
+          onClick={() => { void (async () => { await run('set_responsive', { ids: touched.map((x) => x.id), breakpoint: bp.id, reset: true }); })(); }}>
           <Icon name="undo" size={12} /> {tr('inspector.header.restoreDesktop')}
         </button>
       )}

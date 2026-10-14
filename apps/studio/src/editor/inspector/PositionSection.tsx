@@ -9,8 +9,6 @@ import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fiel
 import { union } from '../canvas/geometry';
 import type { Ctx } from './ctx';
 
-const H_CONS: [string, string][] = [['left', 'Esquerda'], ['right', 'Direita'], ['leftright', 'Esq. e dir.'], ['center', 'Centro'], ['scale', 'Escala']];
-const V_CONS: [string, string][] = [['top', 'Topo'], ['bottom', 'Base'], ['topbottom', 'Topo e base'], ['center', 'Centro'], ['scale', 'Escala']];
 
 function AlignBar({ c }: { c: Ctx }) {
   const language = useApp((s) => s.language);

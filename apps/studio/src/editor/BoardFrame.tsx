@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { findNode } from '../lib/doc';
 import { boardHtml } from '../lib/render';
 import { handleShortcut, trackModifiers } from './shortcuts';
+import { toParent } from './canvas/frame';
 import type { Doc, LayerNode } from '../lib/types';
 
 /** Caixa de uma camada dentro da tela (px do iframe): `x/y/w/h` é a caixa visual (com rotação); `ow/oh` o tamanho sem girar. */
@@ -161,10 +162,8 @@ function BoardFrameImpl({ board, doc, x, y, width, editable, pendingEdit, onMeas
     d.addEventListener('wheel', (e) => {
       // a roda sobre a tela rola/dá zoom no canvas (o iframe não rola sozinho)
       e.preventDefault();
-      const fe = d.defaultView?.frameElement as HTMLIFrameElement | null;
-      const r = fe?.getBoundingClientRect();
-      const k = fe && fe.offsetWidth ? (r!.width / fe.offsetWidth) : 1;
-      window.dispatchEvent(new CustomEvent('stylo:wheel', { detail: { dx: e.deltaX, dy: e.deltaY, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, x: (r?.left ?? 0) + e.clientX * k, y: (r?.top ?? 0) + e.clientY * k } }));
+      const at = toParent({ clientX: e.clientX, clientY: e.clientY, view: d.defaultView });
+      window.dispatchEvent(new CustomEvent('stylo:wheel', { detail: { dx: e.deltaX, dy: e.deltaY, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, x: at.x, y: at.y } }));
     }, { passive: false });
     ready.current = true;
     observe();

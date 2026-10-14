@@ -15,8 +15,9 @@ import { BoardFrame, type Box as RawBox, type BoardPointer } from './BoardFrame'
 import { breakpointsOf } from './devices';
 import { canvasMenuItems, layerMenuItems } from './menus';
 import { Rulers } from './Rulers';
-import { flattenContour } from '@stylo/core/geom.js';
 import { PenOverlay, type PenPoint } from './PenOverlay';
+import { toParent } from './canvas/frame';
+import { pathD, pathFromStroke } from './canvas/path';
 import { SelectionOverlay, VectorNodeOverlay, type Gesture, type ObBox } from './SelectionOverlay';
 import {
   SNAP_PX, angleOf, flowDrop, intersects, normalize, resizeGroupBox, resizeSingle, rotateBy, scaleInto, snapMove, snapResize, union,
@@ -27,28 +28,6 @@ type Handle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 const HANDLE_DIR: Record<Handle, [number, number]> = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0], ne: [1, -1], nw: [-1, -1], se: [1, 1], sw: [-1, 1] };
 const THRESHOLD = 3; // px de tela antes de um clique virar arrasto
 const MAX_ZOOM = 16, MIN_ZOOM = 0.02;
-
-/** Converte as coordenadas de um evento (da janela ou de dentro de um iframe) para a janela. */
-function toParent(e: MouseEvent): { x: number; y: number } {
-  const fe = (e.view as Window | null)?.frameElement as HTMLIFrameElement | null | undefined;
-  if (!fe) return { x: e.clientX, y: e.clientY };
-  const r = fe.getBoundingClientRect();
-  const k = fe.offsetWidth ? r.width / fe.offsetWidth : 1;
-  return { x: r.left + e.clientX * k, y: r.top + e.clientY * k };
-}
-
-function rootPathD(node: LayerNode): string {
-  const points = node.points ?? [];
-  if (!points.length) return '';
-  const parts = [`M ${points[0].x} ${points[0].y}`];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1], b = points[i];
-    const c1 = a.hout ?? { x: a.x, y: a.y }, c2 = b.hin ?? { x: b.x, y: b.y };
-    parts.push(`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`);
-  }
-  if (node.closed) parts.push('Z');
-  return parts.join(' ');
-}
 
 export function Canvas() {
   const doc = useApp((s) => s.doc)!;
@@ -628,18 +607,12 @@ export function Canvas() {
   const createPath = async (pts: PenPoint[], closed: boolean) => {
     const s = S.current;
     setTool('move');
-    // a caixa do vetor é a da CURVA desenhada; as alças de controle ficam de fora (senão a seleção sobra em volta do desenho)
-    const curve = flattenContour(pts, closed, 0.25);
-    const xs = curve.map((p) => p.x), ys = curve.map((p) => p.y);
-    const x0 = Math.min(...xs), y0 = Math.min(...ys);
-    const w = Math.max(1, Math.round(Math.max(...xs) - x0)), h = Math.max(1, Math.round(Math.max(...ys) - y0));
+    const { x0, y0, w, h, points } = pathFromStroke(pts, closed);
     const host = boardsOf(s.page).find((b) => b.type === 'frame' && pts[0].x >= b.x && pts[0].x <= b.x + b.w && pts[0].y >= b.y && pts[0].y <= b.y + (s.boxes[b.id]?.[b.id]?.oh ?? b.h));
     // Um vetor pode existir na raiz da página, assim como retângulos e textos.
     // Só o posicionamento relativo muda quando o primeiro ponto está dentro de uma tela.
     const parentId = host?.id ?? null;
     const origin = host ? originOfParent(host.id) : { x: 0, y: 0 };
-    const rel = (p?: { x: number; y: number } | null) => (p ? { x: Math.round((p.x - x0) * 100) / 100, y: Math.round((p.y - y0) * 100) / 100 } : null);
-    const points = pts.map((p) => ({ x: rel(p)!.x, y: rel(p)!.y, hin: rel(p.hin), hout: rel(p.hout) }));
     const out = await run<{ created?: { id: string } }>('create_layer', {
       type: 'path', parent_id: parentId,
       props: { name: 'Vetor', x: Math.round(x0 - origin.x), y: Math.round(y0 - origin.y), w, h, vw: w, vh: h, points, closed,
@@ -806,7 +779,7 @@ export function Canvas() {
 
           {rootVectors.length > 0 && <svg className="root-vector-layer" width="1" height="1" overflow="visible" aria-label={t(language, 'ui.canvas.looseVectorElements')}>
             {rootVectors.map((node) => {
-              const d = rootPathD(node);
+              const d = pathD(node);
               if (!d) return null;
               const stroke = node.stroke?.color || 'currentColor';
               const strokeWidth = Number(node.stroke?.width || 2);

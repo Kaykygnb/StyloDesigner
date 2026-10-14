@@ -8,6 +8,13 @@ import { applyProps } from './properties.ts';
 import { summarize } from './presentation.ts';
 export function createLayersTools(ctx: RunnerContext): ToolHandlers {
   const { store, commands, need, setLayoutMode, colorStyle, effectStyle, gradientStyle, targetList, insertAt, placeBeside } = ctx;
+  /** `id` (uma) ou `ids` (várias): as camadas de uma alteração em lote. */
+  const needAll = (id?: string, ids?: string[]) => {
+    const list = ids?.length ? ids : id ? [id] : [];
+    if (!list.length) throw new Error('Mande id (uma camada) ou ids (várias).');
+    if (new Set(list).size !== list.length) throw new Error('ids não pode repetir a mesma camada.');
+    return list.map(need);
+  };
   return {
     update_layer({ id, props }) {
       const n = need(id);
@@ -28,33 +35,37 @@ export function createLayersTools(ctx: RunnerContext): ToolHandlers {
       if (store.parentOf(id) !== target) throw new Error('Não deu para mover para lá (uma camada não entra dentro dela mesma, e seções só guardam frames).');
       return { moved: summarize(n, 0), parent: target ? target.id : 'root' };
     },
-    set_responsive({ id, breakpoint, props, reset }) {
-      const n = need(id);
+    set_responsive({ id, ids, breakpoint, props, reset }) {
+      const nodes = needAll(id, ids);
       const breakpoints = store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS;
       if (!breakpoints.some((b) => b.id === breakpoint)) throw new Error(`breakpoint: use um destes: ${breakpoints.map((b) => `"${b.id}" (${b.name}, ≤${b.max}px)`).join(', ')}.`);
+      const updated = nodes.length === 1 ? nodes[0].id : nodes.map((n) => n.id);
       if (reset) {
-        store.update(() => { if (n.bps) { delete n.bps[breakpoint]; if (!Object.keys(n.bps).length) delete n.bps; } });
-        return { updated: n.id, breakpoint, reset: true };
+        store.update(() => { for (const n of nodes) if (n.bps) { delete n.bps[breakpoint]; if (!Object.keys(n.bps).length) delete n.bps; } });
+        return { updated, breakpoint, reset: true };
       }
       if (!props) throw new Error('Mande props (ou reset: true para apagar os ajustes deste breakpoint).');
       const bad = Object.keys(props || {}).filter((k) => !BP_KEYS.includes(k));
       if (bad.length) throw new Error(`Não varia por largura: ${bad.join(', ')}. Aceitas: ${BP_KEYS.join(', ')}.`);
-      store.update(() => withDocumentBreakpoints(store.state.doc, () => editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle }))));
-      return { updated: n.id, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
+      // todas as camadas na MESMA alteração: um único passo no histórico (um Ctrl+Z desfaz o lote)
+      store.update(() => withDocumentBreakpoints(store.state.doc, () => { for (const n of nodes) editBp(n, breakpoint, (d) => applyProps(d, props, { colorStyle, effectStyle, gradientStyle })); }));
+      return { updated, breakpoint, hint: 'Vira @media no CSS; o Desktop continua igual.' };
     },
-    set_state({ id, state, props = {}, reset }) {
-      const n = need(id);
+    set_state({ id, ids, state, props = {}, reset }) {
+      const nodes = needAll(id, ids);
       if (!['hover', 'active', 'focus'].includes(state)) throw new Error('state: "hover", "active" ou "focus".');
-      if (!canHaveStates(n)) throw new Error('Grupos, seções e linhas não têm estados.');
+      const blocked = nodes.find((n) => !canHaveStates(n));
+      if (blocked) throw new Error(`Grupos, seções e linhas não têm estados (“${blocked.name}”).`);
+      const updated = nodes.length === 1 ? nodes[0].id : nodes.map((n) => n.id);
       if (reset) {
-        store.update(() => { if (n.states) { delete n.states[state]; if (!Object.keys(n.states).length) delete n.states; } });
-        return { updated: n.id, state, reset: true };
+        store.update(() => { for (const n of nodes) if (n.states) { delete n.states[state]; if (!Object.keys(n.states).length) delete n.states; } });
+        return { updated, state, reset: true };
       }
       const bad = Object.keys(props).filter((k) => !STATE_KEYS.includes(k));
       if (bad.length) throw new Error(`Estados aceitam só: ${STATE_KEYS.join(', ')}.`);
       const { scale, ...rest } = props;
-      store.update(() => editState(n, state, (d) => { applyProps(d, rest, { colorStyle, effectStyle, gradientStyle }); if (scale !== undefined) d.scale = Math.max(0.5, Math.min(2, Number(scale) || 1)); }));
-      return { updated: n.id, state };
+      store.update(() => { for (const n of nodes) editState(n, state, (d) => { applyProps(d, rest, { colorStyle, effectStyle, gradientStyle }); if (scale !== undefined) d.scale = Math.max(0.5, Math.min(2, Number(scale) || 1)); }); });
+      return { updated, state };
     },
     create_component({ id }) {
       const n = need(id);

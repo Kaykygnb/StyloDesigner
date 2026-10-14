@@ -28,6 +28,7 @@ export function summarize(n, depth = 0): ToolArgs {
 
 /** Descrição em português de uma alteração, para a janela de permissão. */
 export function describeCall(tool: string, args: ToolArgs, store) {
+  const who = (args) => (Array.isArray(args.ids) && args.ids.length > 1 ? `${args.ids.length} camadas` : nm(args.ids?.[0] ?? args.id));
   const nm = (id) => { const n = id && store.get(id); return n ? `“${n.name}”` : `(camada ${id})`; };
   switch (tool) {
     case 'align_layers': return `Alinhar ${(args.ids || []).length} camadas (${args.alignment})`;
@@ -70,8 +71,8 @@ export function describeCall(tool: string, args: ToolArgs, store) {
     case 'create_color_styles': return `Criar ${(args.colors || []).length} estilo(s) de cor: ${(args.colors || []).map((c) => `${c.name} ${c.color}`).join(', ')}`;
     case 'create_page': return `Criar a página “${args.name}”`;
     case 'set_project_css': return `${String(args.css || '').trim() ? 'Substituir' : 'Limpar'} CSS global do projeto (${String(args.css || '').length} caracteres)`;
-    case 'set_responsive': return `No ${(store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS).find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, ${args.reset ? `apagar os ajustes de ${nm(args.id)}` : `alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`}`;
-    case 'set_state': return `No estado ${args.state}, ${args.reset ? `apagar as sobrescritas de ${nm(args.id)}` : `alterar ${nm(args.id)}: ${Object.keys(args.props || {}).join(', ')}`}`;
+    case 'set_responsive': return `No ${(store.state.doc.breakpoints?.length ? store.state.doc.breakpoints : DEFAULT_BREAKPOINTS).find((b) => b.id === args.breakpoint)?.name || args.breakpoint}, ${args.reset ? `apagar os ajustes de ${who(args)}` : `alterar ${who(args)}: ${Object.keys(args.props || {}).join(', ')}`}`;
+    case 'set_state': return `No estado ${args.state}, ${args.reset ? `apagar as sobrescritas de ${who(args)}` : `alterar ${who(args)}: ${Object.keys(args.props || {}).join(', ')}`}`;
     case 'create_component': return `Transformar ${nm(args.id)} em componente`;
     case 'create_instance': return `Criar uma cópia do componente ${nm(args.component_id)}${args.parent_id ? ` dentro de ${nm(args.parent_id)}` : ' na página'}`;
     case 'duplicate_layers': return `Duplicar ${(args.ids || []).map(nm).join(', ')}`;

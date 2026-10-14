@@ -33,7 +33,7 @@ export async function pasteClipboard(): Promise<void> {
   const into = target && target.type === 'frame' && !alive.includes(target.id) && !alive.some((id) => isAncestor(p.children, id, target.id)) ? target : null;
   if (clip.cut) {
     if (!into) { toast('error', tl('editing.selectFrameToPaste')); return; }
-    for (const id of alive) await run('move_layer', { id, parent_id: into.id });
+    await run('move_layers', { moves: alive.map((id) => ({ id, parent_id: into.id })) }); // um único Ctrl+Z para o lote todo
     setClip(null);
     select(alive);
     return;
