@@ -5,7 +5,7 @@ Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agen
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: a publicar (DOC-SERVER-001: teste PostgreSQL descartável + docs)
+- Commit de referência: `b06056f` (teste PostgreSQL descartável + docs, DOC-SERVER-001)
 - Última atualização deste resumo: 2026-10-14 01:45 UTC — [Kimi]
 
 ## Estado geral
