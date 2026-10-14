@@ -15,6 +15,7 @@ import { BoardFrame, type Box as RawBox, type BoardPointer } from './BoardFrame'
 import { breakpointsOf } from './devices';
 import { canvasMenuItems, layerMenuItems } from './menus';
 import { Rulers } from './Rulers';
+import { flattenContour } from '@stylo/core/geom.js';
 import { PenOverlay, type PenPoint } from './PenOverlay';
 import { SelectionOverlay, VectorNodeOverlay, type Gesture, type ObBox } from './SelectionOverlay';
 import {
@@ -200,11 +201,15 @@ export function Canvas() {
     const fitAll = () => fitBox(worldBounds());
     const fitSel = () => { const b = union(S.current.selection.map(aabbOf).filter((x): x is Box => !!x)); if (b) fitBox(b, { max: 2 }); else fitAll(); };
     const z100 = () => zoomTo(1);
+    const zIn = () => zoomTo(S.current.zoom * 1.2);
+    const zOut = () => zoomTo(S.current.zoom / 1.2);
     window.addEventListener('stylo:fit', fitAll);
     window.addEventListener('stylo:fit-selection', fitSel);
     window.addEventListener('stylo:reveal-selection', fitSel);
     window.addEventListener('stylo:zoom100', z100);
-    return () => { window.removeEventListener('stylo:fit', fitAll); window.removeEventListener('stylo:fit-selection', fitSel); window.removeEventListener('stylo:reveal-selection', fitSel); window.removeEventListener('stylo:zoom100', z100); };
+    window.addEventListener('stylo:zoom-in', zIn);
+    window.addEventListener('stylo:zoom-out', zOut);
+    return () => { window.removeEventListener('stylo:zoom-in', zIn); window.removeEventListener('stylo:zoom-out', zOut); window.removeEventListener('stylo:fit', fitAll); window.removeEventListener('stylo:fit-selection', fitSel); window.removeEventListener('stylo:reveal-selection', fitSel); window.removeEventListener('stylo:zoom100', z100); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -393,7 +398,8 @@ export function Canvas() {
       ids = created;
       select(created);
     }
-    const byId = new Map(cur.items.map((i, k) => [i.id, ids[k] ?? i.id]));
+    // `ids` só tem as camadas destravadas: o mapa precisa seguir a mesma lista (senão a cópia e o original se trocam)
+    const byId = new Map(cur.items.filter((i) => !i.locked).map((i, k) => [i.id, ids[k] ?? i.id]));
     const moves: { id: string; parent_id?: string; index?: number; x?: number; y?: number }[] = [];
     for (const item of cur.items) {
       if (item.locked) continue;
@@ -622,8 +628,9 @@ export function Canvas() {
   const createPath = async (pts: PenPoint[], closed: boolean) => {
     const s = S.current;
     setTool('move');
-    const xs = pts.flatMap((p) => [p.x, ...(p.hin ? [p.hin.x] : []), ...(p.hout ? [p.hout.x] : [])]);
-    const ys = pts.flatMap((p) => [p.y, ...(p.hin ? [p.hin.y] : []), ...(p.hout ? [p.hout.y] : [])]);
+    // a caixa do vetor é a da CURVA desenhada; as alças de controle ficam de fora (senão a seleção sobra em volta do desenho)
+    const curve = flattenContour(pts, closed, 0.25);
+    const xs = curve.map((p) => p.x), ys = curve.map((p) => p.y);
     const x0 = Math.min(...xs), y0 = Math.min(...ys);
     const w = Math.max(1, Math.round(Math.max(...xs) - x0)), h = Math.max(1, Math.round(Math.max(...ys) - y0));
     const host = boardsOf(s.page).find((b) => b.type === 'frame' && pts[0].x >= b.x && pts[0].x <= b.x + b.w && pts[0].y >= b.y && pts[0].y <= b.y + (s.boxes[b.id]?.[b.id]?.oh ?? b.h));

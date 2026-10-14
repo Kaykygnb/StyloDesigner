@@ -10,6 +10,8 @@ import { findNode, inFlow, pageOf, parentOf } from '../lib/doc';
 import { createShape } from '../lib/shapes';
 
 // sem `instanceof`: o alvo pode vir de dentro de um iframe, que tem as suas próprias classes
+/** Botão, link, caixa de marcar… com foco: Espaço, Enter e Tab são dele (teclado e leitor de tela), não do editor. */
+const interactive = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && typeof el.tagName === 'string' && (/^(BUTTON|A|SUMMARY)$/.test(el.tagName) || el.getAttribute?.('role') === 'button' || el.getAttribute?.('role') === 'menuitem'); };
 const typing = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && typeof el.tagName === 'string' && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)); };
 
 /** Mantém `altDown` e `spaceDown` em dia (a distância entre camadas e a mão temporária dependem deles). */
@@ -20,13 +22,19 @@ export function trackModifiers(e: KeyboardEvent): void {
 }
 
 /** Move as camadas soltas com as setas (1 px; com Shift, 10 px). */
-async function nudge(dx: number, dy: number) {
+let nudging: Promise<void> = Promise.resolve();
+/** Uma seta por vez: com a tecla repetindo, cada passo espera o anterior gravar (senão todos partem da mesma posição velha). */
+function nudge(dx: number, dy: number): Promise<void> {
+  nudging = nudging.then(() => nudgeNow(dx, dy)).catch(() => undefined);
+  return nudging;
+}
+async function nudgeNow(dx: number, dy: number) {
   const s = app.get();
   if (!s.doc || s.device !== 'desktop' || !canEdit()) return;
   const page = pageOf(s.doc, s.pageId);
   const updates = s.selection.flatMap((id) => {
     const n = findNode(page.children, id);
-    return n && !n.locked && !inFlow(parentOf(page.children, id), n) ? [{ id, props: { x: n.x + dx, y: n.y + dy } }] : [];
+    return n && !n.locked && !inFlow(parentOf(page.children, id), n) ? [{ id, props: { x: Number(n.x || 0) + dx, y: Number(n.y || 0) + dy } }] : [];
   });
   if (updates.length) await run('update_layers', { updates });
 }
@@ -62,7 +70,7 @@ export function handleShortcut(e: KeyboardEvent): void {
   const fit = (name: string) => window.dispatchEvent(new Event(name));
 
   if (e.key === 'Alt') { e.preventDefault(); return; }
-  if (code === 'Space') { e.preventDefault(); return; }
+  if (code === 'Space') { if (!interactive(e.target)) e.preventDefault(); return; }
 
   // ---- com Ctrl / ⌘
   if (mod) {
@@ -97,8 +105,8 @@ export function handleShortcut(e: KeyboardEvent): void {
     if (key === 'l' && e.shiftKey) return act(() => toggleFlag('locked'));
     if (key === 'h' && e.shiftKey) return act(() => toggleFlag('visible'));
     if (key === '0') return act(() => fit('stylo:zoom100'));
-    if (key === '=' || key === '+') return act(() => setZoom(app.get().zoom * 1.2));
-    if (key === '-') return act(() => setZoom(app.get().zoom / 1.2));
+    if (key === '=' || key === '+') return act(() => window.dispatchEvent(new Event('stylo:zoom-in')));
+    if (key === '-') return act(() => window.dispatchEvent(new Event('stylo:zoom-out')));
     return;
   }
 
@@ -129,6 +137,7 @@ export function handleShortcut(e: KeyboardEvent): void {
   if (e.altKey) return;
   if (key === 'delete' || key === 'backspace') return act(removeSelection);
   if (key === 'escape') return act(() => { if (app.get().tool !== 'move') setTool('move'); else select([]); });
+  if ((key === 'tab' || key === 'enter') && interactive(e.target)) return; // o foco está num botão: deixa o navegador ativar/navegar
   if (key === 'tab') return act(() => stepSelection(false));
   if (key === 'enter') return act(() => enterSelection(false));
   if (key === 'f2') return act(() => { const id = app.get().selection[0]; if (id) startRename(id); });

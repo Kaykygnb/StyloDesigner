@@ -175,7 +175,7 @@ let lastDocKey = '';
 export async function refreshDoc(): Promise<void> {
   const snap = await api.snapshot();
   if (!snap) return;
-  const key = JSON.stringify(snap.doc) + '|' + snap.file;
+  const key = JSON.stringify(snap.doc) + '|' + snap.file + '|' + snap.role; // o papel também: mudar de permissão não mexe no documento
   const s = app.get();
   const pageId = s.pageId && snap.doc.pages.some((p) => p.id === s.pageId) ? s.pageId : snap.pageId;
   if (key !== lastDocKey) {

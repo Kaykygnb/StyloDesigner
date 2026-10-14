@@ -358,7 +358,7 @@ export function CssSection({ c }: { c: Ctx }) {
   const { n } = c;
   const language = useApp((s) => s.language);
   const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<{ text: string; warn: boolean }>({ text: '', warn: false });
   if (!c.single || c.editState) return null;
   const check = (text: string) => {
     const bad = text.split(/;|\n/).map((l) => l.trim()).filter(Boolean).filter((l) => {
@@ -367,14 +367,14 @@ export function CssSection({ c }: { c: Ctx }) {
       const prop = l.slice(0, i).trim();
       return typeof CSS !== 'undefined' && !prop.startsWith('--') && !CSS.supports(prop, l.slice(i + 1).trim().replace(/!important$/, ''));
     });
-    setStatus(bad.length ? tr('inspector.extra.cssInvalid', { items: bad.slice(0, 3).join(' · ') }) : text.trim() ? tr('inspector.extra.cssOk') : '');
+    setStatus(bad.length ? { text: tr('inspector.extra.cssInvalid', { items: bad.slice(0, 3).join(' · ') }), warn: true } : { text: text.trim() ? tr('inspector.extra.cssOk') : '', warn: false });
   };
   return (
     <Section id="css" title={tr('inspector.extra.cssTitle')} defaultOpen={!!n.customCss}>
       <Cap label={tr('inspector.extra.declarations')} css="custom-css">
         <Area value={n.customCss ?? ''} mono rows={4} placeholder={'scroll-margin-top: 80px;\naccent-color: #2f6ae0;'} label={tr('inspector.extra.cssLabel')} onCommit={(v) => { check(v); void c.set({ customCss: v.trim() || null }); }} />
       </Cap>
-      {status && <Hint warn={status.startsWith('O navegador')}>{status}</Hint>}
+      {status.text && <Hint warn={status.warn}>{status.text}</Hint>}
     </Section>
   );
 }

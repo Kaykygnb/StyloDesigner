@@ -121,9 +121,10 @@ export const reorder = (id: string, index: number) => run('reorder_layer', { id,
 export async function addPage(): Promise<void> {
   const s = state();
   const name = tl('layerName.page', { n: (s.doc?.pages.length ?? 0) + 1 });
+  const before = new Set((s.doc?.pages ?? []).map((p) => p.id));
   await run('create_page', { name });
   const doc = state().doc;
-  const created = doc?.pages.find((p) => p.name === name);
+  const created = doc?.pages.find((p) => !before.has(p.id)); // pelo id: o nome pode já existir em outra página
   if (created) app.set({ pageId: created.id, selection: [] });
 }
 

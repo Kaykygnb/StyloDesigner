@@ -173,7 +173,10 @@ export function createVectorTools(ctx: RunnerContext): ToolHandlers {
       const node = need(id);
       if (node.type !== 'path') throw new Error('edit_vector_node só aceita camadas type "path".');
       if (!Number.isInteger(node_index)) throw new Error('node_index precisa ser um inteiro.');
-      if (position && (!finite(position.x) && !finite(position.y))) throw new Error('point precisa trazer x ou y como número.');
+      if (position !== undefined && position !== null) {
+        const given = (['x', 'y'] as const).filter((axis) => position[axis] !== undefined);
+        if (!given.length || given.some((axis) => !finite(position[axis]))) throw new Error('point precisa trazer x e/ou y, e cada um que vier tem de ser um número finito.');
+      }
       if (hin !== undefined && hin !== null && (!finite(hin.x) || !finite(hin.y))) throw new Error('hin precisa ser {x, y} ou null.');
       if (hout !== undefined && hout !== null && (!finite(hout.x) || !finite(hout.y))) throw new Error('hout precisa ser {x, y} ou null.');
       if (mode !== undefined && mode !== null && !['corner', 'smooth', 'symmetric', 'free'].includes(mode)) throw new Error('mode precisa ser corner, smooth, symmetric ou free.');

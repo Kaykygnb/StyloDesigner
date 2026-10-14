@@ -12,7 +12,7 @@ import { cloneNode, createNode, defaultFill, defaultLayout, hasLayout, nextName,
 import { dashList, generateCode, joinCss } from './css.js';
 import { createInstance, detachInstance, makeComponent, syncInstances, textStyleFrom } from './components.js';
 import { importSvg } from './svgimport.js';
-import { booleanPolygons, ellipseContour, flattenContour, insideShape, polygonsToContours, rectContour, rdp, simplifyBezierContour } from './geom.js';
+import { booleanPolygons, ellipseContour, flattenContour, insideShape, offsetPolyline, polygonArea, polygonsToContours, rectContour, rdp, reversePoints, simplifyBezierContour, strokeOutline } from './geom.js';
 import { addMode, removeMode, addVar, removeVar, bindVar, unbindVar, syncVars, modesOf, varsOf } from './modes.js';
 import { imageAssetCatalog } from './image-assets.js';
 import { parseImageDataUrl } from './image-size.js';
@@ -1365,12 +1365,11 @@ export function createCommands(store, canvas) {
     const node = store.get(id);
     if (node?.type !== 'path') return { error: 'A camada não é um vetor editável.' };
     const indexes = contourIndex === undefined ? [0, ...(node.contours || []).map((_, i) => i + 1)] : [contourIndex];
-    const clonePoint = (p) => ({ ...p, ...(p.hout ? { hin: { ...p.hout } } : {}), ...(p.hin ? { hout: { ...p.hin } } : {}) });
     store.update(() => {
       for (const index of indexes) {
         const contour = index === 0 ? node : node.contours?.[index - 1];
         if (!contour || !Array.isArray(contour.points)) throw new Error(`Contorno ${index} não existe neste vetor.`);
-        contour.points = contour.points.slice().reverse().map(clonePoint);
+        contour.points = reversePoints(contour.points); // troca hin/hout de cada ponto (alça só de saída vira só de entrada)
       }
     });
     store.setSelection([node.id]);
@@ -1388,8 +1387,9 @@ export function createCommands(store, canvas) {
     if (contour.closed !== false) points.push({ ...points[0], ...(points[0].hin ? { hin: { ...points[0].hin } } : {}), ...(points[0].hout ? { hout: { ...points[0].hout } } : {}) });
     const first = points.slice(0, nodeIndex + 1);
     const second = points.slice(nodeIndex);
-    const a = { ...contour, points: first, closed: false };
-    const b = { ...contour, points: second, closed: false };
+    // só points/closed: spread da camada inteira (contourIndex 0 é o próprio nó) copiaria id, fill, contours… para dentro do contorno
+    const a = { points: first, closed: false };
+    const b = { points: second, closed: false };
     store.update(() => {
       if (contourIndex === 0) { node.points = a.points; node.closed = false; node.contours = [b, ...(node.contours || [])]; }
       else { node.contours.splice(contourIndex - 1, 1, a, b); }
@@ -1412,6 +1412,7 @@ export function createCommands(store, canvas) {
         const copy = clonePoint(point);
         const previous = points.at(-1);
         if (!previous || previous.x !== copy.x || previous.y !== copy.y) points.push(copy);
+        else previous.hout = copy.hout; // mesmo ponto: o caminho segue pela alça de saída do que vem depois
       }
     }
     if (points.length < 2) return { error: 'Os contornos não têm nós suficientes para formar um caminho.' };
@@ -1470,46 +1471,10 @@ export function createCommands(store, canvas) {
     if (stroke.align && stroke.align !== 'center') return { error: 'stroke-to-path ainda exige posição central; contornos internos/externos dependem da geometria fechada.' };
     if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 100) return { error: 'tolerance precisa ser um número entre 0 e 100.' };
     const half = stroke.width / 2;
-    const cap = stroke.cap || 'round';
-    const arc = (center, from, to, steps = 8) => {
-      const a0 = Math.atan2(from.y - center.y, from.x - center.x), a1 = Math.atan2(to.y - center.y, to.x - center.x);
-      let delta = a1 - a0;
-      while (delta <= 0) delta += Math.PI * 2;
-      if (delta > Math.PI * 1.1) delta -= Math.PI * 2;
-      return Array.from({ length: steps - 1 }, (_, k) => { const a = a0 + (delta * (k + 1)) / steps; return { x: center.x + Math.cos(a) * half, y: center.y + Math.sin(a) * half }; });
-    };
-    const closedOffset = (line, sign) => {
-      const dirs = line.map((p, i) => {
-        const a = line[(i + line.length - 1) % line.length], b = line[(i + 1) % line.length];
-        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
-      });
-      return line.map((p, i) => {
-        const prev = { x: -dirs[(i + line.length - 1) % line.length].y, y: dirs[(i + line.length - 1) % line.length].x };
-        const next = { x: -dirs[i].y, y: dirs[i].x };
-        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
-        return { x: p.x + ((prev.x + next.x) / len) * half * sign, y: p.y + ((prev.y + next.y) / len) * half * sign };
-      });
-    };
-    const openOutline = (line) => {
-      const dirs = line.map((p, i) => {
-        const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
-      });
-      const normals = dirs.map((d, i) => {
-        const prev = i ? { x: -dirs[i - 1].y, y: dirs[i - 1].x } : { x: -d.y, y: d.x }, next = { x: -d.y, y: d.x };
-        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
-        return { x: (prev.x + next.x) / len, y: (prev.y + next.y) / len };
-      });
-      const start = { ...line[0] }, end = { ...line.at(-1) };
-      if (cap === 'square') { start.x -= dirs[0].x * half; start.y -= dirs[0].y * half; end.x += dirs.at(-1).x * half; end.y += dirs.at(-1).y * half; }
-      const left = line.map((p, i) => ({ x: p.x + normals[i].x * half, y: p.y + normals[i].y * half }));
-      const right = line.map((p, i) => ({ x: p.x - normals[i].x * half, y: p.y - normals[i].y * half }));
-      left[0] = { x: start.x + normals[0].x * half, y: start.y + normals[0].y * half }; left.at(-1).x = end.x + normals.at(-1).x * half; left.at(-1).y = end.y + normals.at(-1).y * half;
-      right[0] = { x: start.x - normals[0].x * half, y: start.y - normals[0].y * half }; right.at(-1).x = end.x - normals.at(-1).x * half; right.at(-1).y = end.y - normals.at(-1).y * half;
-      const outline = [...left]; if (cap === 'round') outline.push(...arc(end, left.at(-1), right.at(-1))); outline.push(...right.reverse()); if (cap === 'round') outline.push(...arc(start, right[0], left[0]));
-      return outline;
-    };
+    const cap = ['butt', 'square', 'round'].includes(stroke.cap) ? stroke.cap : 'round';
+    const join = ['miter', 'bevel', 'round'].includes(stroke.join) ? stroke.join : 'miter';
+    const closedOffset = (line, sign) => offsetPolyline(line, half * sign, { closed: true, join, miterLimit: 4 });
+    const openOutline = (line) => strokeOutline(line, stroke.width, { cap, join, miterLimit: 4 });
     const dashed = Boolean(stroke.dash || (stroke.style && stroke.style !== 'solid'));
     const dashPattern = () => {
       const custom = dashList(stroke.dash);
@@ -1546,9 +1511,9 @@ export function createCommands(store, canvas) {
       if (line.length < 2) return { error: 'Cada contorno precisa de pelo menos dois pontos.' };
       if (contour.closed) {
         if (dashed) return { error: 'stroke-to-path ainda não converte tracejado em caminho fechado; use um contorno aberto ou remova o tracejado.' };
-        const area = line.reduce((sum, p, i) => { const q = line[(i + 1) % line.length]; return sum + p.x * q.y - q.x * p.y; }, 0) / 2;
-        const left = closedOffset(line, 1), right = closedOffset(line, -1);
-        rings.push(area >= 0 ? right : left, area >= 0 ? left : right);
+        // anel de fora e anel de dentro (o preenchimento par-ímpar deixa o miolo vazado)
+        const outside = polygonArea(line) >= 0 ? -1 : 1;
+        rings.push(closedOffset(line, outside), closedOffset(line, -outside));
       } else rings.push(...dashSegments(line).map(openOutline));
     }
     store.update(() => {
@@ -1571,19 +1536,12 @@ export function createCommands(store, canvas) {
     if (!Number.isFinite(distance) || distance === 0 || Math.abs(distance) > 100000) return { error: 'distance precisa ser um número finito entre -100000 e 100000, diferente de zero.' };
     if (!Number.isFinite(tolerance) || tolerance <= 0 || tolerance > 100) return { error: 'tolerance precisa ser um número entre 0 e 100.' };
     const indexes = contourIndex === undefined ? [0, ...(node.contours || []).map((_, i) => i + 1)] : [contourIndex];
-    const offsetRing = (line, amount) => {
-      const area = line.reduce((sum, p, i) => { const q = line[(i + 1) % line.length]; return sum + p.x * q.y - q.x * p.y; }, 0) / 2;
-      const side = (area >= 0 ? -1 : 1) * Math.sign(amount);
-      const d = Math.abs(amount);
-      const dirs = line.map((p, i) => {
-        const a = line[(i + line.length - 1) % line.length], b = line[(i + 1) % line.length], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-        return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
-      });
-      return line.map((p, i) => {
-        const prev = { x: -dirs[(i + line.length - 1) % line.length].y, y: dirs[(i + line.length - 1) % line.length].x }, next = { x: -dirs[i].y, y: dirs[i].x };
-        const len = Math.hypot(prev.x + next.x, prev.y + next.y) || 1;
-        return { x: p.x + ((prev.x + next.x) / len) * d * side, y: p.y + ((prev.y + next.y) / len) * d * side };
-      });
+    // distância positiva = para fora: o lado "de fora" depende do sentido em que o contorno foi desenhado
+    const offsetRing = (line, amount) => offsetPolyline(line, (polygonArea(line) >= 0 ? -1 : 1) * amount, { closed: true, join: 'miter', miterLimit: 4 });
+    // recuar além do que a forma comporta vira o contorno do avesso (um quadrado vira outro, girado 180°): só a área não pega
+    const flipped = (line, moved) => {
+      if (moved.length === line.length) return line.some((p, i) => { const q = line[(i + 1) % line.length], a = moved[i], b = moved[(i + 1) % moved.length]; return (q.x - p.x) * (b.x - a.x) + (q.y - p.y) * (b.y - a.y) <= 0; });
+      return Math.sign(polygonArea(moved)) !== Math.sign(polygonArea(line)) || Math.abs(polygonArea(moved)) > Math.abs(polygonArea(line));
     };
     const rings = [];
     for (const index of indexes) {
@@ -1592,7 +1550,11 @@ export function createCommands(store, canvas) {
       if (contour.closed === false) return { error: `offset_path só aceita contornos fechados; o contorno ${index} está aberto.` };
       const line = flattenContour(contour.points, true, tolerance).filter((p, i, all) => !i || p.x !== all[i - 1].x || p.y !== all[i - 1].y);
       if (line.length < 3) return { error: `O contorno ${index} precisa de pelo menos três pontos.` };
-      rings.push({ index, points: offsetRing(line, distance) });
+      const moved = offsetRing(line, distance);
+      if (moved.length < 3) return { error: `O deslocamento não gerou uma forma válida no contorno ${index}.` };
+      // para dentro além do que a forma comporta, o contorno vira do avesso: recusa em vez de gravar lixo
+      if (distance < 0 && flipped(line, moved)) return { error: `O deslocamento de ${distance} é maior do que o contorno ${index} comporta; use um valor menor.` };
+      rings.push({ index, points: moved });
     }
     store.update(() => {
       for (const ring of rings) {

@@ -273,6 +273,94 @@ function densify(pts, step) {
   return out;
 }
 
+// ------------------------------------------------------------------ deslocamento de contornos (offset e contorno → forma)
+/** Tira pontos repetidos em sequência (e o último, se repete o primeiro num anel). */
+function dedupePoints(line, closed) {
+  const out = [];
+  for (const p of line) if (!out.length || dist(out[out.length - 1], p) > 1e-9) out.push({ x: p.x, y: p.y });
+  if (closed && out.length > 1 && dist(out[0], out[out.length - 1]) <= 1e-9) out.pop();
+  return out;
+}
+
+/**
+ * Desloca uma polilinha `d` unidades para o lado ESQUERDO do sentido do percurso (d negativo = lado direito) e devolve a
+ * polilinha deslocada. Cada vértice usa a normal de cada ARESTA (não a "tangente" entre vizinhos): num canto de 90°
+ * a ponta (miter) fica em d·√2 da quina, e as duas arestas ficam exatamente a `d` das originais.
+ *  - `join` nos cantos de FORA: 'miter' (ponta; vira chanfro se passar de `miterLimit` × d), 'bevel' (chanfro), 'round' (arco).
+ *  - Cantos de DENTRO sempre usam a ponta (com o mesmo limite), que é o ponto onde as arestas deslocadas se cruzam.
+ * @param {{x:number,y:number}[]} line  pontos do caminho
+ * @param {number} d  distância (pode ser negativa)
+ * @param {{closed?: boolean, join?: 'miter'|'bevel'|'round', miterLimit?: number}} [opts]
+ */
+export function offsetPolyline(line, d, { closed = false, join = 'miter', miterLimit = 4 } = {}) {
+  const pts = dedupePoints(line, closed);
+  const n = pts.length;
+  if (n < 2 || !Number.isFinite(d)) return [];
+  const edges = closed ? n : n - 1;
+  const u = Array.from({ length: edges }, (_, i) => norm(sub(pts[(i + 1) % n], pts[i])));
+  const nrm = u.map((v) => ({ x: -v.y, y: v.x }));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const p = pts[i];
+    const hasPrev = closed || i > 0, hasNext = closed || i < n - 1;
+    if (!hasPrev) { out.push(add(p, mul(nrm[0], d))); continue; }
+    if (!hasNext) { out.push(add(p, mul(nrm[edges - 1], d))); continue; }
+    const iu = (i + edges - 1) % edges;
+    const a = nrm[iu], b = nrm[i % edges];
+    const cos = dot(a, b), cross = a.x * b.y - a.y * b.x; // ângulo entre as normais
+    const denom = 1 + cos;
+    const outer = cross * d < 0; // a normal "abre" um vão neste canto: precisa de junção
+    if (denom > 1e-9 && 2 / denom <= miterLimit * miterLimit && (!outer || join === 'miter' || Math.abs(cross) < 1e-9)) {
+      out.push(add(p, mul(add(a, b), d / denom))); // ponta: as duas arestas deslocadas se cruzam aqui
+    } else if (outer && join === 'round' && Math.abs(cross) > 1e-9) {
+      const sweep = Math.atan2(cross, cos);
+      const steps = Math.max(1, Math.ceil(Math.abs(sweep) / (Math.PI / 12)));
+      for (let k = 0; k <= steps; k++) {
+        const ang = (sweep * k) / steps, c = Math.cos(ang), s = Math.sin(ang);
+        const v = { x: a.x * c - a.y * s, y: a.x * s + a.y * c };
+        out.push(add(p, mul(v, d)));
+      }
+    } else {
+      out.push(add(p, mul(a, d)), add(p, mul(b, d))); // chanfro
+    }
+  }
+  return out;
+}
+
+/**
+ * Contorno de uma LINHA ABERTA com espessura `width`: lado esquerdo indo, ponta, lado direito voltando, ponta.
+ * `cap`: 'butt' (reta), 'square' (estende meia espessura) ou 'round' (semicírculo).
+ * @returns {{x:number,y:number}[]} polígono fechado (sem repetir o primeiro ponto)
+ */
+export function strokeOutline(line, width, { cap = 'round', join = 'miter', miterLimit = 4 } = {}) {
+  const pts = dedupePoints(line, false);
+  if (pts.length < 2) return [];
+  const h = width / 2;
+  const first = pts[0], last = pts[pts.length - 1];
+  const tStart = norm(sub(pts[1], first)), tEnd = norm(sub(last, pts[pts.length - 2]));
+  const body = pts.map((p) => ({ x: p.x, y: p.y }));
+  if (cap === 'square') {
+    body[0] = sub(first, mul(tStart, h));
+    body[body.length - 1] = add(last, mul(tEnd, h));
+  }
+  const left = offsetPolyline(body, h, { join, miterLimit });
+  const right = offsetPolyline(body, -h, { join, miterLimit });
+  const arc = (center, from, steps = 12) => {
+    // meia volta (−180°) saindo do vetor `from`, passando pela frente da ponta
+    const pointsOut = [];
+    for (let k = 1; k < steps; k++) {
+      const ang = (-Math.PI * k) / steps, c = Math.cos(ang), s = Math.sin(ang);
+      pointsOut.push({ x: center.x + from.x * c - from.y * s, y: center.y + from.x * s + from.y * c });
+    }
+    return pointsOut;
+  };
+  const outline = [...left];
+  if (cap === 'round') outline.push(...arc(last, { x: -tEnd.y * h, y: tEnd.x * h }));
+  outline.push(...right.reverse());
+  if (cap === 'round') outline.push(...arc(first, { x: tStart.y * h, y: -tStart.x * h }));
+  return outline;
+}
+
 // ------------------------------------------------------------------ curvas → polígonos
 /**
  * Achata um contorno (pontos com alças) em polígono. Cada curva vira N retas (N pela extensão do polígono de

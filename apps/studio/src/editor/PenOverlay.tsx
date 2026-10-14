@@ -1,5 +1,6 @@
 // Caneta (clique = ponto, arrastar = curva) e lápis (traço livre). Ficam numa camada por cima do canvas, então funcionam também sobre as telas.
 // Enter ou duplo clique termina um caminho aberto; clicar no 1º ponto fecha; Esc cancela; Backspace volta um ponto.
+import { smoothStroke } from '@stylo/core/geom.js';
 import { useApp } from '../lib/app';
 import { RichText } from '../ui/RichText';
 import { t, tp } from '../lib/i18n';
@@ -23,19 +24,8 @@ interface Props {
   onPanStart?: (event: MouseEvent) => void;
 }
 
-/** Ramer–Douglas–Peucker: tira os pontos que não mudam a forma do traço. */
-export function simplifyStroke(points: P[], tolerance: number): P[] {
-  if (points.length < 3) return points;
-  const [a, b] = [points[0], points[points.length - 1]];
-  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1e-9;
-  let far = 0, at = 0;
-  for (let i = 1; i < points.length - 1; i++) {
-    const d = Math.abs((b.x - a.x) * (a.y - points[i].y) - (a.x - points[i].x) * (b.y - a.y)) / len;
-    if (d > far) { far = d; at = i; }
-  }
-  if (far <= tolerance) return [a, b];
-  return [...simplifyStroke(points.slice(0, at + 1), tolerance).slice(0, -1), ...simplifyStroke(points.slice(at), tolerance)];
-}
+/** Suavização do lápis (0 = segue o traço quase exato, 100 = poucas curvas largas). */
+const PENCIL_SMOOTHING = 45;
 
 export function PenOverlay({ mode, zoom, panX, panY, spaceDown = false, toWorld, targets, onDone, onCancel, onPanStart }: Props) {
   const language = useApp((s) => s.language);
@@ -121,8 +111,9 @@ export function PenOverlay({ mode, zoom, panX, panY, spaceDown = false, toWorld,
     const s = live.current.stroke;
     setStroke([]);
     if (s.length < 2) return;
-    const simple = simplifyStroke(s, 1.5 / zoom);
-    if (simple.length >= 2) onDone(simple.map((p) => ({ x: p.x, y: p.y, hin: null, hout: null })), false);
+    // traço → curvas de Bézier (tira o tremido e ajusta curvas, em vez de ligar pontos com retas)
+    const curve = smoothStroke(s, PENCIL_SMOOTHING, zoom);
+    if (curve.length >= 2) onDone(curve.map((p) => ({ x: p.x, y: p.y, hin: p.hin ?? null, hout: p.hout ?? null })), false);
   };
 
   const pen = points.map((p) => ({ ...p, s: screen(p) }));

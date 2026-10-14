@@ -229,8 +229,11 @@ test('MCP inverte a direção e preserva as curvas, com undo', async () => {
   const out = await runner.run('reverse_vector', { id });
   assert.equal(out.ok, true, out.error);
   assert.deepEqual(store.get(id).points.map((p) => [p.x, p.y]), [[40, 20], [20, 0], [0, 0]]);
-  assert.deepEqual(store.get(id).points[0].hin, { x: 30, y: 10 });
-  assert.deepEqual(store.get(id).points[2].hout, { x: 10, y: 0 });
+  // a alça de entrada de um ponto vira a de SAÍDA depois de inverter (e vice-versa); a antiga não fica sobrando
+  assert.deepEqual(store.get(id).points[0].hout, { x: 30, y: 10 });
+  assert.equal(store.get(id).points[0].hin ?? null, null);
+  assert.deepEqual(store.get(id).points[2].hin, { x: 10, y: 0 });
+  assert.equal(store.get(id).points[2].hout ?? null, null);
   store.undo();
   assert.equal(store.get(id).points[0].x, 0);
 });

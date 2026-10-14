@@ -32,8 +32,13 @@ export function FillSection({ c }: { c: Ctx }) {
 
   const changeType = async (type: string) => {
     if (type === 'none') { await c.set({ fill: 'none' }); return; }
+    if (type === 'image' && !fill.assetId) {
+      // escolhe a imagem ANTES de trocar o tipo: cancelar não deixa um preenchimento de imagem vazio
+      const img = await pickImage();
+      if (img) await c.set({ fill: { type: 'image', styleId: null, gradientId: null, assetId: img.assetId, natW: img.w, natH: img.h } });
+      return;
+    }
     await c.set({ fill: { type, styleId: null, gradientId: null } });
-    if (type === 'image' && !fill.assetId) { const img = await pickImage(); if (img) await c.set({ fill: { type: 'image', assetId: img.assetId, natW: img.w, natH: img.h } }); }
   };
   const chooseImage = async () => { const img = await pickImage(); if (img) setFill({ type: 'image', assetId: img.assetId, natW: img.w, natH: img.h }); };
   const setStops = (next: Stop[]) => setFill({ stops: next, gradientId: null });
