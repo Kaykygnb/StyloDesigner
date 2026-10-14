@@ -140,7 +140,7 @@ Destinatário: [Revisor humano]
 Estado: Aguardando política humana; investigação e plano concluídos
 Marco atual: #3 — Implementação (bloqueada por decisão)
 Última atualização: 2026-10-14 00:52 -03:00
-Commit de referência: `a445f61` (mais `npm install` local não commitado)
+Commit de referência: `b6eca87` na branch `v0.1.0-beta`
 
 ### Estado atual
 
