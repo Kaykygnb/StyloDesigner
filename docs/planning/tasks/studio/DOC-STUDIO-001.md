@@ -98,7 +98,7 @@ Participantes: [Muse Spark], [Grok]
 - Alterado: transferência de responsável anterior [Muse Spark] para [Grok], aceita porque a investigação/planejamento já estava entregue e esta sessão é o único agente no branch. Estado passou a Em andamento na implementação e a Concluída após os gates. Histórico de [Muse Spark] preservado.
 - Arquivos: `tests/studio-parity.test.js`, inventário, matriz de regressão, README de Studio e MCP, esta tarefa, `BACKLOG.md`, `HANDOFF.md`.
 - Testes: arquivo novo 2/2; `npm run typecheck`; `npm run build`; `npm test` 626/626 sem falhas nem skips (Chromium do Playwright instalado); `docs:inventario --check`; validador 28 tarefas.
-- Resultado: paridade observável provada sem mudar runtime. `export_zip` de VIEWER no painel continua permitido; não foi alterado.
+- Resultado: paridade observável provada sem mudar runtime, commit `aabece8`. `export_zip` de VIEWER no painel continua permitido; não foi alterado.
 - Próximo passo: nenhum nesta tarefa. Próxima do backlog: DOC-SERVER-006 (P0, investigação de principal; sem patch estrutural genérico).
 
 ## Handoff atual
