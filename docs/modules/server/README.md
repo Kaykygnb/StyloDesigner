@@ -25,3 +25,7 @@ Testes HTTP, banco, contas, assets, presença, projetos e renderização.
 ## Administração self-hosted
 
 [Domínio administrativo proposto](../../architecture/instance-administration/README.md) inventaria serviços/painel existentes e lacunas, sem reimplementá-los. A política adminOf dos dois PUT foi aprovada para beta, com ressalva: segurança, privilégios e credenciais críticas têm deliberação separada. Não é certificação geral de segurança nem aprovação da arquitetura proposta.
+
+## Registro humano de identidade e recuperação
+
+[ADR0002](../../architecture/adr/0002-self-hosted-administration.md) distingue requisitos HD e runtime. Accounts é padrão, mas bypass local persiste; principal ainda não é representado no schema. Investigar migração sem apagar identidade técnica/dados, e projetar GUI de envio/recuperação opcional sem federar login ou escolher offline automaticamente. [Plano técnico](../../architecture/instance-administration/IDENTITY-ONBOARDING-RECOVERY.md).

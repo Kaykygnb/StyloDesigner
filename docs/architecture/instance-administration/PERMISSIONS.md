@@ -1,6 +1,6 @@
 # Matriz de autoridade e permissões
 
-**Atual** descreve código do snapshot; **proposta** depende de aprovação. Nenhum contrato muda por esta tabela. Fontes detalhadas no [inventário](CURRENT-STATE.md). Instância, projeto e agente são contextos diferentes.
+**Atual** descreve código do snapshot; **requisito humano** descreve intenção estabelecida, ainda não implementação. **Proposta técnica** descreve mecanismo/contrato aberto. Nenhum contrato muda por esta tabela. Fontes detalhadas no [inventário](CURRENT-STATE.md). Instância, projeto e agente são contextos diferentes.
 
 ## Instância — comportamento atual
 
@@ -24,7 +24,7 @@
 
 SSE /agent/events atualmente não passa por userOf; nome/projeto declarados por query não demonstram identidade nem ACL. Broadcast de projeto não filtra por membership. Validação/revogação específica proposta em DOC-SERVER-007.
 
-Sessão humana exige validação via auth; token de agente não é token de usuário. Não confundir SSE de editor, cookie da pessoa e SID MCP. No modo local o usuário técnico é OWNER e não há limite de identidade multiusuário equivalente a accounts; parte das rotas de contas responde 404.
+Sessão humana exige validação via auth; token de agente não é token de usuário. Não confundir SSE de editor, cookie da pessoa e SID MCP. Legado atual: no modo local o usuário técnico é OWNER e não há limite de identidade multiusuário equivalente a accounts; parte das rotas de contas responde 404.
 
 A política beta dos dois PUT foi aprovada explicitamente, com ressalva: segurança, privilégios e credenciais críticas exigem avaliação separada. Demais poderes atuais nesta tabela não ganharam aprovação adicional.
 
@@ -58,7 +58,9 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 |---|---|---|
 | Configuração operacional comum | OWNER/ADMIN conforme aprovação beta; capacidades futuras só refinam após aceite | Não restringir os PUT beta unilateralmente |
 | Política de segurança e credencial crítica | OWNER por padrão; delegação ADMIN explicitamente concedida e auditada | ADM-DEC-02 |
-| Alterar/resetar/suspender OWNER ou transferir propriedade | Fluxo específico de OWNER, reautenticação e proteção último OWNER; recuperação fora de banda separada | ADM-DEC-03; política entre vários OWNER e ADMINs pendente |
+| Excluir/suspender/rebaixar OWNER principal | **Requisito humano:** negar ADMIN, usuários comuns e outros OWNERs; não deixar instância sem principal válido | HD-OWNERSHIP-02; principal inexiste hoje, implementação precisa projeto/migração |
+| Conceder papel OWNER | **Requisito humano:** somente principal, mantendo vários OWNERs | HD-OWNERSHIP-03; hoje qualquer OWNER concede |
+| Transferir principal / recuperar / reset sensível | Caminho seguro exigido; procedimento, reautenticação/prova e acesso excepcional são propostas abertas | HD-OWNERSHIP-05; não autoriza reset de principal por admin como recuperação |
 | Administrar pessoas/sessões comuns | ADMIN delegado; limitar alvo e impedir autoelevação/poder sobre OWNER | ADM-DEC-02/03 |
 | Abrir projeto privado por ser admin | Não permitido por padrão; exceção de emergência só se aprovada/auditada | ADM-DEC-07 |
 | Delegar compartilhamento por agente | Capacidade explícita project.share, concedida por humano autorizado; teto por projeto/role | ADM-DEC-04; migração compatível de write atual |
@@ -67,3 +69,12 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 | Restaurar backup/expor serviço público | OWNER ou administrador com capacidade explícita, confirmação e trilha; health mínimo público | ADM-DEC-06/08/09 |
 
 RBAC identifica conjuntos iniciais de autoridade; capacidades e contexto restringem ator/alvo/recursos. Uma negativa em qualquer camada prevalece. Scopes não são papéis de instância. Decisões técnicas de interface/internas reversíveis podem ser recomendadas; alterações de autoridade aguardam aprovação explícita.
+
+## Consequências HD sem mudar os gates atuais
+
+- HD-IDENTITY-01/02: humanos sempre com conta/senha no alvo, inclusive individual. Tabela atual registra bypass legado para migração, não sua aprovação permanente.
+- HD-ADMIN-01/02/03/04: gestão delegada/scoped e compartilhar por humanos/agentes essenciais, sem autoridade global desnecessária e sem setores obrigatórios. Separação concreta write/share/admin ainda a validar; não remover sharing dos agentes unilateralmente.
+- HD-OWNERSHIP-04: contato/e-mail institucional não confere identidade nem permissão por si só.
+- HD-RECOVERY-01/02/03/05: GUI de e-mail opcional exigida; quem configura credenciais e quais procedimentos recuperam principal seguem matriz sensível/projeto técnico abertos. Códigos offline não aprovados.
+
+ADM-DEC-00 beta continua válida; novo registro não amplia ADMIN global. Somente requisitos HD e aprovação beta têm autoria humana; as recomendações de capacidades são técnicas.

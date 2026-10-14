@@ -37,6 +37,7 @@ Os documentos anteriores foram removidos da documentação ativa. O snapshot é 
 - [testing/](testing/): estratégia, inventário, efetividade e regressões.
 - [testing/TOOL-INVENTORY.md](testing/TOOL-INVENTORY.md): catálogo/handlers/políticas gerados; referências de teste são candidatas, não cobertura comprovada.
 - [qa/README.md](qa/README.md): processo exploratório orientado pelo proprietário; [guia para ChatGPT Work](qa/WORK-GUIDE.md), jornadas e modelo de relato (sem execução de QA nesta preparação).
+- [architecture/instance-administration/IDENTITY-ONBOARDING-RECOVERY.md](architecture/instance-administration/IDENTITY-ONBOARDING-RECOVERY.md): plano de transição/onboarding/recuperação vinculado aos 21 HD da ADR 0002.
 - [planning/](planning/): backlog e tarefas executáveis.
 - [planning/TASK-PROTOCOL.md](planning/TASK-PROTOCOL.md): protocolo obrigatório para descobrir, assumir e concluir tarefas.
 

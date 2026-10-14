@@ -107,6 +107,15 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 - Resultado: Proposta registrada; nenhuma autorização estrutural inferida.
 - Próximo passo: consultar decisões pendentes e assumir conforme protocolo; reproduzir em ambiente descartável antes de implementar.
 
+### 2026-10-14 03:34 UTC — [Codex] — reconciliação com diretrizes humanas
+
+- Investigado: novo registro humano na ADR 0002, handoffs e dependências.
+- Alterado: escopo esclarecido por HD: HD-ONBOARDING-03: primeira conta é principal durante provisionamento autorizado, impedir apropriação por visitante; mecanismo e origem pública técnica não escolhidos. Não inferir autorização de implementação integral.
+- Arquivos: esta tarefa e documentos administrativos relacionados.
+- Testes: investigação/provas em recurso sintético conforme CURRENT-STATE; nenhum gate estrutural inventado.
+- Resultado: investigação/desenho autorizados podem prosseguir, sem esperar deliberação geral. Autor/responsável e histórico preservados.
+- Próximo passo: assumir etapa específica conforme protocolo; registrar bloqueio apenas de mudança que precisa decisão ainda aberta.
+
 ## Handoff atual
 
 <!-- Opcional enquanto a tarefa estiver Proposta/Pronta. Obrigatório ao transferir,

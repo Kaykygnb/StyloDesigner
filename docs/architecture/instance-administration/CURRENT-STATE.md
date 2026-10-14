@@ -34,7 +34,7 @@ Nesta rodada: `tests/config-autorizacao.test.js` reexecutado, **1/1 aprovado**; 
 
 | ID | Natureza e alcance | Referência / encaminhamento |
 |---|---|---|
-| ADM-RISK-01 | **Achado estático prioritário, não exploração reproduzida:** ADMIN pode alcançar reset/suspensão/rebaixamento de OWNER existente; bloqueio de promover para OWNER não protege alvo OWNER | [auth routes:90](../../../apps/server/src/routes/auth.ts#L90), [auth service:150](../../../apps/server/src/services/auth.ts#L150); DOC-SERVER-006 |
+| ADM-RISK-01 | **Reproduzido nesta rodada em memória:** ADMIN resetou/suspendeu/rebaixou e excluiu a primeira OWNER sintética sem projetos; zero OWNERs humanos restantes. Não prova cenário com projetos, concorrência ou ataque de rede; entidade principal não existe hoje | [auth routes:90](../../../apps/server/src/routes/auth.ts#L90), [auth service:150](../../../apps/server/src/services/auth.ts#L150); DOC-SERVER-006 |
 | ADM-RISK-02 | **Achado estático prioritário:** POST MCP com SID só reautentica se bearer presente; bearer diferente pode substituir agente; GET/DELETE não reautenticam. Revogação instantânea em todos esses caminhos não comprovada | [gateway:135](../../../apps/server/src/mcp/gateway.ts#L135); DOC-SERVER-007, sem redesenhar MCP |
 | ADM-RISK-03 | **Bloqueio funcional reproduzido:** Host público e Origin HTTPS rejeitados. Proxy/TLS comum não torna aplicação compatível automaticamente | [guards:33](../../../apps/server/src/http/guards.ts#L33), [app:39](../../../apps/server/src/app.ts#L39); DOC-SERVER-008 |
 | ADM-RISK-04 | **Risco estático:** setup aberto enquanto count=0, count/create separados; primeiro visitante/corrida podem apropriar bootstrap. Accounts padrão não fecha essa janela | auth service:54 e main:108; DOC-SERVER-008, bootstrap antes de exposição |
@@ -67,3 +67,55 @@ JS
 ```
 
 Resultados: `403`, `403`, `allowed`, respectivamente. É incompatibilidade funcional de implantação, não teste de invasão. Não desligar o guard para contornar o problema.
+
+## Atualização factual após registro HD (base 50a8d00)
+
+O registro humano é intenção, não capacidade instalada. localUser/identity bypass, OWNER indiferenciado, qualquer OWNER concedendo OWNER e ausência de SMTP/recuperação são conflitos com HD conforme [plano](IDENTITY-ONBOARDING-RECOVERY.md). Fonte inicial deste inventário permanece preservada; uma vulnerabilidade antes estática foi reproduzida abaixo em recurso isolado.
+
+Reprodução por [identity_conflicts], Hono.request em processo sem socket/rede, `createDb({pglite:{}})` exclusivamente memória, fechamento em finally; conta OWNER sem projetos + ADMIN com senha trocada e sessão própria. Script não lê DATABASE_URL e não imprime token/senha. Comando observado: `node --import /workspace/StyloDesigner/node_modules/tsx/dist/loader.mjs /tmp/stylo-owner-reproduction.mjs`. SHA256 observado do script: `873fc9ed846b8f41080cd96966568d8cd410b503c11ef2e46df25c774041bc23`.
+
+```json
+{"scenario":"ADMIN reset primeira OWNER","status":200,"temporaryPasswordReturned":true,"mustChangePassword":true}
+{"scenario":"ADMIN suspende primeira OWNER","status":200,"suspended":true}
+{"scenario":"ADMIN rebaixa e apaga primeira OWNER","demoteStatus":200,"role":"MEMBER","deleteStatus":200,"remainingHumanOwners":0}
+```
+
+Isso comprova as rotas e perda de OWNER humano nesse cenário sintético. Não foram exercitados bootstrap concorrente, instalação em VPS ou restauração de contas principais. O script /tmp é artefato da sessão; reprodução portátil abaixo evita depender de sua permanência (rodar da raiz, sem servidor/dados reais):
+
+```bash
+node --import tsx --input-type=module <<'JS'
+import {Hono} from 'hono';
+import {createDb} from './packages/db/src/client.ts';
+import {createAuth} from './apps/server/src/services/auth.ts';
+import {createIdentity} from './apps/server/src/http/identity.ts';
+import {authRoutes} from './apps/server/src/routes/auth.ts';
+// createDb receives explicit memory mode; inherited DATABASE_URL is never read.
+const {db,close}=await createDb({pglite:{}});
+try {
+ const auth=createAuth(db);
+ const primary=await auth.setup({email:'principal@synthetic.test',name:'Principal',password:'synthetic-password'});
+ const admin=await auth.createUser({email:'admin@synthetic.test',name:'Admin',password:'synthetic-password',role:'ADMIN'});
+ await auth.changePassword(admin.id,'synthetic-password','synthetic-next');
+ const {token}=await auth.login(admin.email,'synthetic-next');
+ const s={db,auth,authMode:'accounts',localUser:await auth.localUser(),config:{get:()=>({})}};
+ const app=new Hono();
+ app.onError((e,c)=>c.json({error:e.message},e.status||500));
+ app.route('/api',authRoutes(s,createIdentity(s)));
+ const call=async(method,path,body)=>{
+  const r=await app.request('/api'+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+  return {status:r.status,body:await r.json()};
+ };
+ const reset=await call('POST','/users/'+primary.id+'/reset-password',{});
+ console.log(JSON.stringify({scenario:'ADMIN reset primeira OWNER',status:reset.status,temporaryPasswordReturned:Boolean(reset.body.temporaryPassword),mustChangePassword:(await db.user.findUnique({where:{id:primary.id}})).mustChangePassword}));
+ const suspended=await call('POST','/users/'+primary.id+'/suspend',{suspended:true});
+ console.log(JSON.stringify({scenario:'ADMIN suspende primeira OWNER',status:suspended.status,suspended:suspended.body.suspended}));
+ const demoted=await call('PUT','/users/'+primary.id,{role:'MEMBER'});
+ const deleted=await call('DELETE','/users/'+primary.id);
+ console.log(JSON.stringify({scenario:'ADMIN rebaixa e apaga primeira OWNER',demoteStatus:demoted.status,role:demoted.body.role,deleteStatus:deleted.status,remainingHumanOwners:await db.user.count({where:{role:'OWNER',email:{not:'local@stylo.local'}}})}));
+} finally {
+ await close();
+}
+JS
+```
+
+O procedimento demonstra o comportamento atual; não deve virar gate verde que certifica a falha como comportamento desejável. Correção futura exige identificação/migração de principal e regressões de expectativa conforme decisão HD, não aplicar regra principal indistintamente a qualquer OWNER por suposição.

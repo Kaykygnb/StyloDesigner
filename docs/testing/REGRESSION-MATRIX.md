@@ -23,3 +23,7 @@
 - Fixtures API, assets, biblioteca, configuração, contas, gravação atômica, ZIP, MCP SDK/contas, servidor e Studio API/UI usam `isolatedServerEnv` e um hook `cleanupFixture`, com clientes antes dos filhos e remoção após saída confirmada. `server.test.js` agora tem configuração temporária própria.
 - Execução direta sem setup global, env hostil: `DATABASE_URL=sentinela-invalida STYLO_BLOB_DIR=/nao-usar-blobs STYLO_SECRET_KEY=herdado node --import tsx --test --test-timeout=90000 tests/test-env.test.js tests/fixture-lifecycle.test.js tests/api.test.js tests/config-autorizacao.test.js tests/mcp-sdk.test.js`.
 - PostgreSQL real continua exclusivamente provisionado por `tests/postgres-integracao.test.js`, com URL própria; não passar env humano como overrides do helper. Cleanup não encerra processos alheios. A regressão de SIGKILL POSIX permanece explicitamente ignorada em Windows.
+
+## Restore PGlite real retomado (DOC-DB-001)
+
+`tests/restore-pglite.test.ts` prova snapshot/preparação de restore, banco ativo intacto até fechamento, restauração/migração0014 real, projeto/PNG/versão/membership/grant com hashes/contagens, cópia de segurança posterior reaberta e falha de fonte ausente com original intacto. Fixture pré0014 reconstituída por SQL em banco sintético, não backup histórico real. Combinado restore/backups/db5/5; não comprova pg_dump/pg_restore, biblioteca de blobs externos, gestão de chaves ou escrita concorrente. Sem alteração de runtime.

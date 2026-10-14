@@ -111,6 +111,24 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 - Resultado: 5/5 da preparação documental; recomendação estrutural permanece proposta. Propostas SERVER006/007/008 e ADMIN002 não assumidas; DB001/Studio existentes reaproveitadas.
 - Próximo passo: publicar docs na beta e apresentar ADM-DEC-01..09 ao humano; não implementar estruturas por inferência. Aprovação SERVER005 registrada separadamente com ressalvas.
 
+### 2026-10-14 03:34 UTC — [Codex] — registro humano complementar sem reabrir arquitetura integral
+
+- Investigado: 21 HD, estado beta50a8d00 e tarefas/handoffs; delegada investigação de conflitos/SMTP e prova restore.
+- Alterado: ADR reconciliada, matriz/plano de transição/onboarding/recuperação e propostas específicas; recomendações não promovidas a decisões humanas.
+- Arquivos: arquitetura/planejamento administrativos e índices.
+- Testes: achado OWNER reproduzido sintético sem projetos/rede; restore real específico 5/5; gates globais em execução. Sem código funcional alterado.
+- Resultado: aprovação/diretriz humana registrada; tarefa documental original continua concluída. Requisitos não equivalem implementação aprovada.
+- Próximo passo: review independente, publicar; engenharia prossegue DB001 sem definir estratégia final de produção.
+
+### 2026-10-14 03:42 UTC — [Codex] — registro HD revisado e engenharia validada
+
+- Investigado: review independente identity_conflicts comparou21HD com instrução humana e checou limites; arquitetura_review revisou restore real.
+- Alterado: reconciliados trechos antigos local/tenancy/estado/riscos, mantendo21IDs; reforçada prova de grant. Registro documental não implementa novos poderes/SMTP/principal.
+- Arquivos: ADR/plano/matriz/inventário/contratos/planejamento e tests/restore-pglite.test.ts.
+- Testes: reprodução OWNER emmemória observada; suíte624/624 sem falhas/skips; combinado final5/5 após asserção; typecheck, inventário, validador28, links147 e diff aprovados.
+- Resultado: visão humana formalizada; SERVER006 investigação1/5 e DB0014/5 retomadas. Não fingir decisão futura aprovada ou PostgreSQL restore concluído.
+- Próximo passo: publicar na beta e continuar planejamentoprincipal/provaPG conforme handoffs, sem aguardar deliberação genérica.
+
 ## Handoff atual
 
 Preparado por: [Codex]

@@ -25,7 +25,7 @@ A beta pode continuar em ambiente individual/rede privada controlada enquanto as
 - **DOC-SERVER-008 (P1, gate para VPS pública):** origem/hosts/proxy/cookie/bootstrap e runbook. DOC-ENG-002 isola E2E, não publica a instância com domínio; não presumir que proxy basta.
 - **DOC-ADMIN-002 (P1):** trilha administrativa sensível sobre infraestrutura existente; Operation/AuthEvent atuais não cobrem toda mudança administrativa.
 
-São propostas **não assumidas**, sem implementação. Os riscos críticos podem ser investigados em recursos descartáveis; mudanças de contrato dependem da decisão correspondente. Não reservar todas as tarefas simultaneamente.
+Estado atualizado: SERVER006 assumida por Codex, investigação1/5; SERVER007/008 e ADMIN002 seguem propostas não assumidas. Nenhuma dessas políticas estruturais foi implementada. Os riscos críticos podem ser investigados em recursos descartáveis; mudanças de contrato dependem da decisão correspondente. Não reservar todas as tarefas simultaneamente.
 
 ## Não duplicar
 
@@ -34,3 +34,15 @@ DOC-DB-001 recebe definição de conjunto restaurável e gates por referência, 
 ## Gate de continuidade
 
 Próximo agente lê inventário, ADR/matriz, backlog e handoff; registra aceite/assunção; reproduz hipótese específica antes de corrigir. Evidência liga `ADM-RISK → ADM-DEC → DOC → commit → teste/reteste`. Sugestão UX só gera tarefa obrigatória após triagem de impacto, duplicação e aprovação de escopo.
+
+## Retomada após registro HD
+
+A rodada humana foi encerrada por enquanto; não esperar nova resposta para investigação/testes e tarefas independentes autorizadas. Rastreabilidade completa na ADR e no plano de identidade/onboarding/recuperação.
+
+1. DOC-SERVER-006: investigar/provar proteção OWNER e desenho de principal conforme HD-OWNERSHIP-02/03; poder de reset/transferência e matriz restante não escolhidos.
+2. DOC-DB-001 retomada: prova PGlite real e migração em dados sintéticos; não escolhe estratégia final de produção/chaves. PostgreSQL restore separado da validação de persistência SERVER001.
+3. DOC-SERVER-009: projeto de transição do acesso local, ownership/agents/chaves e rollback; sem remover paths nesta rodada.
+4. DOC-STUDIO-006: planejamento de onboarding progressivo GUI reaproveitando telas, sem departamentos obrigatórios ou nova identidade.
+5. DOC-SERVER-010: projetar recuperação/e-mail GUI, autenticação real de provedores e alternativas offline; sem envio de e-mail, implantação SMTP ou login federado nesta retomada.
+
+SERVER007/008/ADMIN002 permanecem escopos existentes; atualizações HD desbloqueiam investigação, não implementação integral. Questão futura bloqueia somente ação específica; seguir trabalho independente com handoff.

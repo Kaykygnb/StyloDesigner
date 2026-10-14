@@ -38,3 +38,7 @@ Não foi aprovada migração para microserviços. A decisão atual é manter mon
 ## Deliberação self-hosted (2026-10-14)
 
 [Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. Organização única é recomendação, não decisão humana já aprovada. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.
+
+## Retomada por diretrizes humanas HD
+
+Registro canônico21HD na ADR0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias final; principal protegido e múltiplosOWNERs, GUI progressiva e e-mail opcional definidos. Tenancy e contratos abertos não aprovados por inferência. SERVER006 investigação P0 retomada1/5 com reprodução sintética; DB001 restore real retomado4/5. Novas propostas SERVER009/STUDIO006/SERVER010 cobrem recortes ausentes sem duplicarbootstrap/autoridade/QA. Sem remover legado/migrarprodução/implementarSMTP nesta rodada. Engenharia rotineira/provas isoladas prossegue sem nova deliberação geral.
