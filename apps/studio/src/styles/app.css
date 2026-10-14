@@ -644,6 +644,7 @@ pre.code { margin: 0; padding: 10px; max-height: 280px; overflow: auto; backgrou
 .project-title-btn { background: none; border: 0; text-align: left; color: inherit; cursor: pointer; border-radius: var(--radius); padding: 3px 8px; min-width: 0; }
 .project-title-btn:hover { background: var(--hover); }
 .project-title-btn b { font-size: 13px; font-weight: 600; }
+.topbar .project-title-btn { flex: 0 0 auto; max-width: 260px; }
 .project-status.is-live::before, .project-status.is-off::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--text-3); }
 .project-status.is-live::before { background: var(--ok); }
 .project-status .spinner { width: 10px; height: 10px; }

@@ -10,6 +10,7 @@ import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
 import { openProjectDialog } from './ProjectDialog';
 import { t } from '../lib/i18n';
+import { useEffect, useRef, useState } from 'react';
 
 export function TopBar() {
   const doc = useApp((s) => s.doc)!;
@@ -26,6 +27,16 @@ export function TopBar() {
   const editable = canEdit();
   const bps = breakpointsOf(doc);
   const here = (presence?.agents.filter((a) => a.active).length ?? 0) + (presence?.people.length ?? 0);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const publishBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!publishOpen) return;
+    const away = (e: PointerEvent) => { if (!publishBox.current?.contains(e.target as Node)) setPublishOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPublishOpen(false); };
+    window.addEventListener('pointerdown', away);
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('pointerdown', away); window.removeEventListener('keydown', esc); };
+  }, [publishOpen]);
   const publish = async (format: 'html' | 'react') => {
     try {
       const result = await publishProject(file, format);
@@ -74,8 +85,15 @@ export function TopBar() {
       <button className="btn ghost" title={t(language, 'ui.topbar.present')} onClick={() => app.set({ presenting: true })}>
         <Icon name="play" size={15} /><span className="lbl">{t(language, 'top.present')}</span>
       </button>
-      <button className="btn ghost" title={`${t(language, 'top.publish')} HTML`} onClick={() => void publish('html')}><Icon name="upload" size={15} /><span className="lbl">{t(language, 'top.publish')}</span></button>
-      <button className="btn ghost icon" aria-label={t(language, 'top.publishReact')} title={t(language, 'top.publishReact')} onClick={() => void publish('react')}><Icon name="code" size={15} /></button>
+      <div className="menu-wrap publish-menu" ref={publishBox}>
+        <button className={`btn ghost${publishOpen ? ' active' : ''}`} aria-haspopup="menu" aria-expanded={publishOpen} title={t(language, 'top.publish')} onClick={() => setPublishOpen((v) => !v)}>
+          <Icon name="upload" size={15} /><span className="lbl">{t(language, 'top.publish')}</span><Icon name="chevrondown" size={12} />
+        </button>
+        {publishOpen && <div className="menu-pop" role="menu" onClick={() => setPublishOpen(false)}>
+          <button type="button" role="menuitem" onClick={() => void publish('html')}><Icon name="file" size={14} />{t(language, 'top.publish')} HTML</button>
+          <button type="button" role="menuitem" onClick={() => void publish('react')}><Icon name="code" size={14} />{t(language, 'top.publishReact')}</button>
+        </div>}
+      </div>
       <button className="btn primary" onClick={() => setPanel('export')}><Icon name="download" size={15} /> {t(language, 'top.export')}</button>
       <AppearanceMenu />
     </header>
