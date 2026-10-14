@@ -3,7 +3,9 @@ import { useState } from 'react';
 import * as api from '../lib/api';
 import { afterLogin, persistAccountPreferences, setLanguage, signedOut, useApp } from '../lib/app';
 import { SUPPORTED_LANGUAGES, t } from '../lib/i18n';
+import { Brand } from '../ui/Brand';
 import { Icon } from '../ui/Icon';
+import { LayerStack } from '../ui/LayerStack';
 
 export function Login() {
   const auth = useApp((s) => s.auth);
@@ -32,23 +34,26 @@ export function Login() {
 
   return (
     <div className="login">
+      <div className="login-field" aria-hidden="true"><i className="lf-c" /><i className="lf-m" /><i className="lf-y" /></div>
       <label className="login-language" title={t(language, 'ui.home.interfaceLanguage')}>
         <Icon name="globe" size={14} /><select aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
       </label>
       <div className="login-shell">
         <section className="login-story" aria-label={t(language, 'ui.login.aboutAria')}>
-          <div className="brand big"><span className="logo">S</span> Stylo</div>
-          <div className="login-kicker">{t(language, 'ui.login.aCreativeSuiteForIdeas')}</div>
+          <Brand size={34} className="big" />
           <h1>{t(language, 'ui.login.startWithABlankCanvas')}</h1>
           <p>{t(language, 'ui.login.createSitesExperiencesAndVisual')}</p>
-          <div className="login-preview" aria-hidden="true">
-            <span className="preview-orb orb-one" /><span className="preview-orb orb-two" />
-            <div className="preview-window"><i /><i /><i /><b /><b /><b /><em /></div>
-          </div>
+          <ul className="login-feats">
+            <li><Icon name="frame" size={14} /> {t(language, 'ui.login.featCanvas')}</li>
+            <li><Icon name="code" size={14} /> {t(language, 'ui.login.featCode')}</li>
+            <li><Icon name="spark" size={14} /> {t(language, 'ui.login.featCollab')}</li>
+          </ul>
+          <LayerStack className="login-stack" />
           <div className="login-proof"><span className="dot ok" /> {t(language, 'ui.login.yourCreativeSpaceReadyWhen')}</div>
         </section>
+        <Brand size={30} className="login-mobile-brand" />
         <form className="login-card" onSubmit={submit}>
-          <div className="login-card-head"><span className="eyebrow">{first ? (t(language, 'ui.login.firstAccess')) : (t(language, 'ui.login.welcomeBack'))}</span><span className="status-pill">{t(language, 'ui.login.secure')}</span></div>
+          <div className="login-card-head"><span className="status-pill"><Icon name="lock" size={11} /> {t(language, 'ui.login.secure')}</span></div>
           <h2>{tr(first ? 'login.setupTitle' : 'login.signInTitle')}</h2>
           <p className="muted">{tr(first ? 'login.setupHint' : 'login.signInHint')}</p>
           {first && <label>{tr('login.name')}<input className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required /></label>}
@@ -92,11 +97,12 @@ export function RequiredPasswordChange() {
   };
   return (
     <div className="login">
+      <div className="login-field" aria-hidden="true"><i className="lf-c" /><i className="lf-m" /><i className="lf-y" /></div>
       <label className="login-language" title={t(language, 'ui.home.interfaceLanguage')}>
         <Icon name="globe" size={14} /><select aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
       </label>
       <form className="login-card compact" onSubmit={submit} aria-busy={busy}>
-        <div className="brand big"><span className="logo">S</span> Stylo</div>
+        <Brand size={34} className="big" />
         <h1>{tr('login.changeTitle')}</h1>
         <p className="muted">{tr('login.changeHint', { email: user?.email || (t(language, 'ui.login.yourAccount')) })}</p>
         <label>{tr('login.temporaryPassword')}<input className="field" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required autoFocus /></label>

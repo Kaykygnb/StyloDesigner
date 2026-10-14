@@ -13,7 +13,7 @@ page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 400)
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
 // A barra da home guarda Administração, Agentes e Conta no menu "Mais" (um <details>): abre antes de clicar
-const openMore = async () => { if (!(await page.locator('.home-more').evaluate((e) => e.open))) await page.locator('.home-more > summary').click(); };
+// As áreas (Projetos, Biblioteca, Agentes, Administração, Conta) ficam todas visíveis na barra lateral da tela inicial.
 try {
   await page.goto(new URL('/studio/', base).href);
   await page.locator('.login-card, main').first().waitFor({ timeout: 30000 });
@@ -34,7 +34,6 @@ try {
     }
   }
   await page.getByRole('main').waitFor();
-  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
   assert.match(await page.locator('.workspace-section').innerText(), /Saúde do servidor|Plugins e provedores/);
@@ -46,21 +45,19 @@ try {
   console.log('PASS administração mostra origem e licença dos provedores de assets');
   await page.getByRole('button', { name: 'Aparência', exact: true }).click();
   await page.locator('.popover select').selectOption('en-US');
-  await openMore();
   await page.getByRole('button', { name: 'Admin', exact: true }).click(); // o botão é curto em inglês; o título da página é "Administration"
   await page.getByRole('heading', { name: 'Administration' }).waitFor();
   assert.match(await page.locator('.workspace-section').innerText(), /Server health|Active plugins/);
   await page.getByText('Official source').first().waitFor();
   await page.getByText('License text').first().waitFor();
   console.log('PASS administração traduz títulos e ações para inglês');
-  await page.getByRole('button', { name: 'Open Library', exact: true }).click(); // as abas principais têm o nome acessível "Open {{name}}"
+  await page.getByRole('button', { name: 'Library', exact: true }).click(); // as áreas da barra lateral têm o próprio nome como nome acessível
   await page.getByRole('heading', { name: 'Library' }).waitFor();
   await page.getByPlaceholder('Search name, type, tag, or credit').waitFor();
   assert.ok(await page.getByRole('combobox', { name: 'Filter by license' }).count() === 1);
   console.log('PASS biblioteca traduz filtros, busca e estados para inglês');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   await page.locator('.popover select').selectOption('pt-BR');
-  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
 
@@ -74,7 +71,6 @@ try {
   console.log('PASS criação de usuário gera senha temporária exibida uma única vez');
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
 
-  await openMore();
   await page.getByRole('button', { name: 'Agentes', exact: true }).click();
   await page.getByRole('heading', { name: 'Conexões criativas' }).waitFor();
   await page.getByRole('button', { name: 'Adicionar conexão', exact: true }).click();
@@ -112,7 +108,6 @@ try {
   await agentRow.getByRole('button', { name: 'Aprovar', exact: true }).waitFor();
   console.log('PASS revogação e reaprovação do agente atualizam o estado');
 
-  await openMore();
   await page.getByRole('button', { name: 'Administração', exact: true }).click();
   await page.getByRole('heading', { name: 'Administração' }).waitFor();
   const verify = page.getByRole('button', { name: 'Verificar plugin', exact: true }).first();

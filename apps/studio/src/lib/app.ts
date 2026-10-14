@@ -15,6 +15,7 @@ export type StateName = 'hover' | 'active' | 'focus';
 export interface WorldBox { x: number; y: number; w: number; h: number; ow: number; oh: number }
 export type Theme = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact';
+export type Motion = 'full' | 'reduced';
 export type Language = 'pt-BR' | 'en-US' | 'ru-RU' | 'ja-JP' | 'zh-CN' | 'ko-KR';
 export const DEFAULT_SHORTCUTS: Record<string, string> = { move: 'v', frame: 'f', rect: 'r', ellipse: 'e', text: 't', hand: 'h', comment: 'c', inspect: 'i', node: 'n' };
 /** A ferramenta do canvas: mover/selecionar, mão (arrastar a vista) ou uma forma para desenhar. */
@@ -65,6 +66,8 @@ export interface AppState {
   theme: Theme;
   accent: string;
   density: Density;
+  /** 'reduced' desliga animações e efeitos de movimento só nesta interface */
+  motion: Motion;
   language: Language;
   menu: MenuState | null;
   dialog: DialogState | null;
@@ -105,7 +108,7 @@ export const app = createStore<AppState>({
   busy: 0, toast: null, syncNotice: null, presence: null, live: false, liveStatus: 'reconnecting', panel: 'design',
   worldBoxes: {}, editState: null, leftTab: 'layers', colorMode: null, panelsHidden: false, picker: null, dock: null, commentDraft: null, activeComment: null, help: false, settings: false, presenting: false,
   issues: null, issuesRunning: false, issuesNote: null,
-  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]), density: readPref<Density>('stylo.density', 'comfortable'), language: savedLanguage(),
+  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]), density: readPref<Density>('stylo.density', 'comfortable'), motion: readPref<Motion>('stylo.motion', 'full'), language: savedLanguage(),
   menu: null, dialog: null, renaming: null, tool: 'move',
   panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
   rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
@@ -115,15 +118,17 @@ export const useApp = <T,>(selector: (s: AppState) => T): T => useStore(app, sel
 
 // ---------------------------------------------------------------- aparência (preferência pessoal, fora do projeto)
 export function applyPrefs() {
-  const { theme, accent, density } = app.get();
+  const { theme, accent, density, motion } = app.get();
   const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.documentElement.style.setProperty('--accent', accent);
   document.documentElement.dataset.density = density;
+  document.documentElement.dataset.motion = motion;
 }
 export function setTheme(theme: Theme) { app.set({ theme }); writePref('stylo.theme', theme); applyPrefs(); }
 export function setAccent(accent: string) { app.set({ accent }); writePref('stylo.accent', accent); applyPrefs(); }
 export function setDensity(density: Density) { app.set({ density }); writePref('stylo.density', density); applyPrefs(); }
+export function setMotion(motion: Motion) { app.set({ motion }); writePref('stylo.motion', motion); applyPrefs(); }
 /** Troca o idioma da tela. O dicionário é baixado ANTES, para a tela nunca aparecer com textos faltando. */
 export async function setLanguage(language: Language) {
   try { await loadLanguage(language); } catch { toast('error', tl('ui.app.languageLoadFailed')); return; }

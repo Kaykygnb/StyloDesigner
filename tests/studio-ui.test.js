@@ -158,7 +158,9 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   assert.ok(await page.locator('.issues li, .notice.ok').count() >= 1, 'a conferência mostra o resultado');
 
   // ---- um agente (MCP) altera o mesmo projeto: a tela atualiza sozinha
-  await page.getByRole('tab', { name: 'Agentes' }).click();
+  await page.getByRole('button', { name: 'Mais painéis' }).click(); // painéis menos usados ficam no menu "Mais painéis"
+  await page.getByRole('menuitem', { name: 'Agentes' }).click();
+  await page.getByRole('tab', { name: 'Agentes' }).waitFor();
   const client = new Client({ name: 'Agente de teste', version: '1.0.0' }, {});
   await client.connect(new StreamableHTTPClientTransport(new URL(base + '/mcp')));
   fixture.clients.push(client);

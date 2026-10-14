@@ -134,7 +134,7 @@ export function ExportPanel() {
   };
   return (
     <div className="side-panel">
-      <div className="export-hero"><span className="eyebrow">{t(language, 'ui.export.eyebrow')}</span><h4>{t(language, 'export.title')}</h4><p className="muted small">{t(language, 'export.hint')}</p></div>
+      <div className="export-hero"><h4>{t(language, 'export.title')}</h4><p className="muted small">{t(language, 'export.hint')}</p></div>
       <div className="export-card"><label className="field-label">{t(language, 'export.label')}<input className="field" value={publishLabel} onChange={(e) => setPublishLabel(e.target.value)} placeholder={t(language, 'export.placeholder')} maxLength={120} /></label><div className="row"><button className="btn primary" disabled={busy} onClick={() => void publish('html')}>{t(language, 'export.html')}</button><button className="btn" disabled={busy} onClick={() => void publish('react')}>{t(language, 'export.react')}</button></div></div>
       <div className="export-downloads"><a className="btn primary block" href={siteZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.siteZip')}</a><a className="btn block" href={reactZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.reactZip')}</a><button className="btn block" onClick={downloadProject}><Icon name="download" size={15} /> {t(language, 'export.document')}</button><button className="btn block" onClick={importProjectFile}><Icon name="upload" size={15} /> {t(language, 'export.import')}</button></div>
       <h4>{t(language, 'export.recent')}</h4>

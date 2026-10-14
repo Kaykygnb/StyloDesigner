@@ -1,34 +1,49 @@
 /* ==========================================================================
-   Design tokens do Stylo Studio
-   Superfícies neutras em camadas (grafite no escuro, cinza frio no claro);
-   só o destaque (--accent) é escolhido pela pessoa e NUNCA toca no projeto.
-   Densidade de editor: texto base 12px, controles 26–30px, cantos 5–11px.
+   Design tokens do Stylo Studio — conceito "Sobreimpressão"
+   Camadas como tintas de impressão: no tema claro elas se misturam como tinta
+   sobre papel (multiply); no escuro, como luz sobre tela (screen).
+   A tríade de processo (ciano, magenta, amarelo) é a marca e aparece nos
+   momentos de entrada, presença e carregamento. A casca do editor fica calma,
+   em grafite ou papel, para horas de trabalho. O destaque (--accent) é escolhido
+   pela pessoa, vale só para a interface e NUNCA toca no projeto.
    ========================================================================== */
 
+@import url('./fonts.css');
+
 :root {
-  /* ---------- destaque (configurável) ---------- */
+  /* ---------- destaque (configurável pela pessoa) ---------- */
   --accent: #4c8dff;
   --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
-  --accent-softer: color-mix(in srgb, var(--accent) 8%, transparent);
-  --accent-strong: color-mix(in srgb, var(--accent) 84%, black);
-  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
-  --on-accent: #ffffff;
+  --accent-softer: color-mix(in srgb, var(--accent) 7%, transparent);
+  --accent-strong: color-mix(in srgb, var(--accent) 78%, black);
+  --accent-line: color-mix(in srgb, var(--accent) 50%, transparent);
+  --accent-ink: color-mix(in srgb, var(--accent) 82%, var(--text));
+  --on-accent: #fff;
 
-  /* ---------- direção premium ---------- */
-  --pink: #ff4fa3;
-  --violet: #6d5dfc;
-  --amber: #ffcf70;
-  --cyan: #63e6ff;
-  --gradient-spectacle: linear-gradient(135deg, var(--pink), var(--violet));
-  --gradient-surface: linear-gradient(135deg, color-mix(in srgb, var(--pink) 9%, var(--surface)), color-mix(in srgb, var(--violet) 8%, var(--surface)));
-  --glow-pink: 0 12px 34px rgb(255 79 163 / 16%);
-  --glow-violet: 0 12px 34px rgb(109 93 252 / 16%);
-  --glass-border: color-mix(in srgb, var(--pink) 24%, var(--border));
-  --glass-bg: color-mix(in srgb, var(--surface) 84%, transparent);
+  /* ---------- tintas de processo (marca) ---------- */
+  --ink-c: #00a3e0;
+  --ink-m: #e6007e;
+  --ink-y: #ffcc00;
+  --ink-k: #17181c;
+  --ink-blend: multiply;
+  --process: linear-gradient(90deg, var(--ink-c) 0 25%, var(--ink-m) 25% 50%, var(--ink-y) 50% 75%, var(--ink-k) 75% 100%);
+
+  /* nomes antigos ainda usados em alguns componentes */
+  --pink: var(--accent);
+  --violet: var(--ink-m);
+  --amber: #e5a44e;
+  --cyan: var(--ink-c);
+  --gradient-spectacle: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--ink-m)));
+  --gradient-surface: var(--surface);
+  --glow-pink: var(--shadow-s);
+  --glow-violet: var(--shadow-s);
+  --glass-border: var(--border);
+  --glass-bg: var(--surface);
 
   /* ---------- tipografia ---------- */
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  --font: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
 
   /* ---------- cantos ---------- */
   --radius-s: 5px;
@@ -39,84 +54,107 @@
 
   /* ---------- movimento ---------- */
   --dur-1: 0.12s;
-  --dur-2: 0.18s;
+  --dur-2: 0.2s;
+  --dur-3: 0.32s;
+  --dur-4: 0.6s;
   --ease: cubic-bezier(0.2, 0.65, 0.25, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.4, 1);
 
-  /* ---------- semânticos (independentes de tema) ---------- */
-  --danger: #ef5b5b;
-  --warn: #e0a030;
-  --ok: #3fb67a;
+  /* ---------- foco ---------- */
+  --ring: 0 0 0 3px var(--accent-soft);
+  --ring-strong: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+  --lift-s: translateY(-1px);
+  --lift: translateY(-2px);
+
+  /* ---------- semânticos ---------- */
+  --danger: #e5484d;
+  --warn: #d9822b;
+  --ok: #2f9e6e;
 
   /* ---------- layout ---------- */
-  --topbar-h: 52px;
-  --left-w: 284px;
-  --right-w: 340px;
-  --fs: 12px;
+  --topbar-h: 48px;
+  --rail-w: 48px;
+  --status-h: 28px;
+  --left-w: 260px;
+  --right-w: 320px;
+  --fs: 12.5px;
 }
 
-/* ---------- tema escuro (padrão) ---------- */
+/* ---------- tema escuro: grafite de tinta, contraste moderado para muitas horas ---------- */
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --ink-blend: screen;
+  --ink-c: #1fb8f0;
+  --ink-m: #f0389a;
+  --ink-y: #ffd23f;
+  --ink-k: #f2f2f0;
 
-  --bg: #0d0b12;
-  --surface: #15121c;
-  --surface-2: #1a1b20;
-  --surface-3: #222429;
-  --border: #27292f;
-  --border-strong: #34363e;
+  --bg: #101114;
+  --surface: #17181c;
+  --surface-2: #1d1f24;
+  --surface-3: #25272d;
+  --border: #2a2c33;
+  --border-strong: #3a3d46;
 
-  --text: #ecedef;
-  --text-2: #a3a7b2;
-  --text-3: #71757f;
+  --text: #e6e6e3;
+  --text-2: #a6a7ad;
+  --text-3: #7d7f88;
 
-  --canvas: #100d19;
+  --canvas: #0c0d10;
 
-  --hover: rgb(255 255 255 / 8%);
-  --active: rgb(255 255 255 / 13%);
+  --hover: rgb(255 255 255 / 5.5%);
+  --active: rgb(255 255 255 / 10%);
 
-  --shadow-s: 0 1px 2px rgb(0 0 0 / 35%);
+  --shadow-s: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow: 0 8px 24px rgb(0 0 0 / 42%), 0 2px 6px rgb(0 0 0 / 32%);
-  --shadow-m: 0 12px 32px rgb(0 0 0 / 48%), 0 3px 8px rgb(0 0 0 / 36%);
-  --shadow-l: 0 24px 64px rgb(0 0 0 / 55%), 0 4px 12px rgb(0 0 0 / 4%);
+  --shadow-m: 0 14px 36px rgb(0 0 0 / 50%), 0 3px 8px rgb(0 0 0 / 36%);
+  --shadow-l: 0 26px 68px rgb(0 0 0 / 58%), 0 4px 12px rgb(0 0 0 / 40%);
 
+  --danger: #f16a6e;
+  --warn: #f0a04b;
+  --ok: #4cc38a;
   --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
   --warn-soft: color-mix(in srgb, var(--warn) 14%, transparent);
   --ok-soft: color-mix(in srgb, var(--ok) 14%, transparent);
+  --accent-ink: color-mix(in srgb, var(--accent) 70%, white);
 }
 
-/* ---------- tema claro ---------- */
+/* ---------- tema claro: papel de prova, tinta escura ---------- */
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --bg: #f7f3f8;
-  --surface: #fffdfd;
-  --surface-2: #f6eff6;
-  --surface-3: #e7e9ee;
-  --border: #e4e6eb;
-  --border-strong: #d3d6dd;
+  --bg: #eceef1;
+  --surface: #fbfbfc;
+  --surface-2: #f2f3f5;
+  --surface-3: #e7e9ec;
+  --border: #dcdfe4;
+  --border-strong: #c4c8cf;
 
-  --text: #191a1e;
-  --text-2: #5d616c;
-  --text-3: #8f939e;
+  --text: #16171b;
+  --text-2: #4a4d55;
+  --text-3: #6f737c;
 
-  --canvas: #eee8f1;
+  --canvas: #e3e5e9;
 
-  --hover: rgb(20 24 40 / 5%);
-  --active: rgb(20 24 40 / 8%);
+  --hover: rgb(20 24 34 / 5%);
+  --active: rgb(20 24 34 / 9%);
 
-  --shadow-s: 0 1px 2px rgb(16 24 40 / 7%);
-  --shadow: 0 10px 30px rgb(16 24 40 / 12%), 0 2px 6px rgb(16 24 40 / 6%);
-  --shadow-m: 0 14px 38px rgb(16 24 40 / 15%), 0 3px 8px rgb(16 24 40 / 7%);
-  --shadow-l: 0 24px 60px rgb(16 24 40 / 20%), 0 4px 12px rgb(16 24 40 / 8%);
+  --shadow-s: 0 1px 2px rgb(20 24 34 / 8%);
+  --shadow: 0 8px 26px rgb(20 24 34 / 11%), 0 2px 6px rgb(20 24 34 / 6%);
+  --shadow-m: 0 14px 38px rgb(20 24 34 / 14%), 0 3px 8px rgb(20 24 34 / 7%);
+  --shadow-l: 0 24px 60px rgb(20 24 34 / 18%), 0 4px 12px rgb(20 24 34 / 8%);
 
-  --accent-contrast: #2f6bdf;
-
-  --danger-soft: #fdecec;
-  --warn-soft: #fdf3e1;
-  --ok-soft: #e6f5ec;
+  --danger-soft: #fdeceb;
+  --warn-soft: #fcf0e2;
+  --ok-soft: #e3f4ec;
+  --accent-ink: color-mix(in srgb, var(--accent) 80%, black);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
+/* a mesma redução, escolhida dentro do Stylo (Aparência → Movimento) */
+:root[data-motion='reduced'] *, :root[data-motion='reduced'] *::before, :root[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important;
 }

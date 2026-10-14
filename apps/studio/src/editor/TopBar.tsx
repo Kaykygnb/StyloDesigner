@@ -4,6 +4,8 @@ import { app, closeProject, dismissSyncNotice, runChecks, setDevice, setPanel, u
 import { publishProject } from '../lib/api';
 import { toast } from '../lib/app';
 import { AppearanceMenu } from '../ui/AppearanceMenu';
+import { LogoMark } from '../ui/Brand';
+import { openCommandPalette } from '../ui/CommandPalette';
 import { Icon } from '../ui/Icon';
 import { breakpointsOf } from './devices';
 import { openProjectDialog } from './ProjectDialog';
@@ -34,11 +36,10 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      <button className="btn ghost" onClick={closeProject} title={t(language, 'top.projects')}><Icon name="home" size={16} /><span className="lbl">{t(language, 'top.projects')}</span></button>
-      <span className="sep" />
+      <button className="topbar-home" onClick={closeProject} title={t(language, 'top.projects')} aria-label={t(language, 'top.projects')}><LogoMark size={22} /></button>
       <button className="project-title project-title-btn" title={t(language, 'ui.topbar.project')} onClick={() => openProjectDialog()}>
         <b className="ellipsis">{doc.name || file}</b>
-        <span className="faint small">{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.live') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
+        <span className={`faint small project-status ${busy > 0 ? 'is-busy' : live ? 'is-live' : 'is-off'}`}>{busy > 0 ? <><span className="spinner" /> {t(language, 'collab.syncing')}</> : live ? t(language, 'collab.live') : liveStatus === 'reconnecting' ? <><span className="spinner" /> {t(language, 'collab.reconnecting')}</> : t(language, 'collab.offline')}</span>
       </button>
       {syncNotice ? <button className="notice ok sync-notice" title={t(language, 'collab.dismissChange')} onClick={dismissSyncNotice}>
         {t(language, 'collab.changedBy')} <b>{syncNotice.by}</b> · {t(language, 'collab.dismissChange')}
@@ -55,6 +56,8 @@ export function TopBar() {
       </div>
       <div className="spacer" />
 
+      <button className="cmd-btn" onClick={openCommandPalette} aria-label={t(language, 'ui.command.open')} title={t(language, 'ui.command.open')}><Icon name="search" size={14} /><span className="lbl">{t(language, 'ui.command.title')}</span><kbd>Ctrl K</kbd></button>
+      <span className="sep" />
       <button className="btn ghost icon" aria-label={t(language, 'top.undo')} title={t(language, 'top.undo')} disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
       <button className="btn ghost icon" aria-label={t(language, 'top.redo')} title={t(language, 'top.redo')} disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
       <span className="sep" />
@@ -67,6 +70,7 @@ export function TopBar() {
       <button className={`btn ghost${panel === 'versions' ? ' active' : ''}`} title={t(language, 'ui.topbar.history')} onClick={() => setPanel('versions')}>
         <Icon name="history" size={15} /><span className="lbl">{t(language, 'top.history')}</span>
       </button>
+      <span className="sep" />
       <button className="btn ghost" title={t(language, 'ui.topbar.present')} onClick={() => app.set({ presenting: true })}>
         <Icon name="play" size={15} /><span className="lbl">{t(language, 'top.present')}</span>
       </button>

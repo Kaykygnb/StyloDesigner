@@ -10,7 +10,7 @@
 :root:lang(ja) *, :root:lang(zh) *, :root:lang(ko) * { letter-spacing: normal !important; }
 :root:lang(ja) body, :root:lang(zh) body, :root:lang(ko) body { line-height: 1.6; }
 :root:lang(ja) :is(h1, h2, h3, h4), :root:lang(zh) :is(h1, h2, h3, h4), :root:lang(ko) :is(h1, h2, h3, h4) { line-height: 1.3; }
-:root:lang(ja) :is(.login-story h1, .home-title h1), :root:lang(zh) :is(.login-story h1, .home-title h1), :root:lang(ko) :is(.login-story h1, .home-title h1) { line-height: 1.2; }
+:root:lang(ja) :is(.login-story h1, .home-hero h1), :root:lang(zh) :is(.login-story h1, .home-hero h1), :root:lang(ko) :is(.login-story h1, .home-hero h1) { line-height: 1.2; }
 /* coreano quebra a linha nos espaços, não no meio das palavras */
 :root:lang(ko) body { word-break: keep-all; }
 /* chinês e japonês não têm espaços: deixa quebrar em qualquer ponto aceitável em vez de estourar a caixa */

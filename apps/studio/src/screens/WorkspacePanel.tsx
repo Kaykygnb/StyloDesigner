@@ -234,7 +234,6 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   if (tab === "account")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.yourCreativeIdentity')}</div>
         <h1>{tr('account.title')}</h1>
         <p className="muted">{tr('account.subtitle')}</p>
         <div className="account-card">
@@ -366,7 +365,6 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   if (tab === "agents")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.humanAiWorkspace')}</div>
         <div className="workspace-head">
           <div>
             <h1>{tr('agents.title')}</h1>
@@ -516,7 +514,6 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   if (tab === "admin")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.behindTheScenes')}</div>
         <div className="workspace-head">
           <div>
             <h1>{tr('admin.title')}</h1>
@@ -779,7 +776,6 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   });
   return (
     <section className="workspace-section">
-      <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.yourVisualArchive')}</div>
       <div className="workspace-head">
         <div>
           <h1>{tr('library.title')}</h1>
@@ -901,7 +897,7 @@ function McpGuide({ newToken }: { newToken: string | null }) {
     } catch (error) { setTestState('error'); setTestMessage(error instanceof Error ? error.message : String(error)); }
   };
   return <div className="account-card connection-guide">
-    <div className="connection-hero"><div><span className="eyebrow">{t(language, 'ui.workspace.makeItWorkTogether')}</span><h3>{t(language, 'ui.workspace.connectYourCreativeCoPilot')}</h3><p className="muted small">{t(language, 'ui.workspace.chooseAToolAuthorizeAccess')}</p></div><span className="connection-orb"><Icon name="spark" size={22} /></span></div>
+    <div className="connection-hero"><div><h3>{t(language, 'ui.workspace.connectYourCreativeCoPilot')}</h3><p className="muted small">{t(language, 'ui.workspace.chooseAToolAuthorizeAccess')}</p></div><span className="connection-orb"><Icon name="spark" size={22} /></span></div>
     <div className="connection-steps"><div><strong>01</strong><b>{t(language, 'ui.workspace.choose')}</b><span>{t(language, 'ui.workspace.yourAiTool')}</span></div><div><strong>02</strong><b>{t(language, 'ui.workspace.authorize')}</b><span>{t(language, 'ui.workspace.yourProject')}</span></div><div><strong>03</strong><b>{t(language, 'ui.workspace.create')}</b><span>{t(language, 'ui.workspace.sideBySide')}</span></div></div>
     <details className="connection-details"><summary>{t(language, 'ui.workspace.openConnectionSetup')}</summary><div className="connection-details-body"><div className="workspace-head"><b>{tr('agents.connectionGuide')}</b><div className="row"><select className="field" aria-label={tr('agents.client')} value={client} onChange={(e) => { setClient(e.target.value); setFormat(e.target.value === 'Claude Code' ? 'command' : 'json'); }}><option>Claude Code</option><option>Claude Desktop</option><option>Codex</option><option>Cursor</option><option>Windsurf</option><option>OpenCode</option><option>Quine</option><option>OpenCog</option><option>{t(language, 'ui.workspace.genericMcpClient')}</option></select><select className="field" aria-label={tr('agents.configFormat')} value={client === 'Claude Code' ? format : 'json'} onChange={(e) => setFormat(e.target.value as 'command' | 'json')}><option value="command" disabled={client !== 'Claude Code'}>{tr('agents.command')}</option><option value="json">JSON</option></select></div></div><label className="small">{tr('agents.bearerToken')}<input className="field" placeholder={tr('agents.tokenPlaceholder')} value={token} onChange={(e) => { setToken(e.target.value); setTestState('idle'); }} /></label><p className="hint">{tr('agents.endpoint')}: <code>{endpoint}</code> · {tr('agents.transport')}. {hint} {tr('agents.tokenRecovery')}</p>{!token.trim() && <p className="hint">{tr('agents.createFirst')}</p>}{newToken && <p className="success">{tr('agents.tokenLoaded')}</p>}<div className="codebox"><pre className="code">{value}</pre><div className="row"><button className="btn ghost sm" onClick={() => void navigator.clipboard.writeText(value).then(() => toast('ok', tr('agents.guideCopied')))}>{tr('actions.copy')}</button><button className="btn ghost sm" disabled={testState === 'testing' || !token.trim()} onClick={() => void test()}>{tr('agents.testConnection')}</button></div></div>{testMessage && <p className={testState === 'ok' ? 'success' : testState === 'error' ? 'error' : 'hint'}>{testMessage}</p>}</div></details>
   </div>;

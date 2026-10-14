@@ -23,7 +23,7 @@ try {
   await owner.getByRole('main').waitFor();
   await owner.locator('.connect-card').getByRole('button', { name: 'Abrir conexões', exact: true }).click();
   await owner.getByRole('heading', { name: 'Conexões criativas', exact: true }).waitFor();
-  await owner.getByRole('button', { name: 'Abrir Criar', exact: true }).click();
+  await owner.getByRole('button', { name: 'Projetos', exact: true }).click();
   console.log('PASS login rejeita senha incorreta e permite entrada válida; proprietário recebe guia MCP autenticado');
 
   const ownerSid = await owner.evaluate(() => sessionStorage.getItem('stylo.sid'));
@@ -73,7 +73,6 @@ try {
   await person.getByLabel('Repita a nova senha', { exact: true }).fill('Senha pessoal E2E 456!');
   await person.getByRole('button', { name: 'Salvar nova senha', exact: true }).click();
   await person.getByRole('main').waitFor();
-  await person.locator('.home-more > summary').click();
   assert.equal(await person.getByRole('button', { name: 'Administração', exact: true }).count(), 0);
   assert.equal(await person.getByRole('button', { name: 'Conexões MCP', exact: true }).count(), 0);
   assert.equal((await person.request.get(new URL('/api/users', base).href)).status(), 403);
@@ -95,7 +94,6 @@ try {
   await person.getByRole('button', { name: /Projetos/ }).click();
   await person.getByRole('heading', { name: 'Vamos criar algo lindo?', exact: true }).waitFor(); // título da área de projetos
   await person.getByText('Projeto da pessoa E2E', { exact: true }).waitFor();
-  if (!(await person.locator('.home-more').evaluate((e) => e.open))) await person.locator('.home-more > summary').click();
   assert.equal(await person.getByRole('button', { name: 'Administração', exact: true }).count(), 0, 'ser dono de projeto não transforma a pessoa em administrador da instalação');
   assert.equal(await person.locator('.connect-card').count(), 0, 'editor não recebe instruções MCP que exigem administração');
   assert.ok(await person.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'navegação e saída cabem no celular');

@@ -1,5 +1,5 @@
 // Aparência pessoal: tema e cor de destaque. É uma preferência desta pessoa neste navegador; nunca vai para o projeto nem para a exportação.
-import { ACCENTS, persistAccountPreferences, setAccent, setDensity, setLanguage, setTheme, useApp, type Density, type Language } from '../lib/app';
+import { ACCENTS, persistAccountPreferences, setAccent, setDensity, setLanguage, setMotion, setTheme, useApp, type Density, type Language, type Motion } from '../lib/app';
 import { Icon } from './Icon';
 import { Popover } from './Popover';
 import { SUPPORTED_LANGUAGES, t } from '../lib/i18n';
@@ -9,13 +9,14 @@ export function AppearanceMenu() {
   const accent = useApp((s) => s.accent);
   const language = useApp((s) => s.language);
   const density = useApp((s) => s.density);
+  const motion = useApp((s) => s.motion);
   return (
     <Popover label={t(language, 'inspector.appearance.title')} trigger={<Icon name={theme === 'dark' ? 'moon' : 'sun'} size={17} />}>
       <div className="menu-pad">
         <h4>{t(language, 'ui.appearance.theme')}</h4>
-        <div className="segmented wide">
+        <div className="segmented wide theme-choices">
           {([['light', t(language, 'ui.appearance.light')], ['dark', t(language, 'ui.appearance.dark')], [ 'system', t(language, 'admin.system')]] as const).map(([v, l]) => (
-            <button key={v} className={theme === v ? 'on' : ''} onClick={() => setTheme(v)}>{l}</button>
+            <button key={v} className={`theme-choice${theme === v ? ' on' : ''}`} aria-pressed={theme === v} onClick={() => setTheme(v)}><span className={`theme-swatch ts-${v}`} aria-hidden="true" />{l}</button>
           ))}
         </div>
         <h4>{t(language, 'ui.appearance.accentColor')}</h4>
@@ -29,6 +30,10 @@ export function AppearanceMenu() {
         <h4>{t(language, 'ui.appearance.density')}</h4>
         <div className="segmented wide density-choice">
           {([['comfortable', t(language, 'settings.comfortable')], ['compact', t(language, 'settings.compact')]] as const).map(([v, l]) => <button key={v} className={density === v ? 'on' : ''} onClick={() => setDensity(v as Density)}>{l}</button>)}
+        </div>
+        <h4>{t(language, 'ui.appearance.motion')}</h4>
+        <div className="segmented wide">
+          {([['full', t(language, 'ui.appearance.motionFull')], ['reduced', t(language, 'ui.appearance.motionReduced')]] as const).map(([v, l]) => <button key={v} className={motion === v ? 'on' : ''} aria-pressed={motion === v} onClick={() => setMotion(v as Motion)}>{l}</button>)}
         </div>
         <p className="faint small">{t(language, 'ui.appearance.onlyYourWorkspaceAppearanceChanges')}</p>
         <label className="small">{t(language, 'settings.language')}
