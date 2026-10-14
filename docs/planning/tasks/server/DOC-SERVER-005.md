@@ -1,15 +1,15 @@
 # DOC-SERVER-005 — Verificar gates de autorização da configuração do servidor
 
 Responsável: [Kimi]
-Estado: Em validação
+Estado: Concluída
 Início: 2026-10-13 22:22 UTC
-Última atualização: 2026-10-14 02:28 UTC
-Progresso: 4/5 marcos (80%)
+Última atualização: 2026-10-14 02:39 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Kimi], [Codex]
 
 ## Problema e evidências
 
-Problema original: PUT /config sem gate explícito de conta. Kimi implementou adminOf; testes agora distinguem proteção global de origem/JSON de autorização. Revisão técnica aprovada; decisão humana adminOf vs ownerOf permanece pendente.
+Problema original: PUT /config sem gate explícito de conta. Kimi implementou adminOf; testes agora distinguem proteção global de origem/JSON de autorização. Revisão técnica e aprovação humana beta registradas, com ressalva explícita sobre configurações sensíveis futuras.
 
 ## Objetivo
 
@@ -29,7 +29,7 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 ## Dependências, riscos e bloqueios
 
 - Dependência: contexto de DOC-SERVER-003 e infraestrutura accounts de DOC-ENG-002.
-- Reprodução ainda pendente; confirmar consumidores e política antes de alterar acesso. Não mudar contratos por suposição nem imprimir credenciais.
+- Gates reproduzidos por teste isolado e regressão. Aprovação beta recebida; arquitetura definitiva de poderes sensíveis continua em deliberação, sem mudar contratos ou imprimir credenciais.
 
 ## Critérios de aceitação
 
@@ -76,29 +76,20 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Problemas encontrados: —
 
 ### #5 — Validação final
-- Estado: em andamento
-- Responsável: [Kimi]
-- Atividades executadas: critérios de aceitação marcados como atendidos; `docs/modules/server/README.md` atualizado com a política de autorização da configuração (governança §9); estado movido para `Em validação` aguardando revisão humana conforme protocolo §8.
-- Arquivos alterados: `docs/planning/tasks/server/DOC-SERVER-005.md`, `docs/planning/BACKLOG.md`, `docs/modules/server/README.md`
-- Evidências: commits `fix(server)` e `docs(server)` na branch `v0.1.0-beta`.
-- Testes executados: typecheck, `npm test` (608/608), `npm run build`.
-- Problemas encontrados: —
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: preparação original [Kimi], revisão técnica [Codex]; aprovação explícita do proprietário humano para beta registrada com ressalvas. Implementação dos marcos #1–#4 e histórico Kimi preservados.
+- Arquivos alterados: esta tarefa, backlog, handoff e documentação arquitetural.
+- Evidências: código existente e f8f8141/7055b65; autorização humana nesta sessão. Aprovação não é certificação geral de segurança.
+- Testes executados: config-autorizacao reexecutado 1/1 nesta rodada; suíte anterior 622/622 sem falhas/skips, typecheck/inventário aprovados; validador documental desta entrega.
+- Problemas encontrados: política definitiva de segurança/privilégios/credenciais críticas separada da aprovação beta; não ampliar adminOf por inferência.
 
 ## Histórico de trabalho
 
 ### 2026-10-13 23:15 UTC — [Kimi] — handoff da tarefa
 
 - Investigado: nada de código; fechamento da sessão com a tarefa em `Em validação`.
-- Alterado: seção `### 2026-10-14 02:22 UTC — [Codex] — revisão técnica independente por criticidade
-
-- Investigado: implementação dos gates e regressão config-autorizacao; handoff exige revisão humana da escolha adminOf vs ownerOf, distinta do teste técnico.
-- Alterado: registro da revisão; responsável implementador [Kimi] e pendência humana preservados. Nenhuma política alterada nem aprovação humana inferida.
-- Arquivos: este documento.
-- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte final 622/622 sem falhas/skips, incluindo configuração. Revisão publicada em f8f8141.
-- Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
-- Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
-
-## Handoff atual` criada com o estado real (gates implementados, testes 608/608, revisão humana pendente); criado `docs/planning/HANDOFF.md` geral e protocolo §10 em `TASK-PROTOCOL.md` (handoff passa a fazer parte do padrão do projeto).
+- Alterado: seção `## Handoff atual` criada com o estado real (gates implementados, testes 608/608, revisão humana pendente); criado `docs/planning/HANDOFF.md` geral e protocolo §10 em `TASK-PROTOCOL.md` (handoff passa a fazer parte do padrão do projeto).
 - Arquivos: esta tarefa, `HANDOFF.md`, `TASK-PROTOCOL.md`, `_TEMPLATE.md`, `validate-tasks.mjs` (handoff obrigatório para tarefas em voo).
 - Testes: `node docs/planning/validate-tasks.mjs` — 15 tarefas válidas.
 - Resultado: continuidade garantida para o revisor humano ou próximo agente.
@@ -149,57 +140,56 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
 - Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
 
+### 2026-10-14 02:39 UTC — [Codex] — registro de aprovação humana e conclusão
+
+- Investigado: deliberação explícita do proprietário humano, critérios/gates e histórico existente.
+- Alterado: registrada aprovação beta: OWNER e ADMIN podem modificar configurações globais atualmente protegidas por identity.adminOf; MEMBER e anônimos não podem. Preservar autorização, ausência de mutação parcial e proteção de credenciais. Marco #5 concluído, mantendo autoria da implementação [Kimi]. Corrigida duplicação acidental de bloco Codex dentro da citação histórica de handoff, sem apagar o registro original.
+- Arquivos: esta tarefa, BACKLOG.md, HANDOFF.md; ressalvas na ADR 0002.
+- Testes: config-autorizacao 1/1 nesta sessão; evidência anterior da suíte 622/622 preservada; sem alteração funcional.
+- Resultado: Concluída 5/5. Ressalva humana: aprovação não significa acesso de todo ADMIN a toda configuração global indefinidamente; políticas de segurança, privilégios e credenciais críticas devem ser avaliadas separadamente. Não é certificação geral de segurança.
+- Próximo passo: DOC-ADMIN-001 propõe administração self-hosted e decisões pendentes, sem implementar poderes adicionais.
+
 ## Handoff atual
 
-Preparado por: [Kimi]
-Destinatário: [Revisor humano]
-Estado: Aguardando revisão humana
+Preparado por: [Codex]
+Destinatário: [Próximo participante]
+Estado: Concluído
 Marco atual: #5 — Validação final
-Última atualização: 2026-10-14 02:28 UTC
-Commit de referência: `21b2f60` na branch `v0.1.0-beta`
+Última atualização: 2026-10-14 02:39 UTC
+Commit de referência: `7055b65f83db15f4aac3ea8a783bc8a9d4665b1e`
 
 ### Estado atual
 
-Hipótese confirmada e corrigida: `PUT /api/config` e `PUT /api/agent/config` não tinham gate de identidade; agora exigem `identity.adminOf(c)`. Todos os marcos de trabalho (#1–#4) concluídos com evidências; #5 em andamento. Tarefa em `Em validação` — falta só a revisão humana para `Concluída`.
+Implementação Kimi concluída; aprovação humana beta registrada nesta sessão, 5/5. Os dois PUT permanecem adminOf, sem mudança de runtime nesta entrega.
 
 ### Decisões tomadas
 
-- Política = `adminOf` (OWNER/ADMIN), não `ownerOf`: segue o padrão de `routes/plugins.ts` (PUT /api/plugins/:id) e das rotas admin de `routes/auth.ts`. A alternativa `ownerOf` foi descartada por criar exceção à política existente de configuração de servidor.
-- Leituras públicas (`GET /status`, `GET /agent/config`, `GET /presence`) mantidas como estão: não expõem chaves nem dados de conta.
-- Sem mudança de contrato de resposta nem de schema — apenas gate.
+OWNER/ADMIN autorizados nos PUT atuais; MEMBER/anônimo recusados. Aprovação beta com ressalva: segurança, privilégios e credenciais críticas serão avaliados separadamente. Não é aprovação universal de ADMIN nem certificação de segurança.
 
 ### Arquivos envolvidos
 
-- Alterados: `apps/server/src/routes/system.ts` (os dois gates + cabeçalho), `tests/config-autorizacao.test.js` (novo), `docs/modules/server/README.md` (política registrada, governança §9).
-- Referência para quem revisar: `apps/server/src/http/identity.ts` (`adminOf` lança 401 via `userOf` e 403 para não-admin).
+routes/system.ts, tests/config-autorizacao.test.js e docs/modules/server/README.md já existentes; registro nesta tarefa/planejamento e ADR 0002.
 
 ### Evidências e testes
 
-- `tests/config-autorizacao.test.js` (novo, 1/1): servidor real em modo contas; anônimo → 401, MEMBER → 403 nos dois PUT; recusas não mudam `keepVersions` nem `agentPolicy` (sem mutação parcial); OWNER/ADMIN alteram e persistem; chave Pexels nunca aparece na resposta.
-- `npm run typecheck` limpo; `npm test` 608/608; `npm run build` ok (avisos pré-existentes de chunk > 500 kB, não relacionados).
-- Limitação: testes cobrem modo contas; o modo local depende do usuário técnico ser OWNER (coberto indiretamente pelos testes existentes em `STYLO_AUTH: local`).
+Teste autorização reexecutado 1/1 nesta rodada; suíte anterior 622/622 e gates preservados. Aprovação humana explícita no histórico; deliberação estrutural não implementada.
 
 ### Pendências
 
-- Revisão humana do diff (commits `9b39789` e `21b2f60`) e aprovação da política `adminOf`.
-- Após aprovação: estado `Concluída` no documento e no BACKLOG.
+Nenhuma para DOC-SERVER-005. Decisões de autoridade definitiva na ADR 0002 continuam propostas; DOC-MCP-001 não foi aprovado por esta decisão.
 
 ### Próximas ações recomendadas
 
-1. Revisor: ler o diff de `apps/server/src/routes/system.ts` (2 linhas de gate) e o teste novo.
-2. Se aprovado, marcar critérios e estado como `Concluída` (protocolo §8).
-3. Se `ownerOf` for preferido, registrar a decisão no histórico e ajustar gate + teste (o teste separa 401 de 403, a mudança é pequena).
+Consultar DOC-ADMIN-001, inventário/matriz e decisões pendentes antes de assumir novas propostas; preservar os testes negativos, ausência de mutação e mascaramento de credenciais.
 
 ### Riscos e cuidados
 
-- Não reverter o gate sem substituto: o modo contas ficaria novamente aberto para anônimo/membro alterar configuração do servidor e injetar chave Pexels.
-- `GET /api/agent/config` continua público de propósito; não movê-lo sem revisar o consumidor no painel admin do Studio (`WorkspacePanel.tsx`).
-- Testes locais existentes (`api-seguranca.test.js`, `api.test.js`) rodam em modo local e devem continuar passando — o usuário técnico local é OWNER.
+Não estender aprovação a reset/suspensão de OWNER, delegação de privilégios ou credenciais críticas. Não remover gates nem substituir testes por mera inspeção.
 
 ### Condições para conclusão
 
-- Revisão humana registrada no histórico; estado `Concluída` com evidência (commits e gates verdes já registrados nos marcos #4 e #5).
+Aprovação humana e gates registrados; critérios atendidos.
 
 ## Rollback
 
-Nenhuma implementação nesta proposta; registrar cancelamento se a investigação invalidar a hipótese.
+Reverter apenas com gate equivalente e decisão registrada; nunca restaurar configuração accounts aberta a anônimo/membro.

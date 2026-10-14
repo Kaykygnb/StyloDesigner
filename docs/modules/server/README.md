@@ -21,3 +21,7 @@ Não deve duplicar regras do modelo ou implementar uma segunda versão de ferram
 Testes HTTP, banco, contas, assets, presença, projetos e renderização.
 
 `tests/backups.test.ts` confere snapshots de arquivos, datas UTC e ordenação da listagem, cópia de segurança e restauração pendente no próximo boot, em pastas temporárias exclusivas. O adapter de banco simula apenas `CHECKPOINT`; esses testes não comprovam integridade de restore PGlite/PostgreSQL real (DOC-DB-001).
+
+## Administração self-hosted
+
+[Domínio administrativo proposto](../../architecture/instance-administration/README.md) inventaria serviços/painel existentes e lacunas, sem reimplementá-los. A política adminOf dos dois PUT foi aprovada para beta, com ressalva: segurança, privilégios e credenciais críticas têm deliberação separada. Não é certificação geral de segurança nem aprovação da arquitetura proposta.

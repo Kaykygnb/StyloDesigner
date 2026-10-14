@@ -34,3 +34,7 @@ Essas propostas ainda não têm implementação ou validação; cada uma deve se
 ## Decisão pendente
 
 Não foi aprovada migração para microserviços. A decisão atual é manter monólito modular.
+
+## Deliberação self-hosted (2026-10-14)
+
+[Roadmap administrativo incremental](../architecture/instance-administration/ROADMAP.md) e [ADR 0002 proposta](../architecture/adr/0002-self-hosted-administration.md) atualizam as prioridades desta investigação. Organização única é recomendação, não decisão humana já aprovada. DOC-SERVER-004/005 estão concluídas; DOC-SERVER-005 recebeu aprovação beta com ressalvas. Propostas P0 SERVER-006/007 precedem piloto público; SERVER-008 prepara hosts/origem/bootstrap e ADMIN-002 auditoria. Restore reaproveita DB-001; painel já existe, sem reconstrução paralela. Nenhuma implementação estrutural foi autorizada por esta deliberação documental.

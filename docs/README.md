@@ -29,6 +29,8 @@ Os documentos anteriores foram removidos da documentação ativa. O snapshot é 
 - [architecture/PATTERNS.md](architecture/PATTERNS.md): padrões observados e recomendados.
 - [architecture/DATA-FLOW.md](architecture/DATA-FLOW.md): fluxos de documento, ferramenta e persistência.
 - [architecture/DEPENDENCIES.md](architecture/DEPENDENCIES.md): dependências e adapters.
+- [architecture/instance-administration/README.md](architecture/instance-administration/README.md): auditoria, arquitetura administrativa proposta, matriz e roadmap self-hosted.
+- [architecture/adr/0002-self-hosted-administration.md](architecture/adr/0002-self-hosted-administration.md): alternativas organização única/múltipla e decisões humanas pendentes.
 - [architecture/adr/0001-modular-monolith.md](architecture/adr/0001-modular-monolith.md): decisão atual de implantação.
 - [modules/](modules/): responsabilidades dos módulos.
 - [engineering/CONTRACTS.md](engineering/CONTRACTS.md): interfaces que não podem ser alteradas casualmente.
