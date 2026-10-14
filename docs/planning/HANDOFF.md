@@ -1,51 +1,33 @@
 # HANDOFF — continuidade entre sessões
 
-Resumo geral do estado do projeto para quem continuar o trabalho (humano ou agente). É curto e só referencia as tarefas — o detalhe fica no documento individual e no histórico delas. Regras de produção e uso em [TASK-PROTOCOL.md](TASK-PROTOCOL.md) §10.
+Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo: [TASK-PROTOCOL.md](TASK-PROTOCOL.md) §6 e §10.
 
 ## Referência
 
 - Branch: `v0.1.0-beta`
-- Commit de referência: `a502ba7` (isolamento e cleanup dos fixtures MCP/PG)
-- Última atualização deste resumo: 2026-10-14 01:57 UTC — [Codex]
+- Commit de referência: `f8f8141cc7c674045d2039f2d18dd9625bc193d9`
+- Última atualização: 2026-10-14 02:28 UTC — [Codex]
 
-## Estado geral
+## Entrega atual
 
-[DOC-ENG-003](tasks/engineering/DOC-ENG-003.md) concluída, a502ba7: env MCP isolado e cleanup PG aguardado sem PANIC; typecheck, específicos 9/9, suíte 620/620 sem falhas/skips, inventário e validador 19 aprovados. CI 38498065722 ainda em andamento na consulta final. [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) em andamento com Codex para fixtures legados.
+[DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) concluída, 5/5: 13 fixtures legados com ambiente isolado e cleanup ordenado; teste de servidor usa configuração temporária. Específicos hostis sem setup 10/10; suíte 622/622, zero falhas/skips, incluindo PostgreSQL real e Studio UI automatizado. Typecheck, inventário e validador (20 tarefas) aprovados. Sem mudança funcional ou QA exploratório. Implementação publicada em f8f8141; CI remota ainda não consultada.
 
-Revisão Codex em 41b0fb3: CI 38495659427 aprovada; testes novos MCP/PG 3/3 e typecheck/validador/inventário locais aprovados. Cleanup PostgreSQL reproduziu PANIC durante remoção prematura de dados; fixture MCP herda DATABASE_URL (risco constatado por código). [DOC-ENG-003](tasks/engineering/DOC-ENG-003.md) registrou as correções agora entregues em a502ba7; não confundir testes verdes com ausência desses problemas. Responsáveis/estados Kimi preservados.
+## Continuidade e revisões P0
 
-Quality gates verdes: typecheck limpo, `npm test` 616/616, build ok. [Kimi] concluiu a DOC-SERVER-001: PostgreSQL externo agora é verificado de forma descartável e reproduzível (`tests/postgres-integracao.test.js` sobe um PostgreSQL real, aplica migrações, roda fluxo auth/projeto/agente, reinício e falha de conexão). Docs de produto atualizadas ("implementado não verificado" → verificado). DOC-SERVER-005 mantém revisão humana da política. DOC-MCP-001 teve handoff aceito por Codex para revisão técnica, preservando implementação Kimi.
+- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md): handoff Kimi → Codex aceito no histórico; implementação original Kimi preservada, revisão técnica Codex entregue em f8f8141, 4/5 Em validação. Matriz limita conclusões à cobertura real. Falta aceite humano das lacunas GUI/hosted/imagem/stdio feliz, não nova implementação automática. Work QA GUI não exige MCP.
+- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md): implementação [Kimi], revisão técnica [Codex] registrada; teste configuração aprovado. Falta decisão humana: manter OWNER e ADMIN autorizados a alterar configuração (adminOf), ou restringir a OWNER (ownerOf). Nenhuma aprovação inferida.
 
 ## Em andamento
 
-- [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) — [Codex], assumida por risco de dados; #1–#3 concluídos; 13 fixtures isolados, específicos 10/10 e typecheck aprovados; suíte completa em execução.
-
-
-- [DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], #1 investigação: revisão visual/usabilidade (P1); próxima execução de jornadas.
-
-## Aguardando revisão
-
-- [DOC-SERVER-005](tasks/server/DOC-SERVER-005.md) — gates `adminOf` nos PUTs de configuração. Revisor: humano (decisão `adminOf` vs `ownerOf`).
-- [DOC-MCP-001](tasks/mcp/DOC-MCP-001.md) — [Codex] recebeu revisão técnica de [Kimi]; matriz corrigida para escopo verificado, gates em execução; aceite humano das lacunas GUI/hosted/imagem/stdio feliz pendente.
-
-## Bloqueios importantes
-
-- Nenhum.
-
-## Alterações recentes relevantes
-
-- [Kimi] `tests/postgres-integracao.test.js` (novo) + devDependency `embedded-postgres` + docs de produto (DOC-SERVER-001 concluída, 5/5).
-- [Kimi] `1c39a54` correção do E2E Conferir (DOC-STUDIO-004 concluída); `cc9bec8` matriz MCP + cliente externo sem SDK.
-- [Codex] `80818cd` inventário de ferramentas e gate de drift; `7ccd005` revalidação de workspace ativo (DOC-SERVER-004).
+[DOC-STUDIO-003](tasks/studio/DOC-STUDIO-003.md) — [Codex], preparação/insumos; execução exploratória guiada pelo proprietário conforme [WORK-GUIDE.md](../qa/WORK-GUIDE.md). Não ocorreu auditoria visual nesta entrega.
 
 ## Próximas prioridades
 
-1. Revisões humanas pendentes (DOC-SERVER-005 e DOC-MCP-001) — desbloqueiam o fim das P0/P0-MCP.
-2. [DOC-ENG-004](tasks/engineering/DOC-ENG-004.md) (P1) — isolamento/cleanup, assumida por Codex; primeiro por risco a dados externos.
-3. [DOC-DB-001](tasks/database/DOC-DB-001.md) (P1) — restore/migração descartável: **desbloqueada** pela DOC-SERVER-001 (base de PostgreSQL descartável pronta).
-4. P1 sem responsável: [DOC-CORE-002](tasks/core/DOC-CORE-002.md) (matriz de exportação), [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) (paridade de operações críticas).
+1. Decisões humanas das P0 acima; revisão técnica já feita por sucessor, não exigir retorno do implementador.
+2. [DOC-DB-001](tasks/database/DOC-DB-001.md) — restore/migração com dados descartáveis; desbloqueada por DOC-SERVER-001. Próxima prioridade livre por risco de recuperação de dados.
+3. [DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) — paridade das operações críticas; [DOC-CORE-002](tasks/core/DOC-CORE-002.md) — exportação/warnings.
+4. [DOC-STUDIO-005](tasks/studio/DOC-STUDIO-005.md) — redesign após direção humana e evidências QA. Providers/licenças seguem dependentes de credenciais de teste.
 
-## Decisões humanas pendentes
+## Cuidados
 
-- Aprovar ou pedir ajustes na política `adminOf` para os PUTs de configuração (DOC-SERVER-005).
-- Aceitar como "explicitamente não verificadas" as lacunas da matriz MCP: clientes GUI/hosted e conteúdo de imagem.
+Não testar contra bancos/dados externos herdados. Novos fixtures usam configuração própria; PostgreSQL usa URL provisionada explicitamente. Conferir remoto e aceitar handoff antes de continuar; não duplicar tarefas nem apagar autores anteriores.

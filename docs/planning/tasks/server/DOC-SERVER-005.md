@@ -3,13 +3,13 @@
 Responsável: [Kimi]
 Estado: Em validação
 Início: 2026-10-13 22:22 UTC
-Última atualização: 2026-10-13 23:15 UTC
+Última atualização: 2026-10-14 02:28 UTC
 Progresso: 4/5 marcos (80%)
 Participantes: [Kimi], [Codex]
 
 ## Problema e evidências
 
-**Proposto — investigação pendente.** routes/system.ts contém PUT /config sem chamada explícita a identity.userOf/adminOf no handler. A proteção global de origem/JSON precisa ser diferenciada da autorização de conta.
+Problema original: PUT /config sem gate explícito de conta. Kimi implementou adminOf; testes agora distinguem proteção global de origem/JSON de autorização. Revisão técnica aprovada; decisão humana adminOf vs ownerOf permanece pendente.
 
 ## Objetivo
 
@@ -94,7 +94,7 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Investigado: implementação dos gates e regressão config-autorizacao; handoff exige revisão humana da escolha adminOf vs ownerOf, distinta do teste técnico.
 - Alterado: registro da revisão; responsável implementador [Kimi] e pendência humana preservados. Nenhuma política alterada nem aprovação humana inferida.
 - Arquivos: este documento.
-- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte completa em execução.
+- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte final 622/622 sem falhas/skips, incluindo configuração. Revisão publicada em f8f8141.
 - Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
 - Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
 
@@ -145,7 +145,7 @@ routes/system.ts, identidade e testes HTTP; modo local e casos OWNER/ADMIN/MEMBE
 - Investigado: implementação dos gates e regressão config-autorizacao; handoff exige revisão humana da escolha adminOf vs ownerOf, distinta do teste técnico.
 - Alterado: registro da revisão; responsável implementador [Kimi] e pendência humana preservados. Nenhuma política alterada nem aprovação humana inferida.
 - Arquivos: este documento.
-- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte completa em execução.
+- Testes: config-autorizacao aprovado na execução sem setup global com env hostil; typecheck aprovado; suíte final 622/622 sem falhas/skips, incluindo configuração. Revisão publicada em f8f8141.
 - Resultado: rejeições anônimo/member e sucesso owner/admin exercitados; revisão técnica pode ser feita por outro agente sem esperar nova implementação de Kimi.
 - Próximo passo: registrar suíte atual; proprietário avaliar política já implementada: OWNER e ADMIN alteram configurações, MEMBER e anônimo não.
 
@@ -155,7 +155,7 @@ Preparado por: [Kimi]
 Destinatário: [Revisor humano]
 Estado: Aguardando revisão humana
 Marco atual: #5 — Validação final
-Última atualização: 2026-10-13 23:15 UTC
+Última atualização: 2026-10-14 02:28 UTC
 Commit de referência: `21b2f60` na branch `v0.1.0-beta`
 
 ### Estado atual

@@ -1,10 +1,10 @@
 # DOC-ENG-004 — Auditar isolamento e cleanup dos fixtures legados
 
 Responsável: [Codex]
-Estado: Em andamento
+Estado: Concluída
 Início: 2026-10-14 02:09 UTC
-Última atualização: 2026-10-14 02:20 UTC
-Progresso: 3/5 marcos (60%)
+Última atualização: 2026-10-14 02:28 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -34,10 +34,10 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ## Critérios de aceitação
 
-- [ ] Inventário de fixtures e env/lifecycle atual; problemas confirmados por reprodução segura, não contra dados externos reais.
-- [ ] Suíte padrão/fixtures ignoram URLs herdadas; fixtures PostgreSQL usam apenas URL própria; configuração/blobs/segredos testados conforme risco.
-- [ ] Cleanup legado auditado; corrigir problemas comprovados com saída confirmada antes de remoção; limites de plataforma registrados.
-- [ ] Regressões/gates apropriados aprovados; histórico/handoff/índice atualizados e sem duplicar ENG-003.
+- [x] Inventário de fixtures e env/lifecycle atual; problemas confirmados por reprodução segura, não contra dados externos reais.
+- [x] Suíte padrão/fixtures ignoram URLs herdadas; fixtures PostgreSQL usam apenas URL própria; configuração/blobs/segredos testados conforme risco.
+- [x] Cleanup legado auditado; corrigir problemas comprovados com saída confirmada antes de remoção; limites de plataforma registrados.
+- [x] Regressões/gates apropriados aprovados; histórico/handoff/índice atualizados e sem duplicar ENG-003.
 
 ## Marcos
 
@@ -73,23 +73,23 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 
 ### #4 — Testes
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: validar isolamento/lifecycle e gates; publicação da implementação na beta com lease, sem alteração funcional no produto.
+- Arquivos alterados: fixtures/helper/setup, regressões/inventário; tarefa, backlog e handoff.
+- Evidências: commit f8f8141cc7c674045d2039f2d18dd9625bc193d9 publicado em v0.1.0-beta; suíte inclui PostgreSQL real e Studio UI automatizado.
+- Testes executados: específicos hostis sem setup 10/10; npm test 622/622, 0 falhas/skips; npm run typecheck; docs:inventario -- --check; validador 20 tarefas; git diff --check aprovados.
+- Problemas encontrados: nenhum nos gates desta rodada. Escalada SIGKILL é POSIX; cobertura Windows não executada aqui. CI remota deste commit ainda não consultada.
 
 ### #5 — Validação final
 
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas:
-- Arquivos alterados:
-- Evidências:
-- Testes executados:
-- Problemas encontrados:
+- Estado: concluído
+- Responsável: [Codex]
+- Atividades executadas: validar isolamento/lifecycle e gates; publicação da implementação na beta com lease, sem alteração funcional no produto.
+- Arquivos alterados: fixtures/helper/setup, regressões/inventário; tarefa, backlog e handoff.
+- Evidências: commit f8f8141cc7c674045d2039f2d18dd9625bc193d9 publicado em v0.1.0-beta; suíte inclui PostgreSQL real e Studio UI automatizado.
+- Testes executados: específicos hostis sem setup 10/10; npm test 622/622, 0 falhas/skips; npm run typecheck; docs:inventario -- --check; validador 20 tarefas; git diff --check aprovados.
+- Problemas encontrados: nenhum nos gates desta rodada. Escalada SIGKILL é POSIX; cobertura Windows não executada aqui. CI remota deste commit ainda não consultada.
 
 ## Histórico de trabalho
 
@@ -129,47 +129,56 @@ Garantir que a suíte padrão não reutilize banco/configuração/blobs sensíve
 - Resultado: marcos #2/#3 concluídos com proteção exercitada sem dados externos.
 - Próximo passo: registrar suíte/validator/drift, publicar e concluir apenas com gates verdes.
 
+### 2026-10-14 02:28 UTC — [Codex] — #4/#5 entrega validada
+
+- Investigado: resultados finais e publicação com lease do HEAD conhecido.
+- Alterado: marcos #4/#5 e critérios concluídos; handoff/backlog atualizados. Implementação publicada em f8f8141.
+- Arquivos: esta tarefa, BACKLOG.md e HANDOFF.md.
+- Testes: específicos 10/10 sem setup global; suíte 622/622, zero falhas/skips; typecheck, inventário, validador 20 tarefas e diff aprovados.
+- Resultado: isolamento e cleanup dos 13 fixtures corrigidos; PG próprio preservado. Sem auditoria visual ou mudança funcional do Stylo.
+- Próximo passo: próxima prioridade livre é DOC-DB-001, restore/migração descartáveis. Decisões humanas P0 continuam nos respectivos handoffs; não duplicar tarefas.
+
 ## Handoff atual
 
 Preparado por: [Codex]
-Destinatário: [Codex / próximo participante após transferência]
-Estado: Em execução
-Marco atual: #4 — Testes
-Última atualização: 2026-10-14 02:20 UTC
-Commit de referência: `726583500178eb39fa07e72106f5355d2d1a776f`
+Destinatário: [Próximo participante]
+Estado: Concluído
+Marco atual: #5 — Validação final
+Última atualização: 2026-10-14 02:28 UTC
+Commit de referência: `f8f8141cc7c674045d2039f2d18dd9625bc193d9`
 
 ### Estado atual
 
-Marcos #1–#3 concluídos; isolamento e cleanup corrigidos nos 13 fixtures. Específicos 10/10 sem setup global e typecheck aprovados; suíte completa em execução.
+Concluída 5/5; 13 fixtures legados isolados, cleanup confirmado antes de remoção e configuração própria no teste do servidor. Código funcional intacto.
 
 ### Decisões tomadas
 
-P0 Kimi preservadas; próxima P1 por risco de atingir banco/configuração real. Depois restore/migração, paridade Studio/MCP e exportação; redesign depende da direção visual humana.
+Ambiente herdado não fornece banco/blobs/chaves; overrides são explícitos e próprios do teste. PG descartável continua separado. Reusar helper de lifecycle, não criar outro protocolo de cleanup.
 
 ### Arquivos envolvidos
 
-Fixtures legados, tests/_setup.mjs, helper de lifecycle/ambiente, inventário de fixtures e regressões.
+tests/_setup.mjs, tests/helpers/test-env.mjs, tests/test-env.test.js, 13 fixtures listados no marco #1 e docs/testing/REGRESSION-MATRIX.md; inventário regenerado.
 
 ### Evidências e testes
 
-Reprodução Node 24 confirmou env herdado sem conectar banco; auditoria estática de 13 fixtures. Gates de implementação pendentes.
+Específicos hostis 10/10; suíte 622/622 sem falhas/skips; typecheck, inventário, validador e diff aprovados. Publicação f8f8141 na beta. CI remota ainda não consultada nesta entrada.
 
 ### Pendências
 
-Suíte completa, gates documentais e publicação final.
+Nenhuma local para ENG-004. Acompanhar CI remota; revisão humana P0 em tarefas distintas.
 
 ### Próximas ações recomendadas
 
-Isolar env sem afetar URL própria PostgreSQL; aguardar processos antes da remoção; validar documentação/artefatos e suíte.
+Priorizar DOC-DB-001 (restore/migração), depois paridade crítica e exportação. Novos fixtures devem usar recursos próprios e cleanup ordenado.
 
 ### Riscos e cuidados
 
-Só dados/processos próprios; não reproduzir contra URL externa real. Preservar decisões e responsáveis Kimi, não iniciar QA visual por esta assunção.
+Não passar process.env humano como overrides; SIGKILL POSIX não comprova Windows. Falha de encerramento preserva diretório e reprova o teste.
 
 ### Condições para conclusão
 
-Critérios existentes atendidos e evidências/gates publicados.
+Critérios e gates atendidos, implementação publicada.
 
 ## Rollback
 
-Reverter alterações de fixture apenas com isolamento equivalente; preservar evidências e não voltar a herdar DATABASE_URL/configuração externa.
+Reverter f8f8141 apenas mantendo isolamento equivalente; não voltar a herdar banco/configuração externa.
