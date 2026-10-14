@@ -10,7 +10,7 @@ A documentação de engenharia está em [docs/README.md](docs/README.md). O que 
 
 A branch se chama `v0.1.0-beta` e o pacote é `0.1.0`. Isso não é uma release estável. Trate este checkout como **pré-alpha**: dados, formato do banco e APIs podem mudar. Não use para trabalho que você não possa perder.
 
-A alpha local pública — instalar, criar a conta e desenhar na própria máquina — ainda é uma proposta, [DOC-ENG-006](docs/planning/tasks/engineering/DOC-ENG-006.md). Ela está bloqueada, inclusive pelo login por nome de usuário ([DOC-SERVER-011](docs/planning/tasks/server/DOC-SERVER-011.md)). Essa tarefa segue em aberto no backlog, e outro trabalho está mexendo no login. Este texto não descreve os campos da tela de entrada.
+A alpha local pública — instalar, criar a conta e desenhar na própria máquina — ainda é uma proposta, [DOC-ENG-006](docs/planning/tasks/engineering/DOC-ENG-006.md). O login está no PR de rascunho [#21](https://github.com/Kaykygnb/StyloDesigner/pull/21) ([DOC-SERVER-011](docs/planning/tasks/server/DOC-SERVER-011.md)), que ainda não entrou nesta branch. Este texto não descreve a tela de entrada.
 
 ## O que funciona hoje
 
@@ -44,8 +44,29 @@ Limites que o próprio código declara:
 - `offset_path` recusa caminho aberto e distância zero.
 - `interpolate_vectors` exige a mesma quantidade de contornos, nós, fechamento e viewBox.
 - A booleana achata as curvas em polígonos e reajusta. O resultado pode ter mais pontos. As fontes ficam guardadas e podem ser editadas; o contorno visível é o resultado achatado.
-- A exportação SVG omite sombra interna e `backdrop-filter`. Contorno inside/outside é aproximado. Gradiente cônico usa a primeira parada.
+- A exportação SVG tem omissões próprias. Estão em [Limitações conhecidas](#limitações-conhecidas).
 - A importação SVG avisa e não traz: máscara de luminância, imagem embutida, texto em curva, `<use>` externo, animação e filtro que não seja sombra. Gradiente linear/radial entra aproximado. Clip simples vira máscara.
+
+## Limitações conhecidas
+
+Conferido no código desta branch, não no PR #21.
+
+**O protótipo não roda no site exportado.** No Studio, Apresentar lê `interactions` da camada e troca de tela (`apps/studio/src/editor/Presentation.tsx`). O modelo guarda gatilho (`click` ou `hover`), ação (`navigate`, `back` ou `url`) e transição. Na exportação do site, `packages/core/src/site-export.ts` só acrescenta o aviso de que a página contém interações de protótipo e elas não são executadas. `packages/core/src/html.js` não escreve essas interações.
+
+**O que a exportação SVG omite, e o que ela só aproxima** (`toSvg` em `packages/core/src/svg.js`):
+
+- Sombra interna (`shadows` com `inset`): o filtro pula o item.
+- Vidro (`bgBlur`, o `backdrop-filter` do CSS): o SVG não escreve essa propriedade.
+- Gradiente cônico: sai a cor da primeira parada, não o cone.
+- Contorno inside/outside: aproximação. No path, o traço dobra e é cortado por clip ou máscara. Nas outras formas, a forma encolhe ou cresce, porque o SVG só tem traço centrado.
+- Imagem repetida fora do tamanho próprio: sai uma imagem só, sem ladrilho. Em cover/contain, a posição em porcentagem vira início, meio ou fim.
+- Inclinação (`skewX` / `skewY`): o CSS do canvas escreve `skew()`; o SVG aplica translação, rotação e espelhamento.
+- Texto: uma `<tspan>` por linha que já veio quebrada. O SVG não quebra a linha sozinho. `text-transform` entra no próprio texto.
+- Mídia (vídeo, áudio, glTF, Lottie) e HTML escrito à mão: o SVG desenha a caixa da camada, não o player nem o HTML.
+
+**Não há PDF nem PPTX.** Não há ferramenta, leitor nem escritor desses formatos no código dos pacotes.
+
+**Não há editor 3D.** O documento não tem camada de cena 3D. Dá para colocar um arquivo glTF/GLB como mídia (`mediaKind: 'model3d'` em `model.ts`); o HTML exportado usa `<model-viewer>` (`css.js`). Isso mostra um modelo pronto. Não é modelar em 3D.
 
 ## O que ainda não está
 
@@ -53,11 +74,11 @@ Ausência no código, distinta dos limites acima. O plano que cita estes itens �
 
 | Tema | Situação |
 |---|---|
-| PDF, PPTX, modelo 3D / glTF, React Native | Não há ferramenta nem tipo de camada para isso |
-| JavaScript livre no documento | O protótipo é declarativo. O site exportado avisa que a interação não roda |
+| PDF, PPTX e editor 3D | Ver [Limitações conhecidas](#limitações-conhecidas). React Native também não está no código |
+| JavaScript livre no documento | O protótipo é a lista `interactions`. Ele não vira script no site exportado |
 | Alpha pública local | Proposta [DOC-ENG-006](docs/planning/tasks/engineering/DOC-ENG-006.md), ainda bloqueada |
-| Login por nome de usuário | Tarefa em aberto, [DOC-SERVER-011](docs/planning/tasks/server/DOC-SERVER-011.md). Outro trabalho está alterando essa entrada. A tela não é documentada aqui |
-| Modo sem conta (`STYLO_AUTH=local`) | Existe e sobe, para teste explícito. A instalação normal pede conta. A retirada está proposta em [DOC-SERVER-009](docs/planning/tasks/server/DOC-SERVER-009.md) |
+| Login | PR de rascunho [#21](https://github.com/Kaykygnb/StyloDesigner/pull/21), não mergeado. A tela não é documentada aqui |
+| `STYLO_AUTH=local` | Desvio de teste. A forma de entrar por ele também muda nesse PR. A instalação normal pede conta. A retirada do modo está proposta em [DOC-SERVER-009](docs/planning/tasks/server/DOC-SERVER-009.md) |
 | Dump e restore de Postgres | O teste de integração sobe um Postgres descartável. `pg_dump` / `pg_restore` continuam pendentes em [DOC-DB-001](docs/planning/tasks/database/DOC-DB-001.md) |
 | Hospedar para a internet | Fora desta branch. [DOC-SERVER-008](docs/planning/tasks/server/DOC-SERVER-008.md) |
 | Remake visual do Studio | Proposta [DOC-STUDIO-005](docs/planning/tasks/studio/DOC-STUDIO-005.md) |
@@ -131,9 +152,17 @@ O log diz `Postgres (DATABASE_URL)`. Se `DATABASE_URL` faltar, o Prisma desse co
 
 ### Conta
 
-No modo padrão o servidor pede conta. A primeira conta criada administra a instalação. O formato dessa tela está mudando; siga o que o Studio mostrar.
+No modo padrão, a primeira abertura pede a conta que administra a instalação. Siga a tela. Os campos não estão descritos aqui: o PR de rascunho [#21](https://github.com/Kaykygnb/StyloDesigner/pull/21) ainda não entrou nesta branch e muda essa entrada, inclusive `STYLO_AUTH=local`. Esse modo continua sendo desvio de teste, não o caminho desta instalação.
 
-`STYLO_AUTH=local` sobe sem essa entrada. É um desvio explícito de teste, não o caminho desta instalação.
+### Passeio curto
+
+1. Abra `http://localhost:5173/studio/`. Na primeira vez, crie a conta da instalação e siga a tela.
+2. Em **Projetos**, clique em **Novo projeto**, escreva um nome e confirme em **Criar**. A página abre vazia (`makePage` não traz camadas).
+3. Clique em **Criar uma tela**. O Studio chama `build_layout` e cria um frame de 1440×900.
+4. Texto: na barra, **Texto** (tecla T) e arraste dentro da tela. Vetor: **Caneta** (tecla P); clique cria um ponto e arraste cria uma curva.
+5. No topo, **Publicar** gera o HTML e abre o download. A aba **Exportar** repete **Publicar HTML** e também oferece **Site em HTML (.zip)**.
+
+Se a tela tiver interação de protótipo, a publicação pode avisar que ela não roda no site. Veja [Limitações conhecidas](#limitações-conhecidas).
 
 ### Cliente MCP
 
@@ -170,7 +199,7 @@ O fluxo de navegador (entrada e administração), o mesmo job da CI:
 npm run test:e2e
 ```
 
-Ele roda `npm run build` e depois `node tests/e2e/run.mjs`. Nesta revisão os casos impressos passaram. O roteiro cobre a entrada humana; os campos da tela continuam sujeitos à DOC-SERVER-011.
+Ele roda `npm run build` e depois `node tests/e2e/run.mjs`. Nesta revisão os casos impressos passaram no código de `c5e6eba`. A tela de entrada não é descrita aqui por causa do PR #21.
 
 Tipos, nos cinco workspaces:
 
@@ -193,17 +222,21 @@ Data: 2026-10-14. Código: `v0.1.0-beta` em `c5e6eba`. Clone limpo com `git clon
 
 Rodados com sucesso: `npm install`, `npm start`, `npm run dev`, `npm run build` seguido de `npm start` (HTML de produção, sem Vite), `STYLO_DEV=1`, `STYLO_HOST=127.0.0.1`, PGlite sem `DATABASE_URL`, `npx prisma migrate deploy --config packages/db/prisma.config.ts` contra um Postgres descartável e `npm start` com `DATABASE_URL`, MCP HTTP com Bearer, `node apps/server/bin/mcp.mjs`, `STYLO_AUTH=local`, `npx playwright install chromium`, `npm test`, `npm run test:e2e`, `npm run typecheck`, `npm run docs:inventario -- --check` e `node docs/planning/validate-tasks.mjs`.
 
-Não foi conferido aqui: abrir Cursor, Claude Desktop ou Windsurf; uso prolongado com várias pessoas; `pg_dump` / `pg_restore`; navegador que não seja o Chromium do Playwright.
+O passeio curto saiu dos rótulos e dos handlers do Studio (`Home.tsx`, `Canvas.tsx`, `Toolbar.tsx`, `TopBar.tsx`, `Panels.tsx`, `actions.ts`). Não foi refeito com clique nesta atualização.
+
+Não foi conferido aqui: abrir Cursor, Claude Desktop ou Windsurf; uso prolongado com várias pessoas; `pg_dump` / `pg_restore`; navegador que não seja o Chromium do Playwright. O PR #21 não foi mergeado e não entrou nesta conferência.
 
 ## English
 
 Stylo is a design editor whose canvas is real CSS. One core is the Studio. The other is MCP, for an AI agent. Both call the same tools. The panel does not write the document on its own. There are 120 tools: 97 in the core and 23 in built-in plugins.
 
-Branch `v0.1.0-beta` (package `0.1.0`) is a pre-alpha. Data and APIs can change. The local public alpha is still a proposal ([DOC-ENG-006](docs/planning/tasks/engineering/DOC-ENG-006.md)) and is blocked, including by username login ([DOC-SERVER-011](docs/planning/tasks/server/DOC-SERVER-011.md)), which is still an open task and is being changed elsewhere. This file does not describe the login form.
+Branch `v0.1.0-beta` (package `0.1.0`) is a pre-alpha. Data and APIs can change. The local public alpha is still a proposal ([DOC-ENG-006](docs/planning/tasks/engineering/DOC-ENG-006.md)). Login is draft PR [#21](https://github.com/Kaykygnb/StyloDesigner/pull/21) ([DOC-SERVER-011](docs/planning/tasks/server/DOC-SERVER-011.md)) and is not merged. This file does not describe the sign-in screen. `STYLO_AUTH=local` is a test switch; that PR changes it too.
 
 What works: pages, layers, layout, styles, variables, components, states, prototype interactions, comments, assets, the vector editor summarized above, HTML / site / React / token / zip export, accounts, agents, presence, and locks on one process. PGlite is the default database. Postgres works when `DATABASE_URL` is set and migrations were applied. Image measurement and local image edits need Chromium. Generative image edit is refused.
 
-Not in the code: PDF, PPTX, 3D, React Native, and free JavaScript in the document. Prototype interactions are not executed in the exported site. SVG import and export drop the cases listed above. Postgres dump/restore is still open. GUI MCP clients were not launched in this pass.
+Known limits, checked in this branch’s code: prototype interactions run in Present and are only warned about in the exported site (`site-export.ts`); they are not written by `html.js`. SVG export (`svg.js`) drops inset shadows and backdrop blur, replaces a conic gradient with its first stop, approximates inside/outside strokes, does not tile a repeated image outside size mode, skips skew, does not wrap text on its own, and draws media or hand-written HTML as the layer box. There is no PDF or PPTX reader or writer. There is no 3D editor; an uploaded glTF can be a `model3d` media layer and the HTML export uses `<model-viewer>`. React Native and free JavaScript in the document are also absent. Postgres dump/restore is still open. GUI MCP clients were not launched in this pass.
+
+Short demo: open `/studio/`, create the installation account on the screen you see, choose **Novo projeto**, click **Criar uma tela**, drag with **Texto** or draw with **Caneta**, then click **Publicar** for HTML.
 
 Requirements from `package.json`: Node.js `>=22`. No npm engine is declared. On Node v22.14.0 / npm 10.9.9, install warns that `undici` wants Node `>=22.19.0`; the server and tests still ran.
 
@@ -223,7 +256,7 @@ DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:5432/stylo' npx prisma migrat
 DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:5432/stylo' npm start
 ```
 
-The default mode asks for an account. The first account administers the installation. `STYLO_AUTH=local` skips that screen and is a test switch.
+The default mode asks for an account. The first account administers the installation. The form is not documented here.
 
 MCP: create an agent in the Studio, then call `http://localhost:5173/mcp` with `Authorization: Bearer stylo_agt_...`. Or, with the server already running:
 
