@@ -1,10 +1,10 @@
 # DOC-ENG-003 — Isolar banco e ordenar limpeza dos fixtures MCP/PostgreSQL
 
 Responsável: [Codex]
-Estado: Em andamento
+Estado: Concluída
 Início: 2026-10-14 01:43 UTC
-Última atualização: 2026-10-14 01:52 UTC
-Progresso: 3/5 marcos (60%)
+Última atualização: 2026-10-14 01:57 UTC
+Progresso: 5/5 marcos (100%)
 Participantes: [Codex]
 
 ## Problema e evidências
@@ -35,14 +35,14 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 
 - Dependência: infraestrutura da entrega 41b0fb3; sem transferência de responsável das tarefas Kimi.
 - Riscos: atingir banco herdado; encerrar processos alheios; ocultar falha de parada com catch vazio; sleep não comprova saída.
-- Bloqueios: nenhum conhecido; reprodução somente em dados e processos próprios. Preparação PG atualmente pula qualquer erro de initialise/start; revisar a distinção entre indisponibilidade de plataforma e defeito inesperado sem mascarar falhas novas.
+- Bloqueios: nenhum conhecido; reprodução somente em dados e processos próprios. Preparação PG agora falha em erro inesperado; somente STYLO_SKIP_POSTGRES_TEST=1 produz opt-out explícito. Diretório é preservado se recursos não puderem ser encerrados ou inicialização continuar em execução.
 
 ## Critérios de aceitação
 
-- [ ] Fixture MCP ignora DATABASE_URL herdada e usa banco/blobs/segredos descartáveis; reprodução não toca bancos reais.
-- [ ] Cleanup fecha cliente/servidores/banco antes de remover diretório e aguarda saída com timeout; tratamento de startup parcial incluído.
-- [ ] Repetir teste PostgreSQL sem PANIC/encerramento anormal provocado pela remoção da pasta; sem processos/dados próprios remanescentes.
-- [ ] Testes e inventário/check/typecheck/regressões necessários aprovados; resultados e limites registrados; tarefas Kimi preservadas.
+- [x] Fixture MCP ignora DATABASE_URL herdada e usa banco/blobs/segredos descartáveis; reprodução não toca bancos reais.
+- [x] Cleanup fecha cliente/servidores/banco antes de remover diretório e aguarda saída com timeout; tratamento de startup parcial incluído.
+- [x] Repetir teste PostgreSQL sem PANIC/encerramento anormal provocado pela remoção da pasta; sem processos/dados próprios remanescentes.
+- [x] Testes e inventário/check/typecheck/regressões necessários aprovados; resultados e limites registrados; tarefas Kimi preservadas.
 
 ## Marcos
 
@@ -78,23 +78,23 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 
 ### #4 — Testes
 
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: Rodar suíte completa, revisar logs de cleanup e validar documentos.
-- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
-- Evidências: Log /tmp/stylo-fixture-full.log em andamento; targeted-final 9/9 sem skips/PANIC.
-- Testes executados: Resultado completo ainda pendente.
-- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
+- Atividades executadas: repetir regressões específicas/PG real, suíte completa, check de artefatos e validação documental.
+- Arquivos alterados: fixtures/helper/regressão, inventário, estratégia/matriz; evidências nesta tarefa.
+- Evidências: específicos 9/9; npm test 620/620, zero falhas/cancelamentos/skips; typecheck aprovado; inventário/check 120 registros e validador 19 tarefas aprovados; diff --check limpo.
+- Testes executados: npm run typecheck; npm test; fixture-lifecycle/mcp-compatibilidade/postgres-integracao/tool-inventory específicos; npm run docs:inventario e -- --check; node docs/planning/validate-tasks.mjs.
+- Problemas encontrados: nenhum PANIC/encerramento anormal após a correção; ausência da pasta verificada no hook PG e saída real/timeout/preservação em regressões de lifecycle. Esta execução POSIX não verifica comportamento Windows da escalada de sinais.
 
 ### #5 — Validação final
 
-- Estado: pendente
+- Estado: concluído
 - Responsável: [Codex]
-- Atividades executadas: Revisar critérios, consultar remoto e publicar fechamento.
-- Arquivos alterados: fixtures/helper, teste de lifecycle, inventário, estratégia/regressões e planejamento.
-- Evidências: Publicação em preparação.
-- Testes executados: Pendente.
-- Problemas encontrados: sem bloqueio conhecido; gates finais pendentes.
+- Atividades executadas: critérios revisados e implementação publicada na beta; registrar seguimento legado separado e preservar responsáveis Kimi.
+- Arquivos alterados: esta tarefa, BACKLOG.md, HANDOFF.md e inventário de testes para contagem factual.
+- Evidências: [a502ba7](https://github.com/Kaykygnb/StyloDesigner/commit/a502ba7704b43e9ac686f3465f15a7ab62c96d3b); [CI da implementação](https://github.com/Kaykygnb/StyloDesigner/actions/runs/38498065722), ainda em andamento na última consulta. Gates locais aprovados; não afirmar CI final verde antes de terminar.
+- Testes executados: gates do #4 e revisão final do diff/links; nenhuma auditoria visual ou alteração funcional de produto.
+- Problemas encontrados: fixtures legados têm escopo próprio em DOC-ENG-004 (Proposta); correção destes dois fixtures não certifica isolamento global da suíte em todo ambiente.
 
 ## Histórico de trabalho
 
@@ -125,46 +125,55 @@ Garantir fixtures descartáveis independentemente de variáveis herdadas e encer
 - Resultado: antes PG passava com PANIC; agora o hook exige ausência de PANIC/encerramento anormal e ausência do diretório após parada. Falha de parada/startup pendente preserva arquivos e falha visivelmente.
 - Próximo passo: terminar suíte, registrar publicação e concluir conforme aceite.
 
+### 2026-10-14 01:57 UTC — [Codex] — #4–#5 entrega
+
+- Investigado: logs finais, critérios, origem do commit e limites de plataforma/legados.
+- Alterado: tarefa concluída 5/5; backlog/handoff e contagem de execução atualizados; histórico preservado.
+- Arquivos: esta tarefa, BACKLOG.md, HANDOFF.md e docs/testing/INVENTORY.md.
+- Testes: 620/620 sem falhas/cancelamentos/skips; específicos 9/9, typecheck, inventário/check, validador e diff aprovados.
+- Resultado: duas falhas de fixture corrigidas e publicadas em a502ba7; PG agora confirma ausência de PANIC/diretório após parada. CI em andamento na consulta final, não alegada como aprovada.
+- Próximo passo: assumir DOC-ENG-004 para investigar legados; revisões humanas Kimi e QA Work mantidas independentes.
+
 ## Handoff atual
 
 Preparado por: [Codex]
-Destinatário: [Codex / próximo participante após transferência]
-Estado: Em execução
-Marco atual: #4 — Testes
-Última atualização: 2026-10-14 01:52 UTC
-Commit de referência: `fb324741e8535fb61d80b6f9ba3fd8c3e89c2fdc`
+Destinatário: [Próximo participante]
+Estado: Concluída — fixtures entregues
+Marco atual: #5 — Validação final concluída
+Última atualização: 2026-10-14 01:57 UTC
+Commit de referência: `a502ba7704b43e9ac686f3465f15a7ab62c96d3b`
 
 ### Estado atual
 
-Implementação pronta; testes específicos aprovados e suíte completa pendente. Nenhuma transferência de trabalho Kimi.
+MCP ignora URL/blobs/segredo herdados; PostgreSQL fecha cliente/servidores/banco antes da remoção. Gates locais aprovados, publicação na beta.
 
 ### Decisões tomadas
 
-Helper de testes para aguardar saída e cleanup com erros visíveis; nenhum handler do produto será modificado. Diretório só removido após recursos encerrarem. PostgreSQL indisponível não deve mascarar erros inesperados com skip genérico.
+Helper restrito a testes; timeout e saída confirmada; um hook por fixture. Recursos registrados antes de conectar/iniciar; se parada falhar ou inicialização permanecer em execução, preservar diretório e falhar visivelmente. Erros PG não geram mais skip automático; opt-out explícito não comprova esse adapter.
 
 ### Arquivos envolvidos
 
-Dois fixtures MCP/PG, helper/regressões de lifecycle, inventário regenerado, estratégia/regressões e planejamento.
+Fixtures MCP/PG, tests/helpers/fixture-lifecycle.mjs, fixture-lifecycle.test.js, inventário, estratégia/matriz e planejamento.
 
 ### Evidências e testes
 
-Log anterior confirma PANIC; log final específico /tmp/stylo-fixture-targeted-final.log: 9/9; typecheck/check aprovados; suíte completa pendente.
+Antes: /tmp/stylo-kimi-review-tests.log com PANIC por pasta removida. Depois: /tmp/stylo-fixture-targeted-final.log 9/9; full.log 620/620 sem falhas/skips; types.log aprovado. Inventário 120/validador 19 aprovados. Commit a502ba7; CI 38498065722 em andamento na última consulta.
 
 ### Pendências
 
-Suíte completa, commit e fechamento documental.
+Nenhuma desta correção local. DOC-ENG-004 propõe investigar legados; monitorar CI remota sem afirmar resultado futuro. Windows não executado nesta rodada.
 
 ### Próximas ações recomendadas
 
-Conferir suíte e logs; publicar e atualizar evidências. Windows não valida simulação POSIX de SIGTERM ignorado; PG exige opt-out manual caso não possa ser executado.
+Assumir DOC-ENG-004 pelo protocolo e reproduzir com sentinelas; preservar PostgreSQL explicitamente provisionado e as tarefas/revisões Kimi. QA visual continua sob orientação humana.
 
 ### Riscos e cuidados
 
-Somente processos/dados próprios; não executar contra URL real herdada; manter responsáveis Kimi e QA humano sem exploração.
+Não restaurar env herdado/skip genérico nem remover pasta antes de saída. Opt-out PG e simulação POSIX não substituem evidência em outras plataformas. Nenhuma conexão com dados reais usada na reprodução hostil.
 
 ### Condições para conclusão
 
-Critérios desta tarefa atendidos, evidências e gates publicados.
+Critérios desta tarefa atendidos com regressões/publicação; conclusão restrita aos dois fixtures e helper, não ao conjunto legado.
 
 ## Rollback
 

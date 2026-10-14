@@ -10,4 +10,4 @@
 | Studio | `studio-ui`, `studio-geometry`, `studio-api`, `studio-pasteboard` | interação, canvas e integração |
 | Auditoria/medidas | `audit*`, `inspect-layout`, `layout-inspection-renderer` | problemas e medidas responsivas |
 
-Execução local de referência (2026-10-13 23:29 UTC, tooling/contratos de 08a6c03): 613 pass, 0 fail, 0 cancelled, 0 skipped. Esta contagem descreve a suíte executada, não cobertura completa de toda capacidade.
+Execução local de referência (2026-10-14 01:57 UTC, fixtures de a502ba7): 620 pass, 0 fail, 0 cancelled, 0 skipped. Esta contagem descreve a suíte executada, não cobertura completa de toda capacidade.
