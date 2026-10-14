@@ -4,7 +4,7 @@ Responsável: [Muse Spark]
 Estado: Em andamento
 Início: 2026-10-14 01:15 -03:00
 Última atualização: 2026-10-14 01:15 -03:00
-Progresso: 0/5 marcos (0%)
+Progresso: 2/5 marcos (40%)
 Participantes: [Muse Spark]
 
 - **Módulo:** studio
@@ -25,21 +25,21 @@ Participantes: [Muse Spark]
 ## Marcos
 
 ### #1 — Investigação
-- Estado: em andamento
+- Estado: concluído
 - Responsável: [Muse Spark]
-- Atividades executadas: assunção §2 após 002 concluída; leitura de BACKLOG, DOC-CORE-001 (registros reutilizáveis), `studio-calls.ts` (ponte do painel), `mcp/agent-calls.ts` (caller MCP), `studio-api.test.js` (ponte + regressão de convivência), `workspace.test.ts` (harness PGlite + casos de escopo/export); verificação de duplicação (003 = revisão visual/UX; MCP-001 = clientes externos; esta = equivalência funcional painel×MCP).
+- Atividades executadas: assunção §2 após 002 concluída; leitura de BACKLOG, DOC-CORE-001 (registros reutilizáveis), `studio-calls.ts` (ponte do painel), `mcp/agent-calls.ts` (caller MCP), `studio-api.test.js` (ponte + regressão de convivência), `workspace.test.ts` (harness PGlite + casos de escopo/export); verificação de duplicação (003 = revisão visual/UX; MCP-001 = clientes externos; esta = equivalência funcional painel×MCP); conferidos `createPresence` (`presence.js:66`), `createEvents` (`events.ts:18`), ferramentas `update_layers/create_layer/undo/redo/get_activity` (`schema.ts:196,208,748,871,909`), workspace aceita callers externos (`workspace/index.ts:76`).
 - Arquivos alterados: este documento e BACKLOG.md (assunção).
-- Evidências: ambos os callers terminam em `workspace.call(tool, args, {sid, actor, signal})` com mesmas validações/travas; diferenças: ator (`USER` vs `AGENT` com scopes), chave de sessão (`web:user:tab` vs id MCP), log de presença (`log` vs `touchAgent/done`), `pageId` restabelecido no Studio, `BLOCKED` vazio.
+- Evidências: ambos os callers terminam em `workspace.call(tool, args, {sid, actor, signal})` com mesmas validações/travas; diferenças: ator (`USER` vs `AGENT` com scopes), chave de sessão (`web:user:tab` vs id MCP), log de presença (`log` vs `touchAgent/done`), `pageId` restabelecido no Studio, `BLOCKED` vazio. Harness viável: PGlite + serviços + `createPresence`/`createEvents` reais + os dois callers; sem Chromium.
 - Testes executados: —
-- Problemas encontrados: —
+- Problemas encontrados: ids de camada são gerados por execução — paridade compara forma/propriedades, não JSON bruto; teste novo citará ferramentas → rodar `npm run docs:inventario` na #4 (regra da 001).
 ### #2 — Planejamento
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
+- Estado: concluído
+- Responsável: [Muse Spark]
+- Atividades executadas: plano do teste novo `tests/studio-parity.test.js` (só teste, sem runtime): mesmo roteiro pelos dois callers em projetos equivalentes — criação, update unitário, batch, arrange/layout, undo/redo, `export_site` (metadados), atividade (atores USER×AGENT) e recusa de autorização (scope só-leitura); comparação por forma observável (contagens, nomes, props, paths/bytes) + undo efetivo + log por ator; e2e Chromium fora (risco conhecido).
+- Arquivos alterados: este documento.
+- Evidências: 7 famílias × pontos de comparação definidos; sem mudar comportamento.
 - Testes executados: —
-- Problemas encontrados: —
+- Problemas encontrados: nenhum bloqueio.
 ### #3 — Implementação
 - Estado: pendente
 - Responsável: [Não atribuído]
@@ -82,6 +82,15 @@ Participantes: [Muse Spark]
 - Testes: ainda não executados.
 - Resultado: tarefa assumida; paridade testável sem Chromium (harness PGlite + callers reais).
 - Próximo passo: concluir #1 (famílias de operações e pontos de comparação) e #2 (plano da matriz + teste novo).
+
+### 2026-10-14 01:15 -03:00 — [Muse Spark] — #1 concluída e #2 planejada
+
+- Investigado: callers, presença/eventos reais, ferramentas das 7 famílias, harness PGlite existente.
+- Alterado: #1 e #2 concluídas; sem runtime.
+- Arquivos: este documento.
+- Testes: ainda não executados.
+- Resultado: paridade testável sem Chromium; comparação por forma observável (ids variam por execução).
+- Próximo passo: #3 escrever `tests/studio-parity.test.js`; #4 gates + `docs:inventario`.
 
 ## Handoff atual
 
