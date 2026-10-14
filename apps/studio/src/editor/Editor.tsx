@@ -70,7 +70,7 @@ export function Editor() {
     resizeByKeyboard(side, event.key);
   };
   useEffect(() => { const onKey = () => { const closed = leftCollapsed || rightCollapsed; collapseLeft(!closed); collapseRight(!closed); }; window.addEventListener('stylo:panels', onKey); return () => window.removeEventListener('stylo:panels', onKey); }, [leftCollapsed, rightCollapsed]);
-  if (!doc) return <div className="center-note"><span className="spinner" /> {language === 'en-US' ? 'Opening project…' : 'Abrindo o projeto…'}</div>;
+  if (!doc) return <div className="center-note"><span className="spinner" /> {t(language, 'ui.editor.openingProject')}</div>;
   if (presenting) return <Presentation />;
 
   const tabs = MAIN_TABS.map((tab) => ({ ...tab, label: t(language, `tabs.${tab.id}`) }));
@@ -109,8 +109,8 @@ export function Editor() {
           </div>
         </aside>
       )}
-      {!hidden && !leftCollapsed && <div className="panel-resizer left-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={180} aria-valuemax={460} aria-valuenow={leftWidth} aria-label={language === 'en-US' ? 'Resize left panel' : 'Redimensionar painel esquerdo'} onPointerDown={() => resize('left')} onKeyDown={(event) => resizerKeyDown('left', event)} />}
-      {!hidden && !rightCollapsed && <div className="panel-resizer right-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={240} aria-valuemax={520} aria-valuenow={rightWidth} aria-label={language === 'en-US' ? 'Resize right panel' : 'Redimensionar painel direito'} onPointerDown={() => resize('right')} onKeyDown={(event) => resizerKeyDown('right', event)} />}
+      {!hidden && !leftCollapsed && <div className="panel-resizer left-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={180} aria-valuemax={460} aria-valuenow={leftWidth} aria-label={t(language, 'ui.editor.resizeLeftPanel')} onPointerDown={() => resize('left')} onKeyDown={(event) => resizerKeyDown('left', event)} />}
+      {!hidden && !rightCollapsed && <div className="panel-resizer right-resizer" role="separator" tabIndex={0} aria-orientation="vertical" aria-valuemin={240} aria-valuemax={520} aria-valuenow={rightWidth} aria-label={t(language, 'ui.editor.resizeRightPanel')} onPointerDown={() => resize('right')} onKeyDown={(event) => resizerKeyDown('right', event)} />}
       <ProjectDialog />
       <HelpDialog />
       <SettingsDialog />

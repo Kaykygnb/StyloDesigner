@@ -1,5 +1,7 @@
 // Seletor de cor: quadrado de saturação/brilho, matiz, opacidade, valor em hexadecimal, conta-gotas e as cores do projeto.
 // Enquanto se arrasta, só a amostra muda; a mudança vai para o projeto (uma chamada de ferramenta) ao soltar.
+import { useApp } from '../lib/app';
+import { t } from '../lib/i18n';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { hexToRgb, hsvToRgb, rgbToHex, rgbToHsv } from '@stylo/core/color.ts';
@@ -38,6 +40,7 @@ function useDrag(fn: Drag) {
 function Picker({ color, opacity, onChange, groups, anchor, onClose }: {
   color: string; opacity: number; onChange: (hex: string, opacity: number) => void; groups: ColorGroup[]; anchor: DOMRect; onClose: () => void;
 }) {
+  const language = useApp((s) => s.language);
   const [hsv, setHsv] = useState(() => toHsv(color));
   const [alpha, setAlpha] = useState(opacity);
   const box = useRef<HTMLDivElement>(null);
@@ -77,7 +80,7 @@ function Picker({ color, opacity, onChange, groups, anchor, onClose }: {
   const hasDropper = typeof window !== 'undefined' && 'EyeDropper' in window;
 
   return createPortal(
-    <div ref={box} className="colorpop" style={{ left: pos.left, top: pos.top }} role="dialog" aria-label="Seletor de cor">
+    <div ref={box} className="colorpop" style={{ left: pos.left, top: pos.top }} role="dialog" aria-label={t(language, 'ui.color.picker')}>
       <div ref={area} className="cp-area" style={{ backgroundColor: toHex(hsv.h, 1, 1) }} onMouseDown={dragArea}>
         <div className="cp-knob" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex }} />
       </div>
@@ -89,10 +92,10 @@ function Picker({ color, opacity, onChange, groups, anchor, onClose }: {
             <div className="cp-thumb" style={{ left: `${alpha * 100}%` }} />
           </div>
         </div>
-        {hasDropper && <button type="button" className="ibtn" title="Conta-gotas: pegar uma cor da tela" onClick={() => void eyedropper()}><Icon name="eyedropper" size={16} /></button>}
+        {hasDropper && <button type="button" className="ibtn" title={t(language, 'ui.color.eyedropper')} onClick={() => void eyedropper()}><Icon name="eyedropper" size={16} /></button>}
       </div>
       <div className="cp-inputs">
-        <Txt value={hex} mono label="Hexadecimal" onCommit={(v) => { const n = normalize(v); if (n) pick(n); }} />
+        <Txt value={hex} mono label={t(language, 'ui.color.hex')} onCommit={(v) => { const n = normalize(v); if (n) pick(n); }} />
         <Num value={Math.round(alpha * 100)} min={0} max={100} decimals={0} unit="%" onCommit={(v) => { const a = (v ?? 100) / 100; setAlpha(a); commit(current.current.hex, a); }} />
       </div>
       {groups.filter((g) => g.colors.length).map((g) => (
@@ -102,7 +105,7 @@ function Picker({ color, opacity, onChange, groups, anchor, onClose }: {
         </div>
       ))}
       <div className="cp-group">
-        <div className="cap"><span>Paleta</span></div>
+        <div className="cap"><span>{t(language, 'ui.color.palette')}</span></div>
         <div className="cp-swatches">{PRESETS.map((c) => <button key={c} type="button" className="chip" title={c} style={{ background: c }} onClick={() => pick(c)} />)}</div>
       </div>
     </div>,
@@ -114,15 +117,16 @@ function Picker({ color, opacity, onChange, groups, anchor, onClose }: {
 export function ColorRow({ color, opacity = 1, onChange, groups = [], mixed, hideOpacity, disabled }: {
   color: string; opacity?: number; onChange: (hex: string, opacity: number) => void; groups?: ColorGroup[]; mixed?: boolean; hideOpacity?: boolean; disabled?: boolean;
 }) {
+  const language = useApp((s) => s.language);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const close = useCallback(() => setAnchor(null), []);
   const valid = normalize(color) ?? '#000000';
   return (
     <div className="colorrow">
-      <button type="button" className="swatch-btn" disabled={disabled} aria-label="Escolher cor" onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
+      <button type="button" className="swatch-btn" disabled={disabled} aria-label={t(language, 'ui.color.choose')} onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
         <span className="swatch-fill" style={{ background: mixed ? 'transparent' : valid, opacity: mixed ? 1 : Math.max(0.15, opacity) }} />
       </button>
-      <Txt value={mixed ? '' : valid} mono placeholder={mixed ? 'Misto' : undefined} disabled={disabled} label="Cor em hexadecimal" onCommit={(v) => { const n = normalize(v); if (n) onChange(n, opacity); }} />
+      <Txt value={mixed ? '' : valid} mono placeholder={mixed ? t(language, 'ui.color.mixed') : undefined} disabled={disabled} label={t(language, 'ui.color.hexLabel')} onCommit={(v) => { const n = normalize(v); if (n) onChange(n, opacity); }} />
       {!hideOpacity && <Num value={Math.round(opacity * 100)} min={0} max={100} decimals={0} unit="%" disabled={disabled} onCommit={(v) => onChange(valid, (v ?? 100) / 100)} />}
       {anchor && <Picker color={valid} opacity={opacity} groups={groups} anchor={anchor} onClose={close} onChange={onChange} />}
     </div>

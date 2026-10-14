@@ -1,4 +1,5 @@
 // As cores que o projeto já usa, para oferecer no seletor de cor.
+import { tl } from './i18n';
 import type { ColorGroup } from '../ui/ColorPicker';
 import type { Doc, LayerNode } from './types';
 
@@ -16,6 +17,6 @@ export function docTopColors(doc: Doc, max = 14): string[] {
 }
 
 export const colorGroups = (doc: Doc): ColorGroup[] => [
-  { title: 'Cores do documento', colors: docTopColors(doc, 16) },
-  { title: 'Estilos de cor', colors: ((doc.styles?.colors ?? []) as { color?: string }[]).map((c) => c.color ?? '').filter(Boolean) },
+  { title: tl('ui.color.docColors'), colors: docTopColors(doc, 16) },
+  { title: tl('ui.color.colorStyles'), colors: ((doc.styles?.colors ?? []) as { color?: string }[]).map((c) => c.color ?? '').filter(Boolean) },
 ];

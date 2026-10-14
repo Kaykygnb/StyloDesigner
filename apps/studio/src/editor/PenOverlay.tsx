@@ -1,5 +1,8 @@
 // Caneta (clique = ponto, arrastar = curva) e lápis (traço livre). Ficam numa camada por cima do canvas, então funcionam também sobre as telas.
 // Enter ou duplo clique termina um caminho aberto; clicar no 1º ponto fecha; Esc cancela; Backspace volta um ponto.
+import { useApp } from '../lib/app';
+import { RichText } from '../ui/RichText';
+import { t, tp } from '../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 
 export interface PenPoint { x: number; y: number; hin?: { x: number; y: number } | null; hout?: { x: number; y: number } | null }
@@ -35,6 +38,7 @@ export function simplifyStroke(points: P[], tolerance: number): P[] {
 }
 
 export function PenOverlay({ mode, zoom, panX, panY, spaceDown = false, toWorld, targets, onDone, onCancel, onPanStart }: Props) {
+  const language = useApp((s) => s.language);
   const box = useRef<HTMLDivElement>(null);
   const [points, setPoints] = useState<PenPoint[]>([]);
   const [cursor, setCursor] = useState<P | null>(null);
@@ -149,8 +153,8 @@ export function PenOverlay({ mode, zoom, panX, panY, spaceDown = false, toWorld,
       </svg>
       <div className="pen-hint" aria-live="polite">
         {mode === 'pen'
-          ? <>{points.length === 0 ? 'Clique para pôr o primeiro ponto' : `${points.length} ponto${points.length > 1 ? 's' : ''}`} · <b>arraste</b> faz curva · <b>Shift</b> trava 45° · <b>Ctrl</b> sem encaixe · <b>Backspace</b> volta · <b>Enter</b>/duplo clique termina{points.length >= 3 ? ' · clique no 1º ponto fecha' : ''} · <b>Esc</b> cancela</>
-          : <>Arraste para riscar à mão livre · <b>Esc</b> cancela</>}
+          ? <RichText text={t(language, 'ui.pen.hint', { status: points.length === 0 ? t(language, 'ui.pen.firstPoint') : tp(language, 'ui.pen.points', points.length), close: points.length >= 3 ? t(language, 'ui.pen.closeHint') : '' })} />
+          : <RichText text={t(language, 'ui.pen.hintDraw')} />}
       </div>
     </div>
   );

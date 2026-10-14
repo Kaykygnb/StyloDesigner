@@ -1,5 +1,6 @@
 // Editor de código simples e bom o bastante: números de linha, cores para CSS e HTML, Tab insere espaços, Ctrl+Enter aplica, Esc desfaz.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { tl } from '../lib/i18n';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -27,7 +28,7 @@ export function highlightHtml(text: string): string {
 
 export interface Lint { line: number; level: 'error' | 'warn'; msg: string }
 
-export function CodeEditor({ value, onApply, language = 'css', lint, placeholder, readOnly, minRows = 8, applyLabel = 'Aplicar', fill, extra }: {
+export function CodeEditor({ value, onApply, language = 'css', lint, placeholder, readOnly, minRows = 8, applyLabel, fill, extra }: {
   value: string; onApply?: (text: string) => void | Promise<void>; language?: 'css' | 'html'; lint?: (text: string) => Lint[]; placeholder?: string;
   readOnly?: boolean; minRows?: number; applyLabel?: string; fill?: boolean; extra?: React.ReactNode;
 }) {
@@ -67,7 +68,7 @@ export function CodeEditor({ value, onApply, language = 'css', lint, placeholder
         <div className="codeed-stack">
           <pre ref={pre} className="codeed-hl" aria-hidden="true" dangerouslySetInnerHTML={{ __html: html }} />
           <textarea
-            ref={area} className="codeed-input" spellCheck={false} value={text} readOnly={readOnly} placeholder={placeholder} aria-label={language === 'css' ? 'Editor de CSS' : 'Editor de HTML'} wrap="off"
+            ref={area} className="codeed-input" spellCheck={false} value={text} readOnly={readOnly} placeholder={placeholder} aria-label={tl(language === 'css' ? 'ui.codeeditor.css' : 'ui.codeeditor.html')} wrap="off"
             onChange={(e) => { editing.current = true; setText(e.target.value); }} onScroll={sync}
             onKeyDown={(e) => {
               e.stopPropagation();
@@ -84,7 +85,7 @@ export function CodeEditor({ value, onApply, language = 'css', lint, placeholder
         </span>
         <span className="spacer" />
         {extra}
-        {onApply && !readOnly && <button type="button" className="btn primary sm" disabled={!dirty || busy} onClick={() => void apply()}>{busy ? <span className="spinner" /> : null} {applyLabel}</button>}
+        {onApply && !readOnly && <button type="button" className="btn primary sm" disabled={!dirty || busy} onClick={() => void apply()}>{busy ? <span className="spinner" /> : null} {applyLabel ?? tl('ui.codeeditor.apply')}</button>}
       </div>
     </div>
   );

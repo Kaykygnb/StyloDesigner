@@ -6,9 +6,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "node --import tsx apps/server/src/main.ts",
+    "dev": "node scripts/start.mjs --dev",
     "build": "npm run build -w apps/studio",
-    "start": "node --import tsx apps/server/src/main.ts",
+    "start": "node scripts/start.mjs",
     "test": "node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/*.test.js tests/*.test.ts",
     "test:e2e": "npm run build && node tests/e2e/run.mjs",
     "typecheck": "tsc -p packages/db && tsc -p packages/core && tsc -p packages/plugins && tsc -p apps/server && tsc -p apps/studio",

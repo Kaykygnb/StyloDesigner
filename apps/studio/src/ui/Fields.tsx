@@ -1,5 +1,6 @@
 // Campos do painel de propriedades. Cada um mostra o valor atual e só "confirma" (chama onCommit/onChange) ao sair do campo,
 // apertar Enter ou escolher: assim cada mudança vira UMA chamada de ferramenta, não uma por tecla digitada.
+import { tl } from '../lib/i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
@@ -166,7 +167,7 @@ export function Sel({ value, options, onChange, title, disabled, mixed, label }:
     <div className="sel" title={title}>
       {label && <span className="num-label">{label}</span>}
       <select className="field" value={mixed ? '__mixed' : String(value ?? '')} disabled={disabled} onChange={(e) => onChange(e.target.value)} aria-label={title}>
-        {mixed && <option value="__mixed" disabled>Misto</option>}
+        {mixed && <option value="__mixed" disabled>{tl('ui.fields.mixed')}</option>}
         {options.map(([v, l]) => <option key={String(v)} value={String(v)}>{l}</option>)}
       </select>
     </div>

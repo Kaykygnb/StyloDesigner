@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { measures, union, type Box, type SnapGuide } from './canvas/geometry';
 import type { ShapeTool } from '../lib/shapes';
 import type { LayerNode } from '../lib/types';
+import { t } from '../lib/i18n';
+import type { Language } from '../lib/app';
 
 export interface ObBox extends Box { rot: number }
 type Handle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -172,7 +174,7 @@ export function SelectionOverlay({ zoom, gesture, selection, editable, hoverBox,
 /** Nós e alças do path selecionado. Fica fora do iframe e só aparece no modo Inspecionar. */
 export function VectorNodeOverlay({ node, box, zoom, language = 'pt-BR', worldFromClient, onCommit, spaceDown = false, onPanStart }: {
   node: LayerNode; box: ObBox; zoom: number; worldFromClient: (x: number, y: number) => { x: number; y: number };
-  language?: 'pt-BR' | 'en-US';
+  language?: Language;
   onCommit: (points: NonNullable<LayerNode['points']>) => void;
   spaceDown?: boolean; onPanStart?: (event: MouseEvent) => void;
 }) {
@@ -232,7 +234,7 @@ export function VectorNodeOverlay({ node, box, zoom, language = 'pt-BR', worldFr
     <svg className="vector-handle-lines" width="100%" height="100%" viewBox={`0 0 ${box.w} ${box.h}`} preserveAspectRatio="none" aria-hidden="true">
       {draft.map((p, i) => (['hin', 'hout'] as const).map((field) => p[field] && (() => { const a = px(p); const b = px(p[field]!); return <line key={`${field}-line-${i}`} x1={a.left} y1={a.top} x2={b.left} y2={b.top} />; })()))}
     </svg>
-    {draft.map((p, i) => <button type="button" key={`n${i}`} className={`vector-node${selectedNodes.has(i) ? ' selected' : ''}`} style={px(p)} onMouseDown={begin(i, 'point')} onKeyDown={onNodeKey(i)} aria-pressed={selectedNodes.has(i)} aria-label={`${language === 'en-US' ? 'Node' : 'Nó'} ${i + 1}`} title={`${language === 'en-US' ? 'Node' : 'Nó'} ${i + 1}: Shift ${language === 'en-US' ? 'selects multiple; arrows move 1px, Shift+arrows 10px' : 'seleciona vários; setas movem 1px, Shift+setas 10px'}`} />)}
-    {draft.map((p, i) => (['hin', 'hout'] as const).map((field) => p[field] && <button type="button" key={`${field}${i}`} className={`vector-handle ${field}`} style={px(p[field]!)} onMouseDown={begin(i, field)} aria-label={`${field === 'hin' ? (language === 'en-US' ? 'Incoming handle' : 'Alça de entrada') : (language === 'en-US' ? 'Outgoing handle' : 'Alça de saída')} ${i + 1}`} title={`${field === 'hin' ? (language === 'en-US' ? 'Incoming handle' : 'Alça de entrada') : (language === 'en-US' ? 'Outgoing handle' : 'Alça de saída')} ${i + 1}`} />))}
+    {draft.map((p, i) => <button type="button" key={`n${i}`} className={`vector-node${selectedNodes.has(i) ? ' selected' : ''}`} style={px(p)} onMouseDown={begin(i, 'point')} onKeyDown={onNodeKey(i)} aria-pressed={selectedNodes.has(i)} aria-label={`${t(language, 'ui.overlay.node')} ${i + 1}`} title={`${t(language, 'ui.overlay.node')} ${i + 1}: Shift ${t(language, 'ui.overlay.selectsMultipleArrowsMove1px')}`} />)}
+    {draft.map((p, i) => (['hin', 'hout'] as const).map((field) => p[field] && <button type="button" key={`${field}${i}`} className={`vector-handle ${field}`} style={px(p[field]!)} onMouseDown={begin(i, field)} aria-label={`${field === 'hin' ? (t(language, 'ui.overlay.incomingHandle')) : (t(language, 'ui.overlay.outgoingHandle'))} ${i + 1}`} title={`${field === 'hin' ? (t(language, 'ui.overlay.incomingHandle')) : (t(language, 'ui.overlay.outgoingHandle'))} ${i + 1}`} />))}
   </div>;
 }

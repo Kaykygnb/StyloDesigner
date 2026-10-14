@@ -1,5 +1,6 @@
 // Ações de edição do dia a dia (botão direito e atalhos): copiar/colar, ordem, espelhar, envolver, máscara, componente,
 // travar/ocultar, nota e comentário. Cada uma é uma chamada de ferramenta do MCP (arrange_layers, paste_layers, paste_style…).
+import { tl } from './i18n';
 import { canEdit } from './actions';
 import * as api from './api';
 import { app, run, select, toast } from './app';
@@ -17,7 +18,7 @@ export function copySelection(cut = false): void {
   const ids = selectedTop();
   if (!ids.length) return;
   setClip({ ids, pageId: state().pageId, cut: cut && canEdit() });
-  toast('ok', cut ? 'Recortado: selecione o frame de destino e cole.' : 'Copiado.');
+  toast('ok', cut ? tl('editing.cutDone') : tl('editing.copied'));
 }
 
 export async function pasteClipboard(): Promise<void> {
@@ -25,13 +26,13 @@ export async function pasteClipboard(): Promise<void> {
   const p = page();
   if (!clip || !p || !canEdit()) return;
   const alive = clip.ids.filter((id) => findNode(p.children, id));
-  if (!alive.length) { toast('error', 'O que foi copiado não está mais nesta página.'); return; }
+  if (!alive.length) { toast('error', tl('editing.copiedGone')); return; }
   // cola dentro do frame selecionado (se houver um e não for uma das copiadas)
   const sel = state().selection;
   const target = sel.length === 1 ? findNode(p.children, sel[0]) : null;
   const into = target && target.type === 'frame' && !alive.includes(target.id) && !alive.some((id) => isAncestor(p.children, id, target.id)) ? target : null;
   if (clip.cut) {
-    if (!into) { toast('error', 'Selecione o frame onde colar o que foi recortado.'); return; }
+    if (!into) { toast('error', tl('editing.selectFrameToPaste')); return; }
     for (const id of alive) await run('move_layer', { id, parent_id: into.id });
     setClip(null);
     select(alive);
@@ -45,14 +46,14 @@ export function copyStyle(): void {
   const id = state().selection[0];
   if (!id) return;
   setStyleSource(id);
-  toast('ok', 'Propriedades copiadas: selecione outra camada e use “Colar propriedades”.');
+  toast('ok', tl('editing.propsCopied'));
 }
 
 export async function pasteStyle(): Promise<void> {
   const src = getStyleSource();
   const ids = selectedTop();
   if (!src || !ids.length || !canEdit()) return;
-  if (!findNode(page()?.children ?? [], src)) { toast('error', 'A camada de onde copiei não existe mais.'); return; }
+  if (!findNode(page()?.children ?? [], src)) { toast('error', tl('editing.sourceGone')); return; }
   await run('paste_style', { source_id: src, ids });
 }
 
@@ -63,8 +64,8 @@ export async function copyCss(): Promise<void> {
     const parts: string[] = [];
     for (const id of ids.slice(0, 20)) parts.push((await api.tool<{ css: string }>('get_code', { id }, state().pageId ?? undefined)).css);
     await navigator.clipboard.writeText(parts.join('\n\n'));
-    toast('ok', 'CSS copiado.');
-  } catch (e) { toast('error', e instanceof Error ? e.message : 'Não consegui copiar o CSS.'); }
+    toast('ok', tl('editing.cssCopied'));
+  } catch (e) { toast('error', e instanceof Error ? e.message : tl('editing.cssCopyFailed')); }
 }
 
 // ---------------------------------------------------------------- arranjo
@@ -97,7 +98,7 @@ export function commentOn(id: string, at: { rx: number; ry: number } = { rx: 1, 
 
 export async function noteOn(id: string): Promise<void> {
   const node = findNode(page()?.children ?? [], id);
-  const text = await askText(node?.note ? 'Editar nota' : 'Adicionar nota', String(node?.note ?? ''), { multiline: true, okLabel: 'Guardar', message: 'A nota é um lembrete na camada (fica no projeto, não no site exportado).' });
+  const text = await askText(node?.note ? tl('editing.editNote') : tl('editing.addNote'), String(node?.note ?? ''), { multiline: true, okLabel: tl('editing.keep'), message: tl('editing.noteHint') });
   if (text !== null) await run('update_layer', { id, props: { note: text.trim() } });
 }
 
@@ -143,5 +144,5 @@ export function selectMainOf(id: string): void {
   const p = page();
   const node = p && findNode(p.children, id);
   const main = node?.instanceOf ? flatten(p!.children).find((n) => n.id === node.instanceOf) : null;
-  if (main) select([main.id]); else toast('error', 'O componente principal não está nesta página.');
+  if (main) select([main.id]); else toast('error', tl('editing.mainMissing'));
 }

@@ -2,15 +2,13 @@
 import { useState } from 'react';
 import * as api from '../lib/api';
 import { afterLogin, persistAccountPreferences, setLanguage, signedOut, useApp } from '../lib/app';
-import { SUPPORTED_LANGUAGES } from '../lib/i18n';
-import { t } from '../lib/i18n';
+import { SUPPORTED_LANGUAGES, t } from '../lib/i18n';
 import { Icon } from '../ui/Icon';
 
 export function Login() {
   const auth = useApp((s) => s.auth);
   const language = useApp((s) => s.language);
   const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
-  const en = language === 'en-US';
   const first = !!auth && !auth.hasAccounts;
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -34,23 +32,23 @@ export function Login() {
 
   return (
     <div className="login">
-      <label className="login-language" title={en ? 'Interface language' : 'Idioma da interface'}>
-        <Icon name="globe" size={14} /><select aria-label={en ? 'Interface language' : 'Idioma da interface'} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
+      <label className="login-language" title={t(language, 'ui.home.interfaceLanguage')}>
+        <Icon name="globe" size={14} /><select aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
       </label>
       <div className="login-shell">
-        <section className="login-story" aria-label="Sobre o Stylo">
+        <section className="login-story" aria-label={t(language, 'ui.login.aboutAria')}>
           <div className="brand big"><span className="logo">S</span> Stylo</div>
-          <div className="login-kicker">{en ? 'A creative suite for ideas that deserve form.' : 'A creative suite para ideias que pedem forma.'}</div>
-          <h1>{en ? 'Start with a blank canvas. Finish with something unforgettable.' : 'Comece com uma tela em branco. Termine com algo inesquecível.'}</h1>
-          <p>{en ? 'Create sites, experiences, and visual systems with a designer’s freedom and the speed of a whole team.' : 'Crie sites, experiências e sistemas visuais com liberdade de designer e a velocidade de uma equipe inteira.'}</p>
+          <div className="login-kicker">{t(language, 'ui.login.aCreativeSuiteForIdeas')}</div>
+          <h1>{t(language, 'ui.login.startWithABlankCanvas')}</h1>
+          <p>{t(language, 'ui.login.createSitesExperiencesAndVisual')}</p>
           <div className="login-preview" aria-hidden="true">
             <span className="preview-orb orb-one" /><span className="preview-orb orb-two" />
             <div className="preview-window"><i /><i /><i /><b /><b /><b /><em /></div>
           </div>
-          <div className="login-proof"><span className="dot ok" /> {en ? 'Your creative space, ready when you are.' : 'Seu espaço criativo, pronto quando você estiver.'}</div>
+          <div className="login-proof"><span className="dot ok" /> {t(language, 'ui.login.yourCreativeSpaceReadyWhen')}</div>
         </section>
         <form className="login-card" onSubmit={submit}>
-          <div className="login-card-head"><span className="eyebrow">{first ? (en ? 'FIRST ACCESS' : 'PRIMEIRO ACESSO') : (en ? 'WELCOME BACK' : 'BEM-VINDO DE VOLTA')}</span><span className="status-pill">{en ? 'Secure' : 'Seguro'}</span></div>
+          <div className="login-card-head"><span className="eyebrow">{first ? (t(language, 'ui.login.firstAccess')) : (t(language, 'ui.login.welcomeBack'))}</span><span className="status-pill">{t(language, 'ui.login.secure')}</span></div>
           <h2>{tr(first ? 'login.setupTitle' : 'login.signInTitle')}</h2>
           <p className="muted">{tr(first ? 'login.setupHint' : 'login.signInHint')}</p>
           {first && <label>{tr('login.name')}<input className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required /></label>}
@@ -60,7 +58,7 @@ export function Login() {
           {first && <p className="faint small">{tr('login.passwordHint')}</p>}
           {error && <div className="notice error" role="alert">{error}</div>}
           <button className="btn primary block" type="submit" disabled={busy}>{busy ? <span className="spinner" /> : null} {tr(first ? 'login.createAndEnter' : 'login.signIn')}</button>
-          <p className="login-footnote">{en ? 'Sign in to return to your projects and creative space.' : 'Ao entrar, você retoma seus projetos e seu espaço de criação.'}</p>
+          <p className="login-footnote">{t(language, 'ui.login.signInToReturnTo')}</p>
         </form>
       </div>
     </div>
@@ -94,13 +92,13 @@ export function RequiredPasswordChange() {
   };
   return (
     <div className="login">
-      <label className="login-language" title={language === 'en-US' ? 'Interface language' : 'Idioma da interface'}>
-        <Icon name="globe" size={14} /><select aria-label={language === 'en-US' ? 'Interface language' : 'Idioma da interface'} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
+      <label className="login-language" title={t(language, 'ui.home.interfaceLanguage')}>
+        <Icon name="globe" size={14} /><select aria-label={t(language, 'ui.home.interfaceLanguage')} value={language} onChange={(e) => { const next = e.target.value as typeof language; setLanguage(next); persistAccountPreferences({ language: next }); }}>{SUPPORTED_LANGUAGES.map((item) => <option key={item.value} value={item.value}>{item.short}</option>)}</select>
       </label>
       <form className="login-card compact" onSubmit={submit} aria-busy={busy}>
         <div className="brand big"><span className="logo">S</span> Stylo</div>
         <h1>{tr('login.changeTitle')}</h1>
-        <p className="muted">{tr('login.changeHint', { email: user?.email || (language === 'en-US' ? 'your account' : 'sua conta') })}</p>
+        <p className="muted">{tr('login.changeHint', { email: user?.email || (t(language, 'ui.login.yourAccount')) })}</p>
         <label>{tr('login.temporaryPassword')}<input className="field" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required autoFocus /></label>
         <label>{tr('login.newPassword')}<input className="field" type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" minLength={8} required /></label>
         <label>{tr('login.confirmNewPassword')}<input className="field" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required /></label>

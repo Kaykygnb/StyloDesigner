@@ -116,6 +116,7 @@ function findMain(list: Ctx['nodes'], id: string): Ctx['n'] | null {
 // ---------------------------------------------------------------- Estados
 const CURSORS: [string, string][] = [['', 'Padrão'], ['pointer', 'Mãozinha (pointer)'], ['text', 'Texto (text)'], ['grab', 'Mão aberta (grab)'], ['not-allowed', 'Bloqueado (not-allowed)'], ['default', 'Seta (default)']];
 const EASINGS: [string, string][] = [['ease', 'Suave (ease)'], ['ease-in-out', 'Entra e sai (ease-in-out)'], ['ease-out', 'Desacelera (ease-out)'], ['ease-in', 'Acelera (ease-in)'], ['linear', 'Constante (linear)']];
+const STATE_KEYS: Record<string, string> = { hover: 'ui.states.hover', active: 'ui.states.active', focus: 'ui.states.focus' };
 const STICKY: [string, string][] = [['', 'Não'], ['0', 'No topo (0px)'], ['16', '16px do topo'], ['64', '64px do topo']];
 
 export function StatesSection({ c }: { c: Ctx }) {
@@ -125,7 +126,7 @@ export function StatesSection({ c }: { c: Ctx }) {
   const off = c.readOnly;
   if (!c.single || bp || !canHaveStates(base as never)) return null;
   const cur = c.editState;
-  const tabs: [StateName | '', string][] = [['', tr('inspector.states.normal')], ...(STATE_LIST as [StateName, string, string][]).map(([k, l]) => [k, language === 'en-US' ? ({ hover: 'Hover', focus: 'Focus', active: 'Active', disabled: 'Disabled' } as Record<string, string>)[k] ?? l : l] as [StateName, string])];
+  const tabs: [StateName | '', string][] = [['', tr('inspector.states.normal')], ...(STATE_LIST as [StateName, string, string][]).map(([k, l]) => [k, STATE_KEYS[k] ? tr(STATE_KEYS[k]) : l] as [StateName, string])];
   return (
     <Section id="states" title={tr('inspector.states.title')} defaultOpen={!!cur || hasStates(base as never, undefined as never)}>
       <div className="segmented wide states">
@@ -137,7 +138,7 @@ export function StatesSection({ c }: { c: Ctx }) {
       </div>
       {cur ? (
         <>
-          <Hint>{tr('inspector.states.editing', { state: (STATE_LIST as string[][]).find(([k]) => k === cur)?.[1] ?? cur, css: (STATE_LIST as string[][]).find(([k]) => k === cur)?.[2] ?? cur })}</Hint>
+          <Hint>{tr('inspector.states.editing', { state: STATE_KEYS[cur as string] ? tr(STATE_KEYS[cur as string]) : (STATE_LIST as string[][]).find(([k]) => k === cur)?.[1] ?? cur, css: (STATE_LIST as string[][]).find(([k]) => k === cur)?.[2] ?? cur })}</Hint>
           <Cap label={tr('inspector.states.scale')} css="transform"><Num label="×" value={Number((n as { scale?: number }).scale ?? 1)} min={0.1} max={3} step={0.01} decimals={2} disabled={off} onCommit={(v) => void c.set({ scale: v ?? 1 })} /></Cap>
           {hasStates(base as never, cur) && !off && <button type="button" className="btn" onClick={() => void run('set_state', { id: base.id, state: cur, reset: true })}><Icon name="close" size={13} /> {tr('inspector.states.clear')}</button>}
         </>
@@ -159,7 +160,7 @@ export function StatesSection({ c }: { c: Ctx }) {
 }
 
 // ---------------------------------------------------------------- HTML
-const TAG_NAMES: Record<string, string> = { p: 'p — parágrafo', h1: 'h1 — título principal', h2: 'h2 — título', h3: 'h3 — subtítulo', h4: 'h4', h5: 'h5', h6: 'h6', span: 'span — trecho de texto', a: 'a — link', label: 'label — rótulo de campo', li: 'li — item de lista', button: 'button — botão', div: 'div — caixa genérica', section: 'section — seção', header: 'header — cabeçalho', footer: 'footer — rodapé', nav: 'nav — navegação', main: 'main — conteúdo principal', aside: 'aside — lateral', article: 'article — artigo', ul: 'ul — lista', ol: 'ol — lista numerada', form: 'form — formulário' };
+const TAG_NAMES: Record<string, string> = Object.fromEntries(['p', 'h1', 'h2', 'h3', 'span', 'a', 'label', 'li', 'button', 'div', 'section', 'header', 'footer', 'nav', 'main', 'aside', 'article', 'ul', 'ol', 'form'].map((tag) => [tag, `ui.html.tag.${tag}`]));
 
 export function HtmlSection({ c }: { c: Ctx }) {
   const { n, page } = c;
@@ -168,7 +169,7 @@ export function HtmlSection({ c }: { c: Ctx }) {
   const off = c.readOnly;
   if (!c.single || c.bp || c.editState || n.type === 'line') return null;
   const isText = n.type === 'text';
-  const tags = ((isText ? TEXT_TAGS : BOX_TAGS) as string[]).map((t) => [t, TAG_NAMES[t] ?? t] as [string, string]);
+  const tags = ((isText ? TEXT_TAGS : BOX_TAGS) as string[]).map((t) => [t, TAG_NAMES[t] ? tr(TAG_NAMES[t]) : t] as [string, string]);
   const tag = tagOf(n as never);
   // etiqueta que não vale onde a camada está (ex.: <li> fora de uma lista): o HTML exportado usa a padrão
   const chain: Ctx['n'][] = [];
@@ -180,13 +181,13 @@ export function HtmlSection({ c }: { c: Ctx }) {
     <Section id="html" title={tr('inspector.html.title')} defaultOpen={false}>
       <Cap label={tr('inspector.html.tag')} css="tag"><Sel value={tag} options={tags} disabled={off} title={tr('inspector.html.tagTitle')} onChange={(v) => void c.set({ tag: v })} /></Cap>
       {check.reason && <Hint warn>{tr('inspector.html.invalidTag', { tag: check.tag, reason: check.reason })}</Hint>}
-      {tag === 'a' && <Cap label={tr('inspector.html.linkAddress')} css="href"><Txt value={n.href ?? ''} placeholder="https://… ou #secao" disabled={off} onCommit={(v) => void c.set({ href: v.trim() || null })} /></Cap>}
+      {tag === 'a' && <Cap label={tr('inspector.html.linkAddress')} css="href"><Txt value={n.href ?? ''} placeholder={tr('ui.more.linkPlaceholder')} disabled={off} onCommit={(v) => void c.set({ href: v.trim() || null })} /></Cap>}
       {tag === 'a' && <Row><Cap label={tr('inspector.html.openIn')} css="target"><Sel value={n.target ?? ''} options={[['', tr('inspector.html.sameTab')], ['_blank', tr('inspector.html.newTab')]]} disabled={off} onChange={(v) => void c.set({ target: v || null })} /></Cap></Row>}
       {tag === 'button' && <Cap label={tr('inspector.html.buttonType')} css="type"><Sel value={n.buttonType ?? ''} options={[['', tr('inspector.html.default')], ['button', 'button'], ['submit', 'submit'], ['reset', 'reset']]} disabled={off} onChange={(v) => void c.set({ buttonType: v || null })} /></Cap>}
       <Cap label={isText ? tr('inspector.html.textDescription') : tr('inspector.html.description')} css="aria-label"><Txt value={n.alt ?? ''} placeholder={isText ? tr('inspector.html.textPlaceholder') : tr('inspector.html.imagePlaceholder')} disabled={off} onCommit={(v) => void c.set({ alt: v.trim() || null })} /></Cap>
       <Row>
-        <Cap label="Id" css="id"><Txt value={n.htmlId ?? ''} mono placeholder="contato" disabled={off} onCommit={(v) => void c.set({ htmlId: v.trim() || null })} /></Cap>
-        <Cap label={tr('inspector.html.classes')} css="class"><Txt value={n.classes ?? ''} mono placeholder="destaque grande" disabled={off} onCommit={(v) => void c.set({ classes: v.trim() || null })} /></Cap>
+        <Cap label="Id" css="id"><Txt value={n.htmlId ?? ''} mono placeholder={tr('ui.more.idExample')} disabled={off} onCommit={(v) => void c.set({ htmlId: v.trim() || null })} /></Cap>
+        <Cap label={tr('inspector.html.classes')} css="class"><Txt value={n.classes ?? ''} mono placeholder={tr('ui.more.classExample')} disabled={off} onCommit={(v) => void c.set({ classes: v.trim() || null })} /></Cap>
       </Row>
       <Row>
         <Cap label={tr('inspector.html.tooltip')} css="title"><Txt value={n.title ?? ''} disabled={off} onCommit={(v) => void c.set({ title: v.trim() || null })} /></Cap>

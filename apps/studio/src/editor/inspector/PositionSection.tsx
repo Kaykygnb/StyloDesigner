@@ -79,7 +79,7 @@ export function PositionSection({ c }: { c: Ctx }) {
       )}
       <Cap label={tr('inspector.position.rotation')} css="transform">
         <Row>
-          <Num label="↻" value={n.rotation ?? 0} decimals={1} min={-360} max={360} unit="°" disabled={off} title="rotação (transform: rotate)" mixed={c.mixed((x) => x.rotation)} onCommit={(v) => void c.set({ rotation: v ?? 0 })} />
+          <Num label="↻" value={n.rotation ?? 0} decimals={1} min={-360} max={360} unit="°" disabled={off} title={tr('ui.position.rotateTip')} mixed={c.mixed((x) => x.rotation)} onCommit={(v) => void c.set({ rotation: v ?? 0 })} />
           {!bp && (
             <div className="btn-group">
               <IconBtn icon="flipH" title={tr('inspector.position.flipH')} on={!!n.flipX} disabled={off} onClick={() => void arrange('flip_h')} />
@@ -90,8 +90,8 @@ export function PositionSection({ c }: { c: Ctx }) {
       </Cap>
       <Cap label={tr('inspector.position.skew')} css="skew">
         <Row>
-          <Num label="X" value={n.skewX ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title="inclinar na horizontal" onCommit={(v) => void c.set({ skewX: v || null })} />
-          <Num label="Y" value={n.skewY ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title="inclinar na vertical" onCommit={(v) => void c.set({ skewY: v || null })} />
+          <Num label="X" value={n.skewX ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title={tr('ui.position.skewH')} onCommit={(v) => void c.set({ skewX: v || null })} />
+          <Num label="Y" value={n.skewY ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title={tr('ui.position.skewV')} onCommit={(v) => void c.set({ skewY: v || null })} />
         </Row>
       </Cap>
       {c.baseOnly && (

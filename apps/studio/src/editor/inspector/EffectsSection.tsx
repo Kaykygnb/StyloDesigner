@@ -28,9 +28,7 @@ export function EffectsSection({ c }: { c: Ctx }) {
     if (v == null || v === def) delete next[key]; else next[key] = v;
     void c.set({ fx: Object.keys(next).length ? next : null });
   };
-  const presetLabels = language === 'en-US'
-    ? [['soft', 'Soft shadow'], ['elevated', 'Elevated'], ['inner', 'Inner shadow'], ['glow', 'Glow'], ['glass', 'Glass']]
-    : [['soft', 'Sombra suave'], ['elevated', 'Sombra elevada'], ['inner', 'Sombra interna'], ['glow', 'Glow'], ['glass', 'Vidro']];
+  const presetLabels = (['soft', 'elevated', 'inner', 'glow', 'glass'] as const).map((id) => [id, t(language, `ui.effects.preset.${id}`)]);
   const applyPreset = (name: string) => {
     const base = { x: 0, y: 8, blur: 24, spread: 0, color: '#000000', opacity: 0.16, inset: false };
     const preset = name === 'elevated' ? { ...base, y: 14, blur: 32, opacity: 0.22 }
@@ -49,7 +47,7 @@ export function EffectsSection({ c }: { c: Ctx }) {
       {effectStyles.length > 0 && (
         <Sel value={n.effectStyleId ?? ''} options={[['', tr('inspector.effects.ownShadow')], ...effectStyles.map((e) => [e.id, e.name] as [string, string])]} disabled={off} title={tr('inspector.effects.shadowStyle')} onChange={(v) => void c.set({ effectStyleId: v || null })} />
       )}
-      {!off && <div className="effect-presets" aria-label={language === 'en-US' ? 'Effect presets' : 'Presets de efeito'}>
+      {!off && <div className="effect-presets" aria-label={t(language, 'ui.effects.effectPresets')}>
         {presetLabels.map(([id, label]) => <button key={id} type="button" className="btn ghost sm" onClick={() => applyPreset(id)}>{label}</button>)}
       </div>}
       {shadows.map((s, i) => (
@@ -88,7 +86,7 @@ export function EffectsSection({ c }: { c: Ctx }) {
           </div>
         )}
       </div>
-      {!off && (shadows.length > 0 || n.blur > 0 || n.bgBlur > 0 || fxUsed) && <button type="button" className="btn ghost sm effect-clear" onClick={() => void c.set({ shadows: null, blur: null, bgBlur: null, fx: null, effectStyleId: null })}>{language === 'en-US' ? 'Clear effects' : 'Limpar efeitos'}</button>}
+      {!off && (shadows.length > 0 || n.blur > 0 || n.bgBlur > 0 || fxUsed) && <button type="button" className="btn ghost sm effect-clear" onClick={() => void c.set({ shadows: null, blur: null, bgBlur: null, fx: null, effectStyleId: null })}>{t(language, 'ui.effects.clearEffects')}</button>}
     </Section>
   );
 }

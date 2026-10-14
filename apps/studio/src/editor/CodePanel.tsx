@@ -8,6 +8,7 @@ import { app, run, toast, useApp } from '../lib/app';
 import { findNode, pageOf, topLevel } from '../lib/doc';
 import { CodeEditor, type Lint } from '../ui/CodeEditor';
 import { Icon } from '../ui/Icon';
+import { t } from '../lib/i18n';
 
 type Tab = 'css' | 'html' | 'page';
 interface Code { html: string; css: string; declarations: string }
@@ -19,7 +20,6 @@ export function CodePanel() {
   const pageId = useApp((s) => s.pageId);
   const selection = useApp((s) => s.selection);
   const language = useApp((s) => s.language);
-  const en = language === 'en-US';
   const [tab, setTab] = useState<Tab>('css');
   const [kids, setKids] = useState(true);
   const [code, setCode] = useState<Code | null>(null);
@@ -37,52 +37,52 @@ export function CodePanel() {
   }, [node?.id, rev, pageId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [load]);
 
-  const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); toast('ok', en ? 'Code copied.' : 'Código copiado.'); } catch { toast('error', en ? 'The browser blocked copying.' : 'O navegador bloqueou a cópia.'); } };
+  const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); toast('ok', t(language, 'ui.code.codeCopied')); } catch { toast('error', t(language, 'ui.code.theBrowserBlockedCopying')); } };
   const pageCss = String((doc.styles as { pageCss?: string })?.pageCss ?? '');
 
   return (
     <div className="code-panel">
       <div className="code-head">
         <div className="tab-chips">
-          {([['css', 'CSS'], ['html', 'HTML'], ['page', en ? 'Page' : 'Página']] as [Tab, string][]).map(([id, label]) => <button key={id} className={`tab-chip${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>{label}</button>)}
+          {([['css', 'CSS'], ['html', 'HTML'], ['page', t(language, 'ui.code.page')]] as [Tab, string][]).map(([id, label]) => <button key={id} className={`tab-chip${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>{label}</button>)}
         </div>
         <span className="spacer" />
-        <button className="ibtn" title={en ? 'Open the large editor (Ctrl+Shift+E)' : 'Abrir o editor grande (Ctrl+Shift+E)'} onClick={() => app.set({ dock: tab })}><Icon name="code" size={15} /></button>
+        <button className="ibtn" title={t(language, 'ui.code.openTheLargeEditorCtrl')} onClick={() => app.set({ dock: tab })}><Icon name="code" size={15} /></button>
       </div>
 
-      {tab !== 'page' && !node && <p className="muted pad">{en ? 'Select a layer to see its code.' : 'Selecione uma camada para ver o código dela.'}</p>}
+      {tab !== 'page' && !node && <p className="muted pad">{t(language, 'ui.code.selectALayerToSee')}</p>}
       {tab !== 'page' && node && err && <p className="notice error">{err}</p>}
 
       {tab === 'css' && node && code && (
         <>
           <div className="code-sub">
-            <span className="faint">{en ? 'Layer declarations for' : 'Declarações da camada'} <b>{node.name}</b></span>
-            <label className="check"><input type="checkbox" checked={kids} onChange={(e) => setKids(e.target.checked)} /><span>{en ? 'Include children' : 'Incluir filhos'}</span></label>
+            <span className="faint">{t(language, 'ui.code.layerDeclarationsFor')} <b>{node.name}</b></span>
+            <label className="check"><input type="checkbox" checked={kids} onChange={(e) => setKids(e.target.checked)} /><span>{t(language, 'ui.code.includeChildren')}</span></label>
           </div>
           {kids
-            ? <CodeEditor value={code.css} language="css" readOnly minRows={10} extra={<button className="btn ghost sm" onClick={() => void copy(code.css)}><Icon name="copy" size={13} /> Copiar</button>} />
-            : <CodeEditor value={code.declarations} language="css" lint={lintDecl} readOnly={!editable} minRows={8} applyLabel={en ? 'Apply CSS' : 'Aplicar CSS'} placeholder="width: 120px;" extra={<button className="btn ghost sm" onClick={() => void copy(code.declarations)}><Icon name="copy" size={13} /> {en ? 'Copy' : 'Copiar'}</button>}
-              onApply={async (t) => { const out = await run<{ mapped?: string[]; custom?: string[]; ignored?: string[] }>('set_layer_css', { id: node.id, css: t }); if (out) toast('ok', `Aplicado: ${out.mapped?.length ?? 0} no painel Design, ${out.custom?.length ?? 0} no CSS livre${out.ignored?.length ? `, ${out.ignored.length} ignorado(s)` : ''}.`); }} />}
-          {!kids && <p className="hint">{en ? 'What the Design panel understands (color, size, radius, shadow, type…) becomes a layer field; the rest goes to free CSS. Ctrl+Z undoes.' : 'O que o painel Design entende (cor, tamanho, raio, sombra, fonte…) vira campo da camada; o resto vai para o CSS livre. Ctrl+Z desfaz.'}</p>}
+            ? <CodeEditor value={code.css} language="css" readOnly minRows={10} extra={<button className="btn ghost sm" onClick={() => void copy(code.css)}><Icon name="copy" size={13} /> {t(language, 'ui.code.copy')}</button>} />
+            : <CodeEditor value={code.declarations} language="css" lint={lintDecl} readOnly={!editable} minRows={8} applyLabel={t(language, 'ui.code.applyCss')} placeholder="width: 120px;" extra={<button className="btn ghost sm" onClick={() => void copy(code.declarations)}><Icon name="copy" size={13} /> {t(language, 'actions.copy')}</button>}
+              onApply={async (text) => { const out = await run<{ mapped?: string[]; custom?: string[]; ignored?: string[] }>('set_layer_css', { id: node.id, css: text }); if (out) toast('ok', t(language, 'ui.code.applied', { mapped: out.mapped?.length ?? 0, custom: out.custom?.length ?? 0, ignored: out.ignored?.length ? t(language, 'ui.code.ignored', { count: out.ignored.length }) : '' })); }} />}
+          {!kids && <p className="hint">{t(language, 'ui.code.whatTheDesignPanelUnderstands')}</p>}
         </>
       )}
 
       {tab === 'html' && node && code && (
         <>
-          <div className="code-sub"><span className="faint">{en ? 'HTML for' : 'HTML de'} <b>{node.name}</b></span></div>
+          <div className="code-sub"><span className="faint">{t(language, 'ui.code.htmlFor')} <b>{node.name}</b></span></div>
           {node.type === 'html'
-            ? <CodeEditor value={String(node.html ?? '')} language="html" readOnly={!editable} minRows={10} applyLabel={en ? 'Apply HTML' : 'Aplicar HTML'} placeholder="<p>Olá</p>" onApply={async (t) => { await run('update_layer', { id: node.id, props: { html: t } }); }}
-                extra={<button className="btn ghost sm" onClick={() => void copy(String(node.html ?? ''))}><Icon name="copy" size={13} /> {en ? 'Copy' : 'Copiar'}</button>} />
-            : <CodeEditor value={code.html} language="html" readOnly minRows={10} extra={<button className="btn ghost sm" onClick={() => void copy(code.html)}><Icon name="copy" size={13} /> {en ? 'Copy' : 'Copiar'}</button>} />}
-          <p className="hint">{node.type === 'html' ? (en ? 'HTML is cleaned when displayed and exported (no <script> or on*).' : 'O HTML é limpo ao exibir e exportar (sem <script> nem on*).') : (en ? 'Tag, id, classes, link and description are edited in Design → HTML.' : 'Etiqueta, id, classes, link e descrição se editam em Design → HTML.')}</p>
+            ? <CodeEditor value={String(node.html ?? '')} language="html" readOnly={!editable} minRows={10} applyLabel={t(language, 'ui.code.applyHtml')} placeholder="<p>Olá</p>" onApply={async (text) => { await run('update_layer', { id: node.id, props: { html: text } }); }}
+                extra={<button className="btn ghost sm" onClick={() => void copy(String(node.html ?? ''))}><Icon name="copy" size={13} /> {t(language, 'actions.copy')}</button>} />
+            : <CodeEditor value={code.html} language="html" readOnly minRows={10} extra={<button className="btn ghost sm" onClick={() => void copy(code.html)}><Icon name="copy" size={13} /> {t(language, 'actions.copy')}</button>} />}
+          <p className="hint">{node.type === 'html' ? (t(language, 'ui.code.htmlIsCleanedWhenDisplayed')) : (t(language, 'ui.code.tagIdClassesLinkAnd'))}</p>
         </>
       )}
 
       {tab === 'page' && (
         <>
-          <p className="hint"><b>{en ? 'Page CSS.' : 'CSS da página.'}</b> {en ? 'Rules with selectors, @media, :hover and @keyframes for the whole project. Use exported HTML classes, your extra classes and ids. It applies in the canvas, exported HTML and presentation.' : 'Regras com seletores, @media, :hover e @keyframes para o projeto todo. Use as classes do HTML exportado, as suas classes extras e ids. Vale no canvas, no HTML exportado e na apresentação.'}</p>
-          <CodeEditor value={pageCss} language="css" readOnly={!editable} minRows={14} applyLabel={en ? 'Apply page CSS' : 'Aplicar CSS da página'} placeholder={'.botao:hover { opacity: .9; }\n@media (max-width: 640px) { .titulo { font-size: 28px; } }'}
-            onApply={async (t) => { await run('set_project_css', { css: t }); toast('ok', en ? 'Page CSS applied.' : 'CSS da página aplicado.'); }} />
+          <p className="hint"><b>{t(language, 'ui.code.pageCss')}</b> {t(language, 'ui.code.rulesWithSelectorsMediaHover')}</p>
+          <CodeEditor value={pageCss} language="css" readOnly={!editable} minRows={14} applyLabel={t(language, 'ui.code.applyPageCss')} placeholder={'.botao:hover { opacity: .9; }\n@media (max-width: 640px) { .titulo { font-size: 28px; } }'}
+            onApply={async (text) => { await run('set_project_css', { css: text }); toast('ok', t(language, 'ui.code.pageCssApplied')); }} />
         </>
       )}
     </div>

@@ -1,9 +1,9 @@
 // Cabeçalho do painel: ícone, nome e tipo da camada (com a etiqueta HTML que ela vira), mostrar/ocultar, travar, nota e componente.
 import { tagOf } from '@stylo/core/model.js';
 import { run, useApp } from '../../lib/app';
-import { t } from '../../lib/i18n';
+import { t, tp } from '../../lib/i18n';
 import { toggleFlag, noteOn } from '../../lib/editing';
-import { TYPE_LABEL } from '../../lib/doc';
+import { typeLabel } from '../../lib/doc';
 import { Icon } from '../../ui/Icon';
 import { IconBtn } from '../../ui/Fields';
 import type { Ctx } from './ctx';
@@ -19,8 +19,8 @@ export function Header({ c }: { c: Ctx }) {
     <div className="sel-head">
       <span className="sel-ico"><Icon name={single ? (n.component ? 'component' : NODE_ICON[n.type] ?? 'rect') : 'layers'} size={18} /></span>
       <div className="sel-info">
-        <div className="sel-name ellipsis">{single ? n.name : `${nodes.length} camadas`}</div>
-        <div className="sel-sub">{single ? <>{TYPE_LABEL[n.type] ?? n.type} · <code className="sel-tag" title={tr('inspector.header.htmlTag')}>&lt;{tagOf(n)}&gt;</code></> : tr('inspector.header.groupEdit')}</div>
+        <div className="sel-name ellipsis">{single ? n.name : tp(language, 'ui.inspector.layersCount', nodes.length)}</div>
+        <div className="sel-sub">{single ? <>{typeLabel(n.type)} · <code className="sel-tag" title={tr('inspector.header.htmlTag')}>&lt;{tagOf(n)}&gt;</code></> : tr('inspector.header.groupEdit')}</div>
       </div>
       <div className="sel-actions">
         <IconBtn icon={hidden ? 'eyeoff' : 'eye'} on={hidden} disabled={c.readOnly} title={bp ? (hidden ? tr('inspector.header.showAtBreakpoint') : tr('inspector.header.hideAtBreakpoint')) : hidden ? tr('inspector.header.show') : tr('inspector.header.hide')}

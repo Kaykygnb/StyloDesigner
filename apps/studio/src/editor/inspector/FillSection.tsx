@@ -40,7 +40,7 @@ export function FillSection({ c }: { c: Ctx }) {
   const style = styles.find((s) => s.id === fill.styleId);
 
   const createStyle = async () => {
-    const name = await askText(tr('inspector.fill.styleName'), `Cor ${styles.length + 1}`, { okLabel: tr('comments.save'), message: tr('inspector.fill.styleMessage') });
+    const name = await askText(tr('inspector.fill.styleName'), t(language, 'ui.fill.defaultStyleName', { n: styles.length + 1 }), { okLabel: tr('comments.save'), message: tr('inspector.fill.styleMessage') });
     if (!name?.trim()) return;
     const made = await run<{ created?: { id: string }[] }>('create_color_styles', { colors: [{ name: name.trim(), color: fill.color }] });
     const id = made?.created?.[0]?.id;

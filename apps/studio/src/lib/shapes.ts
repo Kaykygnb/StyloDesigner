@@ -1,4 +1,5 @@
 // Criar camadas desenhando no canvas (ferramentas de forma): cada uma vira UMA chamada create_layer.
+import { tl } from './i18n';
 import { app, run, select } from './app';
 import { findNode, pageOf, parentOf } from './doc';
 import type { LayerNode } from './types';
@@ -14,7 +15,7 @@ const DEFAULT_SIZE: Record<ShapeTool, { w: number; h: number }> = {
   line: { w: 160, h: 0 }, polygon: { w: 120, h: 120 }, star: { w: 120, h: 120 }, text: { w: 0, h: 0 }, html: { w: 320, h: 160 },
 };
 
-const NAME: Record<ShapeTool, string> = { frame: 'Frame', section: 'Seção', rect: 'Retângulo', ellipse: 'Elipse', line: 'Linha', polygon: 'Polígono', star: 'Estrela', text: 'Texto', html: 'Código HTML' };
+const nameOf = (tool: ShapeTool): string => (tool === 'frame' ? tl('layerName.frameShape') : tl(`layerName.${tool}`));
 
 const luma = (hex: string) => {
   const v = parseInt(hex.slice(1, 7), 16);
@@ -58,11 +59,11 @@ export async function createShape(tool: ShapeTool, drawn: Drawn, parent: LayerNo
     x = drawn.x - (w ? w / 2 : 0); y = drawn.y - (h ? h / 2 : 0);
     if (tool === 'text') { x = drawn.x; y = drawn.y; }
   }
-  const props: Record<string, unknown> = { name: NAME[tool] };
+  const props: Record<string, unknown> = { name: nameOf(tool) };
   let type: string = tool;
   if (!inFlow) { props.x = Math.round(x - origin.x); props.y = Math.round(y - origin.y); }
   switch (tool) {
-    case 'frame': Object.assign(props, { w: Math.max(8, Math.round(w)), h: Math.max(8, Math.round(h)), fill: parent ? fillOver(parent, '#FFFFFF') : '#FFFFFF' }); if (!parent) props.name = `Tela ${(page.children.length || 0) + 1}`; break;
+    case 'frame': Object.assign(props, { w: Math.max(8, Math.round(w)), h: Math.max(8, Math.round(h)), fill: parent ? fillOver(parent, '#FFFFFF') : '#FFFFFF' }); if (!parent) props.name = tl('layerName.screen', { n: (page.children.length || 0) + 1 }); break;
     case 'section': Object.assign(props, { w: Math.max(40, Math.round(w)), h: Math.max(40, Math.round(h)) }); break;
     case 'rect': case 'ellipse': Object.assign(props, { w: Math.max(2, Math.round(w)), h: Math.max(2, Math.round(h)), fill: fillOver(parent, '#D9D9D9') }); break;
     case 'html': Object.assign(props, { w: Math.max(40, Math.round(w)), h: Math.max(40, Math.round(h)) }); break;

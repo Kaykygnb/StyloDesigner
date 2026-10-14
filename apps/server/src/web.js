@@ -56,7 +56,9 @@ export function createWebHandler({ webRoot, httpServer, base = '/' }) {
       res.writeHead(404).end('Not found'); // arquivos inexistentes não caem no index.html: o editor não tem rotas de cliente
       return;
     }
-    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    // arquivos com hash no nome (index-AbC123xy.js) nunca mudam: o navegador guarda; o resto sempre confere
+    const hashed = /-[A-Za-z0-9_-]{8}\.(js|css|woff2)$/.test(file);
+    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache' });
     res.end(await readFile(file));
   }
 

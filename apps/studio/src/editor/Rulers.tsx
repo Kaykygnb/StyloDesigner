@@ -1,5 +1,6 @@
 // Réguas nas bordas do canvas (em px do projeto) e as GUIAS: arraste de uma régua para criar uma guia, arraste a guia para
 // movê-la, solte-a sobre a régua para apagar. O arrasto da camada gruda nas guias. As guias ficam na página (set_guides).
+import { t } from '../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { run, useApp } from '../lib/app';
 import { canEdit } from '../lib/actions';
@@ -17,6 +18,7 @@ export function Rulers({ viewport, guides, highlight }: { viewport: React.RefObj
   const panY = useApp((s) => s.panY);
   const pageId = useApp((s) => s.pageId);
   const theme = useApp((s) => s.theme);
+  const language = useApp((s) => s.language);
   const top = useRef<HTMLCanvasElement>(null);
   const left = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -119,8 +121,8 @@ export function Rulers({ viewport, guides, highlight }: { viewport: React.RefObj
         {!dragging && index != null && <button
           type="button"
           className="guide-hit"
-          aria-label={`${g.axis === 'x' ? 'Guia vertical' : 'Guia horizontal'} em ${g.pos}px`}
-          title="Arraste para mover; Delete remove; clique direito remove"
+          aria-label={t(language, g.axis === 'x' ? 'ui.rulers.guideV' : 'ui.rulers.guideH', { pos: g.pos })}
+          title={t(language, 'ui.rulers.guideHint')}
           onMouseDown={begin(g.axis, index)}
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); remove(index); }}
           onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(index); } }}

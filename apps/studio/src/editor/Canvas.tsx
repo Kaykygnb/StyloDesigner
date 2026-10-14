@@ -797,7 +797,7 @@ export function Canvas() {
             </div>
           ))}
 
-          {rootVectors.length > 0 && <svg className="root-vector-layer" width="1" height="1" overflow="visible" aria-label={language === 'en-US' ? 'Loose vector elements' : 'Elementos vetoriais soltos'}>
+          {rootVectors.length > 0 && <svg className="root-vector-layer" width="1" height="1" overflow="visible" aria-label={t(language, 'ui.canvas.looseVectorElements')}>
             {rootVectors.map((node) => {
               const d = rootPathD(node);
               if (!d) return null;
@@ -824,10 +824,10 @@ export function Canvas() {
       </div>
 
       <div className="zoom-controls">
-        <button className="btn ghost icon sm" title="Diminuir" onClick={() => zoomTo(zoom / 1.25)}><Icon name="minus" size={14} /></button>
-        <button className="btn ghost sm" title="Ajustar tudo à tela (⇧1) · 100% (⇧0)" onClick={() => window.dispatchEvent(new Event('stylo:fit'))}>{Math.round(zoom * 100)}%</button>
-        <button className="btn ghost icon sm" title="Aumentar" onClick={() => zoomTo(zoom * 1.25)}><Icon name="plus" size={14} /></button>
-        <button className="btn ghost icon sm" title="Ajustar à seleção (⇧2)" onClick={() => window.dispatchEvent(new Event('stylo:fit-selection'))}><Icon name="fit" size={14} /></button>
+        <button className="btn ghost icon sm" title={t(language, 'ui.canvas.zoomOut')} onClick={() => zoomTo(zoom / 1.25)}><Icon name="minus" size={14} /></button>
+        <button className="btn ghost sm" title={t(language, 'ui.canvas.fitAll')} onClick={() => window.dispatchEvent(new Event('stylo:fit'))}>{Math.round(zoom * 100)}%</button>
+        <button className="btn ghost icon sm" title={t(language, 'ui.canvas.zoomIn')} onClick={() => zoomTo(zoom * 1.25)}><Icon name="plus" size={14} /></button>
+        <button className="btn ghost icon sm" title={t(language, 'ui.canvas.fitSelection')} onClick={() => window.dispatchEvent(new Event('stylo:fit-selection'))}><Icon name="fit" size={14} /></button>
       </div>
     </div>
   );

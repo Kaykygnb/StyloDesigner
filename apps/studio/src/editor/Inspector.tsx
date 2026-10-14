@@ -15,24 +15,24 @@ import { TextSection } from './inspector/TextSection';
 import { MediaSection } from './inspector/MediaSection';
 import { useInspector } from './inspector/ctx';
 import { Icon } from '../ui/Icon';
+import { t, tp } from '../lib/i18n';
 
 function Empty() {
   const doc = useApp((s) => s.doc)!;
   const pageId = useApp((s) => s.pageId);
   const language = useApp((s) => s.language);
-  const en = language === 'en-US';
   const page = pageOf(doc, pageId);
   const count = (list: typeof page.children): number => list.reduce((s, n) => s + 1 + count(n.children ?? []), 0);
   return (
     <div className="empty-state">
       <div className="empty-art"><span className="empty-spark spark-a" /><span className="empty-spark spark-b" /><Icon name="settings" size={26} /></div>
-      <h3>{en ? 'Nothing selected' : 'Nada selecionado'}</h3>
-      <p>{en ? 'Click a layer on the canvas or in the list to edit its properties.' : 'Clique numa camada no canvas ou na lista para editar as propriedades dela.'}</p>
-      <p className="faint small">{page.name} · {count(page.children)} {en ? 'layers' : 'camadas'}</p>
+      <h3>{t(language, 'ui.inspector.nothingSelected')}</h3>
+      <p>{t(language, 'ui.inspector.clickALayerOnThe')}</p>
+      <p className="faint small">{page.name} · {tp(language, 'ui.inspector.layersCount', count(page.children))}</p>
       <div className="tips">
-        <div><kbd>F</kbd> {en ? 'frame' : 'frame'}</div><div><kbd>R</kbd> {en ? 'rectangle' : 'retângulo'}</div>
-        <div><kbd>E</kbd> {en ? 'ellipse' : 'elipse'}</div><div><kbd>T</kbd> {en ? 'text' : 'texto'}</div>
-        <div><kbd>⇧</kbd>+<kbd>A</kbd> {en ? 'auto layout' : 'auto layout'}</div><div><kbd>?</kbd> {en ? 'all shortcuts' : 'todos os atalhos'}</div>
+        <div><kbd>F</kbd> {t(language, 'ui.inspector.frame')}</div><div><kbd>R</kbd> {t(language, 'ui.inspector.rectangle')}</div>
+        <div><kbd>E</kbd> {t(language, 'ui.inspector.ellipse')}</div><div><kbd>T</kbd> {t(language, 'ui.inspector.text')}</div>
+        <div><kbd>⇧</kbd>+<kbd>A</kbd> {t(language, 'ui.inspector.autoLayout')}</div><div><kbd>?</kbd> {t(language, 'ui.inspector.allShortcuts')}</div>
       </div>
     </div>
   );

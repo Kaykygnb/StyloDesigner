@@ -13,8 +13,8 @@ export function TextSection({ c }: { c: Ctx }) {
   const language = useApp((s) => s.language);
   const tr = (key: string) => t(language, key);
   const WHITE_SPACES: [string, string][] = [['', tr('inspector.text.normal')], ['nowrap', 'nowrap'], ['pre-line', 'pre-line'], ['pre', 'pre']];
-  const WORD_BREAKS: [string, string][] = [['', tr('inspector.text.normal')], ['break-word', language === 'en-US' ? 'Break if needed' : 'Quebra se precisar'], ['break-all', language === 'en-US' ? 'Break at any letter' : 'Quebra em qualquer letra'], ['keep-all', language === 'en-US' ? 'Never inside a word' : 'Nunca dentro da palavra']];
-  const TEXT_WRAPS: [string, string][] = [['', tr('inspector.text.normal')], ['balance', language === 'en-US' ? 'Balanced (balance)' : 'Equilibrado (balance)'], ['pretty', language === 'en-US' ? 'Avoid orphans (pretty)' : 'Sem sobras (pretty)']];
+  const WORD_BREAKS: [string, string][] = [['', tr('inspector.text.normal')], ['break-word', t(language, 'ui.text.breakIfNeeded')], ['break-all', t(language, 'ui.text.breakAtAnyLetter')], ['keep-all', t(language, 'ui.text.neverInsideAWord')]];
+  const TEXT_WRAPS: [string, string][] = [['', tr('inspector.text.normal')], ['balance', t(language, 'ui.text.balancedBalance')], ['pretty', t(language, 'ui.text.avoidOrphansPretty')]];
   const off = c.readOnly;
   const family = String(n.fontFamily ?? 'Inter');
   const avail: number[] = weightsOf(family);
@@ -24,7 +24,7 @@ export function TextSection({ c }: { c: Ctx }) {
   const detach = { textStyleId: null };
 
   const saveStyle = async () => {
-    const name = await askText(tr('inspector.text.styleName'), `Texto ${styles.length + 1}`, { okLabel: tr('comments.save'), message: tr('inspector.text.styleMessage') });
+    const name = await askText(tr('inspector.text.styleName'), t(language, 'ui.text.defaultStyleName', { n: styles.length + 1 }), { okLabel: tr('comments.save'), message: tr('inspector.text.styleMessage') });
     if (!name?.trim()) return;
     const made = await run<{ created?: { id: string }[] }>('create_text_styles', { styles: [{ name: name.trim(), fontFamily: n.fontFamily, fontSize: n.fontSize, fontWeight: n.fontWeight, lineHeight: n.lineHeight, letterSpacing: n.letterSpacing, textAlign: n.textAlign }] });
     const id = made?.created?.[0]?.id;
@@ -49,7 +49,7 @@ export function TextSection({ c }: { c: Ctx }) {
         <Cap label={tr('inspector.text.size')} css="font-size"><Num label="Aa" value={n.fontSize ?? 16} min={1} decimals={1} disabled={off} title="font-size" mixed={c.mixed((x) => x.fontSize)} onCommit={(v) => void c.set({ fontSize: Math.max(1, v ?? 16) })} /></Cap>
       </Row>
       <Row>
-        <Cap label={tr('inspector.text.lineHeight')} css="line-height"><Num label="↕" value={n.lineHeight ?? 1.4} min={0} step={0.05} decimals={2} disabled={off} title="line-height (multiplicador)" onCommit={(v) => void c.set({ lineHeight: v ?? 1.4 })} /></Cap>
+        <Cap label={tr('inspector.text.lineHeight')} css="line-height"><Num label="↕" value={n.lineHeight ?? 1.4} min={0} step={0.05} decimals={2} disabled={off} title={tr('ui.text.lineHeightTip')} onCommit={(v) => void c.set({ lineHeight: v ?? 1.4 })} /></Cap>
         <Cap label={tr('inspector.text.spacing')} css="letter-spacing"><Num label="↔" value={n.letterSpacing ?? 0} step={0.1} decimals={2} disabled={off} title="letter-spacing (px)" onCommit={(v) => void c.set({ letterSpacing: v ?? 0 })} /></Cap>
       </Row>
       <Cap label={tr('inspector.text.alignStyle')} css="text-align">

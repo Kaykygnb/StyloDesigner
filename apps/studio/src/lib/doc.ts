@@ -1,5 +1,6 @@
 // Ajudantes para ler o documento (somente leitura: quem altera é o servidor, por ferramentas).
 import type { Doc, LayerNode, Page } from './types';
+import { tl } from './i18n';
 
 export const pageOf = (doc: Doc, pageId: string | null): Page => doc.pages.find((p) => p.id === pageId) ?? doc.pages[0];
 
@@ -41,10 +42,9 @@ export function collectIds(list: LayerNode[], out = new Set<string>()): Set<stri
   return out;
 }
 
-/** Ícone/rótulo curto do tipo de camada, para a árvore. */
-export const TYPE_LABEL: Record<string, string> = {
-  frame: 'Caixa', rect: 'Retângulo', ellipse: 'Elipse', text: 'Texto', group: 'Grupo', line: 'Linha', path: 'Vetor', section: 'Seção', html: 'Código', media: 'Mídia',
-};
+const LAYER_TYPES = new Set(['frame', 'rect', 'ellipse', 'text', 'group', 'line', 'path', 'section', 'html', 'media']);
+/** Rótulo curto do tipo de camada, no idioma da tela, para a árvore. */
+export const typeLabel = (type: string): string => (LAYER_TYPES.has(type) ? tl(`layerType.${type}`) : type);
 
 /** A camada está dentro de um auto layout (flex/grid)? Então x/y não valem: quem posiciona é o layout do pai. */
 export const inFlow = (parent: LayerNode | null | undefined, node: LayerNode) =>

@@ -1,4 +1,5 @@
 // As ações do editor: cada uma é UMA ferramenta do MCP (ou um pequeno conjunto), nunca uma alteração direta do documento.
+import { tl } from './i18n';
 import { app, run, select, toast } from './app';
 import { findNode, pageOf, parentOf } from './doc';
 import { shapePoints } from './shapes';
@@ -13,15 +14,15 @@ export const canEdit = () => state().role !== 'VIEWER';
 export type InsertKind = 'frame' | 'section' | 'text' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'html' | 'screen';
 
 const DEFAULTS: Record<Exclude<InsertKind, 'screen'>, Record<string, unknown>> = {
-  frame: { name: 'Caixa', w: 320, h: 200, fill: '#FFFFFF', radius: 12 },
-  text: { name: 'Texto', text: 'Texto', fontSize: 24, fill: '#111111' },
-  rect: { name: 'Retângulo', w: 160, h: 100, fill: '#D9D9D9' },
-  ellipse: { name: 'Elipse', w: 120, h: 120, fill: '#D9D9D9' },
-  line: { name: 'Linha', w: 160, h: 2 },
-  section: { name: 'Seção', w: 800, h: 600 },
-  polygon: { name: 'Polígono', w: 120, h: 120, fill: '#D9D9D9' },
-  star: { name: 'Estrela', w: 120, h: 120, fill: '#D9D9D9' },
-  html: { name: 'Código HTML', w: 320, h: 160 },
+  frame: { w: 320, h: 200, fill: '#FFFFFF', radius: 12 },
+  text: { fontSize: 24, fill: '#111111' },
+  rect: { w: 160, h: 100, fill: '#D9D9D9' },
+  ellipse: { w: 120, h: 120, fill: '#D9D9D9' },
+  line: { w: 160, h: 2 },
+  section: { w: 800, h: 600 },
+  polygon: { w: 120, h: 120, fill: '#D9D9D9' },
+  star: { w: 120, h: 120, fill: '#D9D9D9' },
+  html: { w: 320, h: 160 },
 };
 
 const isContainer = (n: LayerNode) => n.type === 'frame' || n.type === 'group' || n.type === 'section';
@@ -44,7 +45,7 @@ export async function insert(kind: InsertKind): Promise<void> {
     const n = (page()?.children.length ?? 0) + 1;
     const out = await run<{ created?: { id: string } }>('build_layout', {
       // layout livre: camadas soltas, posicionadas por X e Y (o layout automático é uma opção no painel de propriedades)
-      tree: { type: 'frame', props: { name: `Tela ${n}`, w: 1440, h: 900, fill: '#FFFFFF' } },
+      tree: { type: 'frame', props: { name: tl('layerName.screen', { n }), w: 1440, h: 900, fill: '#FFFFFF' } },
     });
     if (out?.created?.id) select([out.created.id]);
     return;
@@ -52,7 +53,7 @@ export async function insert(kind: InsertKind): Promise<void> {
   // Seção é sempre uma organização da raiz; se o usuário estiver com uma tela
   // selecionada, nunca tente colocá-la dentro do frame (o servidor recusa isso).
   const parent = kind === 'section' ? null : insertionParent();
-  const props: Record<string, unknown> = { ...DEFAULTS[kind] };
+  const props: Record<string, unknown> = { name: tl(`layerName.${kind}`), ...(kind === 'text' ? { text: tl('layerName.text') } : {}), ...DEFAULTS[kind] };
   const free = !parent || (parent.layout?.mode ?? 'none') === 'none';
   if (free) { props.x = parent ? 40 : 80; props.y = parent ? 40 : 80; }
   const type = kind === 'polygon' || kind === 'star' ? 'path' : kind;
@@ -81,7 +82,7 @@ export async function setProps(ids: string[], props: Record<string, unknown>): P
   else await run('update_layers', { updates: ids.map((id) => ({ id, props })) });
 }
 
-export const rename = (id: string, name: string) => run('update_layer', { id, props: { name: name.trim() || 'Camada' } });
+export const rename = (id: string, name: string) => run('update_layer', { id, props: { name: name.trim() || tl('ui.layers.defaultName') } });
 
 export async function removeSelection(): Promise<void> {
   const ids = state().selection;
@@ -100,7 +101,7 @@ export async function duplicateSelection(): Promise<void> {
 
 export async function groupSelection(): Promise<void> {
   const ids = state().selection;
-  if (ids.length < 2 || !canEdit()) { toast('error', 'Selecione pelo menos duas camadas para agrupar.'); return; }
+  if (ids.length < 2 || !canEdit()) { toast('error', tl('msg.groupNeeds2')); return; }
   const out = await run<{ group?: { id: string }; created?: { id: string } }>('group_layers', { ids });
   const id = out?.group?.id ?? out?.created?.id;
   if (id) select([id]);
@@ -119,7 +120,7 @@ export const reorder = (id: string, index: number) => run('reorder_layer', { id,
 
 export async function addPage(): Promise<void> {
   const s = state();
-  const name = `Página ${(s.doc?.pages.length ?? 0) + 1}`;
+  const name = tl('layerName.page', { n: (s.doc?.pages.length ?? 0) + 1 });
   await run('create_page', { name });
   const doc = state().doc;
   const created = doc?.pages.find((p) => p.name === name);
@@ -132,30 +133,30 @@ export async function removePage(id: string): Promise<void> {
   if (doc && !doc.pages.some((p) => p.id === state().pageId)) app.set({ pageId: doc.pages[0].id, selection: [] });
 }
 
-export const renamePage = (id: string, name: string) => run('rename_page', { id, name: name.trim() || 'Página' });
+export const renamePage = (id: string, name: string) => run('rename_page', { id, name: name.trim() || tl('layerName.pageDefault') });
 
 /** Envia uma imagem do computador para o projeto e a coloca na tela. */
 export async function uploadImage(file: File): Promise<void> {
   if (!canEdit()) return;
-  if (file.size > 16 * 1024 * 1024) { toast('error', 'A imagem passa de 16 MB: use uma menor.'); return; }
+  if (file.size > 16 * 1024 * 1024) { toast('error', tl('msg.imageTooBig')); return; }
   if (file.type === 'image/svg+xml' || /\.svg$/i.test(file.name || '')) {
     try {
       const svg = await file.text();
       const parent = insertionParent();
       const out = await run<{ created?: { id: string }; ignored?: string[] }>('import_svg', {
         svg,
-        name: file.name.replace(/\.svg$/i, '') || 'SVG importado',
+        name: file.name.replace(/\.svg$/i, '') || tl('layerName.svg'),
         ...(parent ? { parent_id: parent.id } : {}),
       });
       if (out?.created?.id) select([out.created.id]);
-      if (out?.ignored?.length) toast('ok', `SVG importado; recursos não suportados: ${out.ignored.join(', ')}.`);
+      if (out?.ignored?.length) toast('ok', tl('msg.svgImportedIgnored', { list: out.ignored.join(', ') }));
       return;
-    } catch (error) { toast('error', `Não consegui importar o SVG: ${error instanceof Error ? error.message : String(error)}`); return; }
+    } catch (error) { toast('error', tl('msg.svgImportFailed', { error: error instanceof Error ? error.message : String(error) })); return; }
   }
   const dataUrl: string = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Não consegui ler o arquivo.'));
+    reader.onerror = () => reject(new Error(tl('msg.readFailed')));
     reader.readAsDataURL(file);
   });
   const parent = insertionParent();

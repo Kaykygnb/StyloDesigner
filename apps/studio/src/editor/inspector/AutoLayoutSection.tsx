@@ -3,24 +3,24 @@ import { useState } from 'react';
 import { cleanTrackList } from '@stylo/core/model.js';
 import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel, Txt } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
-import { useApp } from '../../lib/app';
+import { run, useApp } from '../../lib/app';
 import { t } from '../../lib/i18n';
 import type { Ctx } from './ctx';
 import type { LayerNode } from '../../lib/types';
 
 const MODES: { v: string; icon: string; name: string; css: string; tip: string }[] = [
-  { v: 'none', icon: 'free', name: 'Livre', css: 'absolute', tip: 'Cada camada fica exatamente onde você a coloca (position: absolute).' },
-  { v: 'row', icon: 'autolayout', name: 'Linha', css: 'flex · row', tip: 'display: flex; flex-direction: row — os itens se enfileiram lado a lado.' },
-  { v: 'column', icon: 'rows', name: 'Coluna', css: 'flex · column', tip: 'display: flex; flex-direction: column — os itens se empilham.' },
-  { v: 'grid', icon: 'grid', name: 'Grade', css: 'grid', tip: 'display: grid — uma tabela invisível de colunas e linhas.' },
+  { v: 'none', icon: 'free', name: 'Livre', css: 'absolute', tip: '' },
+  { v: 'row', icon: 'autolayout', name: 'Linha', css: 'flex · row', tip: '' },
+  { v: 'column', icon: 'rows', name: 'Coluna', css: 'flex · column', tip: '' },
+  { v: 'grid', icon: 'grid', name: 'Grade', css: 'grid', tip: '' },
 ];
 const JUSTIFY: [string, string][] = [['flex-start', 'flex-start'], ['center', 'center'], ['flex-end', 'flex-end'], ['space-between', 'space-between'], ['space-around', 'space-around'], ['space-evenly', 'space-evenly']];
 const ALIGN: [string, string][] = [['flex-start', 'flex-start'], ['center', 'center'], ['flex-end', 'flex-end'], ['stretch', 'stretch'], ['baseline', 'baseline']];
 const GRID_ALIGN: [string, string][] = [['flex-start', 'start'], ['center', 'center'], ['flex-end', 'end'], ['stretch', 'stretch']];
 const THREE = ['flex-start', 'center', 'flex-end'];
 const TRACK_PRESETS: [string, string][] = [
-  ['', 'Escolher um modelo…'], ['repeat(2, minmax(0, 1fr))', '2 colunas iguais'], ['repeat(3, minmax(0, 1fr))', '3 colunas iguais'], ['repeat(4, minmax(0, 1fr))', '4 colunas iguais'],
-  ['repeat(auto-fit, minmax(180px, 1fr))', 'Cards responsivos (mín. 180 px)'], ['240px minmax(0, 1fr)', 'Lateral + conteúdo'],
+  ['', 'inspector.layout.chooseModel'], ['repeat(2, minmax(0, 1fr))', 'ui.layout.cols2'], ['repeat(3, minmax(0, 1fr))', 'ui.layout.cols3'], ['repeat(4, minmax(0, 1fr))', 'ui.layout.cols4'],
+  ['repeat(auto-fit, minmax(180px, 1fr))', 'inspector.layout.responsiveCards'], ['240px minmax(0, 1fr)', 'inspector.layout.sidebarContent'],
 ];
 
 type Sides4 = [number, number, number, number];
@@ -92,7 +92,7 @@ export function AutoLayoutSection({ c }: { c: Ctx }) {
   const L = n.layout!;
   const off = c.readOnly;
   const mode = L.mode;
-  const modes = MODES.map((m) => ({ ...m, name: tr(m.v === 'none' ? 'inspector.layout.free' : m.v === 'row' ? 'inspector.layout.row' : m.v === 'column' ? 'inspector.layout.column' : 'inspector.layout.grid') }));
+  const modes = MODES.map((m) => ({ ...m, tip: tr(`ui.layout.tip.${m.v}`), name: tr(m.v === 'none' ? 'inspector.layout.free' : m.v === 'row' ? 'inspector.layout.row' : m.v === 'column' ? 'inspector.layout.column' : 'inspector.layout.grid') }));
   const [split, setSplit] = useState(false);
   const [tracksOpen, setTracksOpen] = useState(false);
   const setL = (patch: Record<string, unknown>) => void c.set({ layout: patch });
@@ -103,7 +103,7 @@ export function AutoLayoutSection({ c }: { c: Ctx }) {
   const trackError = (v: string, prop: string) => !!v.trim() && (!cleanTrackList(v) || (typeof CSS !== 'undefined' && !CSS.supports(prop, cleanTrackList(v))));
 
   return (
-    <Section id="layout" title={tr('inspector.layout.title')} badge={<span className="al-badge" title={language === 'en-US' ? 'What you configure here becomes real flexbox and grid in the browser and export.' : 'O que você configura aqui vira flexbox e grid de verdade no navegador e na exportação'}>{tr('inspector.layout.cssPure')}</span>}>
+    <Section id="layout" title={tr('inspector.layout.title')} badge={<span className="al-badge" title={t(language, 'ui.layout.whatYouConfigureHereBecomes')}>{tr('inspector.layout.cssPure')}</span>}>
       <div className="al-modes">
         {modes.map((m) => (
           <button key={m.v} type="button" className={`al-mode${mode === m.v ? ' on' : ''}`} aria-pressed={mode === m.v} title={m.tip} disabled={off} onClick={() => void c.set({ layout: { mode: m.v } })}>
@@ -126,7 +126,7 @@ export function AutoLayoutSection({ c }: { c: Ctx }) {
             </button>
             {(tracksOpen || !!(L.colsTemplate || L.rowsTemplate)) && (
               <div className="fold-body">
-                <Sel value="" options={[[ '', tr('inspector.layout.chooseModel') ], ...TRACK_PRESETS.slice(1)]} disabled={off} title={tr('inspector.layout.chooseModel')} onChange={(v) => { if (v) setL({ colsTemplate: cleanTrackList(v) }); }} />
+                <Sel value="" options={[[ '', tr('inspector.layout.chooseModel') ], ...TRACK_PRESETS.slice(1).map(([value, key]) => [value, tr(key)] as [string, string])]} disabled={off} title={tr('inspector.layout.chooseModel')} onChange={(v) => { if (v) setL({ colsTemplate: cleanTrackList(v) }); }} />
                 <Cap label={tr('inspector.layout.columns')} css="grid-template-columns"><Txt mono value={L.colsTemplate ?? ''} placeholder="200px 1fr 2fr" disabled={off} onCommit={(v) => { if (!trackError(v, 'grid-template-columns')) setL({ colsTemplate: cleanTrackList(v) || '' }); }} /></Cap>
                 <Cap label={tr('inspector.layout.rows')} css="grid-template-rows"><Txt mono value={L.rowsTemplate ?? ''} placeholder="auto 1fr auto" disabled={off} onCommit={(v) => { if (!trackError(v, 'grid-template-rows')) setL({ rowsTemplate: cleanTrackList(v) || '' }); }} /></Cap>
                 <Hint>{tr('inspector.layout.trackHint')}</Hint>
@@ -162,7 +162,6 @@ export function AutoLayoutSection({ c }: { c: Ctx }) {
           {!off && (
             <button type="button" className="btn block" title={tr('inspector.layout.fillCellsHint')} onClick={() => void (async () => {
               const kids = (n.children ?? []).filter((k) => !k.absolute);
-              const { run } = await import('../../lib/app');
               if (kids.length) await run('update_layers', { updates: kids.map((k) => ({ id: k.id, props: { sizeX: 'fill', sizeY: 'fill' } })) });
             })()}><Icon name="grid" size={13} /> {tr('inspector.layout.fillCells')}</button>
           )}
@@ -239,7 +238,7 @@ export function FlowItemSection({ c }: { c: Ctx }) {
           )}
           <Row>
             <Cap label={tr('inspector.layout.order')} css="order"><Num label="#" value={n.order ?? 0} min={-99} max={99} decimals={0} disabled={off} title={tr('inspector.layout.order')} onCommit={(v) => void c.set({ order: Math.round(v ?? 0) || null })} /></Cap>
-            {!grid && <Cap label={tr('inspector.layout.shrink')} css="flex-shrink"><Sel value={n.shrink ? '1' : ''} options={[['', language === 'en-US' ? 'No (0)' : 'Não (0)'], ['1', language === 'en-US' ? 'Yes (1)' : 'Sim (1)']]} disabled={off} onChange={(v) => void c.set({ shrink: v ? true : null })} /></Cap>}
+            {!grid && <Cap label={tr('inspector.layout.shrink')} css="flex-shrink"><Sel value={n.shrink ? '1' : ''} options={[['', t(language, 'ui.layout.no0')], ['1', t(language, 'ui.layout.yes1')]]} disabled={off} onChange={(v) => void c.set({ shrink: v ? true : null })} /></Cap>}
           </Row>
         </>
       )}

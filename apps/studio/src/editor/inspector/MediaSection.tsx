@@ -1,9 +1,9 @@
 import { Section, Check, Sel, Hint } from '../../ui/Fields';
 import type { Ctx } from './ctx';
-import { useApp } from '../../lib/app';
+import { useApp, type Language } from '../../lib/app';
 import { t } from '../../lib/i18n';
 
-const kinds = (language: 'pt-BR' | 'en-US'): [string, string][] => [
+const kinds = (language: Language): [string, string][] => [
   ['video', t(language, 'media.video')], ['audio', t(language, 'media.audio')],
   ['model3d', t(language, 'media.model3d')], ['lottie', 'Lottie'],
 ];
@@ -24,7 +24,7 @@ export function MediaSection({ c }: { c: Ctx }) {
         <Check label={t(language, 'media.loop')} checked={!!n.mediaLoop} disabled={c.readOnly} onChange={(value) => set({ mediaLoop: value })} />
         <Check label={t(language, 'media.muted')} checked={!!n.mediaMuted} disabled={c.readOnly} onChange={(value) => set({ mediaMuted: value })} />
         {n.mediaKind === 'video' && <>
-          <label className="small">{t(language, 'media.poster')}<input className="field" value={n.mediaPoster || ''} disabled={c.readOnly} placeholder="https://… ou assets/…" onChange={(e) => set({ mediaPoster: e.target.value || null })} /></label>
+          <label className="small">{t(language, 'media.poster')}<input className="field" value={n.mediaPoster || ''} disabled={c.readOnly} placeholder="https://… / assets/…" onChange={(e) => set({ mediaPoster: e.target.value || null })} /></label>
           <label className="small">{t(language, 'media.fallback')}<input className="field" value={n.mediaFallback || ''} disabled={c.readOnly} placeholder={t(language, 'media.fallbackPlaceholder')} onChange={(e) => set({ mediaFallback: e.target.value || null })} /></label>
         </>}
       </>}

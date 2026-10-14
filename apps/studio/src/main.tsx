@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { app } from './lib/app';
+import { app, initLanguage } from './lib/app';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/app.css';
@@ -14,8 +14,11 @@ import './styles/inspector.css';
 // O navegador avisa "ResizeObserver loop" quando uma tela muda de altura durante a medição. É inofensivo (só dispara a próxima medição) e não deve virar erro.
 window.addEventListener('error', (e) => { if (/ResizeObserver loop/.test(e.message)) e.stopImmediatePropagation(); });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// o idioma guardado é carregado antes da primeira tela, para ela já nascer no idioma certo
+void initLanguage().finally(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+});

@@ -1,5 +1,6 @@
 // Atalhos de teclado do editor (os mesmos do editor antigo). O mesmo tratador vale para a janela e para dentro das telas
 // (o foco vai para o iframe ao clicar numa camada).
+import { tl } from '../lib/i18n';
 import { useEffect } from 'react';
 import { canEdit, duplicateSelection, groupSelection, redo, removeSelection, undo, ungroupSelection, uploadImage } from '../lib/actions';
 import { getClip } from '../lib/clipboard';
@@ -41,11 +42,11 @@ async function pasteAnything() {
   try {
     for (const item of await navigator.clipboard.read()) {
       const type = item.types.find((t) => t.startsWith('image/'));
-      if (type) { await uploadImage(new File([await item.getType(type)], 'Imagem colada', { type })); return; }
+      if (type) { await uploadImage(new File([await item.getType(type)], tl('ui.shortcuts.pastedImage'), { type })); return; }
     }
     const text = (await navigator.clipboard.readText()).trim();
     if (text) await createShape('text', { x: 120, y: 120, w: 0, h: 0 }, null, { x: 0, y: 0 }, true).then(async (id) => { if (id) await run('update_layer', { id, props: { text } }); });
-  } catch { toast('error', 'Não consegui ler a área de transferência (o navegador pediu permissão?).'); }
+  } catch { toast('error', tl('shortcuts.msg.clipboardDenied')); }
 }
 
 const TOOL_KEYS: Record<string, Tool> = { v: 'move', f: 'frame', b: 'frame', r: 'rect', e: 'ellipse', t: 'text', h: 'hand', p: 'pen', l: 'line', n: 'node', c: 'comment', i: 'inspect' };
@@ -87,7 +88,7 @@ export function handleShortcut(e: KeyboardEvent): void {
     if (key === 'x') return act(() => copySelection(true));
     if (key === 'v') return act(pasteAnything);
     if (key === 'g') return act(e.shiftKey ? ungroupSelection : groupSelection);
-    if (key === 's') return act(() => toast('ok', 'O projeto é salvo sozinho no servidor a cada mudança.'));
+    if (key === 's') return act(() => toast('ok', tl('shortcuts.msg.autosave')));
     if (key === 'r') return act(() => setRulers(!app.get().rulers));
     if (key === '\\') return act(() => window.dispatchEvent(new Event('stylo:panels')));
     if (key === ',') return act(() => window.dispatchEvent(new Event('stylo:settings')));

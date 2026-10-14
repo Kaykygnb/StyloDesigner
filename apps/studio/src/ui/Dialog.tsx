@@ -1,4 +1,5 @@
 // Janelas simples no visual do painel: perguntar um texto, confirmar. Substituem o prompt/confirm do navegador.
+import { t } from '../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { app, useApp } from '../lib/app';
@@ -29,6 +30,7 @@ export function DialogHost() {
 }
 
 function DialogView({ dialog }: { dialog: DialogState }) {
+  const language = useApp((s) => s.language);
   const [value, setValue] = useState(dialog.value ?? '');
   const field = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const finish = (v: string | boolean | null) => { app.set({ dialog: null }); dialog.resolve(v); };
@@ -48,7 +50,7 @@ function DialogView({ dialog }: { dialog: DialogState }) {
           : <input ref={field} className="field" value={value} onChange={(e) => setValue(e.target.value)} />)}
         <div className="row modal-actions">
           <span className="grow" />
-          <button className="btn" onClick={() => finish(dialog.kind === 'text' ? null : false)}>Cancelar</button>
+          <button className="btn" onClick={() => finish(dialog.kind === 'text' ? null : false)}>{t(language, 'ui.dialog.cancel')}</button>
           <button className={`btn ${dialog.danger ? 'danger-solid' : 'primary'}`} onClick={submit}>{dialog.okLabel ?? 'OK'}</button>
         </div>
       </div>

@@ -31,7 +31,7 @@ const selectedNodes = (): LayerNode[] => {
 
 // ---------------------------------------------------------------- fotos
 interface Photo { id: string; provider: string; thumb: string; full: string; author: string; authorUrl?: string; sourceUrl?: string; license: string; licenseUrl?: string; attribution?: string; attributionRequired?: boolean }
-const SUGGESTIONS = ['pessoas', 'escritório', 'natureza', 'comida', 'textura'];
+const SUGGESTIONS = ['people', 'office', 'nature', 'food', 'texture'];
 
 type PluginAsset = {
   id?: string; ref?: string; title?: string; name?: string; provider?: string; kind?: string; preview_url?: string;
@@ -47,16 +47,14 @@ function PluginAssets() {
   const [status, setStatus] = useState(tr('assets.pluginHint'));
   const [busy, setBusy] = useState(false);
   const editable = canEdit();
-  const kindOptions: Array<[typeof kind, string]> = language === 'en-US'
-    ? [['image', 'Images'], ['font', 'Fonts'], ['icon', 'Icons'], ['video', 'Videos'], ['audio', 'Audio'], ['model3d', '3D'], ['lottie', 'Lottie']]
-    : [['image', 'Imagens'], ['font', 'Fontes'], ['icon', 'Ícones'], ['video', 'Vídeos'], ['audio', 'Áudio'], ['model3d', '3D'], ['lottie', 'Lottie']];
+  const kindOptions: Array<[typeof kind, string]> = [['image', tr('assets.kindImage')], ['font', tr('assets.kindFont')], ['icon', tr('assets.kindIcon')], ['video', tr('assets.kindVideo')], ['audio', tr('assets.kindAudio')], ['model3d', '3D'], ['lottie', 'Lottie']];
   const search = async () => {
     if (!q.trim()) { setStatus(tr('assets.searchEmpty')); return; }
     setBusy(true); setStatus(tr('assets.searching'));
     try {
       const out = await run<{ results?: PluginAsset[]; count?: number; skipped?: Array<{ provider?: string; reason?: string }> }>('search_assets', { kind, query: q.trim() });
       setResults(out?.results ?? []);
-      const skipped = out?.skipped?.length ? ` · ${language === 'en-US' ? 'Unavailable providers' : 'Provedores indisponíveis'}: ${out.skipped.map((item) => item.provider || 'provider').join(', ')}` : '';
+      const skipped = out?.skipped?.length ? ` · ${t(language, 'ui.assets.unavailableProviders')}: ${out.skipped.map((item) => item.provider || 'provider').join(', ')}` : '';
       setStatus(`${tr('assets.results', { count: out?.count ?? out?.results?.length ?? 0 })}${skipped}`);
     }
     catch (e) { setStatus(e instanceof Error ? e.message : tr('assets.searchFailed')); setResults([]); } finally { setBusy(false); }
@@ -122,7 +120,7 @@ function Photos() {
       const { dataUrl } = await readImageFile(await download(item));
       const sel = selectedNodes();
       const parent = sel.length === 1 && sel[0].type === 'frame' ? sel[0] : null;
-      const out = await run<{ created?: { id: string } }>('add_asset', { name: `Foto de ${item.author}`.slice(0, 60), data_url: dataUrl, insert: true, ...(parent ? { parent_id: parent.id } : {}) });
+      const out = await run<{ created?: { id: string } }>('add_asset', { name: t(language, 'ui.assets.photoBy', { author: item.author }).slice(0, 60), data_url: dataUrl, insert: true, ...(parent ? { parent_id: parent.id } : {}) });
       const id = out?.created?.id;
       if (id) { await run('update_layer', { id, props: { photoCredit: credit(item) } }); select([id]); toast('ok', tr('assets.photoInserted')); }
     } catch (e) { toast('error', e instanceof Error ? e.message : tr('assets.photoInsertFailed')); }
@@ -132,7 +130,7 @@ function Photos() {
     if (!targets.length) { toast('error', tr('assets.photosSelectFill')); return; }
     try {
       const { dataUrl, w, h } = await readImageFile(await download(item));
-      const added = await run<{ asset_id?: string }>('add_asset', { name: `Foto de ${item.author}`.slice(0, 60), data_url: dataUrl });
+      const added = await run<{ asset_id?: string }>('add_asset', { name: t(language, 'ui.assets.photoBy', { author: item.author }).slice(0, 60), data_url: dataUrl });
       if (!added?.asset_id) return;
       for (const n of targets) await run('update_layer', { id: n.id, props: { fill: { type: 'image', assetId: added.asset_id, fit: 'cover', natW: w, natH: h }, photoCredit: credit(item) } });
       toast('ok', tr('assets.photosApplied'));
@@ -148,9 +146,9 @@ function Photos() {
       <select className="field" aria-label={tr('assets.photosAll')} value={orientation} onChange={(e) => { setOrientation(e.target.value); }}>
         <option value="">{tr('assets.photosAll')}</option><option value="landscape">{tr('assets.photosLandscape')}</option><option value="portrait">{tr('assets.photosPortrait')}</option><option value="square">{tr('assets.photosSquare')}</option>
       </select>
-      <div className="chips">{SUGGESTIONS.map((s) => <button key={s} className="chip-btn" onClick={() => { setQ(s); void search(false, s); }}>{s}</button>)}</div>
+      <div className="chips">{SUGGESTIONS.map((id) => { const s = tr(`ui.assets.suggest.${id}`); return <button key={id} className="chip-btn" onClick={() => { setQ(s); void search(false, s); }}>{s}</button>; })}</div>
       <p className="hint" role="status">{status}</p>
-      <div className="photo-results-scroll" tabIndex={0} aria-label={language === 'en-US' ? 'Photo results' : 'Resultados de fotos'}>
+      <div className="photo-results-scroll" tabIndex={0} aria-label={t(language, 'ui.assets.photoResults')}>
       <div className="photo-grid">
         {results.map((item) => (
           <article className="photo-card" key={item.id} title={`${item.author} · ${item.license}`}>
@@ -247,7 +245,7 @@ function ColorStyles() {
   const fromSelection = async () => {
     const n = selectedNodes().find((x) => x.fill?.type === 'solid');
     if (!n) { toast('error', tr('assets.selectSolidFill')); return; }
-    const name = await askText(tr('assets.colorStyleName'), `Cor ${styles.length + 1}`, { okLabel: tr('assets.save') });
+    const name = await askText(tr('assets.colorStyleName'), t(language, 'ui.assets.colorStyleDefault', { n: styles.length + 1 }), { okLabel: tr('assets.save') });
     if (!name?.trim()) return;
     const made = await run<{ created?: { id: string }[] }>('create_color_styles', { colors: [{ name: name.trim(), color: n.fill.color }] });
     if (made?.created?.[0]?.id) await run('update_layer', { id: n.id, props: { fill: { styleId: made.created[0].id } } });
@@ -274,7 +272,7 @@ function TextStyles() {
   const fromSelection = async () => {
     const n = selectedNodes().find((x) => x.type === 'text');
     if (!n) { toast('error', tr('assets.selectText')); return; }
-    const name = await askText(tr('assets.textStyleName'), `Texto ${styles.length + 1}`, { okLabel: tr('assets.save') });
+    const name = await askText(tr('assets.textStyleName'), t(language, 'ui.assets.textStyleDefault', { n: styles.length + 1 }), { okLabel: tr('assets.save') });
     if (!name?.trim()) return;
     const made = await run<{ created?: { id: string }[] }>('create_text_styles', { styles: [{ name: name.trim(), fontFamily: n.fontFamily, fontSize: n.fontSize, fontWeight: n.fontWeight, lineHeight: n.lineHeight, letterSpacing: n.letterSpacing, textAlign: n.textAlign }] });
     if (made?.created?.[0]?.id) await run('apply_text_style', { ids: [n.id], style_id: made.created[0].id });
@@ -334,7 +332,7 @@ function Variables() {
   const tr = (key: string, values?: Record<string, string | number>) => t(language, key, values);
   const editable = canEdit();
   const add = async () => {
-    const name = await askText(tr('assets.newVariable'), `Variável ${vars.length + 1}`, { okLabel: tr('assets.variableNext'), message: tr('assets.variableNameHint') });
+    const name = await askText(tr('assets.newVariable'), t(language, 'ui.assets.variableDefault', { n: vars.length + 1 }), { okLabel: tr('assets.variableNext'), message: tr('assets.variableNameHint') });
     if (!name?.trim()) return;
     const value = await askText(tr('assets.variableValue'), '16', { okLabel: tr('assets.variableCreate'), message: tr('assets.variableValueHint') });
     if (value == null) return;
@@ -405,7 +403,7 @@ export function AssetsTab() {
   return (
     <div className="tab-body assets-tab">
       <PluginAssets />
-      <Block title={language === 'en-US' ? 'Photos' : 'Fotos'}><Photos /></Block>
+      <Block title={t(language, 'ui.assets.photos')}><Photos /></Block>
       <Block title={tr('assets.projectImages')} open={false}><ProjectImages /></Block>
       <Block title={tr('assets.components')}><Components /></Block>
       <ColorStyles />

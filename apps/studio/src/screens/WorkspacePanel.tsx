@@ -139,10 +139,10 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   };
   const editAsset = (asset: api.LibraryAsset) => {
     setEditingAsset(asset.id);
-    setAssetDraft({ name: asset.name, license: asset.license?.name || 'Enviado pela conta', credit: asset.credit || '', tags: (asset.tags || []).join(', '), commercial: asset.license?.commercial !== false, attribution: (asset.license?.attribution as 'required' | 'optional' | 'none') || 'none' });
+    setAssetDraft({ name: asset.name, license: asset.license?.name || t(language, 'ui.workspace.uploadedByAccount'), credit: asset.credit || '', tags: (asset.tags || []).join(', '), commercial: asset.license?.commercial !== false, attribution: (asset.license?.attribution as 'required' | 'optional' | 'none') || 'none' });
   };
   const saveAsset = async (asset: api.LibraryAsset) => {
-    if (!assetDraft.name.trim() || !assetDraft.license.trim()) return toast('error', 'Nome e licença são obrigatórios.');
+    if (!assetDraft.name.trim() || !assetDraft.license.trim()) return toast('error', t(language, 'ui.workspace.nameAndLicenseRequired'));
     try {
       const tags = assetDraft.tags.split(',').map((tag) => tag.trim().toLowerCase()).filter(Boolean);
       const updated = await api.libraryUpdate(asset.id, { name: assetDraft.name.trim(), tags, license: { ...(asset.license || {}), name: assetDraft.license.trim(), commercial: assetDraft.commercial, attribution: assetDraft.attribution }, credit: assetDraft.credit.trim() || null });
@@ -152,7 +152,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     } catch (e) { toast('error', String(e)); }
   };
   const create = async () => {
-    if (!newAgentName.trim()) return toast('error', 'Dê um nome para o agente.');
+    if (!newAgentName.trim()) return toast('error', t(language, 'ui.workspace.nameTheAgent'));
     try {
       const a = await api.createAgent(newAgentName.trim(), newAgentScopes, newAgentType);
       setAgents((x) => [...x, a.agent]);
@@ -167,21 +167,21 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   };
   const grantProject = async (agent: api.AgentInfo) => {
     const file = grantProjectFile.trim();
-    if (!file) return toast('error', language === 'en-US' ? 'Enter the project to authorize.' : 'Informe o projeto a autorizar.');
+    if (!file) return toast('error', t(language, 'ui.workspace.enterTheProjectToAuthorize'));
     try {
       await api.grantAgentProject(agent.id, file.trim());
-      toast("ok", language === 'en-US' ? 'Agent authorized for the project.' : 'Agente autorizado no projeto.');
+      toast("ok", t(language, 'ui.workspace.agentAuthorizedForTheProject'));
       setGrantAgentId(null);
       setGrantProjectFile('');
     } catch (e) {
       toast("error", String(e));
     }
   };
-  const rotate = async (agent: api.AgentInfo) => { try { const result = await api.rotateAgent(agent.id); setNewToken(result.token); toast('ok', `Token de ${agent.name} rotacionado.`); } catch (e) { toast('error', String(e)); } };
+  const rotate = async (agent: api.AgentInfo) => { try { const result = await api.rotateAgent(agent.id); setNewToken(result.token); toast('ok', t(language, 'ui.workspace.tokenRotated', { name: agent.name })); } catch (e) { toast('error', String(e)); } };
   const showAgentActivity = async (agent: api.AgentInfo) => { try { const rows = await api.agentActivity(agent.id); setAgentActivity((x) => ({ ...x, [agent.id]: rows })); } catch (e) { toast('error', String(e)); } };
   const showAgentProjects = async (agent: api.AgentInfo) => { try { const rows = await api.agentProjects(agent.id); setAgentProjects((x) => ({ ...x, [agent.id]: rows })); } catch (e) { toast('error', String(e)); } };
   const createUser = async () => {
-    if (!newUser.email.trim() || !newUser.name.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    if (!newUser.email.trim() || !newUser.name.trim()) return toast('error', t(language, 'ui.workspace.nameAndEmailRequired'));
     try {
       const created = await api.createUser({ ...newUser, email: newUser.email.trim(), name: newUser.name.trim(), avatar: newUser.avatar || null });
       setUsers((x) => [...x, created.user]);
@@ -198,12 +198,12 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const saveEditedUser = async () => {
     if (!editUserDraft) return;
     const { id, name, email, color, avatar, role } = editUserDraft;
-    if (!name.trim() || !email.trim()) return toast('error', 'Nome e e-mail são obrigatórios.');
+    if (!name.trim() || !email.trim()) return toast('error', t(language, 'ui.workspace.nameAndEmailRequired'));
     try {
       const updated = await api.updateUser(id, { name: name.trim(), email: email.trim(), color, avatar: avatar || null, role });
       setUsers((x) => x.map((v) => (v.id === id ? updated : v)));
       setEditUserDraft(null);
-      toast("ok", "Usuário atualizado.");
+      toast('ok', t(language, 'ui.workspace.userUpdated'));
     } catch (e) {
       toast("error", String(e));
     }
@@ -212,29 +212,29 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
     try {
       const result = await api.resetUserPassword(u.id);
       setTemporaryPassword(result.temporaryPassword);
-      toast("ok", "Senha temporária gerada.");
+      toast('ok', t(language, 'ui.workspace.tempPasswordGenerated'));
     } catch (e) {
       toast("error", String(e));
     }
   };
-  const setRole = async (u: api.PublicUser, role: api.PublicUser["role"]) => { try { const updated = await api.updateUser(u.id, { role }); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', 'Função atualizada.'); } catch (e) { toast('error', String(e)); } };
-  const toggleSuspended = async (u: api.PublicUser) => { try { const updated = await api.setUserSuspended(u.id, !u.suspended); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', updated.suspended ? 'Usuário suspenso.' : 'Usuário reativado.'); } catch (e) { toast('error', String(e)); } };
+  const setRole = async (u: api.PublicUser, role: api.PublicUser["role"]) => { try { const updated = await api.updateUser(u.id, { role }); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', t(language, 'ui.workspace.roleUpdated')); } catch (e) { toast('error', String(e)); } };
+  const toggleSuspended = async (u: api.PublicUser) => { try { const updated = await api.setUserSuspended(u.id, !u.suspended); setUsers((x) => x.map((v) => v.id === u.id ? updated : v)); toast('ok', t(language, updated.suspended ? 'ui.workspace.userSuspended' : 'ui.workspace.userReactivated')); } catch (e) { toast('error', String(e)); } };
   const showUserProjects = async (u: api.PublicUser) => { try { const rows = await api.userProjects(u.id); setUserProjects((x) => ({ ...x, [u.id]: rows })); } catch (e) { toast('error', String(e)); } };
   const saveProvider = async (provider: api.ProviderInfo) => {
     const key = (providerKeys[provider.id] || '').trim();
-    if (key.length < 8) { toast('error', 'A chave precisa ter pelo menos 8 caracteres.'); return; }
-    try { await api.saveProviderKey(provider.id, key); setCatalog((x) => x && ({ ...x, providers: x.providers.map((p) => p.id === provider.id ? { ...p, hasKey: true, ready: true } : p) })); setProviderKeys((x) => ({ ...x, [provider.id]: '' })); toast('ok', `Chave de ${provider.name} salva.`); }
+    if (key.length < 8) { toast('error', t(language, 'ui.workspace.keyTooShort')); return; }
+    try { await api.saveProviderKey(provider.id, key); setCatalog((x) => x && ({ ...x, providers: x.providers.map((p) => p.id === provider.id ? { ...p, hasKey: true, ready: true } : p) })); setProviderKeys((x) => ({ ...x, [provider.id]: '' })); toast('ok', t(language, 'ui.workspace.keySaved', { name: provider.name })); }
     catch (e) { toast('error', String(e)); }
   };
   const removeProvider = async (provider: api.ProviderInfo) => {
-    try { await api.removeProviderKey(provider.id); setCatalog((x) => x && ({ ...x, providers: x.providers.map((p) => p.id === provider.id ? { ...p, hasKey: false, ready: false } : p) })); toast('ok', `Chave de ${provider.name} removida.`); }
+    try { await api.removeProviderKey(provider.id); setCatalog((x) => x && ({ ...x, providers: x.providers.map((p) => p.id === provider.id ? { ...p, hasKey: false, ready: false } : p) })); toast('ok', t(language, 'ui.workspace.keyRemoved', { name: provider.name })); }
     catch (e) { toast('error', String(e)); }
   };
 
   if (tab === "account")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {language === 'en-US' ? 'Your creative identity' : 'Sua identidade criativa'}</div>
+        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.yourCreativeIdentity')}</div>
         <h1>{tr('account.title')}</h1>
         <p className="muted">{tr('account.subtitle')}</p>
         <div className="account-card">
@@ -270,7 +270,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
               onChange={(e) => setAccountColor(e.target.value)}
             />
           </label>
-          <input ref={avatarInput} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 160 * 1024) { toast('error', 'O avatar precisa ter até 160 KB.'); return; } const reader = new FileReader(); reader.onload = () => setAccountAvatar(String(reader.result || '')); reader.readAsDataURL(file); }} />
+          <input ref={avatarInput} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 160 * 1024) { toast('error', t(language, 'ui.workspace.avatarTooBig')); return; } const reader = new FileReader(); reader.onload = () => setAccountAvatar(String(reader.result || '')); reader.readAsDataURL(file); }} />
           <p className="hint">{tr('account.avatarHint')}</p>
           <button
             className="btn primary"
@@ -346,7 +346,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                     onClick={() =>
                       void api.revokeSession(s.id).then(() => {
                         setSessions((x) => x.filter((v) => v.id !== s.id));
-                        toast("ok", "Sessão revogada.");
+                        toast('ok', t(language, 'ui.workspace.sessionRevoked'));
                       })
                     }
                   >
@@ -366,7 +366,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   if (tab === "agents")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {language === 'en-US' ? 'Human + AI workspace' : 'Workspace humano + IA'}</div>
+        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.humanAiWorkspace')}</div>
         <div className="workspace-head">
           <div>
             <h1>{tr('agents.title')}</h1>
@@ -376,16 +376,16 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             {tr('agents.new')}
           </button>
         </div>
-        <div className="workspace-metrics" aria-label={language === 'en-US' ? 'Workspace overview' : 'Resumo do workspace'}>
-          <div><strong>{agents.filter((a) => a.status !== 'REVOKED').length}</strong><span>{language === 'en-US' ? 'active connections' : 'conexões ativas'}</span></div>
-          <div><strong>{agents.length}</strong><span>{language === 'en-US' ? 'creative partners' : 'parceiros criativos'}</span></div>
-          <div><strong>24/7</strong><span>{language === 'en-US' ? 'ready when you are' : 'pronto quando você estiver'}</span></div>
+        <div className="workspace-metrics" aria-label={t(language, 'ui.workspace.workspaceOverview')}>
+          <div><strong>{agents.filter((a) => a.status !== 'REVOKED').length}</strong><span>{t(language, 'ui.workspace.activeConnections')}</span></div>
+          <div><strong>{agents.length}</strong><span>{t(language, 'ui.workspace.creativePartners')}</span></div>
+          <div><strong>24/7</strong><span>{t(language, 'ui.workspace.readyWhenYouAre')}</span></div>
         </div>
         {newAgentOpen && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setNewAgentOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-label={tr('agents.newTitle')}>
           <h3>{tr('agents.newTitle')}</h3><p className="muted small">{tr('agents.tokenOnce')}</p>
-          <label className="small">{tr('agents.name')}<input className="field" autoFocus value={newAgentName} onChange={(e) => setNewAgentName(e.target.value)} placeholder="Ex.: Codex do projeto" /></label>
+          <label className="small">{tr('agents.name')}<input className="field" autoFocus value={newAgentName} onChange={(e) => setNewAgentName(e.target.value)} placeholder={t(language, 'ui.workspace.agentNamePlaceholder')} /></label>
           <label className="small">{tr('agents.type')}<select className="field" value={newAgentType} onChange={(e) => setNewAgentType(e.target.value)}><option value="mcp">{tr('agents.generic')}</option><option value="claude-code">Claude Code</option><option value="claude-desktop">Claude Desktop</option><option value="codex">Codex</option><option value="cursor">Cursor</option><option value="windsurf">Windsurf</option><option value="opencode">OpenCode</option><option value="quine">Quine</option><option value="opencog">OpenCog</option></select></label>
-          <div className="small">{tr('agents.permissions')}{(['read', 'comment', 'write', 'export'] as const).map((scope) => <label className="check-row" key={scope}><input type="checkbox" checked={newAgentScopes.includes(scope)} onChange={(e) => setNewAgentScopes((v) => e.target.checked ? [...new Set([...v, scope])] : v.filter((x) => x !== scope))} />{scope === 'read' ? (language === 'en-US' ? 'View' : 'Ver') : scope === 'comment' ? (language === 'en-US' ? 'Comment' : 'Comentar') : scope === 'write' ? (language === 'en-US' ? 'Edit' : 'Editar') : (language === 'en-US' ? 'Export' : 'Exportar')}</label>)}</div>
+          <div className="small">{tr('agents.permissions')}{(['read', 'comment', 'write', 'export'] as const).map((scope) => <label className="check-row" key={scope}><input type="checkbox" checked={newAgentScopes.includes(scope)} onChange={(e) => setNewAgentScopes((v) => e.target.checked ? [...new Set([...v, scope])] : v.filter((x) => x !== scope))} />{scope === 'read' ? (t(language, 'ui.workspace.view')) : scope === 'comment' ? (t(language, 'tool.comment')) : scope === 'write' ? (t(language, 'admin.edit')) : (t(language, 'inspector.extra.exportTitle'))}</label>)}</div>
           <div className="row modal-actions"><span className="grow"/><button className="btn" onClick={() => setNewAgentOpen(false)}>{tr('agents.cancel')}</button><button className="btn primary" onClick={() => void create()}>{tr('agents.create')}</button></div>
         </div></div>}
         {newToken && (
@@ -419,18 +419,18 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         ) : (
           <>
             <McpGuide newToken={newToken} />
-            {!agents.length && <div className="agent-empty"><div className="empty-art"><Icon name="users" size={24} /></div><div><b>{language === 'en-US' ? 'No creative partner connected yet' : 'Nenhum parceiro criativo conectado ainda'}</b><p className="muted small">{language === 'en-US' ? 'Create your first connection to let an AI tool work beside you on Stylo projects.' : 'Crie sua primeira conexão para uma ferramenta de IA trabalhar ao seu lado nos projetos do Stylo.'}</p></div><button className="btn primary sm" onClick={() => setNewAgentOpen(true)}>{language === 'en-US' ? 'Connect first agent' : 'Conectar primeiro agente'}</button></div>}
+            {!agents.length && <div className="agent-empty"><div className="empty-art"><Icon name="users" size={24} /></div><div><b>{t(language, 'ui.workspace.noCreativePartnerConnectedYet')}</b><p className="muted small">{t(language, 'ui.workspace.createYourFirstConnectionTo')}</p></div><button className="btn primary sm" onClick={() => setNewAgentOpen(true)}>{t(language, 'ui.workspace.connectFirstAgent')}</button></div>}
             <ul className="resource-list">
               {agents.map((a) => (
                 <li key={a.id}>
                   <div>
                     <b>{a.name}</b>
                     <span className="agent-meta">
-                      <span className={`badge ${a.status === 'REVOKED' ? 'error' : 'ok'}`}>{a.status === 'REVOKED' ? (language === 'en-US' ? 'Paused' : 'Pausado') : (language === 'en-US' ? 'Connected' : 'Conectado')}</span>
+                      <span className={`badge ${a.status === 'REVOKED' ? 'error' : 'ok'}`}>{a.status === 'REVOKED' ? (t(language, 'ui.workspace.paused')) : (t(language, 'ui.workspace.connected'))}</span>
                       <span>{a.type || 'MCP'}</span>
-                      {a.lastSeenAt && <span>{language === 'en-US' ? 'Last seen' : 'Visto'} {new Date(a.lastSeenAt).toLocaleString(language)}</span>}
+                      {a.lastSeenAt && <span>{t(language, 'ui.workspace.lastSeen')} {new Date(a.lastSeenAt).toLocaleString(language)}</span>}
                     </span>
-                    <span className="faint">{language === 'en-US' ? 'Owner' : 'Responsável'}: {a.ownerName || '—'} · {language === 'en-US' ? 'Last project' : 'Último projeto'}: {a.lastProject?.name || a.lastProject?.slug || (language === 'en-US' ? 'none' : 'nenhum')}</span>
+                    <span className="faint">{t(language, 'ui.workspace.owner')}: {a.ownerName || '—'} · {t(language, 'ui.workspace.lastProject')}: {a.lastProject?.name || a.lastProject?.slug || (t(language, 'ui.workspace.none'))}</span>
                     <div className="row wrap">
                       {["read", "comment", "write", "export"].map((scope) => (
                         <label className="check small" key={scope}>
@@ -446,7 +446,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                               }))
                             }
                           />
-                          {scope === 'read' ? (language === 'en-US' ? 'View' : 'Ver') : scope === 'comment' ? (language === 'en-US' ? 'Comment' : 'Comentar') : scope === 'write' ? (language === 'en-US' ? 'Edit' : 'Editar') : (language === 'en-US' ? 'Export' : 'Exportar')}
+                          {scope === 'read' ? (t(language, 'ui.workspace.view')) : scope === 'comment' ? (t(language, 'tool.comment')) : scope === 'write' ? (t(language, 'admin.edit')) : (t(language, 'inspector.extra.exportTitle'))}
                         </label>
                       ))}
                       <button
@@ -461,7 +461,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                         {tr('comments.save')}
                       </button>
                       <details className="agent-actions">
-                        <summary className="btn ghost sm">{language === 'en-US' ? 'Actions' : 'Ações'}</summary>
+                        <summary className="btn ghost sm">{t(language, 'ui.workspace.actions')}</summary>
                         <div className="row wrap agent-actions-menu">
                           <button className="btn ghost sm" onClick={() => { setGrantAgentId(a.id); setGrantProjectFile(''); }}>{tr('agents.authorizeProject')}</button>
                           <button className="btn ghost sm" onClick={() => void rotate(a)}>{tr('agents.rotateToken')}</button>
@@ -506,7 +506,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             </ul>
             {grantAgentId && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setGrantAgentId(null); }}><div className="modal" role="dialog" aria-modal="true" aria-label={tr('agents.authorizeTitle')}>
               <h3>{tr('agents.authorizeTitle')}</h3><p className="muted small">{tr('agents.authorizeHint')}</p>
-              <label className="small">{tr('agents.projectFile')}<input className="field" autoFocus value={grantProjectFile} onChange={(e) => setGrantProjectFile(e.target.value)} placeholder="ex.: loja.json" /></label>
+              <label className="small">{tr('agents.projectFile')}<input className="field" autoFocus value={grantProjectFile} onChange={(e) => setGrantProjectFile(e.target.value)} placeholder={t(language, 'ui.workspace.projectPlaceholder')} /></label>
               <div className="row modal-actions"><span className="grow"/><button className="btn" onClick={() => setGrantAgentId(null)}>{tr('agents.cancel')}</button><button className="btn primary" onClick={() => { const agent = agents.find((v) => v.id === grantAgentId); if (agent) void grantProject(agent); }}>{tr('agents.authorize')}</button></div>
             </div></div>}
           </>
@@ -516,7 +516,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   if (tab === "admin")
     return (
       <section className="workspace-section">
-        <div className="workspace-kicker"><span className="kicker-orb" /> {language === 'en-US' ? 'Behind the scenes' : 'Por trás da criação'}</div>
+        <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.behindTheScenes')}</div>
         <div className="workspace-head">
           <div>
             <h1>{tr('admin.title')}</h1>
@@ -537,7 +537,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         <div className="account-card">
           <div className="workspace-head"><b>{tr('admin.activity')}</b><button className="btn ghost sm" onClick={() => void api.adminActivity().then(setAdminActivity)}>{tr('actions.refresh')}</button></div>
           <select className="field" aria-label={tr('admin.allOperations')} value={adminActivityFilter} onChange={(e) => setAdminActivityFilter(e.target.value)}><option value="all">{tr('admin.allOperations')}</option>{[...new Set(adminActivity.map((item) => `projeto:${item.project.slug}`))].map((key) => <option key={key} value={key}>{key.slice(8)}</option>)}{[...new Set(adminActivity.map((item) => `ferramenta:${item.tool}`))].map((key) => <option key={key} value={key}>{key.slice(11)}</option>)}{[...new Set(adminActivity.filter((item) => item.user).map((item) => `usuario:${item.user!.id}`))].map((key) => { const item = adminActivity.find((row) => `usuario:${row.user?.id}` === key); return <option key={key} value={key}>{tr('admin.user')}: {item?.user?.name || key.slice(8)}</option>; })}{[...new Set(adminActivity.filter((item) => item.agent).map((item) => `agente:${item.agent!.id}`))].map((key) => { const item = adminActivity.find((row) => `agente:${row.agent?.id}` === key); return <option key={key} value={key}>{tr('admin.agent')}: {item?.agent?.name || key.slice(7)}</option>; })}</select>
-          <ul className="activity">{adminActivity.filter((item) => adminActivityFilter === 'all' || adminActivityFilter === `projeto:${item.project.slug}` || adminActivityFilter === `ferramenta:${item.tool}` || adminActivityFilter === `usuario:${item.user?.id}` || adminActivityFilter === `agente:${item.agent?.id}`).map((item) => <li key={item.id}><span className={`badge ${item.ok ? 'ok' : 'error'}`}>{item.ok ? 'OK' : (language === 'en-US' ? 'Error' : 'Erro')}</span><span><b>{item.agent?.name || item.user?.name || tr('admin.system')}</b> · {item.project.name || item.project.slug} · {item.summary || item.tool}<span className="faint"> · {formatDate(language, item.at, { dateStyle: 'short', timeStyle: 'short' })}</span></span></li>)}{!adminActivity.length && <li className="faint">{tr('admin.noActivity')}</li>}</ul>
+          <ul className="activity">{adminActivity.filter((item) => adminActivityFilter === 'all' || adminActivityFilter === `projeto:${item.project.slug}` || adminActivityFilter === `ferramenta:${item.tool}` || adminActivityFilter === `usuario:${item.user?.id}` || adminActivityFilter === `agente:${item.agent?.id}`).map((item) => <li key={item.id}><span className={`badge ${item.ok ? 'ok' : 'error'}`}>{item.ok ? 'OK' : (t(language, 'issues.error'))}</span><span><b>{item.agent?.name || item.user?.name || tr('admin.system')}</b> · {item.project.name || item.project.slug} · {item.summary || item.tool}<span className="faint"> · {formatDate(language, item.at, { dateStyle: 'short', timeStyle: 'short' })}</span></span></li>)}{!adminActivity.length && <li className="faint">{tr('admin.noActivity')}</li>}</ul>
         </div>
         <div className="account-card">
           <div className="workspace-head"><b>{tr('admin.connections')}</b><button className="btn ghost sm" onClick={() => void api.connectionsList().then(setConnections)}>{tr('actions.refresh')}</button></div>
@@ -556,7 +556,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                 onClick={() =>
                   void navigator.clipboard
                     .writeText(temporaryPassword)
-                    .then(() => toast("ok", language === 'en-US' ? 'Password copied.' : 'Senha copiada.'))
+                    .then(() => toast("ok", t(language, 'ui.workspace.passwordCopied')))
                 }
               >
                 {tr('actions.copy')}
@@ -570,10 +570,10 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
             </button>
           </div>
         )}
-        {editUserDraft && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setEditUserDraft(null); }}><div className="modal" role="dialog" aria-modal="true" aria-label="Editar usuário">
+        {editUserDraft && <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setEditUserDraft(null); }}><div className="modal" role="dialog" aria-modal="true" aria-label={t(language, 'ui.workspace.editUser')}>
           <h3>{tr('admin.editUser')}</h3>
           <label className="small">{tr('account.name')}<input className="field" autoFocus value={editUserDraft.name} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, name: e.target.value }))} /></label>
-          <label className="small">E-mail<input className="field" type="email" value={editUserDraft.email} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, email: e.target.value }))} /></label>
+          <label className="small">{t(language, 'ui.workspace.email')}<input className="field" type="email" value={editUserDraft.email} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, email: e.target.value }))} /></label>
           <label className="small">{tr('admin.accessLevel')}<select className="field" value={editUserDraft.role} disabled={editUserDraft.id === user?.id} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, role: e.target.value as api.PublicUser['role'] }))}><option value="MEMBER">{tr('admin.member')}</option><option value="VIEWER">{tr('admin.viewer')}</option><option value="COMMENTER">{tr('admin.commenter')}</option><option value="EDITOR">{tr('admin.editor')}</option><option value="ADMIN">{tr('admin.adminRole')}</option><option value="OWNER">{tr('admin.owner')}</option></select></label>
           <label className="small">{tr('account.profileColor')}<input className="field" type="color" value={editUserDraft.color || '#6d5dfc'} onChange={(e) => setEditUserDraft((v) => v && ({ ...v, color: e.target.value }))} /></label>
           <label className="small">{tr('admin.profilePhoto')}<input className="field" type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setEditUserDraft((v) => v && ({ ...v, avatar: String(reader.result || '') })); reader.readAsDataURL(file); }} /></label>
@@ -627,7 +627,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                 <div>
                   <b>{u.name}</b>
                   <span className="faint">
-                    {u.email} · {tr(`role.${u.role}`)} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (language === 'en-US' ? 'password change pending' : 'troca de senha pendente') : tr('admin.active')}
+                    {u.email} · {tr(`role.${u.role}`)} · {u.suspended ? tr('admin.suspended') : u.mustChangePassword ? (t(language, 'ui.workspace.passwordChangePending')) : tr('admin.active')}
                   </span>
                 </div>
                 <div className="row">
@@ -654,7 +654,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                       onClick={() =>
                         void api
                           .revokeUserSessions(u.id)
-                          .then(() => toast("ok", "Sessões revogadas."))
+                          .then(() => toast('ok', t(language, 'ui.workspace.sessionsRevoked')))
                           .catch((e) => toast("error", String(e)))
                       }
                     >
@@ -677,7 +677,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                     </button>
                   )}
                 </div>
-                {userProjects[u.id] && <ul className="activity compact">{userProjects[u.id].map((p) => <li key={p.file}><span className="dot" /><span><b>{p.name || p.file}</b><span className="faint">{p.file} · {tr(`role.${p.role}`)} · {language === 'en-US' ? 'updated' : 'atualizado'} {formatDate(language, p.modified, { dateStyle: 'short', timeStyle: 'short' })}</span></span>{p.role !== 'OWNER' && <button className="btn ghost sm" onClick={() => void api.revokeUserProject(u.id, p.id).then(() => { setUserProjects((x) => ({ ...x, [u.id]: x[u.id].filter((v) => v.id !== p.id) })); toast('ok', tr('agents.revoke')); }).catch((e) => toast('error', String(e)))}>{tr('agents.revoke')}</button>}</li>)}{!userProjects[u.id].length && <li className="faint">{tr('admin.noAccessibleProjects')}</li>}</ul>}
+                {userProjects[u.id] && <ul className="activity compact">{userProjects[u.id].map((p) => <li key={p.file}><span className="dot" /><span><b>{p.name || p.file}</b><span className="faint">{p.file} · {tr(`role.${p.role}`)} · {t(language, 'ui.workspace.updated')} {formatDate(language, p.modified, { dateStyle: 'short', timeStyle: 'short' })}</span></span>{p.role !== 'OWNER' && <button className="btn ghost sm" onClick={() => void api.revokeUserProject(u.id, p.id).then(() => { setUserProjects((x) => ({ ...x, [u.id]: x[u.id].filter((v) => v.id !== p.id) })); toast('ok', tr('agents.revoke')); }).catch((e) => toast('error', String(e)))}>{tr('agents.revoke')}</button>}</li>)}{!userProjects[u.id].length && <li className="faint">{tr('admin.noAccessibleProjects')}</li>}</ul>}
               </li>
             ))}
             {!users.some((u) => {
@@ -779,7 +779,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   });
   return (
     <section className="workspace-section">
-      <div className="workspace-kicker"><span className="kicker-orb" /> {language === 'en-US' ? 'Your visual archive' : 'Seu arquivo visual'}</div>
+      <div className="workspace-kicker"><span className="kicker-orb" /> {t(language, 'ui.workspace.yourVisualArchive')}</div>
       <div className="workspace-head">
         <div>
           <h1>{tr('library.title')}</h1>
@@ -800,10 +800,10 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
           </button>
         </>
       </div>
-      <div className="workspace-metrics" aria-label={language === 'en-US' ? 'Library overview' : 'Resumo da biblioteca'}>
-        <div><strong>{assets.length}</strong><span>{language === 'en-US' ? 'assets collected' : 'assets reunidos'}</span></div>
-        <div><strong>{filtered.length}</strong><span>{language === 'en-US' ? 'visible now' : 'visíveis agora'}</span></div>
-        <div><strong>{duplicateHashes.size}</strong><span>{language === 'en-US' ? 'duplicates to review' : 'duplicados para revisar'}</span></div>
+      <div className="workspace-metrics" aria-label={t(language, 'ui.workspace.libraryOverview')}>
+        <div><strong>{assets.length}</strong><span>{t(language, 'ui.workspace.assetsCollected')}</span></div>
+        <div><strong>{filtered.length}</strong><span>{t(language, 'ui.workspace.visibleNow')}</span></div>
+        <div><strong>{duplicateHashes.size}</strong><span>{t(language, 'ui.workspace.duplicatesToReview')}</span></div>
       </div>
       <div className="row wrap library-filters">
         <input className="field" placeholder={tr('library.search')} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -844,7 +844,7 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
                 <b>{a.name}</b>
                 <span className="faint">
                   {a.mime} · {Math.ceil(a.size / 1024)} KB · {tr('library.origin')}:{" "}
-                  {a.sourceUrl ? <a href={a.sourceUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{a.source || (language === 'en-US' ? "external" : "externa")}</a> : (a.source || (language === 'en-US' ? 'upload' : 'envio'))}
+                  {a.sourceUrl ? <a href={a.sourceUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{a.source || (t(language, 'ui.workspace.external'))}</a> : (a.source || (t(language, 'ui.workspace.upload')))}
                 </span>
                 <span className="faint">
                   {tr('library.capture')}: {a.capturedAt ? formatDate(language, a.capturedAt) : tr('library.notInformed')} · {tr('library.licenseLabel')}: {a.license?.url ? <a href={a.license.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{a.license.name}</a> : (a.license?.name || tr('library.accountLicense'))}
@@ -880,18 +880,17 @@ function McpGuide({ newToken }: { newToken: string | null }) {
   const [testMessage, setTestMessage] = useState('');
   useEffect(() => { if (newToken) setToken(newToken); }, [newToken]);
   const endpoint = `${location.origin}/mcp`;
-  const configToken = token.trim() || '<TOKEN_DO_AGENTE>';
+  const configToken = token.trim() || t(language, 'ui.workspace.agentTokenPlaceholder');
   const command = `claude mcp add --transport http stylo ${endpoint} --header "Authorization: Bearer ${configToken}"`;
   const json = JSON.stringify({ mcpServers: { stylo: { url: endpoint, headers: { Authorization: `Bearer ${configToken}` } } } }, null, 2);
   const value = client === 'Claude Code' && format === 'command' ? command : json;
-  const en = language === 'en-US';
   const hint = client === 'Claude Code'
-    ? (format === 'command' ? (en ? 'Paste this into the terminal where Claude Code is installed.' : 'Cole no terminal onde o Claude Code está instalado.') : (en ? 'Use this JSON in Claude Desktop MCP server settings.' : 'Use este JSON nas configurações de servidores MCP do Claude Desktop.'))
+    ? (format === 'command' ? (t(language, 'ui.workspace.pasteThisIntoTheTerminal')) : (t(language, 'ui.workspace.useThisJsonInClaude')))
     : client === 'Codex'
-      ? (en ? 'Add this MCP server in Codex settings using the URL and Bearer header.' : 'Adicione este servidor MCP nas configurações do Codex usando a URL e o header Bearer.')
+      ? (t(language, 'ui.workspace.addThisMcpServerIn'))
       : client === 'Cursor' || client === 'Windsurf' || client === 'OpenCode'
-        ? (en ? `Paste the JSON into ${client}'s MCP servers file.` : `Cole o JSON no arquivo de servidores MCP do ${client}.`)
-        : (en ? 'Use the URL and Authorization header in an MCP HTTP-compatible client.' : 'Use a URL e o header Authorization em um cliente compatível com MCP HTTP.');
+        ? t(language, 'ui.workspace.pasteJsonInto', { client })
+        : (t(language, 'ui.workspace.useTheUrlAndAuthorization'));
   const test = async () => {
     setTestState('testing'); setTestMessage(tr('agents.testing'));
     try {
@@ -902,9 +901,9 @@ function McpGuide({ newToken }: { newToken: string | null }) {
     } catch (error) { setTestState('error'); setTestMessage(error instanceof Error ? error.message : String(error)); }
   };
   return <div className="account-card connection-guide">
-    <div className="connection-hero"><div><span className="eyebrow">{en ? 'MAKE IT WORK TOGETHER' : 'FAÇA TUDO TRABALHAR JUNTO'}</span><h3>{en ? 'Connect your creative co-pilot.' : 'Conecte seu copiloto criativo.'}</h3><p className="muted small">{en ? 'Choose a tool, authorize access, and test it. The technical setup stays underneath.' : 'Escolha uma ferramenta, autorize o acesso e teste. A parte técnica fica por baixo.'}</p></div><span className="connection-orb"><Icon name="spark" size={22} /></span></div>
-    <div className="connection-steps"><div><strong>01</strong><b>{en ? 'Choose' : 'Escolha'}</b><span>{en ? 'your AI tool' : 'sua IA'}</span></div><div><strong>02</strong><b>{en ? 'Authorize' : 'Autorize'}</b><span>{en ? 'your project' : 'seu projeto'}</span></div><div><strong>03</strong><b>{en ? 'Create' : 'Crie'}</b><span>{en ? 'side by side' : 'lado a lado'}</span></div></div>
-    <details className="connection-details"><summary>{en ? 'Open connection setup' : 'Abrir configuração da conexão'}</summary><div className="connection-details-body"><div className="workspace-head"><b>{tr('agents.connectionGuide')}</b><div className="row"><select className="field" aria-label={tr('agents.client')} value={client} onChange={(e) => { setClient(e.target.value); setFormat(e.target.value === 'Claude Code' ? 'command' : 'json'); }}><option>Claude Code</option><option>Claude Desktop</option><option>Codex</option><option>Cursor</option><option>Windsurf</option><option>OpenCode</option><option>Quine</option><option>OpenCog</option><option>{en ? 'Generic MCP client' : 'Cliente MCP genérico'}</option></select><select className="field" aria-label={tr('agents.configFormat')} value={client === 'Claude Code' ? format : 'json'} onChange={(e) => setFormat(e.target.value as 'command' | 'json')}><option value="command" disabled={client !== 'Claude Code'}>{tr('agents.command')}</option><option value="json">JSON</option></select></div></div><label className="small">{tr('agents.bearerToken')}<input className="field" placeholder={tr('agents.tokenPlaceholder')} value={token} onChange={(e) => { setToken(e.target.value); setTestState('idle'); }} /></label><p className="hint">{tr('agents.endpoint')}: <code>{endpoint}</code> · {tr('agents.transport')}. {hint} {tr('agents.tokenRecovery')}</p>{!token.trim() && <p className="hint">{tr('agents.createFirst')}</p>}{newToken && <p className="success">{tr('agents.tokenLoaded')}</p>}<div className="codebox"><pre className="code">{value}</pre><div className="row"><button className="btn ghost sm" onClick={() => void navigator.clipboard.writeText(value).then(() => toast('ok', tr('agents.guideCopied')))}>{tr('actions.copy')}</button><button className="btn ghost sm" disabled={testState === 'testing' || !token.trim()} onClick={() => void test()}>{tr('agents.testConnection')}</button></div></div>{testMessage && <p className={testState === 'ok' ? 'success' : testState === 'error' ? 'error' : 'hint'}>{testMessage}</p>}</div></details>
+    <div className="connection-hero"><div><span className="eyebrow">{t(language, 'ui.workspace.makeItWorkTogether')}</span><h3>{t(language, 'ui.workspace.connectYourCreativeCoPilot')}</h3><p className="muted small">{t(language, 'ui.workspace.chooseAToolAuthorizeAccess')}</p></div><span className="connection-orb"><Icon name="spark" size={22} /></span></div>
+    <div className="connection-steps"><div><strong>01</strong><b>{t(language, 'ui.workspace.choose')}</b><span>{t(language, 'ui.workspace.yourAiTool')}</span></div><div><strong>02</strong><b>{t(language, 'ui.workspace.authorize')}</b><span>{t(language, 'ui.workspace.yourProject')}</span></div><div><strong>03</strong><b>{t(language, 'ui.workspace.create')}</b><span>{t(language, 'ui.workspace.sideBySide')}</span></div></div>
+    <details className="connection-details"><summary>{t(language, 'ui.workspace.openConnectionSetup')}</summary><div className="connection-details-body"><div className="workspace-head"><b>{tr('agents.connectionGuide')}</b><div className="row"><select className="field" aria-label={tr('agents.client')} value={client} onChange={(e) => { setClient(e.target.value); setFormat(e.target.value === 'Claude Code' ? 'command' : 'json'); }}><option>Claude Code</option><option>Claude Desktop</option><option>Codex</option><option>Cursor</option><option>Windsurf</option><option>OpenCode</option><option>Quine</option><option>OpenCog</option><option>{t(language, 'ui.workspace.genericMcpClient')}</option></select><select className="field" aria-label={tr('agents.configFormat')} value={client === 'Claude Code' ? format : 'json'} onChange={(e) => setFormat(e.target.value as 'command' | 'json')}><option value="command" disabled={client !== 'Claude Code'}>{tr('agents.command')}</option><option value="json">JSON</option></select></div></div><label className="small">{tr('agents.bearerToken')}<input className="field" placeholder={tr('agents.tokenPlaceholder')} value={token} onChange={(e) => { setToken(e.target.value); setTestState('idle'); }} /></label><p className="hint">{tr('agents.endpoint')}: <code>{endpoint}</code> · {tr('agents.transport')}. {hint} {tr('agents.tokenRecovery')}</p>{!token.trim() && <p className="hint">{tr('agents.createFirst')}</p>}{newToken && <p className="success">{tr('agents.tokenLoaded')}</p>}<div className="codebox"><pre className="code">{value}</pre><div className="row"><button className="btn ghost sm" onClick={() => void navigator.clipboard.writeText(value).then(() => toast('ok', tr('agents.guideCopied')))}>{tr('actions.copy')}</button><button className="btn ghost sm" disabled={testState === 'testing' || !token.trim()} onClick={() => void test()}>{tr('agents.testConnection')}</button></div></div>{testMessage && <p className={testState === 'ok' ? 'success' : testState === 'error' ? 'error' : 'hint'}>{testMessage}</p>}</div></details>
   </div>;
 }
 

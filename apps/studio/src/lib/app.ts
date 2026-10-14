@@ -3,6 +3,7 @@ import * as api from './api';
 import { collectIds, pageOf } from './doc';
 import { saveThumbnail } from './thumbnail';
 import { createStore, useStore } from './store';
+import { loadLanguage, setActiveLanguage, SUPPORTED_LANGUAGES, tl } from './i18n';
 import type { MenuState } from '../ui/ContextMenu';
 import type { DialogState } from '../ui/Dialog';
 import type { AuthState, DesignIssue, Device, Doc, Presence, ProjectInfo, PublicUser } from './types';
@@ -14,7 +15,7 @@ export type StateName = 'hover' | 'active' | 'focus';
 export interface WorldBox { x: number; y: number; w: number; h: number; ow: number; oh: number }
 export type Theme = 'light' | 'dark' | 'system';
 export type Density = 'comfortable' | 'compact';
-export type Language = 'pt-BR' | 'en-US';
+export type Language = 'pt-BR' | 'en-US' | 'ru-RU' | 'ja-JP' | 'zh-CN' | 'ko-KR';
 export const DEFAULT_SHORTCUTS: Record<string, string> = { move: 'v', frame: 'f', rect: 'r', ellipse: 'e', text: 't', hand: 'h', comment: 'c', inspect: 'i', node: 'n' };
 /** A ferramenta do canvas: mover/selecionar, mão (arrastar a vista) ou uma forma para desenhar. */
 export type Tool = 'move' | 'hand' | 'frame' | 'section' | 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'text' | 'html' | 'comment' | 'inspect' | 'node' | 'pen' | 'pencil';
@@ -90,6 +91,12 @@ export function writePref(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* sem armazenamento: a preferência vale só nesta aba */ }
 }
 
+/** Idioma guardado neste navegador (ignora valores que esta versão não conhece). */
+function savedLanguage(): Language {
+  const value = readPref<string>('stylo.language', 'pt-BR');
+  return SUPPORTED_LANGUAGES.some((l) => l.value === value) ? (value as Language) : 'pt-BR';
+}
+
 export const app = createStore<AppState>({
   boot: 'loading', bootError: null, auth: null, user: null,
   screen: 'home', projects: null, projectsError: null,
@@ -98,7 +105,7 @@ export const app = createStore<AppState>({
   busy: 0, toast: null, syncNotice: null, presence: null, live: false, liveStatus: 'reconnecting', panel: 'design',
   worldBoxes: {}, editState: null, leftTab: 'layers', colorMode: null, panelsHidden: false, picker: null, dock: null, commentDraft: null, activeComment: null, help: false, settings: false, presenting: false,
   issues: null, issuesRunning: false, issuesNote: null,
-  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]), density: readPref<Density>('stylo.density', 'comfortable'), language: readPref<Language>('stylo.language', 'pt-BR'),
+  theme: readPref<Theme>('stylo.theme', 'dark'), accent: readPref<string>('stylo.accent', ACCENTS[0]), density: readPref<Density>('stylo.density', 'comfortable'), language: savedLanguage(),
   menu: null, dialog: null, renaming: null, tool: 'move',
   panX: 0, panY: 0, altDown: false, spaceDown: false, pendingEdit: null,
   rulers: readPref<boolean>('stylo.rulers', true), guides: readPref<boolean>('stylo.guides', true),
@@ -117,7 +124,22 @@ export function applyPrefs() {
 export function setTheme(theme: Theme) { app.set({ theme }); writePref('stylo.theme', theme); applyPrefs(); }
 export function setAccent(accent: string) { app.set({ accent }); writePref('stylo.accent', accent); applyPrefs(); }
 export function setDensity(density: Density) { app.set({ density }); writePref('stylo.density', density); applyPrefs(); }
-export function setLanguage(language: Language) { app.set({ language }); writePref('stylo.language', language); }
+/** Troca o idioma da tela. O dicionário é baixado ANTES, para a tela nunca aparecer com textos faltando. */
+export async function setLanguage(language: Language) {
+  try { await loadLanguage(language); } catch { toast('error', tl('ui.app.languageLoadFailed')); return; }
+  setActiveLanguage(language);
+  document.documentElement.lang = language;
+  app.set({ language });
+  writePref('stylo.language', language);
+}
+/** Antes da primeira tela: carrega o idioma guardado (ou volta ao português se não der). */
+export async function initLanguage() {
+  const wanted = app.get().language;
+  try { await loadLanguage(wanted); } catch { app.set({ language: 'pt-BR' }); }
+  const language = app.get().language;
+  setActiveLanguage(language);
+  document.documentElement.lang = language;
+}
 function hydrateAccountPreferences(user: PublicUser | null) {
   const p = user?.preferences;
   if (!p) return;
@@ -125,8 +147,8 @@ function hydrateAccountPreferences(user: PublicUser | null) {
   if (p.theme) next.theme = p.theme;
   if (p.accent) next.accent = p.accent;
   if (p.density) next.density = p.density;
-  if (p.language) next.language = p.language;
   if (Object.keys(next).length) { app.set(next); applyPrefs(); }
+  if (p.language && p.language !== app.get().language && SUPPORTED_LANGUAGES.some((l) => l.value === p.language)) void setLanguage(p.language);
 }
 export function persistAccountPreferences(patch: PublicUser['preferences']) {
   const user = app.get().user;
@@ -178,7 +200,7 @@ export async function openProject(file: string): Promise<void> {
 export async function createProject(name: string): Promise<void> {
   try {
     app.set({ busy: app.get().busy + 1 });
-    const out = await api.tool<{ file: string }>('new_project', { name: name.trim() || 'Sem título' });
+    const out = await api.tool<{ file: string }>('new_project', { name: name.trim() || tl('ui.home.untitled') });
     lastDocKey = '';
     app.set({ screen: 'editor', selection: [], pageId: null, device: 'desktop', issues: null, panel: 'design', editState: null, syncNotice: null });
     await refreshDoc();
@@ -290,7 +312,7 @@ export async function afterLogin(user: PublicUser | null): Promise<void> {
     onProject: (event) => {
       const s = app.get();
       if (s.screen === 'editor' && event.file === s.file) {
-        if (s.busy === 0 && Date.now() - lastLocalWrite > 3000) app.set({ syncNotice: { by: event.by || 'outra sessão', at: Date.now() } });
+        if (s.busy === 0 && Date.now() - lastLocalWrite > 3000) app.set({ syncNotice: { by: event.by || tl('ui.app.otherSession'), at: Date.now() } });
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => { if (app.get().busy === 0) void refreshDoc().catch(() => {}); }, 250);
       }

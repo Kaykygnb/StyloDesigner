@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { addPage, canEdit, removePage, rename, renamePage } from '../lib/actions';
 import { toggleFlag } from '../lib/editing';
 import { app, run, select, selectAndReveal, setPage, useApp, hoverLayer } from '../lib/app';
-import { findNode, flatten as flatList, pageOf, parentOf, TYPE_LABEL } from '../lib/doc';
+import { findNode, flatten as flatList, pageOf, parentOf, typeLabel } from '../lib/doc';
+import { t } from '../lib/i18n';
 import type { LayerNode } from '../lib/types';
 import { confirmDialog } from '../ui/Dialog';
 import { showMenu } from '../ui/ContextMenu';
@@ -53,6 +54,7 @@ export function LayersTab() {
   const selection = useApp((s) => s.selection);
   const hover = useApp((s) => s.hover);
   const renaming = useApp((s) => s.renaming);
+  const language = useApp((s) => s.language);
   const page = pageOf(doc, pageId);
   const editable = canEdit();
 
@@ -126,9 +128,9 @@ export function LayersTab() {
   return (
     <div className="tab-body layers-tab">
       <div className="panel-head">
-        <h3>Páginas</h3>
+        <h3>{t(language, 'ui.layers.pages')}</h3>
         <span className="spacer" />
-        <button className="btn ghost icon sm" title="Nova página" disabled={!editable} onClick={() => void addPage()}><Icon name="plus" size={15} /></button>
+        <button className="btn ghost icon sm" title={t(language, 'ui.layers.newPage')} disabled={!editable} onClick={() => void addPage()}><Icon name="plus" size={15} /></button>
       </div>
       <div className="pages">
         {doc.pages.map((p) => (
@@ -141,21 +143,21 @@ export function LayersTab() {
             ) : <span className="ellipsis grow">{p.name}</span>}
             <span className="faint">{p.children.length}</span>
             {doc.pages.length > 1 && editable && p.id === page.id && (<>
-              <button className="btn ghost icon sm" title="Mover a página para cima" disabled={doc.pages.indexOf(p) === 0} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) - 1 }); }}>↑</button>
-              <button className="btn ghost icon sm" title="Mover a página para baixo" disabled={doc.pages.indexOf(p) === doc.pages.length - 1} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) + 1 }); }}>↓</button>
-              <button className="btn ghost icon sm danger" title="Apagar página" onClick={(e) => { e.stopPropagation(); void confirmDialog(`Apagar a página “${p.name}”?`, 'Tudo que há nela será apagado (dá para desfazer).', { okLabel: 'Apagar', danger: true }).then((ok) => { if (ok) void removePage(p.id); }); }}><Icon name="trash" size={14} /></button>
+              <button className="btn ghost icon sm" title={t(language, 'ui.layers.movePageUp')} disabled={doc.pages.indexOf(p) === 0} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) - 1 }); }}>↑</button>
+              <button className="btn ghost icon sm" title={t(language, 'ui.layers.movePageDown')} disabled={doc.pages.indexOf(p) === doc.pages.length - 1} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) + 1 }); }}>↓</button>
+              <button className="btn ghost icon sm danger" title={t(language, 'ui.layers.deletePage')} onClick={(e) => { e.stopPropagation(); void confirmDialog(t(language, 'ui.layers.deletePageQuestion', { name: p.name }), t(language, 'ui.layers.deletePageHint'), { okLabel: t(language, 'ui.layers.delete'), danger: true }).then((ok) => { if (ok) void removePage(p.id); }); }}><Icon name="trash" size={14} /></button>
             </>)}
           </div>
         ))}
       </div>
 
       <div className="panel-head">
-        <h3>Camadas</h3>
+        <h3>{t(language, 'ui.layers.layers')}</h3>
         <span className="spacer" />
         <span className="faint">{total}</span>
       </div>
       <div className="search-row">
-        <div className="search"><Icon name="search" size={14} /><input className="field" placeholder="Buscar camadas…" aria-label="Buscar camadas" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setQ(''); }} /></div>
+        <div className="search"><Icon name="search" size={14} /><input className="field" placeholder={t(language, 'ui.layers.searchLayers')} aria-label={t(language, 'ui.layers.searchLayersLabel')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setQ(''); }} /></div>
       </div>
       <div className="layers" ref={list} onMouseLeave={() => hoverLayer(null)}>
         {rows.map(({ node, depth, hasKids }) => {
@@ -186,19 +188,19 @@ export function LayersTab() {
                 <input autoFocus className="inline-edit" defaultValue={node.name} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()}
                   onBlur={(e) => { app.set({ renaming: null }); if (e.target.value.trim() && e.target.value !== node.name) void rename(node.id, e.target.value); }}
                   onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { app.set({ renaming: null }); } }} />
-              ) : <span className="layer-name ellipsis" title={`${TYPE_LABEL[node.type] ?? node.type}: ${node.name}`}>{node.name}</span>}
-              {node.note && <span className="note-dot" title="Esta camada tem nota" />}
+              ) : <span className="layer-name ellipsis" title={`${typeLabel(node.type)}: ${node.name}`}>{node.name}</span>}
+              {node.note && <span className="note-dot" title={t(language, 'ui.layers.hasNote')} />}
               {layout && layout !== 'none' && <span className="layout-chip">{layout === 'grid' ? 'grid' : 'flex'}</span>}
               {editable && (
                 <>
-                  <button className={`btn ghost icon sm layer-action layer-lock${node.locked ? ' shown' : ''}`} title={node.locked ? 'Destravar' : 'Travar'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('locked'); }}><Icon name={node.locked ? 'lock' : 'unlock'} size={13} /></button>
-                  <button className={`btn ghost icon sm layer-action vis${node.visible === false ? ' shown' : ''}`} title={node.visible === false ? 'Mostrar' : 'Esconder'} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('visible'); }}><Icon name={node.visible === false ? 'eyeoff' : 'eye'} size={13} /></button>
+                  <button className={`btn ghost icon sm layer-action layer-lock${node.locked ? ' shown' : ''}`} title={node.locked ? t(language, 'ui.layers.unlock') : t(language, 'ui.layers.lock')} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('locked'); }}><Icon name={node.locked ? 'lock' : 'unlock'} size={13} /></button>
+                  <button className={`btn ghost icon sm layer-action vis${node.visible === false ? ' shown' : ''}`} title={node.visible === false ? t(language, 'ui.layers.show') : t(language, 'ui.layers.hide')} onClick={(e) => { e.stopPropagation(); select([node.id]); void toggleFlag('visible'); }}><Icon name={node.visible === false ? 'eyeoff' : 'eye'} size={13} /></button>
                 </>
               )}
             </div>
           );
         })}
-        {!rows.length && <p className="muted pad">{term ? 'Nenhuma camada com esse nome.' : 'Nenhuma camada nesta página.'}</p>}
+        {!rows.length && <p className="muted pad">{term ? t(language, 'ui.layers.noMatch') : t(language, 'ui.layers.empty')}</p>}
       </div>
     </div>
   );

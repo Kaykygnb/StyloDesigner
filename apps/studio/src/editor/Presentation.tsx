@@ -7,6 +7,7 @@ import { app, useApp } from '../lib/app';
 import { boardsOf, findNode, flatten } from '../lib/doc';
 import type { Doc, LayerNode } from '../lib/types';
 import { Icon } from '../ui/Icon';
+import { t } from '../lib/i18n';
 
 const ANIM: Record<string, Keyframe[]> = {
   dissolve: [{ opacity: 0 }, { opacity: 1 }],
@@ -34,8 +35,7 @@ function Player() {
   const pageId = useApp((s) => s.pageId);
   const boards = useMemo(() => doc.pages.flatMap((p) => boardsOf(p)), [doc]);
   const language = useApp((s) => s.language);
-  const en = language === 'en-US';
-  const widths: [string, string][] = [['auto', en ? 'Designed' : 'Desenhada'], ['fill', en ? 'Responsive' : 'Responsivo'], ['1440', '1440'], ['1280', '1280'], ['1024', '1024'], ['768', '768'], ['390', '390']];
+  const widths: [string, string][] = [['auto', t(language, 'ui.present.designed')], ['fill', t(language, 'ui.present.responsive')], ['1440', '1440'], ['1280', '1280'], ['1024', '1024'], ['768', '768'], ['390', '390']];
   const all = useMemo(() => doc.pages.flatMap((p) => flatten(p.children)).filter((n) => n.type === 'frame'), [doc]);
   const rootOf = (id: string): LayerNode | null => {
     for (const p of doc.pages) for (const b of boardsOf(p)) if (findNode([b], id)) return b;
@@ -136,26 +136,26 @@ function Player() {
   const slug = frame.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tela';
 
   return (
-    <div className="present" role="dialog" aria-modal="true" aria-label={en ? 'Presentation' : 'Apresentação'}>
+    <div className="present" role="dialog" aria-modal="true" aria-label={t(language, 'ui.present.presentation')}>
       <div className="present-bar">
-        <button className="present-ib" title={en ? 'Exit presentation (Esc)' : 'Sair da apresentação (Esc)'} aria-label={en ? 'Exit' : 'Sair'} onClick={close}><Icon name="close" size={16} /></button>
-        <button className="present-ib" title={en ? 'Back (Alt+←)' : 'Voltar (Alt+←)'} aria-label={en ? 'Back' : 'Voltar'} disabled={!back.length} onClick={goBack}><Icon name="chevron" size={16} /></button>
-        <button className="present-ib" title={en ? 'Forward (Alt+→)' : 'Avançar (Alt+→)'} aria-label={en ? 'Forward' : 'Avançar'} disabled={!fwd.length} onClick={goFwd}><Icon name="chevron" size={16} /></button>
-        <button className="present-ib" title={en ? 'Reload' : 'Recarregar'} aria-label={en ? 'Reload' : 'Recarregar'} onClick={() => show(frame.id, 'instant', false)}><Icon name="rotate" size={16} /></button>
+        <button className="present-ib" title={t(language, 'ui.present.exitPresentationEsc')} aria-label={t(language, 'ui.present.exit')} onClick={close}><Icon name="close" size={16} /></button>
+        <button className="present-ib" title={t(language, 'ui.present.backAlt')} aria-label={t(language, 'prototype.back')} disabled={!back.length} onClick={goBack}><Icon name="chevron" size={16} /></button>
+        <button className="present-ib" title={t(language, 'ui.present.forwardAlt')} aria-label={t(language, 'ui.present.forward')} disabled={!fwd.length} onClick={goFwd}><Icon name="chevron" size={16} /></button>
+        <button className="present-ib" title={t(language, 'ui.present.reload')} aria-label={t(language, 'ui.present.reload')} onClick={() => show(frame.id, 'instant', false)}><Icon name="rotate" size={16} /></button>
         <label className="present-url"><Icon name="lock" size={13} /><span className="faint">stylo.local/</span><span className="present-title">{frame.name}</span><span className="faint present-slug">{slug}</span>
-          <select aria-label={en ? 'Go to screen' : 'Ir para a tela'} value={frame.id} onChange={(e) => show(e.target.value, 'dissolve')}>{boards.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
-        <div className="present-tabs" role="tablist" aria-label={en ? 'Screens' : 'Telas'}>
+          <select aria-label={t(language, 'ui.present.goToScreen')} value={frame.id} onChange={(e) => show(e.target.value, 'dissolve')}>{boards.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
+        <div className="present-tabs" role="tablist" aria-label={t(language, 'ui.present.screens')}>
           {boards.map((b) => <button key={b.id} role="tab" aria-selected={b.id === frame.id} className={`present-tab${b.id === frame.id ? ' on' : ''}`} onClick={() => show(b.id, 'dissolve')}>{b.name}</button>)}
         </div>
-        <div className="present-widths" role="group" aria-label={en ? 'Window width' : 'Largura da janela'}>
+        <div className="present-widths" role="group" aria-label={t(language, 'ui.present.windowWidth')}>
           {widths.map(([v, l]) => <button key={v} type="button" data-w={v} aria-pressed={width === v} onClick={() => setWidth(v)}>{l}</button>)}
         </div>
         <span className="present-size" aria-live="polite">{Math.round(size.w)} × {size.h}{size.k < 1 ? ` · ${Math.round(size.k * 100)}%` : ''}</span>
-        <button className="present-ib" title={en ? 'Open in a new browser tab' : 'Abrir em nova aba do navegador'} aria-label={en ? 'Open in new tab' : 'Abrir em nova aba'} onClick={openTab}><Icon name="link" size={16} /></button>
+        <button className="present-ib" title={t(language, 'ui.present.openInANewBrowser')} aria-label={t(language, 'ui.present.openInNewTab')} onClick={openTab}><Icon name="link" size={16} /></button>
       </div>
       <div className="present-viewport" ref={view}>
         <div ref={board} className="present-board" style={{ width: size.w, height: size.h, transform: size.k < 1 ? `scale(${size.k})` : undefined, marginBottom: size.k < 1 ? -Math.round(size.h * (1 - size.k)) : undefined }}>
-          <iframe key={`${frame.id}:${reload}`} ref={frameEl} className="present-frame" title={`Tela ${frame.name}`} sandbox="allow-same-origin" srcDoc={html} onLoad={wire} />
+          <iframe key={`${frame.id}:${reload}`} ref={frameEl} className="present-frame" title={t(language, 'ui.present.screenTitle', { name: frame.name })} sandbox="allow-same-origin" srcDoc={html} onLoad={wire} />
         </div>
       </div>
     </div>

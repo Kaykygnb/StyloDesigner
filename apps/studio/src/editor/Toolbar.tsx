@@ -38,33 +38,33 @@ export function Toolbar() {
   ];
   const paths = selectedNodes.filter((node) => node?.type === 'path');
   const vectorActions: [string, string, () => Promise<unknown>][] = paths.length === 1 ? [
-    ['rotate', 'Inverter a direção do caminho', () => run('reverse_vector', { id: paths[0]!.id })],
-    ['spark', 'Simplificar (menos pontos)', () => run('simplify_vector', { id: paths[0]!.id, tolerance: 1 })],
-    ['corner', 'Arredondar os cantos', () => run('set_path_effect', { id: paths[0]!.id, kind: 'round-corners', radius: 8 })],
-    ['pen', 'Converter o contorno em forma preenchida', () => run('stroke_to_path', { id: paths[0]!.id })],
+    ['rotate', t(language, 'ui.toolbar.reversePath'), () => run('reverse_vector', { id: paths[0]!.id })],
+    ['spark', t(language, 'ui.toolbar.simplify'), () => run('simplify_vector', { id: paths[0]!.id, tolerance: 1 })],
+    ['corner', t(language, 'ui.toolbar.roundCorners'), () => run('set_path_effect', { id: paths[0]!.id, kind: 'round-corners', radius: 8 })],
+    ['pen', t(language, 'ui.toolbar.strokeToPath'), () => run('stroke_to_path', { id: paths[0]!.id })],
   ] : [];
   const twoPaths = paths.length === 2 ? [
-    ['component', 'Interpolar: cria a forma do meio entre as duas (as originais ficam)', () => run('interpolate_vectors', { from_id: paths[0]!.id, to_id: paths[1]!.id, t: 0.5 })] as [string, string, () => Promise<unknown>],
+    ['component', t(language, 'ui.toolbar.interpolate'), () => run('interpolate_vectors', { from_id: paths[0]!.id, to_id: paths[1]!.id, t: 0.5 })] as [string, string, () => Promise<unknown>],
   ] : [];
   return (
     <>
-    {(selection.length >= 2 || paths.length === 1) && <div className="toolbar context-bar" role="toolbar" aria-label="Ações da seleção">
+    {(selection.length >= 2 || paths.length === 1) && <div className="toolbar context-bar" role="toolbar" aria-label={t(language, 'ui.toolbar.selectionActions')}>
       {selection.length >= 2 && <>
         <span className="tb-context" aria-label={t(language, 'inspector.boolean.title')}>
-          <span className="tb-context-label">{language === 'en-US' ? 'Combine' : 'Combinar'}</span>
+          <span className="tb-context-label">{t(language, 'ui.toolbar.combine')}</span>
           {twoPaths.map(([icon, label, go]) => <button key={label} className="tb-btn tb-action" disabled={!editable} title={label} aria-label={label} onClick={() => { void go().catch((e) => toast('error', e instanceof Error ? e.message : String(e))); }}><Icon name={icon} size={15} /></button>)}
           {booleanActions.map(([action, symbol, label]) => <button key={action} className="tb-btn tb-action" disabled={!editable || !booleanSupported} title={t(language, label)} aria-label={t(language, label)} onClick={() => void arrange(action)}><span aria-hidden="true">{symbol}</span></button>)}
         </span>
       </>}
       {paths.length === 1 && <>
-        <span className="tb-context" aria-label={language === 'en-US' ? 'Vector tools' : 'Ferramentas de vetor'}>
-          <span className="tb-context-label">{language === 'en-US' ? 'Vector' : 'Vetor'}</span>
+        <span className="tb-context" aria-label={t(language, 'ui.toolbar.vectorTools')}>
+          <span className="tb-context-label">{t(language, 'inspector.vector.title')}</span>
           <button className={`tb-btn tb-action${tool === 'node' ? ' on' : ''}`} title={t(language, 'tool.node')} aria-label={t(language, 'tool.node')} onClick={() => setTool('node')}><Icon name="node" size={16} /></button>
           {vectorActions.map(([icon, label, go]) => <button key={label} className="tb-btn tb-action" disabled={!editable} title={label} aria-label={label} onClick={() => { void go().catch((e) => toast('error', e instanceof Error ? e.message : String(e))); }}><Icon name={icon} size={15} /></button>)}
         </span>
       </>}
     </div>}
-    <div className="toolbar insert-bar" role="toolbar" aria-label="Ferramentas">
+    <div className="toolbar insert-bar" role="toolbar" aria-label={t(language, 'ui.toolbar.tools')}>
       {TOOLS.map((item, i) => item === 'sep'
         ? <span key={i} className="tb-sep" />
         : (

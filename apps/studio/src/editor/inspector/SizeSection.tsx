@@ -9,14 +9,16 @@ import { scaleInto, union } from '../canvas/geometry';
 import type { Ctx } from './ctx';
 
 const PRESETS: [string, string][] = [
-  ['', 'Tamanhos prontos…'], ['1440x900', 'Desktop · 1440 × 900'], ['1280x800', 'Notebook · 1280 × 800'], ['1920x1080', 'Full HD · 1920 × 1080'],
-  ['768x1024', 'Tablet · 768 × 1024'], ['390x844', 'Celular · 390 × 844'], ['360x740', 'Celular pequeno · 360 × 740'], ['393x852', 'iPhone 15 · 393 × 852'],
-  ['1080x1080', 'Quadrado · 1080 × 1080'], ['1080x1920', 'Story · 1080 × 1920'], ['595x842', 'A4 · 595 × 842'],
+  ['', 'ui.size.preset.placeholder'], ['1440x900', 'ui.size.preset.desktop'], ['1280x800', 'ui.size.preset.laptop'], ['1920x1080', 'ui.size.preset.fullhd'],
+  ['768x1024', 'ui.size.preset.tablet'], ['390x844', 'ui.size.preset.phone'], ['360x740', 'ui.size.preset.smallPhone'], ['393x852', 'ui.size.preset.iphone'],
+  ['1080x1080', 'ui.size.preset.square'], ['1080x1920', 'ui.size.preset.story'], ['595x842', 'ui.size.preset.a4'],
 ];
+/** [valor, chave do texto]; '' e 'atual' usam textos próprios mais abaixo. */
 const ASPECTS: [string, string][] = [
-  ['', 'Livre'], ['1', '1 : 1 (quadrado)'], ['1.3333', '4 : 3'], ['1.7778', '16 : 9'], ['1.5', '3 : 2'], ['2', '2 : 1'],
-  ['0.75', '3 : 4 (retrato)'], ['0.5625', '9 : 16 (story)'], ['atual', 'Usar o tamanho atual'],
+  ['', ''], ['1', 'ui.size.aspect.square'], ['1.3333', ''], ['1.7778', ''], ['1.5', ''], ['2', ''],
+  ['0.75', 'ui.size.aspect.portrait'], ['0.5625', 'ui.size.aspect.story'], ['atual', ''],
 ];
+const RATIO_LABEL: Record<string, string> = { '1.3333': '4 : 3', '1.7778': '16 : 9', '1.5': '3 : 2', '2': '2 : 1' };
 
 export function SizeSection({ c }: { c: Ctx }) {
   const { n, single, bp, parent, flow } = c;
@@ -68,7 +70,7 @@ export function SizeSection({ c }: { c: Ctx }) {
   const limitsUsed = !!(n.minW || n.maxW || n.minH || n.maxH || n.aspect);
   const lim = (label: string, key: 'minW' | 'maxW' | 'minH' | 'maxH', css: string) => (
     <Cap label={label} css={css}>
-      <Num value={n[key] ?? null} min={0} decimals={0} nullable unit="px" placeholder="sem limite" disabled={off} onCommit={(v) => void c.set({ [key]: v && v > 0 ? Math.round(v) : null })} />
+      <Num value={n[key] ?? null} min={0} decimals={0} nullable unit="px" placeholder={tr('ui.size.noLimit')} disabled={off} onCommit={(v) => void c.set({ [key]: v && v > 0 ? Math.round(v) : null })} />
     </Cap>
   );
   const aspectVal = (() => {
@@ -95,8 +97,8 @@ export function SizeSection({ c }: { c: Ctx }) {
       )}
       {isBoard && !bp && (
         <>
-          <Sel value="" options={PRESETS} disabled={off} title={tr('inspector.size.presets')} onChange={(v) => { if (!v) return; const [w, h] = v.split('x').map(Number); void c.set({ w, h, sizeY: 'fixed' }); }} />
-          <Check label={tr('inspector.size.fluid')} checked={!!n.fluid} disabled={off} title="width: 100%; max-width: a largura desenhada; margin: 0 auto" onChange={(v) => void c.set({ fluid: v || null })} />
+          <Sel value="" options={PRESETS.map(([value, key]) => [value, tr(key)] as [string, string])} disabled={off} title={tr('inspector.size.presets')} onChange={(v) => { if (!v) return; const [w, h] = v.split('x').map(Number); void c.set({ w, h, sizeY: 'fixed' }); }} />
+          <Check label={tr('inspector.size.fluid')} checked={!!n.fluid} disabled={off} title={tr('ui.size.fluidTip')} onChange={(v) => void c.set({ fluid: v || null })} />
         </>
       )}
       {n.type !== 'group' && n.type !== 'line' && (
@@ -110,7 +112,7 @@ export function SizeSection({ c }: { c: Ctx }) {
               <Row>{lim(tr('inspector.size.minHeight'), 'minH', 'min-height')}{lim(tr('inspector.size.maxHeight'), 'maxH', 'max-height')}</Row>
               {n.type !== 'text' && (
                 <Cap label={tr('inspector.size.ratio')} css="aspect-ratio">
-                  <Sel value={aspectVal} options={[...ASPECTS.map(([value, label]) => [value, value === '' ? tr('inspector.size.free') : value === 'atual' ? tr('inspector.size.current') : label] as [string, string]), ['custom', tr('inspector.size.custom')]]} disabled={off} title="aspect-ratio"
+                  <Sel value={aspectVal} options={[...ASPECTS.map(([value, label]) => [value, value === '' ? tr('inspector.size.free') : value === 'atual' ? tr('inspector.size.current') : label ? tr(label) : RATIO_LABEL[value] ?? value] as [string, string]), ['custom', tr('inspector.size.custom')]]} disabled={off} title="aspect-ratio"
                     onChange={(v) => { if (v === 'custom') return; void c.set({ aspect: v === '' ? null : v === 'atual' ? Math.round((n.w / n.h) * 10000) / 10000 : Number(v) }); }} />
                 </Cap>
               )}

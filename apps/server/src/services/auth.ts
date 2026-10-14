@@ -33,7 +33,7 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 export type UserRole = 'OWNER' | 'ADMIN' | 'EDITOR' | 'COMMENTER' | 'VIEWER' | 'MEMBER';
-export interface AccountPreferences { theme?: 'light' | 'dark' | 'system'; accent?: string; density?: 'comfortable' | 'compact'; language?: 'pt-BR' | 'en-US'; shortcuts?: Record<string, string> }
+export interface AccountPreferences { theme?: 'light' | 'dark' | 'system'; accent?: string; density?: 'comfortable' | 'compact'; language?: 'pt-BR' | 'en-US' | 'ru-RU' | 'ja-JP' | 'zh-CN' | 'ko-KR'; shortcuts?: Record<string, string> }
 export interface PublicUser { id: string; email: string; name: string; role: UserRole; color: string | null; avatar: string | null; preferences: AccountPreferences; suspended: boolean; mustChangePassword: boolean }
 const publicUser = (u: { id: string; email: string; name: string; role: UserRole; color: string | null; avatar?: string | null }): PublicUser =>
   ({ id: u.id, email: u.email, name: u.name, role: u.role, color: u.color, avatar: u.avatar ?? null, preferences: ((u as any).preferences || {}) as AccountPreferences, suspended: Boolean((u as any).suspended), mustChangePassword: Boolean((u as any).mustChangePassword) });

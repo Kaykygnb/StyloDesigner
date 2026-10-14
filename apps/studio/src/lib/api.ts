@@ -1,4 +1,5 @@
 // Conversa com o servidor. Toda mudança no projeto é uma chamada de FERRAMENTA (as mesmas do MCP): não há outro caminho.
+import { tl } from './i18n';
 import type { AuthState, Presence, ProjectInfo, Snapshot, PublicUser } from './types';
 export type { ProjectInfo } from './types';
 export type { PublicUser } from './types';
@@ -36,7 +37,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
   }
-  throw lastError instanceof Error ? lastError : new ToolError('Não foi possível falar com o servidor.');
+  throw lastError instanceof Error ? lastError : new ToolError(tl('api.unreachable'));
 }
 
 const json = (body: unknown, method = 'POST'): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
