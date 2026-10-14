@@ -30,7 +30,7 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 5).toString('base64'), STYLO_DEV: '1' }),
     stdio: 'inherit',
   });
   fixture.children.push(child);

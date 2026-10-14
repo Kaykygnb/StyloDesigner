@@ -11,7 +11,7 @@
  *  Precisa: `npm start` rodando e o editor aberto no navegador.
  *  Variável opcional: DESIGNER_URL (padrão http://localhost:5173).
  *
- *  Exemplos de configuração (veja o README para todos):
+ *  Exemplos de configuração:
  *    Claude Code:  claude mcp add designer -- node /caminho/do/projeto/apps/server/bin/mcp.mjs
  *    Codex:        ~/.codex/config.toml → [mcp_servers.designer] command = "node", args = ["/caminho/apps/server/bin/mcp.mjs"]
  * ════════════════════════════════════════════════════════════════════════════════════════════════

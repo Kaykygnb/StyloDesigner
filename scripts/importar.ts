@@ -5,14 +5,14 @@
  *
  * - Lê cada `*.json` da pasta que seja um projeto do Stylo (tem `pages`); ignora versões (.versoes) e miniaturas.
  * - Grava como projeto de `--owner` (padrão: o usuário local). Nome de arquivo já existente é PULADO, nunca sobrescrito.
- * - Usa o mesmo banco do servidor (DESIGNER_CONFIG / DESIGNER_DB_DIR / DATABASE_URL). Com o servidor ligado em
- *   PGlite, pare-o antes: o PGlite aceita um processo por vez.
+ * - Usa o mesmo banco do servidor (DESIGNER_CONFIG / DESIGNER_DB). Com o servidor ligado em
+ *   SQLite, o ideal é parar o servidor antes de importar muita coisa.
  * Os .json NÃO são o armazenamento do Stylo; este comando é só uma ponte.
  */
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { openDb, defaultDbDir } from '../apps/server/src/db.ts';
+import { openDb, defaultDbFile } from '../apps/server/src/db.ts';
 import { createProjects, FILE_RE } from '../apps/server/src/services/projects.ts';
 import { createAuth } from '../apps/server/src/services/auth.ts';
 
@@ -25,7 +25,7 @@ if (!folder) {
 }
 
 const configFile = resolve(process.env.DESIGNER_CONFIG || 'designer.config.json');
-const { db, close } = await openDb({ dir: defaultDbDir(configFile) });
+const { db, close } = await openDb({ file: defaultDbFile(configFile) });
 try {
   const auth = createAuth(db);
   const owner = ownerEmail

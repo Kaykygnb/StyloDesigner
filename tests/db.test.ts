@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createDb } from '@stylo/db/client.ts';
 
 test('migração cria o esquema; usuário, agente, projeto, operação e nota se relacionam', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   try {
     const owner = await db.user.create({ data: { email: 'dono@exemplo.com', name: 'Dono', passwordHash: 'x', role: 'OWNER' } });
     const agent = await db.agent.create({ data: { name: 'Claude Code', ownerId: owner.id, tokenHash: 'hash-1', scopes: ['read', 'write'], status: 'ACTIVE' } });

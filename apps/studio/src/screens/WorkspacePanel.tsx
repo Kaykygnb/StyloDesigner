@@ -38,7 +38,6 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
   const [health, setHealth] = useState<Awaited<ReturnType<typeof api.systemHealth>> | null>(null);
   const [connections, setConnections] = useState<Array<{ id: string; personId: string; name: string; connectedAt: string }>>([]);
   const [adminSessions, setAdminSessions] = useState<Awaited<ReturnType<typeof api.adminSessionsList>>>([]);
-  const [network, setNetwork] = useState<Awaited<ReturnType<typeof api.networkInfo>> | null>(null);
   const [adminActivity, setAdminActivity] = useState<Awaited<ReturnType<typeof api.adminActivity>>>([]);
   const [adminActivityFilter, setAdminActivityFilter] = useState('all');
   const [accountName, setAccountName] = useState(user?.name || "");
@@ -107,18 +106,16 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         api.backupsList(),
         api.systemHealth(),
         api.connectionsList(),
-        api.networkInfo(),
         api.adminActivity(),
         api.adminSessionsList(),
       ])
-        .then(([u, c, p, b, h, currentConnections, networkInfo, activity, allSessions]) => {
+        .then(([u, c, p, b, h, currentConnections, activity, allSessions]) => {
           setUsers(u);
           setPolicy(c.agentPolicy || "closed");
           setCatalog(p);
           setBackups(b);
           setHealth(h);
           setConnections(currentConnections);
-          setNetwork(networkInfo);
           setAdminActivity(activity);
           setAdminSessions(allSessions);
         })
@@ -528,15 +525,14 @@ export function WorkspacePanel({ tab }: { tab: Tab }) {
         </div>
         <div className="account-card">
           <b>{tr('admin.health')}</b>
-          <p className="faint">Banco: {health?.database.engine === 'pglite' ? tr('admin.local') : health?.database.engine === 'postgresql' ? 'PostgreSQL' : '—'} · {health?.database.ok ? tr('admin.connected') : tr('admin.unavailable')} · {health?.counts?.projects ?? '—'} {tr('admin.projectsCount')} · {health?.transport.editors ?? '—'} {tr('admin.editorsCount')}</p>
-          {health?.database.engine === 'pglite' && <p className="faint small">{tr('admin.storageHint')}</p>}
-          {health?.database.migrations && <p className="faint">{tr('admin.migrations')}: {health.database.migrations.length}</p>}
+          <p className="faint">Banco: {health?.database.engine ? tr('admin.local') : '—'} · {health?.database.ok ? tr('admin.connected') : tr('admin.unavailable')} · {health?.counts?.projects ?? '—'} {tr('admin.projectsCount')} · {health?.transport.editors ?? '—'} {tr('admin.editorsCount')}</p>
+          <p className="faint small">{tr('admin.storageHint')}</p>
+          {health?.database.schemaVersion != null && <p className="faint">{tr('admin.migrations')}: {health.database.schemaVersion}</p>}
         </div>
         <div className="account-card">
           <b>{tr('admin.network')}</b>
-          <p className="faint">{tr('admin.server')}: {network?.bound || '—'} · {tr('admin.port')} {network?.port || '—'} · {network?.remoteAccess ? tr('admin.networkEnabled') : tr('admin.onlyComputer')}</p>
-          <div className="row wrap"><ul className="resource-list grow"><li><div><b>{tr('admin.thisComputer')}</b><span className="faint">{network?.localUrl || '—'} · MCP {network?.mcpLocalUrl || '—'}</span></div></li>{network?.addresses.map((address) => <li key={`${address.name}-${address.address}`}><div><b>{address.name}</b><span className="faint">{address.url} · MCP {address.mcpUrl}</span></div></li>)}{network && !network.addresses.length && <li className="faint">{tr('admin.noPrivateInterfaces')}</li>}</ul>{network?.localUrl && <div className="qr-box"><img className="network-qr" width="128" height="128" src={api.networkQrUrl(network.addresses[0]?.url || network.localUrl)} alt={`QR Code ${network.addresses[0]?.name || tr('admin.thisComputer')}`} /><span className="faint small">{tr('admin.readToOpen')}</span></div>}</div>
-          <p className="hint">{tr('admin.networkHint')}</p>
+          <p className="faint">{tr('admin.onlyComputer')}</p>
+          <ul className="resource-list"><li><div><b>{tr('admin.thisComputer')}</b><span className="faint">{location.origin}/studio/ · MCP {location.origin}/mcp</span></div></li></ul>
         </div>
         <div className="account-card">
           <div className="workspace-head"><b>{tr('admin.activity')}</b><button className="btn ghost sm" onClick={() => void api.adminActivity().then(setAdminActivity)}>{tr('actions.refresh')}</button></div>

@@ -92,8 +92,8 @@ try {
     base = `http://127.0.0.1:${port}/`;
     log = await open(join(artifacts, 'server.log'), 'w');
     server = launch(['--import', 'tsx', 'apps/server/src/main.ts'], {
-      ...process.env, DATABASE_URL: '', PORT: String(port), STYLO_AUTH: 'accounts', STYLO_DEV: '0',
-      DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB_DIR: join(dir, 'db'), STYLO_BLOB_DIR: join(dir, 'blobs'),
+      ...process.env, PORT: String(port), STYLO_AUTH: 'accounts', STYLO_DEV: '0',
+      DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB: join(dir, 'db'), STYLO_BLOB_DIR: join(dir, 'blobs'),
       STYLO_SECRET_KEY: randomBytes(32).toString('base64'),
     }, ['ignore', log.fd, log.fd]);
     await waitReady(base, server);

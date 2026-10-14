@@ -4,12 +4,13 @@
  *   npm start   →   http://localhost:5173
  *
  * Monta os serviços (configuração, banco, contas, agentes, projetos, workspace, renderizador), a aplicação HTTP (Hono)
- * e o servidor MCP, e entrega o editor. Variáveis: PORT, DESIGNER_CONFIG (arquivo de configuração), DATABASE_URL
- * (Postgres; sem ela, PGlite embutido), DESIGNER_DB_DIR, STYLO_AUTH=accounts (login com contas), STYLO_DEV=1 (força o Vite).
- * Segurança: escuta na rede local; ver http/guards.ts (Host/Origin privados, limites de corpo).
+ * e o servidor MCP, e entrega o editor. Uso SOMENTE LOCAL: escuta só em 127.0.0.1. Variáveis: PORT, DESIGNER_CONFIG
+ * (arquivo de configuração), DESIGNER_DB (arquivo do banco SQLite), STYLO_AUTH=local (sem login, só testes), STYLO_DEV=1 (Vite).
+ * Segurança: ver http/guards.ts (Host/Origin locais, limites de corpo).
  */
 
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile, readdir, rm, stat } from 'node:fs/promises';
 import './dom-polyfill.js';
 import { createServer } from 'node:http';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -18,7 +19,8 @@ import { getRequestListener } from '@hono/node-server';
 import { VERSION } from '@stylo/core/version.js';
 import { AGENT_INSTRUCTIONS } from '@stylo/core/tools/schema.js';
 import { createConfigStore, loadConfig } from './config.js';
-import { defaultDbDir, openDb } from './db.js';
+import { defaultBlobDir, defaultDbFile, legacyDbDir, openDb } from './db.js';
+import { importLegacyPglite } from '@stylo/db/legacy.ts';
 import { createAuth } from './services/auth.js';
 import { createAgents } from './services/agents.js';
 import { createOperations } from './services/operations.js';
@@ -54,35 +56,37 @@ const configFile = resolve(process.env.DESIGNER_CONFIG || join(root, 'designer.c
 const accountFile = configFile.replace(/(\.config)?\.json$/i, '') + '.account.json';
 
 const config = createConfigStore(configFile, await loadConfig(configFile));
-let dbDir = defaultDbDir(configFile);
-if (!process.env.DATABASE_URL) await applyPendingRestore(dbDir);
+let dbFile = defaultDbFile(configFile);
+const inMemory = dbFile === 'memory';
+if (!inMemory) await applyPendingRestore(dbFile);
 
-async function recoveryCandidates(dir: string) {
-  const parent = dirname(resolve(dir));
-  const base = basename(resolve(dir));
+/** Cópias que dá para tentar quando o arquivo principal está ilegível (mais novas primeiro). */
+async function recoveryCandidates(file: string) {
+  const parent = dirname(resolve(file));
+  const base = basename(resolve(file));
   const entries = await readdir(parent, { withFileTypes: true }).catch(() => []);
-  const prefix = [`${base}.before-migrations-`, `${base}.backup-`, `stylo-backup-${base}-`];
+  const prefix = [`${base}.before-migrations-`, `stylo-backup-${base}-`];
   const candidates = entries
-    .filter((entry) => entry.isDirectory() && entry.name !== base && prefix.some((item) => entry.name.startsWith(item)))
+    .filter((entry) => entry.isFile() && entry.name !== base && prefix.some((item) => entry.name.startsWith(item)) && !entry.name.endsWith('-wal') && !entry.name.endsWith('-shm'))
     .map((entry) => join(parent, entry.name));
   return (await Promise.all(candidates.map(async (candidate) => ({ candidate, mtime: (await stat(candidate)).mtimeMs })))).sort((a, b) => b.mtime - a.mtime).map((item) => item.candidate);
 }
 
-async function openWithRecovery(dir: string) {
+async function openWithRecovery(file: string) {
   try {
-    return await openDb({ dir });
+    return await openDb({ file });
   } catch (error) {
     const text = error instanceof Error ? error.message : String(error);
-    if (!/Aborted\(\)|RuntimeError|corrupt|invalid|malformed/i.test(text)) throw error;
-    for (const candidate of await recoveryCandidates(dir)) {
+    if (!/not a database|malformed|corrupt|disk image/i.test(text)) throw error;
+    for (const candidate of await recoveryCandidates(file)) {
       try {
-        const recovered = await openDb({ dir: candidate });
-        await recovered.db.$queryRaw`SELECT 1`;
-        console.error(`Banco PGlite ilegível em ${dir}; usando backup íntegro ${candidate}. O original foi preservado.`);
-        dbDir = candidate;
+        const recovered = await openDb({ file: candidate });
+        await recovered.db.user.count();
+        console.error(`O banco em ${file} está ilegível; usando a cópia íntegra ${candidate}. O original foi preservado.`);
+        dbFile = candidate;
         return recovered;
       } catch {
-        // Tenta o próximo snapshot sem mascarar o erro original.
+        // Tenta a próxima cópia sem mascarar o erro original.
       }
     }
     throw error;
@@ -90,13 +94,28 @@ async function openWithRecovery(dir: string) {
 }
 const opened = await (async () => {
   try {
-    return await openWithRecovery(dbDir);
+    const firstRun = !inMemory && !existsSync(dbFile);
+    const handle = await openWithRecovery(dbFile);
+    // Primeira abertura com o banco novo e existe a pasta do banco antigo (PGlite): traz os dados uma vez.
+    const legacy = legacyDbDir(configFile);
+    if (firstRun && existsSync(legacy)) {
+      console.log(`\n  Trazendo seus dados do banco antigo (${legacy}) para o novo formato…`);
+      try {
+        await importLegacyPglite(legacy, handle.db, console.log);
+        console.log('  Pronto. A pasta antiga não foi alterada; depois de conferir, pode apagá-la.\n');
+      } catch (error) {
+        await handle.close().catch(() => undefined);
+        await Promise.all([dbFile, `${dbFile}-wal`, `${dbFile}-shm`].map((f) => rm(f, { force: true })));
+        throw error;
+      }
+    }
+    return handle;
   } catch (error) {
     const text = error instanceof Error ? error.message : String(error);
-    if (/mutex|lock|locked|timeout/i.test(text)) {
-      console.error('Não foi possível abrir o banco PGlite em uso por outro processo. Feche o outro Stylo ou defina DESIGNER_DB_DIR para outro diretório. (' + dbDir + ')');
-    } else if (/Aborted\(\)|RuntimeError|corrupt|invalid|malformed/i.test(text)) {
-      console.error('O banco PGlite não pôde ser lido. Preserve a pasta e restaure um backup ou use DESIGNER_DB_DIR com uma cópia recuperada. (' + dbDir + ')');
+    if (/locked|busy/i.test(text)) {
+      console.error('Não foi possível abrir o banco: ele está em uso por outro processo. Feche o outro Stylo ou defina DESIGNER_DB para outro arquivo. (' + dbFile + ')');
+    } else if (/not a database|malformed|corrupt|disk image/i.test(text)) {
+      console.error('O banco não pôde ser lido. Preserve o arquivo e restaure um backup, ou use DESIGNER_DB com uma cópia recuperada. (' + dbFile + ')');
     } else {
       console.error('Não foi possível iniciar o banco do Stylo: ' + text);
     }
@@ -109,8 +128,8 @@ const auth = createAuth(db);
 // O servidor sempre inicia com autenticação por contas. O modo local não é mais o padrão de produção;
 // STYLO_AUTH=local continua reservado para testes/desenvolvimento explícito.
 const authMode = process.env.STYLO_AUTH === 'local' ? 'local' : 'accounts';
-/** 0.0.0.0 mantém acesso pela rede local; 127.0.0.1 bloqueia interfaces remotas explicitamente. */
-const bindHost = process.env.STYLO_HOST === '127.0.0.1' || process.env.STYLO_HOST === 'localhost' ? '127.0.0.1' : '0.0.0.0';
+/** Só este computador: o servidor nunca escuta na rede. */
+const bindHost = '127.0.0.1';
 const localUser = await auth.localUser();
 const presence = createPresence();
 const events = createEvents({ presence });
@@ -128,13 +147,13 @@ const notes = createNotes(db);
 const sharing = createSharing(db);
 /** Plugins embutidos: acrescentam ferramentas MCP (identidade visual...). Os serviços são o que eles podem usar do servidor. */
 // biblioteca da conta: fichas no banco, bytes no armazenamento de blobs (pasta ao lado do banco; STYLO_BLOB_DIR muda)
-const blobs = createBlobStore(process.env.STYLO_BLOB_DIR || dbDir.replace(/\.db$/i, '') + '.blobs');
+const blobs = createBlobStore(defaultBlobDir(dbFile));
 const library = createLibrary({ db, blobs });
 const secrets = createSecrets(db, await loadSecretKey(configFile.replace(/(\.config)?\.json$/i, '') + '.secret'));
 const assetServices = createAssetServices({ library, secrets, sources: createAssetSources(db), config });
 const plugins = createPlugins({ plugins: builtinPlugins, enabled: config.get().plugins?.enabled, services: { fetchImage: (url: string) => fetchRemoteImage(url), assets: assetServices } });
 const agents = createAgents(db);
-const backups = createBackups({ dbDir, db, postgres: !!process.env.DATABASE_URL });
+const backups = createBackups({ dbFile, db });
 workspace = createWorkspace({
   projects, notes, sharing, operations, agentProjectAccess: (agentId, projectId) => authMode === 'local' ? Promise.resolve(true) : agents.projectAccess(agentId, projectId), grantAgentProject: (agentId, projectId) => agents.grantProject(agentId, projectId), plugins, presence: () => presence.snapshot(),
   renderImage: (node, doc, scale, opts) => renderer.render(node, doc, scale, opts),
@@ -194,11 +213,8 @@ async function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-// Rede local ativa por padrão; a autenticação continua obrigatória fora do modo de testes.
 httpServer.listen(port, bindHost, () => {
   console.log(`\n  Stylo rodando em  http://localhost:${port}/studio/`);
-  console.log(`  Acesso pela rede local      http://<IP-da-maquina>:${port}/studio/`);
-  console.log(`  Banco de dados               ${process.env.DATABASE_URL ? 'Postgres (DATABASE_URL)' : 'PGlite em ' + dbDir}`);
-  console.log(`  Acesso                       ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'}`);
-  console.log(`  Interface                   ${bindHost}${bindHost === '127.0.0.1' ? ' (somente este computador)' : ' (rede local habilitada)'}\n`);
+  console.log(`  Banco de dados    ${dbFile}`);
+  console.log(`  Acesso            ${authMode === 'local' ? 'modo local (sem login)' : 'contas e senha'} · somente este computador\n`);
 });

@@ -20,7 +20,7 @@ async function start(t) {
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64') }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(dir, 'config.json'), DESIGNER_DB: 'memory', STYLO_AUTH: 'accounts', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64') }),
     stdio: 'ignore',
   });
   fixture.children.push(child);
@@ -61,10 +61,6 @@ test('contas: cadastro, agente MCP, autorização por projeto e revogação', as
   assert.deepEqual((await call('PUT', '/api/plugins/assets', { enabled: false })).json, { id: 'assets', enabled: false });
   assert.equal((await call('GET', '/api/plugins/catalog')).json.plugins.find((plugin) => plugin.id === 'assets').enabled, false);
   assert.deepEqual((await call('PUT', '/api/plugins/assets', { enabled: true })).json, { id: 'assets', enabled: true });
-  const network = await call('GET', '/api/network');
-  assert.equal(network.status, 200);
-  assert.equal(network.json.bound, '0.0.0.0');
-  assert.match(network.json.localUrl, /^http:\/\/localhost:/);
   const adminActivity = await call('GET', '/api/admin/activity');
   assert.equal(adminActivity.status, 200);
   assert.ok(Array.isArray(adminActivity.json));

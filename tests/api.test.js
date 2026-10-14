@@ -38,7 +38,7 @@ test('API de projetos: gravar/ler, conflito por revisão, versões, miniatura, r
   });
   fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
-  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  // espera o servidor subir (até 60 s: sob carga o servidor e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }

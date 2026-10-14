@@ -69,9 +69,7 @@ export const adminSessionsList = () => request<Array<{ id: string; userId: strin
 export const revokeAdminSession = (id: string) => request<{ ok: true; revoked: boolean }>(`/api/sessions/${encodeURIComponent(id)}`, json({}, 'DELETE'));
 export const authEvents = () => request<Array<{ id: string; email: string; kind: string; createdAt: string }>>('/api/me/auth-events?limit=50');
 export const accountExport = () => request<Record<string, unknown>>('/api/me/export');
-export const systemHealth = () => request<{ ok: boolean; checkedAt: string; database: { ok: boolean; engine: string; migrations?: string[]; error?: string }; counts?: { users: number; projects: number }; transport: { port: number; editors: number; mcp: boolean } }>('/api/health');
-export const networkInfo = () => request<{ bound: string; port: number; localUrl: string; mcpLocalUrl: string; addresses: Array<{ name: string; address: string; url: string; mcpUrl: string }>; remoteAccess: boolean }>('/api/network');
-export const networkQrUrl = (value: string) => `/api/network/qr?value=${encodeURIComponent(value)}`;
+export const systemHealth = () => request<{ ok: boolean; checkedAt: string; database: { ok: boolean; engine: string; schemaVersion?: number; error?: string }; counts?: { users: number; projects: number }; transport: { port: number; editors: number; mcp: boolean } }>('/api/health');
 export const adminActivity = () => request<Array<{ id: string; at: string; project: { id: string; slug: string; name: string }; user: { id: string; name: string; email: string } | null; agent: { id: string; name: string } | null; actorType: string; tool: string; summary: string; ok: boolean; layerIds: string[] }>>('/api/admin/activity?limit=200');
 export const connectionsList = () => request<Array<{ id: string; personId: string; name: string; connectedAt: string }>>('/api/connections');
 export const closeConnection = (id: string) => request<{ ok: true }>(`/api/connections/${encodeURIComponent(id)}`, json({}, 'DELETE'));

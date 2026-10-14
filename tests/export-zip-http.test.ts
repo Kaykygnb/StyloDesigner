@@ -58,7 +58,7 @@ test('rotas ZIP entregam HTML/React íntegros e isolam projetos por conta', { ti
   const fixture = { dir: temporary, children: [] as import("node:child_process").ChildProcess[], clients: [] };
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
-  const child = spawn(process.execPath, ['--import', 'tsx', join(repo, 'apps/server/src/main.ts')], { cwd: repo, env: isolatedServerEnv({ PORT: String(port), STYLO_AUTH: 'accounts', DESIGNER_CONFIG: join(temporary, 'config.json'), DESIGNER_DB_DIR: 'memory' }), stdio: 'ignore' });
+  const child = spawn(process.execPath, ['--import', 'tsx', join(repo, 'apps/server/src/main.ts')], { cwd: repo, env: isolatedServerEnv({ PORT: String(port), STYLO_AUTH: 'accounts', DESIGNER_CONFIG: join(temporary, 'config.json'), DESIGNER_DB: 'memory' }), stdio: 'ignore' });
   fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; ; i++) {

@@ -3,7 +3,7 @@
  *  amostras.js — DOCUMENTOS DE TESTE (antigos exemplos "Landing" e "App mobile")
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  *  Documento de demonstração carregado na primeira abertura. Mostra auto layout (flexbox), gradientes,
- *  sombras e blur. Também é a base das capturas de tela do README.
+ *  sombras e blur.
  * ════════════════════════════════════════════════════════════════════════════════════════════════
  */
 

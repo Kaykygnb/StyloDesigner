@@ -130,7 +130,7 @@ test('configuração inicial não ativa plugin sem dependência habilitada', () 
 });
 
 async function setup() {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!', role: 'OWNER' } });
   const operations = createOperations(db);
   const plugins = createPlugins({ plugins: builtinPlugins });

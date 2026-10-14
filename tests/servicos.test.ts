@@ -17,7 +17,7 @@ test('senha: scrypt confere a certa, recusa a errada e o usuário técnico nunca
 });
 
 test('conta mestre: o setup só funciona uma vez; login cria sessão; token errado e logout invalidam', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const auth = createAuth(db);
   assert.equal(await auth.hasAccounts(), false);
   await auth.localUser(); // o usuário técnico não conta como conta de pessoa
@@ -73,7 +73,7 @@ test('conta mestre: o setup só funciona uma vez; login cria sessão; token erra
 });
 
 test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora; política decide o cadastro', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const auth = createAuth(db);
   const agents = createAgents(db);
   const owner = await auth.setup({ email: 'dono@x.com', name: 'Dono', password: 'senha-do-dono' });
@@ -118,7 +118,7 @@ test('agentes: token aparece uma vez; pendente não entra; revogar vale na hora;
 });
 
 test('projetos: conflito por revisão, versões a cada intervalo com limite, papéis e renomear', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const guest = await db.user.create({ data: { email: 'g@x.com', name: 'G', passwordHash: '!' } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 2 }), versionEveryMs: 0 });
@@ -173,7 +173,7 @@ test('projetos: conflito por revisão, versões a cada intervalo com limite, pap
 });
 
 test('gravar o mesmo conteúdo de novo não cria revisão, versão nem aviso (evita laço editor ↔ servidor)', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const events: string[] = [];
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0, onWrite: (e) => events.push(e.contentHash) });
@@ -192,7 +192,7 @@ const PNG_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfF
 const GIF_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 
 test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data URLs, versões leves, lixo recolhido', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const stranger = await db.user.create({ data: { email: 's@x.com', name: 'S', passwordHash: '!' } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });
@@ -238,7 +238,7 @@ test('imagens saem do JSON: uma vez por conteúdo, o documento volta com data UR
 });
 
 test('projeto antigo com imagem embutida no JSON é externalizado na próxima gravação', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'o@x.com', name: 'O', passwordHash: '!' } });
   const old = await db.project.create({ data: { slug: 'velho.json', name: 'Velho', ownerId: owner.id, doc: { ...doc('velho'), assets: { a: PNG_URL } }, revision: 1 } });
   const projects = createProjects({ db, getConfig: () => ({ keepVersions: 5 }), versionEveryMs: 0 });

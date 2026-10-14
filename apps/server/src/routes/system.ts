@@ -10,8 +10,6 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { networkInterfaces } from 'node:os';
-import QRCode from 'qrcode';
 import { join } from 'node:path';
 import { Hono } from 'hono';
 import { writeJsonAtomic } from '../atomic.js';
@@ -31,27 +29,14 @@ export function systemRoutes(s: Services, identity: Identity) {
     try {
       const [database, migrations, users, projects] = await Promise.all([
         s.db.$queryRawUnsafe<Array<{ ok: number }>>('SELECT 1 AS ok'),
-        s.db.$queryRawUnsafe<Array<{ name: string }>>('SELECT name FROM "_stylo_migrations" ORDER BY name'),
+        s.db.$queryRawUnsafe<Array<{ user_version: number }>>('PRAGMA user_version'),
         s.db.user.count(),
         s.db.project.count(),
       ]);
-      return c.json({ ok: true, checkedAt, database: { ok: database[0]?.ok === 1, engine: process.env.DATABASE_URL ? 'postgresql' : 'pglite', migrations: migrations.map((m) => m.name) }, counts: { users, projects }, transport: { port: s.port, editors: s.events.count(), mcp: true } });
+      return c.json({ ok: true, checkedAt, database: { ok: database[0]?.ok === 1, engine: 'sqlite', schemaVersion: Number(migrations[0]?.user_version ?? 0) }, counts: { users, projects }, transport: { port: s.port, editors: s.events.count(), mcp: true } });
     } catch (err) {
-      return c.json({ ok: false, checkedAt, database: { ok: false, engine: process.env.DATABASE_URL ? 'postgresql' : 'pglite', error: err instanceof Error ? err.message : 'falha desconhecida' }, transport: { port: s.port, editors: s.events.count(), mcp: false } }, 503);
+      return c.json({ ok: false, checkedAt, database: { ok: false, engine: 'sqlite', error: err instanceof Error ? err.message : 'falha desconhecida' }, transport: { port: s.port, editors: s.events.count(), mcp: false } }, 503);
     }
-  });
-  r.get('/network', async (c) => {
-    await identity.userOf(c);
-    const bound = process.env.STYLO_HOST === '127.0.0.1' || process.env.STYLO_HOST === 'localhost' ? '127.0.0.1' : '0.0.0.0';
-    const addresses = bound === '127.0.0.1' ? [] : Object.entries(networkInterfaces()).flatMap(([name, entries]) => (entries || []).filter((entry) => !entry.internal && (entry.family === 'IPv4' || (entry.family as unknown) === 4)).map((entry) => ({ name, address: entry.address, url: `http://${entry.address}:${s.port}`, mcpUrl: `http://${entry.address}:${s.port}/mcp` })));
-    return c.json({ bound, port: s.port, localUrl: `http://localhost:${s.port}`, mcpLocalUrl: `http://localhost:${s.port}/mcp`, addresses, remoteAccess: bound !== '127.0.0.1' });
-  });
-  r.get('/network/qr', async (c) => {
-    await identity.userOf(c);
-    const value = String(c.req.query('value') || `http://localhost:${s.port}`).trim();
-    if (!/^https?:\/\//i.test(value) || value.length > 2048) throw httpError(400, 'URL inválida para QR Code.');
-    const svg = await QRCode.toString(value, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
-    return c.body(Buffer.from(svg), 200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'private, max-age=300', 'X-Content-Type-Options': 'nosniff' });
   });
   r.get('/admin/activity', async (c) => {
     await identity.adminOf(c);

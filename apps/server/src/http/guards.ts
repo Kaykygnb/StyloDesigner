@@ -1,8 +1,8 @@
 /**
  * http/guards.ts — PROTEÇÕES DE ENTRADA (Host, Origin, tipo do corpo, tamanho, erros)
  *
- * O servidor escreve no disco e no banco, então só aceita pedidos feitos para a máquina/rede privada:
- *   - Host precisa ser localhost ou IPv4 privado (bloqueia DNS rebinding e hosts públicos);
+ * O servidor escreve no disco e no banco e é SÓ LOCAL, então só aceita pedidos feitos para esta máquina:
+ *   - Host precisa ser localhost, 127.0.0.1 ou [::1] (bloqueia DNS rebinding e qualquer outro nome);
  *   - pedidos que ESCREVEM exigem JSON e, se vierem de uma página, Origin = este servidor (mesma porta);
  *   - corpo com limite por rota; erros internos nunca vazam detalhes.
  */
@@ -16,13 +16,7 @@ export const MAX_MEDIUM = 32 * 1024 * 1024; // miniaturas, MCP (imagens em ferra
 export const MAX_PROJECT = 200 * 1024 * 1024; // um projeto com imagens embutidas
 
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i;
-const PRIVATE_IPV4 = /^(?:10\.(?:\d{1,3}\.){2}\d{1,3}|192\.168\.(?:\d{1,3})\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.(?:\d{1,3})\.\d{1,3})(?::\d+)?$/;
-export const isLocalHost = (host = '') => {
-  if (LOCAL_HOST.test(host)) return true;
-  const address = host.replace(/:\d+$/, '');
-  if (!PRIVATE_IPV4.test(host)) return false;
-  return address.split('.').every((part) => Number(part) >= 0 && Number(part) <= 255);
-};
+export const isLocalHost = (host = '') => LOCAL_HOST.test(host);
 
 /** Origens aceitas: a própria página deste servidor (mesma porta). Sem Origin (curl, MCP stdio, testes) também vale. */
 export const ownOrigins = (port: number) => [`http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://[::1]:${port}`];

@@ -20,12 +20,12 @@ test('HTTP: envia arquivo para a biblioteca, lista, baixa com o tipo certo, remo
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64'), PEXELS_API_KEY: '', PIXABAY_API_KEY: '' }),
+    env: isolatedServerEnv({ PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_SECRET_KEY: Buffer.alloc(32, 7).toString('base64'), PEXELS_API_KEY: '', PIXABAY_API_KEY: '' }),
     stdio: 'ignore',
   });
   fixture.children.push(child);
   const base = `http://127.0.0.1:${port}`;
-  // espera o servidor subir (até 60 s: sob carga o PGlite e o Vite demoram) e falha clara se não subir
+  // espera o servidor subir (até 60 s: sob carga o servidor e o Vite demoram) e falha clara se não subir
   for (let i = 0, up = false; !up; i++) {
     if (i > 2400) throw new Error('o servidor de teste não subiu em 60 s');
     try { up = (await fetch(base + '/api/status')).ok; } catch { /* ainda subindo */ }

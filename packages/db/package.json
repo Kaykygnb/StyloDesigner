@@ -3,15 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Banco de dados (Postgres + Prisma): contas, agentes, projetos, operações, notas.",
+  "description": "Banco de dados local (SQLite embutido no Node): contas, agentes, projetos, operações, notas.",
   "exports": {
     "./*": "./src/*"
   },
-  "dependencies": {
-    "@electric-sql/pglite": "^0.4.3",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
-    "pglite-prisma-adapter": "^0.7.2",
-    "prisma": "^7.10.0"
+  "dependencies": {},
+  "optionalDependencies": {
+    "@electric-sql/pglite": "^0.4.3"
   }
 }

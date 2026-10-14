@@ -3,7 +3,7 @@
 // qualquer integração customizada (n8n, script próprio, agente hosted) precisa implementar:
 // initialize, tools/list, tools/call, sessão por Mcp-Session-Id, texto/erro e encerramento.
 // Conteúdo de IMAGEM fica como lacuna explícita: só get_image produz e ele exige renderer
-// com navegador (ver docs/mcp/COMPATIBILIDADE.md).
+// com navegador.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -23,7 +23,7 @@ async function startServer(t, inheritedEnv = process.env) {
   t.after(() => cleanupFixture(fixture));
   const port = await freePort();
   const child = spawn(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('../apps/server/src/main.ts', import.meta.url))], {
-    env: { ...inheritedEnv, DATABASE_URL: '', PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB_DIR: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: randomBytes(32).toString('base64') }, stdio: 'ignore',
+    env: { ...inheritedEnv, PORT: String(port), DESIGNER_CONFIG: join(tmp, 'config.json'), DESIGNER_DB: 'memory', STYLO_AUTH: 'local', STYLO_BLOB_DIR: 'memory', STYLO_DEV: '0', STYLO_SECRET_KEY: randomBytes(32).toString('base64') }, stdio: 'ignore',
   });
   fixture.children.push(child);
   let startupError;
@@ -156,11 +156,10 @@ test('cliente externo sem SDK: sessões diferentes não misturam o projeto atual
 });
 
 
-test('fixture MCP ignora DATABASE_URL, blobs e segredo herdados', async (t) => {
-  // URL deliberadamente inválida: nunca aponta para um banco real.
-  const base = await startServer(t, { ...process.env, DATABASE_URL: 'not-a-database-url', STYLO_BLOB_DIR: '/nao-usar-blobs-herdados', STYLO_SECRET_KEY: 'segredo-invalido' });
+test('fixture MCP ignora blobs e segredo herdados', async (t) => {
+  const base = await startServer(t, { ...process.env, STYLO_BLOB_DIR: '/nao-usar-blobs-herdados', STYLO_SECRET_KEY: 'segredo-invalido' });
   const health = await (await fetch(base + '/api/health')).json();
-  assert.equal(health.database.engine, 'pglite');
+  assert.equal(health.database.engine, 'sqlite');
   const client = rawClient(base, 'fixture-isolado');
   await client.initialize();
   try {

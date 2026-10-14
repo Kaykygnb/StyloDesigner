@@ -9,7 +9,7 @@ import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
 async function setup() {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const operations = createOperations(db);
   let workspace: ReturnType<typeof createWorkspace>;

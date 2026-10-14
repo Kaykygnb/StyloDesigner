@@ -16,10 +16,11 @@ capturas/
 
 apps/web/dist/
 
-packages/db/src/generated/
 
 designer.db/
 *.db/
+*.sqlite
+*.sqlite-*
 # cópias de segurança feitas antes de migrações do banco
 designer.db.*/
 

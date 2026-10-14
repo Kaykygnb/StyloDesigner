@@ -23,7 +23,7 @@ test('fixture: falha de parada preserva arquivos e não oculta erro', async (t) 
   const dir = await mkdtemp(join(tmpdir(), 'stylo-cleanup-fail-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   await writeFile(join(dir, 'marker'), 'owned');
-  await assert.rejects(cleanupFixture({ dir, postgres: { stop: async () => { throw new Error('falha de parada'); } } }), AggregateError);
+  await assert.rejects(cleanupFixture({ dir, clients: [{ close: async () => { throw new Error('falha de parada'); } }] }), AggregateError);
   assert.equal(await readFile(join(dir, 'marker'), 'utf8'), 'owned');
   await assert.rejects(cleanupFixture({ dir, initializing: true }), AggregateError);
   assert.equal(await readFile(join(dir, 'marker'), 'utf8'), 'owned', 'startup em execução também preserva os dados');

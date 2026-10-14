@@ -8,7 +8,7 @@ import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
 test('update_layers registra todas as 60 camadas e recusa escopo de leitura e membro VIEWER', async (t) => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'lote@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const visitor = await db.user.create({ data: { email: 'visitante-lote@x.com', name: 'Visitante', passwordHash: '!' } });
   const operations = createOperations(db);

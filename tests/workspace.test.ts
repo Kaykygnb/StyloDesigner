@@ -10,7 +10,7 @@ import { createSharing } from '../apps/server/src/services/sharing.ts';
 import { createWorkspace, type Actor } from '../apps/server/src/workspace/index.ts';
 
 async function setup(extra: { agentProjectAccess?: (agentId: string, projectId: string) => Promise<boolean>; inspectLayout?: import('../packages/core/src/layout-inspection.ts').InspectLayout; fetchImage?: (url: string) => Promise<{ bytes: Uint8Array }>; measureLayout?: (roots: any[]) => Promise<Map<string, { w: number; h: number }>>; auditLayout?: (roots: any[], doc: any, widths: any[]) => Promise<any[]>; renderImage?: (node: any, doc: any, scale: number, opts?: { width?: number }) => Promise<string> } = {}) {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'dono@x.com', name: 'Dono', passwordHash: '!', role: 'OWNER' } });
   const other = await db.user.create({ data: { email: 'outro@x.com', name: 'Outro', passwordHash: '!' } });
   const operations = createOperations(db);
@@ -21,7 +21,7 @@ async function setup(extra: { agentProjectAccess?: (agentId: string, projectId: 
     const a = await db.agent.create({ data: { name, ownerId: user.id, tokenHash: `h-${name}-${Math.random()}`, scopes: scopes ?? ['read', 'write', 'export'], status: 'ACTIVE' } });
     return { type: 'AGENT', userId: user.id, agentId: a.id, name, scopes: a.scopes } satisfies Actor;
   };
-  // fecha o banco só depois do log de operações terminar de gravar (senão o PGlite pode travar no meio)
+  // fecha o banco só depois do log de operações terminar de gravar (senão a gravação pode ser cortada no meio)
   const closeAll = async () => { await operations.idle(); await close(); };
   return { db, owner, other, projects, workspace, operations, agentOf, close: closeAll };
 }
@@ -219,7 +219,7 @@ test('who_is_here devolve o retrato da presença injetada', async () => {
 });
 
 test('get_image usa o renderizador injetado e devolve a imagem para o MCP', async () => {
-  const { db, close } = await createDb({ pglite: {} });
+  const { db, close } = await createDb();
   const owner = await db.user.create({ data: { email: 'r@x.com', name: 'R', passwordHash: '!', role: 'OWNER' } });
   const ag = await db.agent.create({ data: { name: 'A', ownerId: owner.id, tokenHash: 'h-r', scopes: ['read', 'write'], status: 'ACTIVE' } });
   const actor: Actor = { type: 'AGENT', userId: owner.id, agentId: ag.id, name: 'A', scopes: ag.scopes };
