@@ -7,6 +7,7 @@ import { findNode, flatten, pageOf } from '../lib/doc';
 import { askText, confirmDialog } from '../ui/Dialog';
 import { Icon } from '../ui/Icon';
 import { formatRelativeTime, t } from '../lib/i18n';
+import { NoteComposer, NoteList, useProjectNotes } from './ProjectNotes';
 
 interface Reply { id: string; text: string; author: string; at: string; editedAt?: string }
 interface Comment { id: string; nodeId: string; rx: number; ry: number; text: string; author: string; at: string; editedAt?: string; resolved: boolean; replies: Reply[] }
@@ -22,6 +23,9 @@ export function CommentsPanel() {
   const [text, setText] = useState('');
   const [replying, setReplying] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const notes = useProjectNotes();
+  const [allNotes, setAllNotes] = useState(false);
+  const resolvedNotes = notes?.filter((n) => n.resolved).length ?? 0;
 
   const page = pageOf(doc, pageId);
   const here = new Set(flatten(page.children).map((n) => n.id));
@@ -71,7 +75,13 @@ export function CommentsPanel() {
 
   return (
     <div className="side-panel comments-panel">
-      <div className="row"><h4 className="grow">{t(language, 'comments.title')}</h4>
+      <section className="notes-block">
+        <div className="notes-head"><h4>{t(language, 'notes.title')}</h4><span className="faint small">{t(language, 'notes.hint')}</span></div>
+        <NoteComposer />
+        <NoteList notes={notes} showResolved={allNotes} />
+        {resolvedNotes > 0 && <button className="link-btn" onClick={() => setAllNotes(!allNotes)}>{allNotes ? t(language, 'comments.hide') : t(language, 'comments.show')} {resolvedNotes} {t(language, 'comments.resolved')}</button>}
+      </section>
+      <div className="row comments-head"><h4 className="grow">{t(language, 'comments.title')}</h4>
         <button className="btn sm" title={t(language, 'comments.comment')} onClick={() => app.set({ tool: 'comment' })}><Icon name="comment" size={13} /> {t(language, 'comments.new')}</button></div>
       {draft && (
         <div className="comment draft">

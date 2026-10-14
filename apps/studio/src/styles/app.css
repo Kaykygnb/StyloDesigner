@@ -658,7 +658,6 @@ pre.code { margin: 0; padding: 10px; max-height: 280px; overflow: auto; backgrou
 .segmented.devices button { height: 26px; }
 .segmented.devices button span { display: none; }
 .segmented.devices button.on span { display: inline; }
-@media (min-width: 1360px) { .segmented.devices button span { display: inline; } }
 
 /* ---------- painel direito ---------- */
 .right-panel { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }

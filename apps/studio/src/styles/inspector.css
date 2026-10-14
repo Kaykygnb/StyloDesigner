@@ -198,3 +198,54 @@ select.field {
 .empty-state h3 { font-size: 14px; font-weight: 600; }
 .empty-state p { margin: 0; color: var(--text-2); max-width: 240px; }
 .tips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 10px; color: var(--text-2); font-size: 11.5px; text-align: left; }
+
+/* ---------------------------------------------------------------- visão do projeto (nada selecionado) */
+.project-overview { display: flex; flex-direction: column; gap: 12px; padding: 16px 14px 24px; }
+.po-hero { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.po-hero h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.po-art { position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 13px; background: var(--gradient-spectacle, var(--accent)); box-shadow: var(--shadow-s); overflow: hidden; }
+.po-art span { position: absolute; border-radius: 4px; background: rgba(255,255,255,.85); }
+.po-art span:nth-child(1) { left: 8px; top: 9px; width: 28px; height: 6px; }
+.po-art span:nth-child(2) { left: 8px; top: 19px; width: 12px; height: 16px; opacity: .7; }
+.po-art span:nth-child(3) { left: 23px; top: 19px; width: 13px; height: 16px; opacity: .5; }
+.po-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.po-stats > div { display: flex; flex-direction: column; gap: 1px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); min-width: 0; }
+.po-stats b { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.po-stats span { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.po-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.po-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.po-card-head h4 { font-size: 12px; font-weight: 650; }
+.po-summary { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text); }
+.po-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.po-tags .chip { padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink, var(--accent)); font-size: 11px; }
+.po-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; transition: background var(--dur-1, .12s), border-color var(--dur-1, .12s); }
+.po-row:hover { background: var(--hover); border-color: var(--border-strong); }
+.po-row > svg { color: var(--text-3); }
+.po-row .badge.muted { background: var(--surface-3); color: var(--text-3); }
+.po-hint { display: flex; align-items: center; gap: 6px; margin: 4px 2px 0; }
+.project-overview .tips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11.5px; color: var(--text-3); }
+
+/* ---------------------------------------------------------------- notas do projeto */
+.note-composer { display: flex; flex-direction: column; gap: 6px; }
+.note-composer textarea { resize: vertical; min-height: 0; }
+.note-composer .segmented button { font-size: 11.5px; }
+.note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.note-card { position: relative; padding: 9px 10px 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.note-card::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--text-3); }
+.note-card.is-decision::before { background: var(--accent); }
+.note-card.is-resolved { opacity: .55; }
+.note-card p { margin: 3px 0 4px; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.note-card footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.note-card footer .faint { display: inline-flex; align-items: center; gap: 3px; }
+.note-kind { font-size: 10.5px; font-weight: 650; letter-spacing: .02em; text-transform: uppercase; color: var(--text-3); }
+.note-card.is-decision .note-kind { color: var(--accent); }
+.note-empty { margin: 0; }
+.notes-block { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+.notes-head { display: flex; flex-direction: column; gap: 2px; }
+.comments-head { margin-top: 6px; }
+
+/* opções avançadas do Design (estados, grades, HTML, CSS, exportar) ficam recolhidas */
+.insp-advanced { display: flex; align-items: center; gap: 6px; width: calc(100% - 20px); margin: 10px; padding: 9px 10px; border: 1px dashed var(--border-strong); border-radius: 10px; background: transparent; color: var(--text-2); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.insp-advanced:hover { background: var(--hover); color: var(--text); }
+.insp-advanced .faint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.layer-note { resize: vertical; font-size: 12.5px; line-height: 1.45; }

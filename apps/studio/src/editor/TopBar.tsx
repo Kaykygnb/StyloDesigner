@@ -36,22 +36,22 @@ export function TopBar() {
         {t(language, 'collab.changedBy')} <b>{syncNotice.by}</b> · {t(language, 'collab.dismissChange')}
       </button> : null}
 
+      <span className="sep" />
+      <button className="btn ghost icon" aria-label={t(language, 'top.undo')} title={t(language, 'top.undo')} disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
+      <button className="btn ghost icon" aria-label={t(language, 'top.redo')} title={t(language, 'top.redo')} disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
+
       <div className="spacer" />
       <div className="segmented devices" role="group" aria-label={t(language, 'ui.topbar.screenSize')}>
-        <button className={device === 'desktop' ? 'on' : ''} onClick={() => setDevice('desktop')} title="Desktop"><Icon name="monitor" size={16} /><span>Desktop</span></button>
+        <button className={device === 'desktop' ? 'on' : ''} aria-label="Desktop" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')} title="Desktop"><Icon name="monitor" size={16} />{device === 'desktop' && <span>Desktop</span>}</button>
         {bps.map((b) => (
-          <button key={b.id} className={device === b.id ? 'on' : ''} onClick={() => setDevice(b.id)} title={`${b.name} (${b.preview}px)`}>
-            <Icon name={b.preview <= 480 ? 'phone' : 'tablet'} size={16} /><span>{b.name}</span>
+          <button key={b.id} className={device === b.id ? 'on' : ''} aria-label={b.name} aria-pressed={device === b.id} onClick={() => setDevice(b.id)} title={`${b.name} · ${b.preview}px`}>
+            <Icon name={b.preview <= 480 ? 'phone' : 'tablet'} size={16} />{device === b.id && <span>{b.name} <i className="faint">{b.preview}</i></span>}
           </button>
         ))}
       </div>
       <div className="spacer" />
 
-      <button className="cmd-btn" onClick={openCommandPalette} aria-label={t(language, 'ui.command.open')} title={t(language, 'ui.command.open')}><Icon name="search" size={14} /><span className="lbl">{t(language, 'ui.command.title')}</span><kbd>Ctrl K</kbd></button>
-      <span className="sep" />
-      <button className="btn ghost icon" aria-label={t(language, 'top.undo')} title={t(language, 'top.undo')} disabled={!editable} onClick={() => void undo()}><Icon name="undo" size={16} /></button>
-      <button className="btn ghost icon" aria-label={t(language, 'top.redo')} title={t(language, 'top.redo')} disabled={!editable} onClick={() => void redo()}><Icon name="redo" size={16} /></button>
-      <span className="sep" />
+      <button className="btn ghost icon" onClick={openCommandPalette} aria-label={t(language, 'ui.command.open')} title={`${t(language, 'ui.command.open')} (Ctrl K)`}><Icon name="search" size={16} /></button>
       <ViewMenu />
       <button className={`btn ghost${panel === 'agents' ? ' active' : ''}`} title={t(language, 'ui.topbar.agents')} onClick={() => setPanel('agents')}>
         <Icon name="users" size={16} /><span className="lbl">{t(language, 'top.agents')}</span>{here > 1 ? <span className="badge">{here}</span> : null}

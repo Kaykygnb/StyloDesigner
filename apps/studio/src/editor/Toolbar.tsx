@@ -1,5 +1,5 @@
 // Barra flutuante de ferramentas: mover, mão e as formas que se desenham no canvas. Cada uma cria a camada com create_layer.
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { canEdit, uploadImage } from '../lib/actions';
 import { run, setTool, toast, useApp, type Tool } from '../lib/app';
 import { t } from '../lib/i18n';
@@ -7,20 +7,22 @@ import { findNode, pageOf } from '../lib/doc';
 import { arrange, commentOn } from '../lib/editing';
 import { Icon } from '../ui/Icon';
 
-const TOOLS: ({ tool: Tool; icon: string; key: string } | 'sep')[] = [
-  { tool: 'move', icon: 'cursor', key: 'V' }, { tool: 'hand', icon: 'hand', key: 'H' },
+type ToolDef = { tool: Tool; icon: string; key: string };
+type Slot = ToolDef | ToolDef[] | 'sep' | 'image';
+const T = (tool: Tool, icon: string, key = ''): ToolDef => ({ tool, icon, key });
+// Ferramentas parecidas ficam juntas num botão só (com a setinha para trocar): menos ícones na tela, mesmo poder.
+const SLOTS: Slot[] = [
+  T('move', 'cursor', 'V'), T('hand', 'hand', 'H'),
   'sep',
-  { tool: 'frame', icon: 'frame', key: 'F' }, { tool: 'section', icon: 'section', key: '⇧S' },
+  [T('frame', 'frame', 'F'), T('section', 'section', '⇧S')],
+  [T('rect', 'rect', 'R'), T('ellipse', 'ellipse', 'E'), T('line', 'line', 'L'), T('polygon', 'polygon'), T('star', 'star')],
+  T('text', 'text', 'T'),
+  [T('pen', 'pen', 'P'), T('pencil', 'pencil')],
+  'image',
   'sep',
-  { tool: 'rect', icon: 'rect', key: 'R' }, { tool: 'ellipse', icon: 'ellipse', key: 'E' }, { tool: 'line', icon: 'line', key: 'L' },
-  { tool: 'polygon', icon: 'polygon', key: '' }, { tool: 'star', icon: 'star', key: '' },
-  'sep',
-  { tool: 'text', icon: 'text', key: 'T' },
-  'sep',
-  { tool: 'pen', icon: 'pen', key: 'P' }, { tool: 'pencil', icon: 'pencil', key: '' },
-  'sep',
-  { tool: 'comment', icon: 'comment', key: 'C' }, { tool: 'inspect', icon: 'inspect', key: 'I' },
+  T('comment', 'comment', 'C'), T('inspect', 'inspect', 'I'),
 ];
+const READ_ONLY_OK = new Set<Tool>(['move', 'hand', 'inspect']);
 
 export function Toolbar() {
   const tool = useApp((s) => s.tool);
@@ -29,6 +31,21 @@ export function Toolbar() {
   const pageId = useApp((s) => s.pageId);
   const language = useApp((s) => s.language);
   const file = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState<Tool | null>(null);
+  // última ferramenta usada em cada grupo (a forma que aparece no botão)
+  const [lastOf, setLastOf] = useState<Partial<Record<Tool, Tool>>>({});
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
+    const away = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.('.tb-slot')) setOpen(null); };
+    document.addEventListener('keydown', esc); document.addEventListener('mousedown', away);
+    return () => { document.removeEventListener('keydown', esc); document.removeEventListener('mousedown', away); };
+  }, [open]);
+  const pick = (next: Tool, groupKey: Tool) => {
+    setLastOf((m) => ({ ...m, [groupKey]: next }));
+    if (next === 'comment' && selection.length === 1) commentOn(selection[0]);
+    else setTool(next);
+  };
   const editable = canEdit();
   const selectedNodes = doc && pageId ? selection.map((id) => findNode(pageOf(doc, pageId).children, id)).filter(Boolean) : [];
   const booleanSupported = selectedNodes.length >= 2 && selectedNodes.every((node) => node && ['path', 'rect', 'ellipse', 'frame'].includes(node.type) && !(node.type === 'frame' && node.children?.length));
@@ -65,19 +82,39 @@ export function Toolbar() {
       </>}
     </div>}
     <div className="toolbar insert-bar" role="toolbar" aria-label={t(language, 'ui.toolbar.tools')}>
-      {TOOLS.map((item, i) => item === 'sep'
-        ? <span key={i} className="tb-sep" />
-        : (
-          <button key={item.tool} className={`tb-btn${tool === item.tool ? ' on' : ''}`} aria-pressed={tool === item.tool} disabled={!editable && item.tool !== 'move' && item.tool !== 'hand' && item.tool !== 'inspect'}
-            title={`${t(language, `tool.${item.tool}`)}${item.key ? ` (${item.key})` : ''}`} aria-label={t(language, `tool.${item.tool}`)} onClick={() => {
-              if (item.tool === 'comment' && selection.length === 1) commentOn(selection[0]);
-              else if (['frame', 'section', 'text', 'rect', 'ellipse', 'line', 'polygon', 'star', 'html'].includes(item.tool)) setTool(item.tool);
-              else setTool(item.tool);
-            }}>
-            <Icon name={item.icon} size={18} />
-          </button>
-        ))}
-      <button className="tb-btn" disabled={!editable} title={t(language, 'tool.image')} aria-label={t(language, 'tool.image')} onClick={() => file.current?.click()}><Icon name="image" size={18} /></button>
+      {SLOTS.map((slot, i) => {
+        if (slot === 'sep') return <span key={i} className="tb-sep" />;
+        if (slot === 'image') return <button key={i} className="tb-btn" disabled={!editable} title={t(language, 'tool.image')} aria-label={t(language, 'tool.image')} onClick={() => file.current?.click()}><Icon name="image" size={18} /></button>;
+        const group = Array.isArray(slot) ? slot : [slot];
+        const current = group.find((x) => x.tool === tool) ?? group.find((x) => x.tool === lastOf[group[0].tool]) ?? group[0];
+        const on = group.some((x) => x.tool === tool);
+        const disabled = !editable && !READ_ONLY_OK.has(current.tool);
+        return (
+          <span key={i} className={`tb-slot${group.length > 1 ? ' has-more' : ''}`}>
+            <button className={`tb-btn${on ? ' on' : ''}`} aria-pressed={on} disabled={disabled}
+              title={`${t(language, `tool.${current.tool}`)}${current.key ? ` (${current.key})` : ''}`} aria-label={t(language, `tool.${current.tool}`)}
+              onClick={() => pick(current.tool, group[0].tool)}>
+              <Icon name={current.icon} size={18} />
+            </button>
+            {group.length > 1 && (
+              <button className={`tb-more${open === group[0].tool ? ' open' : ''}`} disabled={!editable} aria-haspopup="menu" aria-expanded={open === group[0].tool}
+                aria-label={t(language, 'ui.toolbar.moreTools', { tool: t(language, `tool.${group[0].tool}`) })}
+                onClick={() => setOpen(open === group[0].tool ? null : group[0].tool)}>
+                <Icon name="chevrondown" size={10} />
+              </button>
+            )}
+            {open === group[0].tool && (
+              <div className="tb-flyout" role="menu" onMouseLeave={() => setOpen(null)}>
+                {group.map((x) => (
+                  <button key={x.tool} role="menuitemradio" aria-checked={tool === x.tool} className={tool === x.tool ? 'on' : ''} onClick={() => { pick(x.tool, group[0].tool); setOpen(null); }}>
+                    <Icon name={x.icon} size={16} /><span className="grow">{t(language, `tool.${x.tool}`)}</span>{x.key && <kbd>{x.key}</kbd>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </span>
+        );
+      })}
       <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" hidden
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadImage(f); e.target.value = ''; }} />
     </div>

@@ -140,3 +140,20 @@
 .layout-grid { position: absolute; overflow: hidden; pointer-events: none; }
 .layout-grid-band, .layout-grid-cells { position: absolute; pointer-events: none; }
 .layout-grid-cells { inset: 0; }
+
+/* grupos de ferramentas: botão principal + setinha que abre as variações */
+.tb-slot { position: relative; display: inline-flex; align-items: center; }
+.tb-slot.has-more .tb-btn { width: 30px; }
+.tb-more { width: 12px; height: 34px; display: grid; place-items: center; padding: 0; margin-left: -1px; border: 0; border-radius: 6px; background: transparent; color: var(--text-3); cursor: pointer; }
+.tb-more svg { transform: rotate(180deg); transition: transform var(--dur-1, .12s); }
+.tb-more:hover:not(:disabled), .tb-more.open { background: var(--hover); color: var(--text); }
+.tb-more.open svg { transform: none; }
+.tb-more:disabled { opacity: .4; cursor: default; }
+.tb-flyout { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); z-index: 30; min-width: 190px; display: flex; flex-direction: column; gap: 1px; padding: 5px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-m); animation: tb-pop var(--dur-2, .16s) var(--ease-out, ease-out); }
+.tb-flyout button { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.tb-flyout button:hover { background: var(--hover); }
+.tb-flyout button.on { background: var(--accent-soft); color: var(--accent-ink, var(--accent)); }
+.tb-flyout button svg { color: var(--text-2); }
+.tb-flyout kbd { font-size: 10.5px; }
+@keyframes tb-pop { from { opacity: 0; transform: translate(-50%, 4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.toolbar.insert-bar { overflow: visible; }

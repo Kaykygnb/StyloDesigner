@@ -122,7 +122,8 @@ test('gestos do canvas: girar, caixa de seleção, mão, Alt+arrastar com camada
 
   // ---- lápis: um traço à mão vira um vetor com curvas
   const p0 = (await ofType('path')).length;
-  await page.locator('.insert-bar').getByTitle(/^Lápis/).click();
+  await page.locator('.insert-bar').getByRole('button', { name: /^Mais opções de Caneta/ }).click(); // lápis fica no grupo da caneta
+  await page.getByRole('menuitemradio', { name: /Lápis/ }).click();
   const [px, py] = [vp.x + 600, vp.y + 250];
   await page.mouse.move(px + 100, py); await page.mouse.down();
   for (let i = 1; i <= 80; i++) { const a = (i / 80) * Math.PI * 1.6; await page.mouse.move(px + Math.cos(a) * 100, py + Math.sin(a) * 100 + Math.sin(i * 1.7) * 1.5); }

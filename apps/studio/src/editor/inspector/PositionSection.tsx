@@ -5,7 +5,9 @@ import { arrange } from '../../lib/editing';
 import { run, useApp } from '../../lib/app';
 import { t } from '../../lib/i18n';
 import { inFlow, parentOf } from '../../lib/doc';
+import { useState } from 'react';
 import { Cap, Check, Hint, IconBtn, Num, Row, Section, Sel } from '../../ui/Fields';
+import { Icon } from '../../ui/Icon';
 import { union } from '../canvas/geometry';
 import type { Ctx } from './ctx';
 
@@ -37,6 +39,10 @@ export function PositionSection({ c }: { c: Ctx }) {
   const hConstraints: [string, string][] = [['left', tr('inspector.position.left')], ['right', tr('inspector.position.right')], ['leftright', tr('inspector.position.leftRight')], ['center', tr('inspector.position.center')], ['scale', tr('inspector.position.scale')]];
   const vConstraints: [string, string][] = [['top', tr('inspector.position.top')], ['bottom', tr('inspector.position.bottom')], ['topbottom', tr('inspector.position.topBottom')], ['center', tr('inspector.position.center')], ['scale', tr('inspector.position.scale')]];
   const off = c.readOnly;
+  const [moreOpen, setMoreOpen] = useState(false);
+  // uma tela (frame na raiz) não gira nem inclina: isso só confunde quem está montando a página
+  const board = single && !parent && n.type === 'frame';
+  const moreUsed = !!(n.skewX || n.skewY || n.rotateX || n.rotateY || n.depth || n.parallax || n.perspective || n.preserve3d);
 
   if (!single && bp) return <Section id="pos" title={tr('inspector.position.title')}><Hint>{tr('inspector.position.responsiveHint')}</Hint></Section>;
 
@@ -75,6 +81,7 @@ export function PositionSection({ c }: { c: Ctx }) {
           </Row>
         </Cap>
       )}
+      {!board && <>
       <Cap label={tr('inspector.position.rotation')} css="transform">
         <Row>
           <Num label="↻" value={n.rotation ?? 0} decimals={1} min={-360} max={360} unit="°" disabled={off} title={tr('ui.position.rotateTip')} mixed={c.mixed((x) => x.rotation)} onCommit={(v) => void c.set({ rotation: v ?? 0 })} />
@@ -86,6 +93,11 @@ export function PositionSection({ c }: { c: Ctx }) {
           )}
         </Row>
       </Cap>
+      <div className="fold">
+        <button type="button" className="fold-head" aria-expanded={moreOpen || moreUsed} onClick={() => setMoreOpen(!moreOpen)}>
+          <Icon name={moreOpen || moreUsed ? 'chevrondown' : 'chevron'} size={12} /> {tr('inspector.position.moreTransforms')}{moreUsed && <span className="dot-on" />}
+        </button>
+        {(moreOpen || moreUsed) && <div className="fold-body">
       <Cap label={tr('inspector.position.skew')} css="skew">
         <Row>
           <Num label="X" value={n.skewX ?? 0} decimals={1} min={-80} max={80} unit="°" disabled={off} title={tr('ui.position.skewH')} onCommit={(v) => void c.set({ skewX: v || null })} />
@@ -108,6 +120,9 @@ export function PositionSection({ c }: { c: Ctx }) {
           </Row>
         )}
       </Cap>
+        </div>}
+      </div>
+      </>}
       {c.baseOnly && (
         <Cap label={tr('inspector.position.stack')} css="z-index">
           <div className="btn-group">

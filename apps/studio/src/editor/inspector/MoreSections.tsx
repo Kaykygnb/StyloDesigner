@@ -203,11 +203,15 @@ export function NoteSection({ c }: { c: Ctx }) {
   const language = useApp((s) => s.language);
   const tr = (key: string) => t(language, key);
   if (!c.single || c.bp || c.editState) return null;
-  if (!n.note) return null;
+  // sempre à vista: a nota da camada vai para o mapa do projeto e o agente lê antes de construir
   return (
-    <Section id="note" title={tr('inspector.note.title')} right={!c.readOnly ? <IconBtn icon="note" title={tr('inspector.note.edit')} onClick={() => void noteOn(n.id)} /> : undefined}>
-      <p className="note-text">{n.note}</p>
-      <Check label={tr('inspector.note.include')} checked={n.noteInCode !== false} disabled={c.readOnly} onChange={(v) => void c.set({ noteInCode: v ? null : false })} />
+    <Section id="note" title={tr('inspector.note.title')} badge={n.note ? <span className="dot-on" /> : undefined}>
+      {c.readOnly ? (n.note ? <p className="note-text">{n.note}</p> : <Hint>{tr('inspector.note.empty')}</Hint>) : (
+        <textarea key={n.id} className="field layer-note" rows={2} defaultValue={n.note ?? ''} placeholder={tr('inspector.note.placeholder')}
+          onKeyDown={(e) => e.stopPropagation()}
+          onBlur={(e) => { const v = e.target.value.trim(); if (v !== (n.note ?? '')) void c.set({ note: v || null }); }} />
+      )}
+      {n.note && <Check label={tr('inspector.note.include')} checked={n.noteInCode !== false} disabled={c.readOnly} onChange={(v) => void c.set({ noteInCode: v ? null : false })} />}
     </Section>
   );
 }

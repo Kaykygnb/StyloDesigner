@@ -5,12 +5,12 @@ import { tool } from '../lib/api';
 import { canEdit } from '../lib/actions';
 import { run, toast, useApp } from '../lib/app';
 import { Modal } from './Dialogs';
+import { NoteComposer, NoteList, useProjectNotes } from './ProjectNotes';
 import { RichText } from '../ui/RichText';
 import { t, tl } from '../lib/i18n';
 
 type Tab = 'brief' | 'notes' | 'people';
 interface Brief { summary?: string; audience?: string; tone?: string[]; values?: string[]; goals?: string; avoid?: string; notes?: string }
-interface Note { id: string; kind: 'DECISION' | 'COMMENT'; body: string; resolved: boolean; at: string; by: string; byType: string; layerId: string | null }
 interface Member { email: string; name: string; role: string }
 
 const ROLE_KEY: Record<string, string> = { OWNER: 'ui.project.role.owner', EDITOR: 'ui.project.role.edit', COMMENTER: 'ui.project.role.comment', VIEWER: 'ui.project.role.view' };
@@ -86,39 +86,12 @@ function BriefTab() {
 
 function NotesTab() {
   const language = useApp((s) => s.language);
-  const editable = canEdit();
-  const [notes, setNotes] = useState<Note[] | null>(null);
-  const [text, setText] = useState('');
-  const [kind, setKind] = useState<'decision' | 'comment'>('decision');
-  const load = useCallback(() => { void tool<{ notes: Note[] }>('list_notes').then((o) => setNotes(o.notes)).catch(() => setNotes([])); }, []);
-  useEffect(load, [load]);
-  const add = async () => {
-    if (!text.trim()) return;
-    const out = await run('add_note', { text: text.trim(), kind });
-    if (out) { setText(''); load(); }
-  };
-  const resolve = async (n: Note) => { await run('resolve_note', { id: n.id, resolved: !n.resolved }); load(); };
+  const notes = useProjectNotes();
   return (
     <div className="settings">
       <p className="hint"><RichText text={t(language, 'ui.project.notesHint')} /></p>
-      {editable && (
-        <>
-          <textarea className="field" rows={3} placeholder={t(language, 'ui.project.writeNote')} value={text} onChange={(e) => setText(e.target.value)} />
-          <div className="row">
-            <select className="field" value={kind} onChange={(e) => setKind(e.target.value as 'decision' | 'comment')}><option value="decision">{t(language, 'ui.project.decision')}</option><option value="comment">{t(language, 'ui.project.comment')}</option></select>
-            <span className="grow" />
-            <button className="btn primary" disabled={!text.trim()} onClick={() => void add()}>{t(language, 'ui.project.addNote')}</button>
-          </div>
-        </>
-      )}
-      {notes === null ? <p className="muted"><span className="spinner" /> {t(language, 'ui.project.loading')}</p>
-        : !notes.length ? <p className="faint">{t(language, 'ui.project.noNotes')}</p>
-          : <ul className="resource-list">{[...notes].reverse().map((n) => (
-            <li key={n.id} style={{ opacity: n.resolved ? 0.55 : 1 }}>
-              <div><b>{t(language, n.byType === 'AGENT' ? 'ui.project.byAgent' : 'ui.project.by', { kind: t(language, n.kind === 'DECISION' ? 'ui.project.decision' : 'ui.project.comment'), by: n.by })}</b><span>{n.body}</span><span className="faint">{new Date(n.at).toLocaleString(language)}</span></div>
-              {editable && <button className="btn ghost sm" onClick={() => void resolve(n)}>{n.resolved ? t(language, 'ui.project.reopen') : t(language, 'ui.project.resolve')}</button>}
-            </li>
-          ))}</ul>}
+      <NoteComposer />
+      <NoteList notes={notes} showResolved />
     </div>
   );
 }
