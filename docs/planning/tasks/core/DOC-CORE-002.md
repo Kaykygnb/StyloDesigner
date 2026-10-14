@@ -1,10 +1,10 @@
 # DOC-CORE-002 — Matriz de exportação e warnings
 
 Responsável: [Muse Spark]
-Estado: Em andamento
+Estado: Concluída
 Início: 2026-10-14 01:05 -03:00
 Última atualização: 2026-10-14 01:05 -03:00
-Progresso: 2/5 marcos (40%)
+Progresso: 5/5 marcos (100%)
 Participantes: [Muse Spark]
 
 ## Problema e evidências
@@ -58,29 +58,29 @@ Relacionar cada formato de exportação a operação, código, warnings, limites
 - Testes executados: base 32/32 da #1 continua válida.
 - Problemas encontrados: nenhum bloqueio.
 ### #3 — Implementação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Estado: concluído
+- Responsável: [Muse Spark]
+- Atividades executadas: criada `docs/modules/core/EXPORT-MATRIX.md` (7 formatos + 7 origens de warning + 7 limites + testes candidatos + 4 lacunas não verificadas); link na seção nova do `docs/modules/core/README.md`. Sem runtime (fora do escopo).
+- Arquivos alterados: `docs/modules/core/EXPORT-MATRIX.md` (novo), `docs/modules/core/README.md`, este documento.
+- Evidências: cada linha da matriz aponta código com linha; warnings transcritos do código; limites com valores e clamp.
+- Testes executados: ainda não reexecutados nesta entrada (base 32/32 da #1).
+- Problemas encontrados: nenhum.
 ### #4 — Testes
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Estado: concluído
+- Responsável: [Muse Spark]
+- Atividades executadas: reexecução com `workspace.test.ts` incluído (casos `export_zip`/permissão/`export_site` react); validador documental; `git diff --check`.
+- Arquivos alterados: nenhum novo.
+- Evidências: 56/56 aprovados (32 exportação + 24 workspace); validador 28 tarefas; diff só Markdown (`README.md`, tarefa + `EXPORT-MATRIX.md` novo); sem runtime, sem drift de inventário (nenhuma ferramenta citada em teste novo).
+- Testes executados: `exportacao + site-export + export-react + export-zip-http + workspace`; `validate-tasks.mjs`.
+- Problemas encontrados: nenhum.
 ### #5 — Validação final
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
-- Arquivos alterados: —
-- Evidências: —
-- Testes executados: —
-- Problemas encontrados: —
+- Estado: concluído
+- Responsável: [Muse Spark]
+- Atividades executadas: relidos os 3 critérios de aceitação contra a matriz; confirmados arquivos alterados; matriz de regressão sem mudança de risco (só docs); sem necessidade de ADR (nenhum contrato/fluxo alterado); regra de manutenção atendida (README do módulo linka a matriz na mesma mudança).
+- Arquivos alterados: este documento.
+- Evidências: critério 1 — 7 linhas de formato com operação/código/entrada-saída/warning/teste; critério 2 — 7 limites + assets/fontes; critério 3 — 4 lacunas externas marcadas não verificadas.
+- Testes executados: evidências da #4 reutilizadas, sem reexecução redundante.
+- Problemas encontrados: nenhum.
 
 ## Histórico de trabalho
 
@@ -110,18 +110,27 @@ Relacionar cada formato de exportação a operação, código, warnings, limites
 - Resultado: mapa formato→operação/código/warnings/limites/testes pronto; matriz será `docs/modules/core/EXPORT-MATRIX.md`.
 - Próximo passo: #3 criar a matriz; #4 rodar gates pertinentes + validador.
 
+### 2026-10-14 01:05 -03:00 — [Muse Spark] — #3/#4/#5 concluídas, tarefa Concluída
+
+- Investigado: critérios re-lidos contra a matriz; risco de regressão inalterado (só docs).
+- Alterado: matriz criada + README linkado; 5/5, Estado Concluída.
+- Arquivos: `docs/modules/core/EXPORT-MATRIX.md`, `docs/modules/core/README.md`, esta tarefa, `docs/planning/BACKLOG.md`.
+- Testes: 56/56 (exportação + workspace); validador 28; `git diff --check` limpo.
+- Resultado: 3/3 critérios atendidos; sem ADR (nenhum contrato alterado).
+- Próximo passo: nenhum — aguardar consumo pela DOC-STUDIO-001 quando assumida.
+
 ## Handoff atual
 
 Preparado por: [Muse Spark]
-Destinatário: [Próximo agente / revisor humano]
-Estado: Assumida; investigação em curso
-Marco atual: #1 — Investigação
+Destinatário: —
+Estado: Concluída; sem pendências
+Marco atual: #5 — Validação final
 Última atualização: 2026-10-14 01:05 -03:00
-Commit de referência: `9e1fb6c` na branch `v0.1.0-beta`
+Commit de referência: `b2f96ca` na branch `v0.1.0-beta` (matriz entra no próximo push)
 
 ### Estado atual
 
-Tarefa assumida por [Muse Spark]. #1 em andamento, #2-#5 pendentes. Nenhum código alterado além deste documento e BACKLOG.
+5/5 (100%), Concluída. Matriz publicada em `docs/modules/core/EXPORT-MATRIX.md` e linkada no README do módulo.
 
 ### Decisões tomadas
 
