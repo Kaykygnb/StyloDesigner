@@ -149,9 +149,9 @@ test('painel web: criar projeto e tela, inserir, mover, redimensionar, editar te
   await page.getByRole('button', { name: 'Celular' }).click(); await wait(1200);
   assert.ok(await page.locator('iframe.board-frame').evaluate((el) => Math.round(el.getBoundingClientRect().width) > 0), 'a tela aparece no modo celular');
   await page.getByRole('button', { name: 'Desktop' }).click(); await wait(600);
-  await page.getByRole('button', { name: /Conferir/ }).first().click();
+  await page.locator('button[title="Conferir o design"]').click();
   await page.waitForSelector('.side-panel h4', { timeout: 20000 });
-  await wait(2500);
+  await page.waitForSelector('.issues li, .notice.ok', { timeout: 30000 });
   assert.ok(await page.locator('.issues li, .notice.ok').count() >= 1, 'a conferência mostra o resultado');
 
   // ---- um agente (MCP) altera o mesmo projeto: a tela atualiza sozinha
