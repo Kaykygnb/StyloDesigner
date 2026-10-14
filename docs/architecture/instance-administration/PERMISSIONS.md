@@ -75,6 +75,17 @@ RBAC identifica conjuntos iniciais de autoridade; capacidades e contexto restrin
 - HD-IDENTITY-01/02: humanos sempre com conta/senha no alvo, inclusive individual. Tabela atual registra bypass legado para migração, não sua aprovação permanente.
 - HD-ADMIN-01/02/03/04: gestão delegada/scoped e compartilhar por humanos/agentes essenciais, sem autoridade global desnecessária e sem setores obrigatórios. Separação concreta write/share/admin ainda a validar; não remover sharing dos agentes unilateralmente.
 - HD-OWNERSHIP-04: contato/e-mail institucional não confere identidade nem permissão por si só.
-- HD-RECOVERY-01/02/03/05: GUI de e-mail opcional exigida; quem configura credenciais e quais procedimentos recuperam principal seguem matriz sensível/projeto técnico abertos. Códigos offline não aprovados.
+- HD-RECOVERY-01/02/03: GUI de e-mail opcional exigida; quem configura credenciais segue em aberto (ADM-DEC-02).
+- HD-RECOVERY-05 foi superada no ponto dos códigos: em 2026-10-14 o proprietário escolheu códigos offline de uso único. O procedimento de emergência ainda não foi desenhado. Ver ADR 0002.
 
-ADM-DEC-00 beta continua válida; novo registro não amplia ADMIN global. Somente requisitos HD e aprovação beta têm autoria humana; as recomendações de capacidades são técnicas.
+ADM-DEC-00 beta continua válida; o registro de 2026-10-14 não amplia ADMIN global. ADM-DEC-02 continua pendente.
+
+## Decisões de 2026-10-14 — ainda não aplicadas
+
+Fonte: ADR 0002, seção da rodada. A tabela “comportamento atual” acima não muda com este parágrafo.
+
+- OWNER principal administra OWNERs secundários. ADMIN não trata conta OWNER como conta comum. Senha existente não é revelada.
+- OWNER secundário não substitui, suspende, remove nem rebaixa o principal. ADMIN não lê projeto privado por ser ADMIN.
+- Em instalação empresarial, OWNER da organização acessa projeto privado do espaço organizacional. O código atual não faz isso. ADM-DEC-07 (exceção de ADMIN) segue pendente.
+- Suspensão de usuário corta sessões e agentes vinculados e não devolve o token do agente na reativação (ADM-DEC-05).
+- Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal.
