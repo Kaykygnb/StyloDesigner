@@ -1,11 +1,11 @@
 # DOC-SERVER-001 — Validar adapters de persistência e rede
 
-Responsável: [Não atribuído]
-Estado: Proposta
-Início: —
-Última atualização: 2026-10-13 00:00 -03:00
+Responsável: [Kimi]
+Estado: Em andamento
+Início: 2026-10-14 01:20 UTC
+Última atualização: 2026-10-14 01:20 UTC
 Progresso: 0/5 marcos (0%)
-Participantes: —
+Participantes: [Kimi]
 
 - **Módulo:** server/database
 - **Prioridade:** P1
@@ -24,9 +24,9 @@ Participantes: —
 ## Marcos
 
 ### #1 — Investigação
-- Estado: pendente
-- Responsável: [Não atribuído]
-- Atividades executadas: —
+- Estado: em andamento
+- Responsável: [Kimi]
+- Atividades executadas: assumida por ser a P1 sem dependências que bloqueia DOC-DB-001 (restore/migração depende desta validação).
 - Arquivos alterados: —
 - Evidências: —
 - Testes executados: —
@@ -65,6 +65,15 @@ Participantes: —
 - Problemas encontrados: —
 
 ## Histórico de trabalho
+
+### 2026-10-14 01:20 UTC — [Kimi] — #1 Investigação (assunção)
+
+- Investigado: protocolo, BACKLOG e HANDOFF — DOC-SERVER-001 é a P1 sem dependências que bloqueia DOC-DB-001 (restore real PGlite/PostgreSQL depende desta validação).
+- Alterado: responsável registrado como [Kimi], estado `Em andamento`, marco #1 em andamento.
+- Arquivos: esta tarefa e BACKLOG.md.
+- Testes: nenhum nesta entrada.
+- Resultado: tarefa assumida conforme protocolo §2, com autorização do proprietário ("pegue uma e faça").
+- Próximo passo: ler `apps/server/src/db.ts` e `packages/db` para mapear o adapter (PGlite vs PostgreSQL via DATABASE_URL) e verificar disponibilidade de PostgreSQL descartável nesta máquina.
 
 ### 2026-10-13 00:00 -03:00 — [Sistema] — adaptação ao protocolo
 - Investigado: tarefa existente e formato anterior.
