@@ -37,7 +37,9 @@ A política beta dos dois PUT foi aprovada explicitamente, com ressalva: seguran
 | Compartilhar/remover colaborador | Sim | Não | Não | Não |
 | Comentários/notas | Sim para pessoa | Sim para pessoa | Caminho de notas permitido para pessoa | Caminho de notas não distingue VIEWER de COMMENTER; não prometer viewer estritamente sem comentário |
 
-Notas usam needs=comment e scopes do ator; atores humanos têm a autorização de scope do caminho humano, enquanto membership atual é revalidada. Não inferir a separação VIEWER/COMMENTER desejada só do nome dos enums. Exportação depende do caminho/ferramenta e scope export de agente; role global VIEWER não é uma ACL de documento.
+Notas usam needs=comment e scopes do ator; atores humanos têm a autorização de scope do caminho humano, enquanto membership atual é revalidada. Não inferir a separação VIEWER/COMMENTER desejada só do nome dos enums. Papel global VIEWER não é uma ACL de documento.
+
+Decisão do proprietário em 2026-10-14: o papel de projeto VIEWER não baixa o pacote. `export_zip` consulta o papel na sessão e recusa com `Você só pode ler ou comentar este projeto.` antes de gravar; o mesmo texto volta em 403 no `GET` de `site.zip` e `react.zip`. O painel pede `export_zip` antes de abrir esses endereços e não oferece o JSON local a VIEWER. COMMENTER continua podendo baixar o zip. Publicação já recusa VIEWER e COMMENTER pelo gate de escrita. `export_site`, `export_html` e `export_tokens` continuam leitura. O canvas ainda carrega o documento para visualização.
 
 O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode ver metadados de projetos de usuários e revogar membership por rota administrativa, mas isso não equivale a abrir/editar todo documento.
 

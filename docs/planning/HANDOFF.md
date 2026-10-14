@@ -6,11 +6,13 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 - Branch de trabalho: `cursor/studio-mcp-parity-950d` (base `v0.1.0-beta`, planejamento em `31f16bf`)
 - Commit da matriz: `aabece8`
-- Última atualização: 2026-10-14 06:39 UTC — [Grok]
+- Última atualização: 2026-10-14 07:34 UTC — [Grok]
 
 ## Entrega atual
 
-[DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) concluída, 5/5. Matriz em `tests/studio-parity.test.js`: callers reais do Studio e do MCP, projetos PGlite equivalentes, comparação por forma (documento, seleção, undo/redo, metadados de `export_site`, trilha `USER`×`AGENT`) e recusa de escrita (escopo `read` e papel `VIEWER`). Sem runtime. Suíte 626/626, zero falhas e zero skips, com Chromium do Playwright; typecheck, build, inventário e validador (28 tarefas) aprovados.
+[DOC-STUDIO-001](tasks/studio/DOC-STUDIO-001.md) concluída, 5/5. Matriz em `tests/studio-parity.test.js`: callers reais do Studio e do MCP, projetos PGlite equivalentes, comparação por forma (documento, seleção, undo/redo, metadados de `export_site`, trilha `USER`×`AGENT`) e recusa de escrita (escopo `read` e papel `VIEWER`).
+
+Decisão do proprietário em 2026-10-14, aplicada nesta entrega: papel de projeto VIEWER não baixa nem exporta o zip. `export_zip` (caller do painel e do MCP) e os GET `site.zip`/`react.zip` recusam com `Você só pode ler ou comentar este projeto.`, antes de gravar. O agente só de leitura do dono continua na mensagem de scope. COMMENTER segue podendo baixar. `export_site`, `export_html` e `export_tokens` continuam leitura. Suíte reexecutada: 626/626, zero falhas e zero skips; typecheck, build, inventário e validador (28 tarefas) aprovados.
 
 ## Continuidade
 
@@ -22,7 +24,7 @@ Resumo geral; tarefa individual e histórico são a fonte de verdade. Protocolo:
 
 ## Próxima prioridade
 
-DOC-SERVER-006, P0, investigação do principal. Não escolher o principal por heurística nem ampliar autoridade. A lacuna observada na 001 (`export_zip` de pessoa `VIEWER` no painel sucede) só vira implementação com tarefa e política próprias.
+DOC-SERVER-006, P0, investigação do principal. Não escolher o principal por heurística nem ampliar autoridade. A recusa de zip para VIEWER já foi decidida e implementada na 001; não reabrir esse ponto.
 
 ## Cuidados
 

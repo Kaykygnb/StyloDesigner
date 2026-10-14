@@ -1,6 +1,6 @@
 // DOC-STUDIO-001: o painel (createStudioCaller) e o MCP (createToolCaller) executam o mesmo roteiro
 // em projetos equivalentes. A comparação é pela forma observável — contagens, nomes, props, paths/bytes,
-// undo efetivo e log por ator — porque os ids nascem em cada execução. Sem Chromium e sem mudança de runtime.
+// undo efetivo e log por ator — porque os ids nascem em cada execução. Sem Chromium.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createDb } from '@stylo/db/client.ts';
@@ -33,15 +33,15 @@ async function setup({ now = Date.now } = {}) {
   workspace = createWorkspace({ projects, notes: createNotes(db), sharing: createSharing(db), operations, presence: () => presence.snapshot(), onOperation: (op) => { void operations.record(op); } });
   const studio = createStudioCaller({ workspace, presence, events });
   const mcp = createToolCaller({ workspace, presence, events });
-  const agentOf = async (name, scopes) => {
-    const row = await db.agent.create({ data: { name, ownerId: agentOwner.id, tokenHash: `h-${name}-${Math.random()}`, scopes, status: 'ACTIVE' } });
+  const agentOf = async (name, scopes, user = agentOwner) => {
+    const row = await db.agent.create({ data: { name, ownerId: user.id, tokenHash: `h-${name}-${Math.random()}`, scopes, status: 'ACTIVE' } });
     return {
       id: `mcp-${row.id}`, name, activeCalls: 0, closing: false, lastSeen: Date.now(),
-      agent: { id: row.id, name, type: 'mcp', ownerId: agentOwner.id, scopes: row.scopes },
+      agent: { id: row.id, name, type: 'mcp', ownerId: user.id, scopes: row.scopes },
     };
   };
   const closeAll = async () => { await operations.idle(); await close(); };
-  return { studioOwner, agentOwner, viewer, workspace, operations, presence, studio, mcp, agentOf, close: closeAll };
+  return { db, studioOwner, agentOwner, viewer, workspace, operations, presence, studio, mcp, agentOf, close: closeAll };
 }
 
 const person = (user) => ({ id: user.id, email: user.email, name: user.name, color: null });
@@ -225,7 +225,9 @@ test('paridade: escopo só de leitura e papel VIEWER recusam mutação e preserv
   assert.equal(studioSite.error, undefined, studioSite.error);
   assert.equal(agentSite.error, undefined, agentSite.error);
   assert.deepEqual(siteShape(studioSite), siteShape(agentSite), 'metadados de leitura iguais nos dois projetos equivalentes');
-  // O painel (ator USER, sem scopes) não aplica o gate de export do agente. VIEWER hoje passa em export_zip; isso não entra na matriz para não congelar a lacuna.
+  const studioZip = await env.studio.call(viewer, { sid: 'aba-leitor', tool: 'export_zip' });
+  assert.match(studioZip.error, /só pode ler ou comentar/, 'VIEWER no painel');
+  assert.equal(studioZip.site_zip_url, undefined);
   assert.match((await env.mcp.call(reader, 'export_zip', {})).error, /permissão de exportar/);
 
   assert.deepEqual(observableDoc(env.workspace.snapshot(studioSid).doc), beforeStudio);
@@ -233,4 +235,25 @@ test('paridade: escopo só de leitura e papel VIEWER recusam mutação e preserv
   await env.operations.idle();
   assert.equal((await env.studio.call(viewer, { sid: 'aba-leitor', tool: 'get_activity' })).activity.length, studioAudit);
   assert.equal((await env.mcp.call(reader, 'get_activity', {})).activity.length, agentAudit);
+  const viewerAgent = await env.agentOf('Agente do leitor', ['read', 'write', 'export'], env.viewer);
+  const openedViewerAgent = await env.mcp.call(viewerAgent, 'open_project', { file: created.file });
+  assert.equal(openedViewerAgent.role, 'VIEWER');
+  const viewerAgentZip = await env.mcp.call(viewerAgent, 'export_zip', {});
+  assert.match(viewerAgentZip.error, /só pode ler ou comentar/, 'agente do VIEWER com scope export');
+  assert.equal(viewerAgentZip.site_zip_url, undefined);
+
+  const ownerZip = await env.studio.call(user, { sid: 'aba-dono', tool: 'export_zip' });
+  assert.equal(ownerZip.error, undefined, ownerZip.error);
+  assert.match(ownerZip.site_zip_url, /\/site\.zip$/);
+  const fullZip = await env.mcp.call(full, 'export_zip', {});
+  assert.equal(fullZip.error, undefined, fullZip.error);
+  assert.match(fullZip.site_zip_url, /\/site\.zip$/);
+  const commenter = await env.db.user.create({ data: { email: 'comenta-paridade@parity.test', name: 'Comenta Paridade', passwordHash: '!', role: 'MEMBER' } });
+  const sharedComment = await env.studio.call(user, { sid: 'aba-dono', tool: 'share_project', args: { email: commenter.email, role: 'commenter' } });
+  assert.equal(sharedComment.error, undefined, sharedComment.error);
+  const openedComment = await env.studio.call(person(commenter), { sid: 'aba-comenta', tool: 'open_project', args: { file: created.file } });
+  assert.equal(openedComment.role, 'COMMENTER');
+  const commentZip = await env.studio.call(person(commenter), { sid: 'aba-comenta', tool: 'export_zip' });
+  assert.equal(commentZip.error, undefined, commentZip.error);
+  assert.match(commentZip.site_zip_url, /\/site\.zip$/);
 });

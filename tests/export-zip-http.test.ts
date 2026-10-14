@@ -104,4 +104,24 @@ test('rotas ZIP entregam HTML/React íntegros e isolam projetos por conta', { ti
     assert.equal((await fetch(base + `/api/projects/inexistente.json/${kind}.zip`, { headers: { Authorization: `Bearer ${owner}` } })).status, 404);
     const traversal = await fetch(base + `/api/projects/${encodeURIComponent('../entrega.json')}/${kind}.zip`, { headers: { Authorization: `Bearer ${owner}` } }); assert.ok([400, 404].includes(traversal.status));
   }
+  const call = async (token: string, sid: string, tool: string, args: Record<string, unknown> = {}) => (await json('/api/studio/call', { sid, tool, args }, token)).json();
+  const opened = await call(owner, 'aba-zip-dono', 'open_project', { file: 'entrega.json' });
+  assert.equal(opened.error, undefined, opened.error);
+  const shared = await call(owner, 'aba-zip-dono', 'share_project', { email: 'other@zip.test', role: 'viewer' });
+  assert.equal(shared.error, undefined, shared.error);
+  const viewerOpen = await call(other, 'aba-zip-leitor', 'open_project', { file: 'entrega.json' });
+  assert.equal(viewerOpen.role, 'VIEWER');
+  const viewerZip = await call(other, 'aba-zip-leitor', 'export_zip');
+  assert.match(viewerZip.error, /só pode ler ou comentar/);
+  assert.equal(viewerZip.site_zip_url, undefined);
+  for (const kind of ['site', 'react']) {
+    const denied = await fetch(base + `/api/projects/entrega.json/${kind}.zip`, { headers: { Authorization: `Bearer ${other}` } });
+    assert.equal(denied.status, 403);
+    assert.match((await denied.json()).error, /só pode ler ou comentar/);
+  }
+  const asEditor = await call(owner, 'aba-zip-dono', 'share_project', { email: 'other@zip.test', role: 'editor' });
+  assert.equal(asEditor.member.role, 'EDITOR');
+  const allowed = await fetch(base + '/api/projects/entrega.json/site.zip', { headers: { Authorization: `Bearer ${other}` } });
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.headers.get('content-type'), 'application/zip');
 });

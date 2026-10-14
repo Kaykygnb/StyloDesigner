@@ -111,6 +111,7 @@ export function ExportPanel() {
   const [publishWarnings, setPublishWarnings] = useState<string[]>([]);
   const [publishLabel, setPublishLabel] = useState('');
   const language = useApp((s) => s.language);
+  const role = useApp((s) => s.role);
   useEffect(() => { void projectPublishing(file).then(setPublishes).catch(() => setPublishes([])); }, [file]);
   const publish = async (format: 'html' | 'react') => {
     setBusy(true);
@@ -122,8 +123,20 @@ export function ExportPanel() {
     try { setTokens((await tool<{ files: { path: string; content: string }[] }>('export_tokens', { format })).files); }
     catch (e) { toast('error', e instanceof Error ? e.message : String(e)); setTokens(null); } finally { setBusy(false); }
   };
+  const downloadZip = async (kind: 'site' | 'react') => {
+    setBusy(true);
+    try {
+      await tool('export_zip');
+      const a = document.createElement('a');
+      a.href = kind === 'site' ? siteZipUrl(file) : reactZipUrl(file);
+      a.download = '';
+      a.click();
+    } catch (e) { toast('error', e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
+  };
   const downloadProject = () => {
     if (!doc) return;
+    if (role === 'VIEWER') { toast('error', 'Você só pode ler ou comentar este projeto.'); return; }
     const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = file || 'projeto.json'; a.click(); URL.revokeObjectURL(url);
   };
@@ -138,8 +151,8 @@ export function ExportPanel() {
       <p className="muted small">{t(language, 'export.hint')}</p>
       <label className="field-label">{t(language, 'export.label')}<input className="field" value={publishLabel} onChange={(e) => setPublishLabel(e.target.value)} placeholder={t(language, 'export.placeholder')} maxLength={120} /></label>
       <div className="row"><button className="btn primary" disabled={busy} onClick={() => void publish('html')}>{t(language, 'export.html')}</button><button className="btn" disabled={busy} onClick={() => void publish('react')}>{t(language, 'export.react')}</button></div>
-      <a className="btn primary block" href={siteZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.siteZip')}</a>
-      <a className="btn block" href={reactZipUrl(file)} download><Icon name="download" size={15} /> {t(language, 'export.reactZip')}</a>
+      <button className="btn primary block" disabled={busy} onClick={() => void downloadZip('site')}><Icon name="download" size={15} /> {t(language, 'export.siteZip')}</button>
+      <button className="btn block" disabled={busy} onClick={() => void downloadZip('react')}><Icon name="download" size={15} /> {t(language, 'export.reactZip')}</button>
       <button className="btn block" onClick={downloadProject}><Icon name="download" size={15} /> {t(language, 'export.document')}</button>
       <button className="btn block" onClick={importProjectFile}><Icon name="upload" size={15} /> {t(language, 'export.import')}</button>
       <h4>{t(language, 'export.recent')}</h4>

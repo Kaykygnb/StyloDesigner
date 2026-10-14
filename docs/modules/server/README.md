@@ -12,6 +12,8 @@ Configuração de servidor (`PUT /api/config` e `PUT /api/agent/config`) exige p
 
 Workspaces ativos revalidam o papel atual da pessoa por ID do projeto antes de ferramentas que dependem dele; agentes também precisam manter seu grant. O snapshot HTTP do Studio usa o mesmo gate. Downgrade atualiza o papel e recusa escrita, revogação recusa leitura/escrita, e novo compartilhamento pode permitir continuar sem reabrir. A consulta não hidrata documento/assets. A verificação acontece no início da chamada e não cancela operações já em execução (DOC-SERVER-004).
 
+`export_zip` e os GET `site.zip`/`react.zip` recusam o papel de projeto VIEWER com a mesma mensagem das escritas recusadas, antes de gravar ou devolver o pacote. O agente só de leitura continua limitado pelo scope `export`. COMMENTER pode baixar o zip (decisão do proprietário em 2026-10-14).
+
 ## Não deve fazer
 
 Não deve duplicar regras do modelo ou implementar uma segunda versão de ferramentas.

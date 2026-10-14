@@ -3,7 +3,7 @@
 Responsável: [Grok]
 Estado: Concluída
 Início: 2026-10-14 01:15 -03:00
-Última atualização: 2026-10-14 06:39 UTC
+Última atualização: 2026-10-14 07:34 UTC
 Progresso: 5/5 marcos (100%)
 Participantes: [Muse Spark], [Grok]
 
@@ -101,45 +101,55 @@ Participantes: [Muse Spark], [Grok]
 - Resultado: paridade observável provada sem mudar runtime, commit `aabece8`. `export_zip` de VIEWER no painel continua permitido; não foi alterado.
 - Próximo passo: nenhum nesta tarefa. Próxima do backlog: DOC-SERVER-006 (P0, investigação de principal; sem patch estrutural genérico).
 
+### 2026-10-14 07:34 UTC — [Grok] — decisão do proprietário sobre o zip de VIEWER
+
+- Investigado: a pendência registrada na #5. `export_zip` não lia o papel; o ator `USER` não tem scopes, então VIEWER recebia as URLs. Os GET `site.zip` e `react.zip` também entregavam o pacote. Publicação já recusava VIEWER e COMMENTER pelo gate de escrita. `export_site`, `export_html` e `export_tokens` são leitura e não entregam o arquivo do projeto.
+- Alterado: o proprietário decidiu em 2026-10-14 que VIEWER não baixa nem exporta o zip. A recusa usa `Você só pode ler ou comentar este projeto.`, a mesma das escritas, e acontece antes de gravar. O papel vem antes do scope `export`, então o agente de um membro VIEWER também é recusado mesmo com scope de exportação. O agente só de leitura do dono continua em `Este agente não tem permissão de exportar.` COMMENTER não foi incluído e segue podendo baixar. O painel pede `export_zip` antes de abrir o zip e não oferece o JSON local a VIEWER. Sem ADR: o gate reutiliza a mensagem e o papel que já existiam; não cria papel, scope nem contrato novo. A recomendação anterior de abrir outra tarefa foi substituída por este pedido, na mesma entrega e na PR #17.
+- Arquivos: `apps/server/src/workspace/index.ts`, `apps/server/src/routes/projects.ts`, `apps/studio/src/editor/Panels.tsx`, `tests/studio-parity.test.js`, `tests/workspace.test.ts`, `tests/export-zip-http.test.ts`, matriz de exportação, permissões, regressão, READMEs, inventário, esta tarefa e o handoff geral.
+- Testes: foco em `studio-parity`, `workspace` e `export-zip-http`; `npm run typecheck`; `npm run build`; `npm test` 626/626, zero falhas e zero skips; `docs:inventario --check`; validador 28 tarefas.
+- Resultado: VIEWER não recebe URL nem o zip HTTP. Dono, EDITOR e COMMENTER continuam recebendo o pacote quando o restante da autorização permite.
+- Próximo passo: nenhum nesta tarefa. Próxima do backlog: DOC-SERVER-006.
+
 ## Handoff atual
 
 Preparado por: [Grok]
 Destinatário: [Próximo agente]
-Estado: Concluída; sem pendências de implementação
+Estado: Concluída; decisão de zip de VIEWER implementada nesta entrega
 Marco atual: #5 — Validação final
-Última atualização: 2026-10-14 06:39 UTC
-Commit de referência: `aabece8` na branch `cursor/studio-mcp-parity-950d` (base de planejamento `31f16bf` em `v0.1.0-beta`)
+Última atualização: 2026-10-14 07:34 UTC
+Commit de referência: `aabece8` e o commit desta decisão, na branch `cursor/studio-mcp-parity-950d` (base de planejamento `31f16bf` em `v0.1.0-beta`)
 
 ### Estado atual
 
-5/5 (100%), Concluída. A matriz é `tests/studio-parity.test.js`. Nenhum runtime alterado. #1 e #2 continuam de [Muse Spark].
+5/5 (100%), Concluída. A matriz é `tests/studio-parity.test.js`. #1 e #2 continuam de [Muse Spark]. Depois da conclusão, o proprietário decidiu que VIEWER não baixa o zip; isso já está no runtime e nos testes.
 
 ### Decisões tomadas
 
-Seguir o plano da #2: callers reais e PGlite, sem Chromium na matriz nova. HTTP, SDK e UI seguem cobertos pelos testes existentes, executados na suíte. Comparação por forma observável, não por JSON com ids. Recusa de escrita comparada nos dois gates que existem hoje (escopo `read` do agente e papel `VIEWER` da pessoa); as mensagens diferem de propósito.
+Seguir o plano da #2: callers reais e PGlite, sem Chromium na matriz nova. Comparação por forma observável, não por JSON com ids. Recusa de escrita comparada nos dois gates (escopo `read` do agente e papel `VIEWER` da pessoa); as mensagens diferem de propósito.
+
+Decisão do proprietário em 2026-10-14: pessoa VIEWER não exporta nem baixa o zip. `export_zip` e os GET `site.zip`/`react.zip` recusam com `Você só pode ler ou comentar este projeto.` O papel é consultado antes do scope e antes de gravar. COMMENTER continua podendo baixar. `export_site`, `export_html` e `export_tokens` continuam leitura. O canvas ainda carrega o documento para visualizar. Sem ADR nova.
 
 ### Arquivos envolvidos
 
-`tests/studio-parity.test.js`, inventário, `docs/testing/REGRESSION-MATRIX.md`, README de Studio e MCP, esta tarefa, backlog e handoff geral.
+`tests/studio-parity.test.js`, `tests/workspace.test.ts`, `tests/export-zip-http.test.ts`, `apps/server/src/workspace/index.ts`, `apps/server/src/routes/projects.ts`, `apps/studio/src/editor/Panels.tsx`, inventário, matrizes de exportação e regressão, permissões, READMEs, esta tarefa e o handoff geral.
 
 ### Evidências e testes
 
-`npm test` 626/626, zero falhas e zero skips, com Chromium do Playwright. `npm run typecheck` e `npm run build` aprovados. `npm run docs:inventario -- --check` aprovado. Validador: 28 tarefas. Limite: a matriz não abre navegador nem o transporte HTTP/SDK; esses caminhos já têm testes próprios e passaram na mesma suíte.
+`npm test` 626/626, zero falhas e zero skips, com Chromium do Playwright, já com o gate de zip. `npm run typecheck` e `npm run build` aprovados. `npm run docs:inventario -- --check` aprovado. Validador: 28 tarefas. A matriz não abre navegador; o zip HTTP tem teste próprio.
 
 ### Pendências
 
-Nenhuma para concluir esta tarefa. `export_zip` de uma pessoa `VIEWER` pelo caller do painel retorna sucesso (`ok: true` e URL do zip) porque o ator `USER` não carrega scopes e `export_zip` não consulta o papel. Fica como questão para o proprietário; não é correção desta entrega.
+Nenhuma. A questão do zip de VIEWER foi decidida pelo proprietário e implementada. COMMENTER não entrou nessa recusa.
 
 ### Próximas ações recomendadas
 
-1. Revisar a PR. Não há merge pedido.
-2. Se a lacuna de `export_zip` for inaceitável, abrir tarefa própria de autorização com política explícita.
-3. Seguir DOC-SERVER-006 sem inferir patch estrutural.
+1. Revisar a PR #17. Não há merge pedido.
+2. Seguir DOC-SERVER-006 sem inferir patch estrutural.
 
 ### Riscos e cuidados
 
-Não tratar menção no inventário como certificação de cada ferramenta. Não duplicar a revisão visual da DOC-STUDIO-003. Não usar banco externo.
+Não tratar menção no inventário como certificação de cada ferramenta. Não duplicar a revisão visual da DOC-STUDIO-003. Não usar banco externo. Não estender a recusa de zip a COMMENTER sem nova decisão.
 
 ### Condições para conclusão
 
-Atendidas: matriz equivalente, comparação de documento/seleção/atividade/undo e falhas de escrita, suíte e build verdes, sem mudança de runtime.
+Atendidas na matriz original. O gate de zip de VIEWER ficou coberto pelos testes de paridade, workspace e HTTP.
