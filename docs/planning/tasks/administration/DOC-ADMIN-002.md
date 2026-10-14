@@ -3,7 +3,7 @@
 Responsável: [Não atribuído]
 Estado: Proposta
 Início: —
-Última atualização: 2026-10-14 02:39 UTC
+Última atualização: 2026-10-14 08:50 UTC
 Progresso: 0/5 marcos (0%)
 Participantes: —
 
@@ -11,7 +11,7 @@ Participantes: —
 
 - Problema: ADM-RISK-07: Operation/AuthEvent atuais não formam trilha de mudanças de privilégios, política, chaves, reset e restore.
 - Evidências observadas: docs/architecture/instance-administration/CURRENT-STATE.md; referências de código/testes e níveis de evidência preservados.
-- Atualização 2026-10-14: ADM-DEC-09 está aprovada na ADR 0002. O prazo não é mais decisão humana: auditoria 365 dias, diagnóstico 30, evento gravado 7, configurável pelo OWNER principal. Esta tarefa continua Proposta e não implementa isso.
+- Atualização 2026-10-14: ADM-DEC-09 está aprovada na ADR 0002. O prazo não é mais decisão humana: auditoria 365 dias, diagnóstico 30, evento gravado 7. ADM-DEC-02 classifica a mudança desse prazo como configuração sensível do OWNER principal. ADMIN não altera. Esta tarefa continua Proposta e não implementa isso. O evento de quem muda o prazo entra no inventário.
 
 ## Objetivo
 
@@ -97,6 +97,15 @@ Entregar o escopo com evidências e gates proporcionais; aprovação de mudança
 - Problemas encontrados:
 
 ## Histórico de trabalho
+
+### 2026-10-14 08:50 UTC — [Grok 4.7] — ADM-DEC-02 aprovada
+
+- Investigado: a seção 4 das diretrizes, agora aprovada. O prazo de retenção é política crítica, não configuração operacional.
+- Alterado: a nota do problema. Tarefa continua Proposta.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: mudar o prazo fica no inventário como ação do OWNER principal. ADMIN não altera.
+- Próximo passo: assumir só quando for implementar a trilha.
 
 ### 2026-10-14 08:45 UTC — [Grok 4.7] — nota de decisão
 

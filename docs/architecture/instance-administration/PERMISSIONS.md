@@ -52,16 +52,18 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 | Criar projeto | write conforme ferramenta, ownership do dono, auto-grant no projeto novo | Não dá grant livre em projeto alheio |
 | Administrar seus tokens/scopes/globais | Não exposto como autoridade de agente | Rotas administrativas exigem identidade humana; isolamento SID/bearer requer validação específica |
 
-## Política-alvo — PROPOSTA, não aplicada
+## Política-alvo — decisões aprovadas ainda não aplicadas no código
 
 | Ação sensível | Recomendação inicial | Contexto/decisão humana |
 |---|---|---|
 | Configuração operacional comum | OWNER/ADMIN conforme aprovação beta; capacidades futuras só refinam após aceite | Não restringir os PUT beta unilateralmente |
-| Política de segurança e credencial crítica | OWNER por padrão; delegação ADMIN explicitamente concedida e auditada | ADM-DEC-02 |
+| Política de segurança e credencial mestra | Reservadas ao OWNER. ADMIN não recebe delegação genérica | ADM-DEC-02 aprovada; ainda não aplicada |
 | Excluir/suspender/rebaixar OWNER principal | **Requisito humano:** negar ADMIN, usuários comuns e outros OWNERs; não deixar instância sem principal válido | HD-OWNERSHIP-02; principal inexiste hoje, implementação precisa projeto/migração |
 | Conceder papel OWNER | **Requisito humano:** somente principal, mantendo vários OWNERs | HD-OWNERSHIP-03; hoje qualquer OWNER concede |
 | Transferir principal / recuperar / reset sensível | Caminho seguro exigido; procedimento, reautenticação/prova e acesso excepcional são propostas abertas | HD-OWNERSHIP-05; não autoriza reset de principal por admin como recuperação |
-| Administrar pessoas/sessões comuns | ADMIN delegado; limitar alvo e impedir autoelevação/poder sobre OWNER | ADM-DEC-02/03 |
+| Administrar pessoas, equipes, agentes e configuração operacional | ADMIN no escopo delegado. Não trata conta OWNER como conta comum | ADM-DEC-02 aprovada; ADM-DEC-03 |
+| Credencial de integração comum | ADMIN autorizado cadastra ou substitui e não vê o valor depois | ADM-DEC-02 aprovada; ainda não aplicada |
+| Prazo de retenção da auditoria | Configuração sensível do OWNER principal. ADMIN não altera | ADM-DEC-02 e ADM-DEC-09 |
 | Abrir projeto privado por ser admin | Não permitido por padrão; exceção de emergência só se aprovada/auditada | ADM-DEC-07 |
 | Delegar compartilhamento por agente | Capacidade explícita project.share, concedida por humano autorizado; teto por projeto/role | ADM-DEC-04; migração compatível de write atual |
 | Alterar próprio grant/scope/autoridade | Agente não aumenta seu teto nem se autoaprova | Decisão de capacidades, nunca confiar em parâmetros fornecidos pelo agente |
@@ -75,10 +77,10 @@ RBAC identifica conjuntos iniciais de autoridade; capacidades e contexto restrin
 - HD-IDENTITY-01/02: humanos sempre com conta/senha no alvo, inclusive individual. Tabela atual registra bypass legado para migração, não sua aprovação permanente.
 - HD-ADMIN-01/02/03/04: gestão delegada/scoped e compartilhar por humanos/agentes essenciais, sem autoridade global desnecessária e sem setores obrigatórios. Separação concreta write/share/admin ainda a validar; não remover sharing dos agentes unilateralmente.
 - HD-OWNERSHIP-04: contato/e-mail institucional não confere identidade nem permissão por si só.
-- HD-RECOVERY-01/02/03: GUI de e-mail opcional exigida; quem configura credenciais segue em aberto (ADM-DEC-02).
+- HD-RECOVERY-01/02/03: GUI de e-mail opcional exigida. Credencial de integração comum (envio) pode ser cadastrada ou substituída por ADMIN autorizado, sem ver o segredo depois. Recuperação privilegiada e credencial mestra ficam com o OWNER (ADM-DEC-02).
 - HD-RECOVERY-05 foi superada no ponto dos códigos: em 2026-10-14 o proprietário escolheu códigos offline de uso único. O procedimento de emergência ainda não foi desenhado. Ver ADR 0002.
 
-ADM-DEC-00 beta continua válida; o registro de 2026-10-14 não amplia ADMIN global. ADM-DEC-02 continua pendente.
+ADM-DEC-00 beta continua válida: OWNER e ADMIN mudam a configuração operacional global. ADM-DEC-02 está aprovada e não amplia ADMIN sobre política crítica, propriedade, recuperação privilegiada ou credencial mestra. Ainda não está no código.
 
 ## Decisões de 2026-10-14 — ainda não aplicadas
 
@@ -88,5 +90,6 @@ Fonte: ADR 0002, seção da rodada. A tabela “comportamento atual” acima nã
 - OWNER secundário não substitui, suspende, remove nem rebaixa o principal. ADMIN não lê projeto privado por ser ADMIN.
 - Em instalação empresarial, OWNER da organização acessa projeto privado do espaço organizacional. O código atual não faz isso. ADM-DEC-07 (exceção de ADMIN) segue pendente.
 - Suspensão de usuário corta sessões e agentes vinculados e não devolve o token do agente na reativação (ADM-DEC-05).
-- Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal.
+- Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal. É configuração sensível (ADM-DEC-02). ADMIN não altera.
+- ADM-DEC-02 está aprovada: ADMIN administra usuários comuns, equipes, agentes e configuração operacional no escopo delegado. Pode cadastrar ou substituir credencial de integração comum sem ver o segredo depois. Política crítica, propriedade, recuperação privilegiada e credencial mestra ficam com o OWNER. Ainda não aplicada. Tarefa DOC-SERVER-013.
 - EDITOR e COMMENTER não são papéis da instalação. São permissões de projeto (EDITOR, COMMENTER, VIEWER). A migração que preserva o acesso atual está na ADR 0002, seção 2.4, tarefa DOC-SERVER-012. Ainda não aplicada.

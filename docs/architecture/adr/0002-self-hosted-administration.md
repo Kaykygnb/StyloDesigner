@@ -2,7 +2,7 @@
 
 ## Status
 
-**Decisões humanas parcialmente estabelecidas; projeto técnico ainda aberto**, atualizado em 2026-10-14, referência de código `31f16bf`. Requisitos HD e as aprovações da seção “Rodada de 2026-10-14” foram aceitos pelo proprietário; mecanismos, contratos e execução integral não estão automaticamente autorizados. ADM-DEC-00 continua aprovação beta dos dois PUT. ADM-DEC-02 continua pendente. Mantém [ADR 0001](0001-modular-monolith.md); não a substitui.
+**Decisões humanas parcialmente estabelecidas; projeto técnico ainda aberto**, atualizado em 2026-10-14, referência de código `31f16bf`. Requisitos HD e as aprovações da seção “Rodada de 2026-10-14” foram aceitos pelo proprietário; mecanismos, contratos e execução integral não estão automaticamente autorizados. ADM-DEC-00 continua aprovação beta dos dois PUT. ADM-DEC-02 está aprovada e ainda não está no código. Mantém [ADR 0001](0001-modular-monolith.md); não a substitui.
 
 ## Contexto e evidências
 
@@ -69,7 +69,7 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 | ID | Deliberação | Recomendação inicial / implicação |
 |---|---|---|
 | ADM-DEC-01 | Aprovada em 2026-10-14 | Uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito |
-| ADM-DEC-02 | Pendente. Reafirmada pendente em 2026-10-14. Não registrar como aprovada | Operação comum delegada; segurança/credenciais críticas/privilégios OWNER ou capacidade explícita auditada. Identificar tipos de segredo, não bloquear toda integração indistintamente |
+| ADM-DEC-02 | Aprovada em 2026-10-14. Texto na seção 4 da rodada | ADMIN no escopo delegado. Política crítica, propriedade, recuperação privilegiada e credencial mestra ficam com o OWNER. Integração comum: cadastrar ou substituir, sem ver o segredo depois |
 | ADM-DEC-03 | Aprovada em 2026-10-14. Texto na seção seguinte | O principal administra OWNERs secundários. Não amplia, por inferência, a proteção do principal a toda a matriz |
 | ADM-DEC-04 | Essencialidade/delegação aprovada como diretriz HD-ADMIN-03, contrato aberto | project.share separado de write é recomendação, não scope humano escolhido; não retirar compartilhamento dos agentes nem exigir ADMIN global sem prova/validação |
 | ADM-DEC-05 | Aprovada em 2026-10-14. Texto na seção seguinte | O código desta fotografia não cumpre a decisão: DOC-SERVER-007 viu agente válido após o dono suspenso. Não foi reexecutado aqui |
@@ -78,7 +78,7 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 | ADM-DEC-08 | Backup, chave e poderes de restore | Conjunto DB/blobs/config/chave, proteção/retenção e prova de restore; quem pode restaurar/rotacionar chave mestre precisa de autoridade específica |
 | ADM-DEC-09 | Aprovada em 2026-10-14. Texto e prazo técnico na seção seguinte | O proprietário aceitou a recomendação inicial e delegou o prazo. O prazo não é decisão humana pendente |
 
-Continuam abertas: o que ADMIN pode fazer de sensível (ADM-DEC-02); contrato de `project.share` (ADM-DEC-04); acesso excepcional de ADMIN a projeto privado (ADM-DEC-07); backup, chave e restore (ADM-DEC-08); mecanismos de bootstrap (ADM-DEC-06); login federado. Aprovadas e ainda sem implementação integral: administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico, não item pendente. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha pendente.
+Continuam abertas: contrato de `project.share` (ADM-DEC-04); acesso excepcional de ADMIN a projeto privado (ADM-DEC-07); backup, chave e restore (ADM-DEC-08); mecanismos de bootstrap (ADM-DEC-06); login federado. Aprovadas e ainda sem implementação integral: administração delegada (ADM-DEC-02), administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico e, pela ADM-DEC-02, configuração sensível do OWNER. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha que ainda esteja aberta.
 
 ## Rodada de 2026-10-14 — texto do proprietário
 
@@ -145,7 +145,17 @@ Exige: (1) autenticação reforçada do principal atual; (2) indicação explíc
 
 Ao suspender usuário: bloquear sessões; invalidar ou suspender credenciais e sessões dos agentes vinculados; negar novas operações desses agentes; interromper operações em andamento quando possível; revalidar autorização em operações longas e antes de alterações relevantes; preservar histórico, tarefas, documentos e auditoria; admin autorizado pode transferir responsabilidade sobre tarefas e recursos; reativar o usuário não reativa automaticamente credenciais de agentes suspensos. Identidade histórica dos agentes não é apagada. Revogação efetiva em conexões persistentes, chamadas MCP, sessões web e canais de eventos.
 
-“Admin autorizado” não define o poder do ADMIN. Isso continua ADM-DEC-02, pendente.
+“Admin autorizado”, nesta suspensão, é o ADMIN dentro do escopo que a seção 4 aprova: usuários comuns, equipes e agentes delegados. Não alcança conta OWNER, propriedade da instalação, recuperação privilegiada nem credencial mestra.
+
+### 4. ADM-DEC-02 — Administração delegada
+
+Aprovada pelo proprietário em 2026-10-14. O texto é o da seção 4 das diretrizes, que deixou de ser proposta:
+
+ADMINs administram usuários comuns, equipes, agentes e configurações operacionais no escopo delegado. Políticas críticas de segurança, propriedade da instalação, recuperação privilegiada e credenciais mestras ficam reservadas ao OWNER. ADMINs autorizados podem cadastrar ou substituir credenciais de integrações comuns sem visualizar depois os segredos. Fica preservada a decisão anterior: OWNER e ADMIN modificam configurações globais operacionais na beta, distintas das sensíveis.
+
+O prazo de retenção da ADM-DEC-09 é uma dessas políticas críticas. Continua com o OWNER principal. ADMIN não o altera.
+
+Conflito com `31f16bf`: `adminOf` trata OWNER e ADMIN como o mesmo gate (`apps/server/src/http/identity.ts`). Esse gate cobre usuários, agentes, `PUT /api/config`, `PUT /api/agent/config`, backup e restore. A decisão não está aplicada. Restaurar backup e a chave mestra continuam na ADM-DEC-08, que segue aberta; esta seção não escolhe quem restaura. A implementação é a [DOC-SERVER-013](../../planning/tasks/server/DOC-SERVER-013.md). Nenhum runtime mudou nesta entrega.
 
 ### ADM-DEC-09 — Auditoria, diagnóstico e canal de eventos
 
@@ -165,7 +175,7 @@ O prazo não foi escolhido pelo proprietário. Ele delegou (“um tempo relativa
 
 Justificativa: um ano alcança um uso indevido de conta descoberto tarde, sem guardar para sempre. Trinta dias cobrem um defeito recente; diagnóstico cresce rápido. Sete dias bastam para presença, que não é trilha de segurança. O piso impede zerar a auditoria num clique. O teto limita disco.
 
-Quem altera o número: o OWNER principal. Um ADMIN só altera se tiver capacidade explícita. Criar essa capacidade é ADM-DEC-02 e continua pendente. Até lá, ADMIN não muda prazo. Mudar o prazo gera evento de auditoria. O relógio é UTC. Encurtar passa a valer na limpeza seguinte, nos registros mais velhos que a janela nova. Consulta e exportação usam a mesma audiência autenticada.
+Quem altera o número: o OWNER principal. O prazo é configuração sensível, não configuração operacional da beta. Mudar a janela apaga ou estende a trilha de segurança, então é política crítica. A ADM-DEC-02 reserva essa política ao OWNER. ADMIN não ganha essa capacidade. `keepVersions` do `PUT /api/config` é outra coisa: é a configuração operacional que OWNER e ADMIN já mudam na beta (ADM-DEC-00). Mudar o prazo de auditoria gera evento de auditoria. O relógio é UTC. Encurtar passa a valer na limpeza seguinte, nos registros mais velhos que a janela nova. Consulta e exportação usam a mesma audiência autenticada.
 
 Interpretação de engenharia de “mínimo” público: o processo responde ou não. Sem lista de migrações, contagem de usuários ou projetos, texto de erro, porta, quantidade de editores ou política de agente.
 
@@ -189,3 +199,4 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — detalhe técnico delegado na seção 2.4: EDITOR e COMMENTER saem do papel global e ficam como permissão de projeto. A migração que preserva o acesso está na tarefa DOC-SERVER-012. Sem mudança de runtime. [Grok 4.7].
 - 2026-10-14 — o proprietário delegou a forma do login. Detalhe técnico na seção 2.1: usuário obrigatório e único, e-mail opcional, entrada por um ou por outro, migração gera o usuário sem apagar o e-mail. Tarefa DOC-SERVER-011. Bloqueia a alpha. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-01: uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Não cria tabela de tenant. [Grok 4.7].
+- 2026-10-14 — proprietário aprovou ADM-DEC-02, texto da seção 4. O prazo de retenção fica como configuração sensível do OWNER principal. ADMIN não o altera. Tarefa DOC-SERVER-013. Sem mudança de runtime. [Grok 4.7].

@@ -95,6 +95,15 @@ Deixar decisão aprovada, conflito e plano no lugar certo da documentação, com
 
 ## Histórico de trabalho
 
+### 2026-10-14 08:50 UTC — [Grok 4.7] — nota posterior
+
+- Investigado: aprovação da ADM-DEC-02 depois do fechamento desta tarefa.
+- Alterado: o handoff aponta para a ADR. O critério marcado no fechamento não foi desmarcado: ele descreve o estado daquela hora.
+- Arquivos: este documento. O registro canônico está na ADR 0002.
+- Testes: não executados aqui.
+- Resultado: esta tarefa continua Concluída.
+- Próximo passo: a aplicação da ADM-DEC-02 é a DOC-SERVER-013.
+
 ### 2026-10-14 08:45 UTC — [Grok 4.7] — #1 a #5
 
 - Investigado: diretrizes do proprietário, ADR, código vetorial e superfície HTTP anônima. PRs #17 e #18 abertas.
@@ -115,7 +124,7 @@ Commit de referência: a preencher no push
 
 ### Estado atual
 
-Decisões 2.1–2.7, ADM-DEC-05 e ADM-DEC-09 estão na ADR 0002. ADM-DEC-02 segue pendente. O editor vetorial foi inventariado a partir do código. A alpha proposta é local e está na roadmap e na DOC-ENG-006.
+Decisões 2.1–2.7, ADM-DEC-05 e ADM-DEC-09 estão na ADR 0002. No fechamento desta tarefa, ADM-DEC-02 ainda estava pendente. Ela foi aprovada depois; o texto vigente está na ADR 0002, seção 4. O editor vetorial foi inventariado a partir do código. A alpha proposta é local e está na roadmap e na DOC-ENG-006.
 
 ### Decisões tomadas
 
