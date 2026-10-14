@@ -146,7 +146,7 @@ Merge das PRs #17 e #18 antes da alpha. Conflitos de conta, canal anônimo e pap
 
 1. Não reabrir o texto da ADR ao implementar a PR #18.
 2. Assumir DOC-ENG-006 só com a beta já contendo #17 e #18.
-3. DOC-SERVER-007 pode tratar a identidade do canal: ADM-DEC-09 e ADM-DEC-05 estão aprovadas. ADM-DEC-07 continua pendente. O arquivo da 007 não foi atualizado aqui para não cruzar com quem a assumiu.
+3. DOC-SERVER-007 pode tratar a identidade do canal: ADM-DEC-09 e ADM-DEC-05 estão aprovadas. ADM-DEC-07 foi aprovada depois deste fechamento: ADMIN não acessa projeto privado. O arquivo da 007 não foi atualizado aqui para não cruzar com quem a assumiu.
 
 ### Riscos e cuidados
 

@@ -28,7 +28,7 @@ A conta deixa de ter EDITOR ou COMMENTER global. Quem já tem esse valor vira ME
 - Apagar usuário, projeto ou vínculo para “limpar” o papel.
 - Dar a um EDITOR global antigo acesso a todos os projetos da instalação.
 - Fundir VIEWER da instalação com VIEWER do projeto.
-- Aplicar a ADM-DEC-02. Ela está aprovada e tem tarefa própria (DOC-SERVER-013). Acesso excepcional de ADMIN a projeto privado continua ADM-DEC-07.
+- Aplicar a ADM-DEC-02 (DOC-SERVER-013) ou o acesso de OWNER a projeto privado (DOC-SERVER-014). ADM-DEC-07 está aprovada: ADMIN não tem essa exceção.
 
 ## Critérios de aceitação
 

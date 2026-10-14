@@ -39,7 +39,7 @@ Próximo agente lê inventário, ADR/matriz, backlog e handoff; registra aceite/
 
 A rodada humana foi encerrada por enquanto; não esperar nova resposta para investigação/testes e tarefas independentes autorizadas. Rastreabilidade completa na ADR e no plano de identidade/onboarding/recuperação.
 
-1. DOC-SERVER-006: investigar/provar proteção OWNER e desenho de principal conforme HD-OWNERSHIP-02/03. ADM-DEC-02 está aprovada e ainda não aplicada (DOC-SERVER-013). Backup, chave e restore continuam na ADM-DEC-08.
+1. DOC-SERVER-006: investigar/provar proteção OWNER e desenho de principal conforme HD-OWNERSHIP-02/03. ADM-DEC-02, ADM-DEC-07 e ADM-DEC-08 estão aprovadas e ainda não aplicadas (DOC-SERVER-013 e DOC-SERVER-014).
 2. DOC-DB-001 retomada: prova PGlite real e migração em dados sintéticos; não escolhe estratégia final de produção/chaves. PostgreSQL restore separado da validação de persistência SERVER001.
 3. DOC-SERVER-009: projeto de transição do acesso local, ownership/agents/chaves e rollback; sem remover paths nesta rodada.
 4. DOC-STUDIO-006: planejamento de onboarding progressivo GUI reaproveitando telas, sem departamentos obrigatórios ou nova identidade.

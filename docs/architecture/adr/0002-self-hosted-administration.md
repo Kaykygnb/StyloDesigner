@@ -74,11 +74,11 @@ A implementação atual **ainda não atende** integralmente a esse modelo. OWNER
 | ADM-DEC-04 | Essencialidade/delegação aprovada como diretriz HD-ADMIN-03, contrato aberto | project.share separado de write é recomendação, não scope humano escolhido; não retirar compartilhamento dos agentes nem exigir ADMIN global sem prova/validação |
 | ADM-DEC-05 | Aprovada em 2026-10-14. Texto na seção seguinte | O código desta fotografia não cumpre a decisão: DOC-SERVER-007 viu agente válido após o dono suspenso. Não foi reexecutado aqui |
 | ADM-DEC-06 | Provisionamento autorizado e GUI estabelecidos, mecanismos abertos | Primeira conta humana é principal; impedir apropriação por visitante. Token de instalação, trust proxy e recuperação offline são alternativas técnicas, não decisões humanas adicionais |
-| ADM-DEC-07 | Acesso excepcional a conteúdo privado de projeto | Não conceder acesso universal por ser ADMIN; exceção só com decisão explícita, justificativa e auditoria |
-| ADM-DEC-08 | Backup, chave e poderes de restore | Conjunto DB/blobs/config/chave, proteção/retenção e prova de restore; quem pode restaurar/rotacionar chave mestre precisa de autoridade específica |
+| ADM-DEC-07 | Aprovada em 2026-10-14. Texto na seção 2.3 | ADMIN não tem exceção, nem de emergência auditada. Só os OWNERs acessam projeto privado |
+| ADM-DEC-08 | Aprovada em 2026-10-14. Texto na seção seguinte | Restaurar backup e trocar ou rotacionar a chave mestra ficam com o OWNER, com autenticação reforçada e auditoria |
 | ADM-DEC-09 | Aprovada em 2026-10-14. Texto e prazo técnico na seção seguinte | O proprietário aceitou a recomendação inicial e delegou o prazo. O prazo não é decisão humana pendente |
 
-Continuam abertas: contrato de `project.share` (ADM-DEC-04); acesso excepcional de ADMIN a projeto privado (ADM-DEC-07); backup, chave e restore (ADM-DEC-08); mecanismos de bootstrap (ADM-DEC-06); login federado. Aprovadas e ainda sem implementação integral: administração delegada (ADM-DEC-02), administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico e, pela ADM-DEC-02, configuração sensível do OWNER. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha que ainda esteja aberta.
+Continua aberta como decisão humana: o contrato de `project.share` (ADM-DEC-04). O compartilhamento em si já é diretriz (HD-ADMIN-03); o scope separado de write não foi escolhido. Mecanismos de bootstrap (ADM-DEC-06) são alternativas técnicas, não decisão humana pendente. Login federado ficou para o futuro (HD-RECOVERY-04) e não é prioridade imediata. Aprovadas e ainda sem implementação integral: administração delegada (ADM-DEC-02), administração de OWNERs secundários, requisitos de transferência, códigos offline, suspensão (ADM-DEC-05), acesso de OWNER a projeto privado sem exceção de ADMIN (ADM-DEC-07), restore e chave mestra (ADM-DEC-08) e audiência da auditoria (ADM-DEC-09). O prazo de retenção dessa última é detalhe técnico e, pela ADM-DEC-02, configuração sensível do OWNER. Não interpretar silêncio ou aprovação DOC-SERVER-005 como aprovação de qualquer linha que ainda esteja aberta.
 
 ## Rodada de 2026-10-14 — texto do proprietário
 
@@ -109,7 +109,9 @@ ADM-DEC-01, aprovada em seguida, fixa uma organização por instalação na beta
 
 Em instalação empresarial, projetos no espaço organizacional pertencem à organização; criador não é necessariamente o proprietário. Projeto privado restringe outros membros e administradores delegados, mas não impede acesso dos OWNERs da organização. O produto deve comunicar claramente essa política. Projetos pessoais independentes: estudo futuro, não requisito da beta.
 
-Conflito: hoje o conteúdo privado não abre por ser OWNER ou ADMIN da instalação (matriz de permissões). A decisão não está implementada. ADM-DEC-07 (exceção de ADMIN) continua pendente: 2.3 não dá acesso implícito a ADMIN. “Espaço organizacional” não aprova várias organizações na mesma instalação.
+ADM-DEC-07, aprovada em 2026-10-14: ADMIN não tem nenhuma exceção de acesso a projeto privado, nem em emergência auditada. Esse acesso fica só com os OWNERs, conforme a regra organizacional desta seção.
+
+Conflito com `31f16bf`: hoje o conteúdo privado não abre por ser OWNER nem por ser ADMIN da instalação (matriz de permissões). A regra aprovada abre para os OWNERs e continua fechada para ADMIN, sem exceção. Não está implementada. Tarefa [DOC-SERVER-014](../../planning/tasks/server/DOC-SERVER-014.md). “Espaço organizacional” não aprova várias organizações na mesma instalação. Projetos pessoais independentes continuam estudo futuro, fora da beta.
 
 ### 2.4 Hierarquia de autoridade
 
@@ -155,7 +157,17 @@ ADMINs administram usuários comuns, equipes, agentes e configurações operacio
 
 O prazo de retenção da ADM-DEC-09 é uma dessas políticas críticas. Continua com o OWNER principal. ADMIN não o altera.
 
-Conflito com `31f16bf`: `adminOf` trata OWNER e ADMIN como o mesmo gate (`apps/server/src/http/identity.ts`). Esse gate cobre usuários, agentes, `PUT /api/config`, `PUT /api/agent/config`, backup e restore. A decisão não está aplicada. Restaurar backup e a chave mestra continuam na ADM-DEC-08, que segue aberta; esta seção não escolhe quem restaura. A implementação é a [DOC-SERVER-013](../../planning/tasks/server/DOC-SERVER-013.md). Nenhum runtime mudou nesta entrega.
+Conflito com `31f16bf`: `adminOf` trata OWNER e ADMIN como o mesmo gate (`apps/server/src/http/identity.ts`). Esse gate cobre usuários, agentes, `PUT /api/config`, `PUT /api/agent/config`, backup e restore. A decisão não está aplicada. Quem restaura e quem troca a chave mestra está na ADM-DEC-08, abaixo. A implementação do gate é a [DOC-SERVER-013](../../planning/tasks/server/DOC-SERVER-013.md). Nenhum runtime mudou nesta entrega.
+
+### ADM-DEC-08 — Restaurar backup e chave mestra
+
+Aprovada pelo proprietário em 2026-10-14:
+
+Restaurar backup e trocar ou rotacionar a chave mestra ficam reservados ao OWNER, com autenticação reforçada e auditoria.
+
+ADMIN não restaura e não troca a chave. Criar ou listar backup não foi reclassificado por esta frase. A autenticação reforçada é a mesma exigência já aprovada para operação sensível (seções 2.5 e 2.7). O fator concreto não foi escolhido aqui e não vira decisão humana nova.
+
+Conflito com `31f16bf`: `POST /api/backups/:id/restore` usa `adminOf`, então ADMIN restaura hoje (`apps/server/src/routes/system.ts`). Não há rota de rotação da chave mestra neste registro. Não está implementado. A aplicação entra na DOC-SERVER-013.
 
 ### ADM-DEC-09 — Auditoria, diagnóstico e canal de eventos
 
@@ -200,3 +212,4 @@ Aceitação documental: referências ao código/testes, revisão independente, v
 - 2026-10-14 — o proprietário delegou a forma do login. Detalhe técnico na seção 2.1: usuário obrigatório e único, e-mail opcional, entrada por um ou por outro, migração gera o usuário sem apagar o e-mail. Tarefa DOC-SERVER-011. Bloqueia a alpha. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-01: uma organização por instalação na beta (single-tenant). Multi-tenant não é requisito. Não cria tabela de tenant. [Grok 4.7].
 - 2026-10-14 — proprietário aprovou ADM-DEC-02, texto da seção 4. O prazo de retenção fica como configuração sensível do OWNER principal. ADMIN não o altera. Tarefa DOC-SERVER-013. Sem mudança de runtime. [Grok 4.7].
+- 2026-10-14 — proprietário aprovou ADM-DEC-07 e ADM-DEC-08. ADMIN não acessa projeto privado, nem em emergência. Só os OWNERs acessam, pela regra da seção 2.3. Restaurar backup e trocar ou rotacionar a chave mestra ficam com o OWNER, com autenticação reforçada e auditoria. Tarefas DOC-SERVER-014 e DOC-SERVER-013. Sem mudança de runtime. [Grok 4.7].

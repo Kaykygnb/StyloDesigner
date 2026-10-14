@@ -3,7 +3,7 @@
 Responsável: [Não atribuído]
 Estado: Proposta
 Início: —
-Última atualização: 2026-10-14 08:50 UTC
+Última atualização: 2026-10-14 08:55 UTC
 Progresso: 0/5 marcos (0%)
 Participantes: —
 
@@ -21,13 +21,14 @@ ADMIN administra usuário comum, equipe, agente e configuração operacional no 
 - Separar, nas rotas que hoje usam `adminOf`, o que é operacional do que é sensível.
 - Operacional da beta, OWNER e ADMIN: o que a ADM-DEC-00 já protege, inclusive `keepVersions` em `PUT /api/config`.
 - Sensível, só OWNER: prazo de retenção da auditoria (OWNER principal), propriedade da instalação, recuperação privilegiada e credencial mestra.
+- ADM-DEC-08: restaurar backup e trocar ou rotacionar a chave mestra só com OWNER, com autenticação reforçada e auditoria. ADMIN é recusado. Criar ou listar backup não muda de audiência por esta decisão.
 - Integração comum: escrita ou substituição por ADMIN autorizado; leitura posterior não devolve o valor.
-- Teste: ADMIN entra na rota operacional e é recusado na sensível. OWNER entra nas duas. O segredo gravado não volta na resposta.
+- Teste: ADMIN entra na rota operacional e é recusado na sensível, no restore e na rotação. OWNER entra. O segredo gravado não volta na resposta. A operação sensível gera auditoria.
 
 ## Fora de escopo
 
-- Escolher quem restaura backup ou rotaciona a chave mestra. Isso continua ADM-DEC-08, aberta.
-- Dar a ADMIN acesso a projeto privado. Isso continua ADM-DEC-07.
+- Inventar o fator da autenticação reforçada. A ADR exige o reforço e a auditoria; não escolhe um segundo fator.
+- Abrir projeto privado para OWNER. Isso é a ADM-DEC-07, tarefa DOC-SERVER-014. ADMIN não recebe essa exceção.
 - Redesenhar o reset que devolve senha. A seção 2.5 já proíbe revelar senha existente. O desenho da recuperação é a DOC-SERVER-010.
 - Apagar conta, projeto ou segredo para “limpar” o gate.
 - Mudar a migração de papéis de projeto (DOC-SERVER-012).
@@ -36,6 +37,7 @@ ADMIN administra usuário comum, equipe, agente e configuração operacional no 
 
 - [ ] ADMIN altera a configuração operacional da beta e não altera o prazo de retenção.
 - [ ] ADMIN não executa recuperação privilegiada nem lê credencial mestra.
+- [ ] ADMIN não restaura backup e não troca nem rotaciona a chave mestra. OWNER faz as duas com autenticação reforçada, e a auditoria registra a operação.
 - [ ] ADMIN autorizado grava ou substitui credencial de integração comum. A resposta e uma leitura seguinte não trazem o valor.
 - [ ] ADMIN não administra conta OWNER como conta comum.
 - [ ] OWNER principal continua podendo alterar o prazo. A mudança gera evento de auditoria.
@@ -113,6 +115,15 @@ ADMIN administra usuário comum, equipe, agente e configuração operacional no 
 - Matriz de permissões alinhada ao código.
 
 ## Histórico de trabalho
+
+### 2026-10-14 08:55 UTC — [Grok 4.7] — ADM-DEC-08 aprovada
+
+- Investigado: restore em `system.ts` usa `adminOf`. Não há rota de rotação da chave mestra.
+- Alterado: restore e chave mestra entraram no escopo. Tarefa continua Proposta.
+- Arquivos: este documento.
+- Testes: não executados aqui.
+- Resultado: ADMIN não restaura nem troca a chave. Criar backup não foi reclassificado.
+- Próximo passo: assumir e separar as rotas em banco descartável.
 
 ### 2026-10-14 08:50 UTC — [Grok 4.7] — criação
 

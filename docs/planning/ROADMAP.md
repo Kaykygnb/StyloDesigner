@@ -41,7 +41,7 @@ Não foi aprovada migração para microserviços. A decisão atual é manter mon
 
 ## Retomada por diretrizes humanas HD
 
-Registro canônico 21 HD na ADR 0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias no alvo; principal protegido e múltiplos OWNERs, GUI progressiva e e-mail opcional definidos. ADM-DEC-01 está aprovada: uma organização por instalação na beta. Multi-tenant não é requisito. ADM-DEC-02 está aprovada: ADMIN no escopo delegado; o prazo de retenção é configuração sensível do OWNER principal. Os outros contratos abertos não foram aprovados por inferência. Sem remover legado, migrar produção ou implementar SMTP nesta rodada.
+Registro canônico 21 HD na ADR 0002 e plano IDENTITY-ONBOARDING-RECOVERY. Conta/senha obrigatórias no alvo; principal protegido e múltiplos OWNERs, GUI progressiva e e-mail opcional definidos. ADM-DEC-01 está aprovada: uma organização por instalação na beta. Multi-tenant não é requisito. ADM-DEC-02 está aprovada: ADMIN no escopo delegado; o prazo de retenção é configuração sensível do OWNER principal. ADM-DEC-07 está aprovada: ADMIN não acessa projeto privado. ADM-DEC-08 está aprovada: restore e chave mestra ficam com o OWNER. O contrato de `project.share` (ADM-DEC-04) continua aberto. Os outros contratos abertos não foram aprovados por inferência. Sem remover legado, migrar produção ou implementar SMTP nesta rodada.
 
 ## Horizontes (2026-10-14)
 

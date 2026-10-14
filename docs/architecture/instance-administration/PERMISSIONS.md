@@ -64,11 +64,12 @@ O Projeto.ownerId é a autoridade para compartilhar; ADMIN da instalação pode 
 | Administrar pessoas, equipes, agentes e configuração operacional | ADMIN no escopo delegado. Não trata conta OWNER como conta comum | ADM-DEC-02 aprovada; ADM-DEC-03 |
 | Credencial de integração comum | ADMIN autorizado cadastra ou substitui e não vê o valor depois | ADM-DEC-02 aprovada; ainda não aplicada |
 | Prazo de retenção da auditoria | Configuração sensível do OWNER principal. ADMIN não altera | ADM-DEC-02 e ADM-DEC-09 |
-| Abrir projeto privado por ser admin | Não permitido por padrão; exceção de emergência só se aprovada/auditada | ADM-DEC-07 |
+| Abrir projeto privado por ser admin | Proibido. Não há exceção, nem de emergência auditada. Só os OWNERs, pela regra organizacional | ADM-DEC-07 aprovada; ainda não aplicada |
 | Delegar compartilhamento por agente | Capacidade explícita project.share, concedida por humano autorizado; teto por projeto/role | ADM-DEC-04; migração compatível de write atual |
 | Alterar próprio grant/scope/autoridade | Agente não aumenta seu teto nem se autoaprova | Decisão de capacidades, nunca confiar em parâmetros fornecidos pelo agente |
 | Suspender delegante/rotacionar/revogar token | Suspensão bloqueia agentes por padrão proposto; sessão vinculada e autoridade revalidada | ADM-DEC-05; tratar operações em voo explicitamente |
-| Restaurar backup/expor serviço público | OWNER ou administrador com capacidade explícita, confirmação e trilha; health mínimo público | ADM-DEC-06/08/09 |
+| Restaurar backup e trocar ou rotacionar a chave mestra | Só o OWNER, com autenticação reforçada e auditoria. ADMIN não faz | ADM-DEC-08 aprovada; ainda não aplicada |
+| Expor serviço público | Mecanismos de bootstrap seguem técnicos. Health mínimo público já está na ADM-DEC-09 | ADM-DEC-06/09 |
 
 RBAC identifica conjuntos iniciais de autoridade; capacidades e contexto restringem ator/alvo/recursos. Uma negativa em qualquer camada prevalece. Scopes não são papéis de instância. Decisões técnicas de interface/internas reversíveis podem ser recomendadas; alterações de autoridade aguardam aprovação explícita.
 
@@ -88,7 +89,8 @@ Fonte: ADR 0002, seção da rodada. A tabela “comportamento atual” acima nã
 
 - OWNER principal administra OWNERs secundários. ADMIN não trata conta OWNER como conta comum. Senha existente não é revelada.
 - OWNER secundário não substitui, suspende, remove nem rebaixa o principal. ADMIN não lê projeto privado por ser ADMIN.
-- Em instalação empresarial, OWNER da organização acessa projeto privado do espaço organizacional. O código atual não faz isso. ADM-DEC-07 (exceção de ADMIN) segue pendente.
+- Em instalação empresarial, só os OWNERs acessam projeto privado do espaço organizacional. ADMIN não tem exceção, nem de emergência auditada (ADM-DEC-07). O código atual não abre esse conteúdo nem para OWNER. Tarefa DOC-SERVER-014.
+- Restaurar backup e trocar ou rotacionar a chave mestra ficam com o OWNER, com autenticação reforçada e auditoria (ADM-DEC-08). ADMIN restaura hoje pelo gate `adminOf`. Ainda não aplicada. Entra na DOC-SERVER-013.
 - Suspensão de usuário corta sessões e agentes vinculados e não devolve o token do agente na reativação (ADM-DEC-05).
 - Sem login, só o mínimo. Canal de eventos exige identidade (ADM-DEC-09). Prazos padrão: auditoria 365 dias, diagnóstico 30, evento gravado 7. Quem muda o número é o OWNER principal. É configuração sensível (ADM-DEC-02). ADMIN não altera.
 - ADM-DEC-02 está aprovada: ADMIN administra usuários comuns, equipes, agentes e configuração operacional no escopo delegado. Pode cadastrar ou substituir credencial de integração comum sem ver o segredo depois. Política crítica, propriedade, recuperação privilegiada e credencial mestra ficam com o OWNER. Ainda não aplicada. Tarefa DOC-SERVER-013.
