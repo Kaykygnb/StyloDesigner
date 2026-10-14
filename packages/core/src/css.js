@@ -517,6 +517,9 @@ export function parseCustomCss(text) {
   return out;
 }
 
+/** Ponto de vista do modelo 3D: "giro vertical distância" (ex.: 45deg 75deg auto). Só este formato vai para o HTML. */
+export const MODEL_ORBIT = /^-?\d{1,4}(\.\d+)?deg -?\d{1,4}(\.\d+)?deg (auto|\d{1,3}(\.\d+)?(m|%))$/;
+
 export function transformOf(node) {
   const parts = [];
   // 3D: profundidade e giros em X/Y vêm primeiro; o `perspective` vem do pai (ver depth3dCss)
@@ -1074,7 +1077,12 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       const kind = node.mediaKind || 'video';
       const mediaAttrs = `${node.mediaControls !== false ? ' controls' : ''}${node.mediaAutoplay ? ' autoplay' : ''}${node.mediaLoop ? ' loop' : ''}${node.mediaMuted ? ' muted' : ''}`;
       if (kind === 'audio') return `${noteHtml}${creditHtml}${pad}<audio${attrs}${mediaAttrs} src="${escapeHtml(safeSrc)}"></audio>`;
-      if (kind === 'model3d') return `${noteHtml}${creditHtml}${pad}<model-viewer${attrs} src="${escapeHtml(safeSrc)}"${node.mediaControls !== false ? ' camera-controls' : ''}></model-viewer>`;
+      if (kind === 'model3d') {
+        // câmera e movimento do modelo: giro automático, ponto de vista inicial e giro ligado à rolagem (stylo-model-scroll)
+        const orbit = MODEL_ORBIT.test(node.modelOrbit || '') ? ` camera-orbit="${node.modelOrbit}"` : '';
+        const motion = `${node.modelAutoRotate ? ' auto-rotate' : ''}${node.modelScroll ? ' data-scroll-orbit' : ''}`;
+        return `${noteHtml}${creditHtml}${pad}<model-viewer${attrs} src="${escapeHtml(safeSrc)}"${node.mediaControls !== false ? ' camera-controls' : ''}${orbit}${motion}></model-viewer>`;
+      }
       if (kind === 'lottie') return `${noteHtml}${creditHtml}${pad}<div${attrs} data-lottie-src="${escapeHtml(safeSrc)}"${node.mediaAutoplay ? ' data-autoplay' : ''}${node.mediaLoop ? ' data-loop' : ''}></div>`;
       const poster = typeof node.mediaPoster === 'string' && (node.mediaPoster.startsWith('data:image/') || node.mediaPoster.startsWith('https://') || node.mediaPoster.startsWith('./') || node.mediaPoster.startsWith('assets/')) ? node.mediaPoster : '';
       const fallback = typeof node.mediaFallback === 'string' ? escapeHtml(node.mediaFallback) : '';

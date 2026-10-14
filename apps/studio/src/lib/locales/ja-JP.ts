@@ -387,6 +387,9 @@ const messages: Record<string, string> = {
   'media.muted': 'ミュートで開始',
   'media.poster': 'ポスター（HTTPSのURLまたはアセット）',
   'media.fallback': '動画の代替表示',
+  'media.modelAutoRotate': '自動で回転',
+  'media.modelScroll': 'ページのスクロールに合わせて回転',
+  'media.modelOrbit': '視点（水平 垂直 距離）',
   'media.fallbackPlaceholder': 'お使いのブラウザーは動画に対応していません。',
   // tool
   'tool.comment': 'コメント',

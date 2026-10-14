@@ -19,6 +19,26 @@ document.querySelectorAll('[data-lottie-src]').forEach(function (el) {
 });
 `;
 
+/** Gira os <model-viewer data-scroll-orbit> conforme a rolagem da página (uma volta do topo ao fim). Parado com "menos movimento". */
+export const MODEL_SCROLL = `// Gira os modelos 3D marcados com data-scroll-orbit conforme a página rola.
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var queued = false;
+  function update() {
+    queued = false;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    document.querySelectorAll('model-viewer[data-scroll-orbit]').forEach(function (el) {
+      if (!el.dataset.orbitBase) el.dataset.orbitBase = el.getAttribute('camera-orbit') || '0deg 75deg auto';
+      var base = el.dataset.orbitBase.split(/\\s+/);
+      el.setAttribute('camera-orbit', ((parseFloat(base[0]) || 0) + progress * 360) + 'deg ' + base[1] + ' ' + base[2]);
+    });
+  }
+  window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+  window.addEventListener('load', update);
+})();
+`;
+
 const NEEDS = [
   { marker: '<model-viewer', vendor: 'model-viewer.min.js', label: '3D', tags: ['<script type="module" src="vendor/model-viewer.min.js"></script>'] },
   {
@@ -42,6 +62,12 @@ export function addMediaRuntime(files: SiteFile[], vendor: VendorProvider | null
     const tags = need.tags.join('\n') + '\n';
     out = out.map((f) => (uses(f) && typeof f.content === 'string' && f.content.includes('</head>') ? { ...f, content: f.content.replace('</head>', tags + '</head>') } : f));
     out = [...out, { path: `vendor/${need.vendor}`, content: bytes }, ...(need.extra || [])];
+  }
+  // giro do modelo conforme a rolagem: um script pequeno nosso, só nas páginas que pedem
+  const scrolls = (f: SiteFile) => typeof f.content === 'string' && f.content.includes('data-scroll-orbit') && f.content.includes('</head>');
+  if (out.some(scrolls)) {
+    out = out.map((f) => (scrolls(f) ? { ...f, content: (f.content as string).replace('</head>', '<script defer src="vendor/stylo-model-scroll.js"></script>\n</head>') } : f));
+    out = [...out, { path: 'vendor/stylo-model-scroll.js', content: MODEL_SCROLL }];
   }
   return out;
 }

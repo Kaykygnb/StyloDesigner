@@ -7,6 +7,7 @@
 //   - o App tem uma navegação mínima por # (sem biblioteca de rotas), para os links entre páginas funcionarem.
 // Pura (sem DOM, sem disco): devolve a lista de arquivos, como exportSite.
 import { exportSite, type SiteFile } from './site-export.ts';
+import { MODEL_SCROLL } from './media-runtime.ts';
 import { EXPORT_RESET } from './css.js';
 import { exportTokens } from './tokens.ts';
 import { cssClasses, htmlToJsx } from './html-to-jsx.ts';
@@ -62,7 +63,7 @@ export function exportReact(doc: any): { files: SiteFile[]; warnings: string[] }
   const out: SiteFile[] = [];
   const headLinks = new Set<string>();
   let fontsCss = '';
-  let usesLottie = false, usesModel = false;
+  let usesLottie = false, usesModel = false, usesModelScroll = false;
 
   for (const page of pages) {
     const blocks = [...page.html.matchAll(/<style(?: id="([^"]*)")?>\n?([\s\S]*?)\n?<\/style>/g)];
@@ -75,6 +76,8 @@ export function exportReact(doc: any): { files: SiteFile[]; warnings: string[] }
     const lottie = body.includes('data-lottie-src');
     const model = body.includes('<model-viewer');
     usesLottie ||= lottie; usesModel ||= model;
+    const modelScroll = body.includes('data-scroll-orbit');
+    usesModelScroll ||= modelScroll;
 
     let jsx: string;
     let modular = true;
@@ -89,6 +92,7 @@ export function exportReact(doc: any): { files: SiteFile[]; warnings: string[] }
       lottie ? "import { useEffect, useRef } from 'react';" : null,
       lottie ? "import lottie from 'lottie-web';" : null,
       model ? "import '@google/model-viewer';" : null,
+      modelScroll ? "import '../stylo-model-scroll.js';" : null,
       modular ? `import styles from './${page.name}.module.css';` : `import './${page.name}.css';`,
     ].filter(Boolean);
     out.push({
@@ -97,6 +101,8 @@ export function exportReact(doc: any): { files: SiteFile[]; warnings: string[] }
     });
     out.push({ path: modular ? `src/pages/${page.name}.module.css` : `src/pages/${page.name}.css`, content: css + '\n' });
   }
+
+  if (usesModelScroll) out.push({ path: 'src/stylo-model-scroll.js', content: MODEL_SCROLL });
 
   // estilos globais
   const tokens = exportTokens(doc, 'css')[0]?.content ?? '';

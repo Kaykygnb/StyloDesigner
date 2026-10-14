@@ -79,3 +79,31 @@ test('3D: a exportação de site (HTML) e a de React levam perspectiva, giros e 
   assert.match(css, /@keyframes parallax-card/);
   assert.match(css, /translate: 0 80px/, 'parallax negativo (mais rápido) começa para baixo');
 });
+
+test('3D: modelo com giro automático, ponto de vista e giro pela rolagem (sem CDN, só script nosso)', async () => {
+  const { exportHtml } = await import('@stylo/core/css.js');
+  const { exportSite } = await import('@stylo/core/site-export.ts');
+  const { exportReact } = await import('@stylo/core/export-react.ts');
+  const { makeDoc } = await import('@stylo/core/model.ts');
+  const m: any = createNode('media', { mediaKind: 'model3d', mediaAssetId: 'm1' });
+  applyProps(m, { modelAutoRotate: true, modelScroll: true, modelOrbit: '30deg 70deg 3m' });
+  const assets = { m1: 'data:model/gltf-binary;base64,AAAA' };
+  assert.match(exportHtml(m, assets), /<model-viewer[^>]* camera-orbit="30deg 70deg 3m" auto-rotate data-scroll-orbit/);
+  assert.throws(() => applyProps(m, { modelOrbit: '"><script>' }), /modelOrbit usa/);
+  assert.throws(() => applyProps(createNode('rect'), { modelScroll: true }), /model3d/);
+
+  const board: any = createNode('frame', { name: 'Página' });
+  board.children.push(m);
+  const { files } = exportSite({ pages: [{ name: 'P', children: [board] }], assets: { m1: assets.m1 }, styles: {} }, { vendor: (n) => new Uint8Array([n.length]) });
+  assert.match(String(files.find((f) => f.path === 'index.html')!.content), /vendor\/stylo-model-scroll\.js/);
+  const script = String(files.find((f) => f.path === 'vendor/stylo-model-scroll.js')!.content);
+  assert.match(script, /prefers-reduced-motion/);
+  assert.match(script, /split\(\/\\s\+\/\)/, 'a regex do script sai com a barra (já quebrou uma vez ao escapar o texto)');
+
+  const doc: any = makeDoc();
+  doc.assets = assets;
+  doc.pages[0].children.push(board);
+  const react = exportReact(doc).files;
+  assert.ok(react.some((f) => f.path === 'src/stylo-model-scroll.js'));
+  assert.match(String(react.find((f) => f.path.endsWith('.jsx') && f.path.includes('pages/'))!.content), /import '\.\.\/stylo-model-scroll\.js'/);
+});

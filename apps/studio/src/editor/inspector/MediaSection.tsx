@@ -19,6 +19,11 @@ export function MediaSection({ c }: { c: Ctx }) {
       <Sel label={t(language, 'media.type')} value={n.mediaKind || 'video'} options={kinds(language)} disabled={c.readOnly} onChange={(value) => set({ mediaKind: value })} />
       <Hint>{t(language, 'media.hint')}</Hint>
       <Check label={t(language, 'media.controls')} checked={n.mediaControls !== false} disabled={c.readOnly} onChange={(value) => set({ mediaControls: value })} />
+      {n.mediaKind === 'model3d' && <>
+        <Check label={t(language, 'media.modelAutoRotate')} checked={!!n.modelAutoRotate} disabled={c.readOnly} onChange={(value) => set({ modelAutoRotate: value || null })} />
+        <Check label={t(language, 'media.modelScroll')} checked={!!n.modelScroll} disabled={c.readOnly} onChange={(value) => set({ modelScroll: value || null })} />
+        <label className="small">{t(language, 'media.modelOrbit')}<input className="field" value={n.modelOrbit || ''} disabled={c.readOnly} placeholder="45deg 75deg auto" onChange={(e) => set({ modelOrbit: e.target.value.trim() || null })} /></label>
+      </>}
       {(n.mediaKind === 'video' || n.mediaKind === 'audio') && <>
         <Check label={t(language, 'media.autoplay')} checked={!!n.mediaAutoplay} disabled={c.readOnly} onChange={(value) => set({ mediaAutoplay: value })} />
         <Check label={t(language, 'media.loop')} checked={!!n.mediaLoop} disabled={c.readOnly} onChange={(value) => set({ mediaLoop: value })} />

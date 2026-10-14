@@ -387,6 +387,9 @@ const messages: Record<string, string> = {
   'media.muted': '음소거로 시작',
   'media.poster': '포스터 (HTTPS URL 또는 에셋)',
   'media.fallback': '동영상 대체 콘텐츠',
+  'media.modelAutoRotate': '자동 회전',
+  'media.modelScroll': '페이지 스크롤에 맞춰 회전',
+  'media.modelOrbit': '시점(가로 세로 거리)',
   'media.fallbackPlaceholder': '이 브라우저는 동영상을 지원하지 않습니다.',
   // tool
   'tool.comment': '댓글',

@@ -387,6 +387,9 @@ const messages: Record<string, string> = {
   'media.muted': '静音开始',
   'media.poster': '海报（HTTPS 网址或素材）',
   'media.fallback': '视频后备内容',
+  'media.modelAutoRotate': '自动旋转',
+  'media.modelScroll': '随页面滚动旋转',
+  'media.modelOrbit': '视角（水平 垂直 距离）',
   'media.fallbackPlaceholder': '您的浏览器不支持视频。',
   // tool
   'tool.comment': '评论',

@@ -1,5 +1,6 @@
 /** Validação e aplicação das propriedades aceitas em uma camada. */
 import { defaultFill, defaultStroke, resizeNode, tagOf, TEXT_TAGS, BOX_TAGS } from '../../model.js';
+import { MODEL_ORBIT } from '../../css.js';
 import type { PropertyContext, ToolArgs } from './types.ts';
 /** Campos simples (número, texto ou booleano) que podem ser copiados direto para a camada. */
 const SIMPLE = [
@@ -8,18 +9,18 @@ const SIMPLE = [
   'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor',
   'text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textAlign',
   'textDecoration', 'textTransform', 'textVAlign', 'truncate', 'lines',
-  'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted', 'mediaPoster', 'mediaFallback',
+  'mediaAutoplay', 'mediaControls', 'mediaLoop', 'mediaMuted', 'mediaPoster', 'mediaFallback', 'modelAutoRotate', 'modelScroll', 'modelOrbit',
   'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax',
   'flipX', 'flipY', 'lockRatio', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap',
   'flowStart', 'isMask', 'noteInCode', 'fillRule', 'customCss', 'shape',
   'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang',
 ];
 /** Tipos esperados de alguns campos (o resto é conferido pelo uso). */
-const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart', 'preserve3d'];
+const BOOLEANS = ['flipX', 'flipY', 'lockRatio', 'shrink', 'isMask', 'noteInCode', 'flowStart', 'preserve3d', 'modelAutoRotate', 'modelScroll'];
 /** Limites dos campos 3D (fora disso o efeito vira lixo visual ou trava a GPU). */
 const RANGES_3D: Record<string, [number, number]> = { rotateX: [-360, 360], rotateY: [-360, 360], depth: [-2000, 2000], perspective: [100, 5000], parallax: [-1, 1] };
 /** Campos opcionais: `null` apaga (a chave some do projeto, como no editor). */
-const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'shape', 'wordSpacing', 'flowStart', 'mediaPoster', 'mediaFallback', 'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax'];
+const CLEARABLE = ['note', 'minW', 'maxW', 'minH', 'maxH', 'aspect', 'overflow', 'href', 'alt', 'fluid', 'sticky', 'pointerEvents', 'cursor', 'skewX', 'skewY', 'order', 'shrink', 'whiteSpace', 'wordBreak', 'textWrap', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'truncate', 'lines', 'grow', 'customCss', 'noteInCode', 'fillRule', 'shape', 'wordSpacing', 'flowStart', 'mediaPoster', 'mediaFallback', 'modelAutoRotate', 'modelScroll', 'modelOrbit', 'rotateX', 'rotateY', 'depth', 'perspective', 'preserve3d', 'parallax'];
 const NUMBERS = ['skewX', 'skewY', 'order', ...Object.keys(RANGES_3D)];
 const STRINGS = ['customCss', 'html', 'htmlId', 'classes', 'title', 'role', 'target', 'rel', 'buttonType', 'dateTime', 'cite', 'lang', 'whiteSpace', 'wordBreak', 'textWrap', 'mediaPoster', 'mediaFallback'];
 const CONSTRAINT_H = ['left', 'right', 'leftright', 'center', 'scale'];
@@ -85,6 +86,10 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
       continue;
     }
     if (['text'].includes(k) && node.type !== 'text') throw new Error('text só vale para camadas de texto.');
+    if (['modelAutoRotate', 'modelScroll', 'modelOrbit'].includes(k)) {
+      if (node.type !== 'media' || node.mediaKind !== 'model3d') throw new Error(`${k} só vale para camadas de mídia do tipo model3d.`);
+      if (k === 'modelOrbit' && !MODEL_ORBIT.test(String(v))) throw new Error('modelOrbit usa "giro vertical distância", ex.: "45deg 75deg auto" ou "0deg 80deg 3m".');
+    }
     if (MEDIA_FLAGS.includes(k)) {
       if (node.type !== 'media') throw new Error(`${k} só vale para camadas de mídia (vídeo, áudio, 3D, Lottie).`);
       if (typeof v !== 'boolean') throw new Error(`${k} precisa ser true ou false.`);

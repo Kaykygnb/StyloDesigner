@@ -387,6 +387,9 @@ const messages: Record<string, string> = {
   'media.muted': 'Iniciar sem som',
   'media.poster': 'Poster (URL HTTPS ou asset)',
   'media.fallback': 'Fallback do vídeo',
+  'media.modelAutoRotate': 'Girar sozinho',
+  'media.modelScroll': 'Girar com a rolagem da página',
+  'media.modelOrbit': 'Ponto de vista (horizontal vertical distância)',
   'media.fallbackPlaceholder': 'Seu navegador não suporta vídeo.',
   // tool
   'tool.comment': 'Comentar',

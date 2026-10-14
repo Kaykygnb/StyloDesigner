@@ -387,6 +387,9 @@ const messages: Record<string, string> = {
   'media.muted': 'Запускать без звука',
   'media.poster': 'Постер (HTTPS-адрес или ресурс)',
   'media.fallback': 'Запасной вариант видео',
+  'media.modelAutoRotate': 'Вращать самостоятельно',
+  'media.modelScroll': 'Вращать при прокрутке страницы',
+  'media.modelOrbit': 'Точка обзора (по горизонтали, по вертикали, расстояние)',
   'media.fallbackPlaceholder': 'Ваш браузер не поддерживает видео.',
   // tool
   'tool.comment': 'Комментарий',
