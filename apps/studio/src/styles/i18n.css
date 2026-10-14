@@ -1,0 +1,19 @@
+/* Idiomas com outra escrita (russo, japonês, chinês, coreano). O atributo lang do <html> é trocado junto com o idioma. */
+
+/* Fontes: o navegador escolhe o desenho certo dos ideogramas pelo idioma; a lista dá preferência às fontes de sistema de cada plataforma. */
+:root:lang(ru) { --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+:root:lang(ja) { --font: system-ui, -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Yu Gothic', Meiryo, 'Noto Sans CJK JP', 'Noto Sans JP', sans-serif; }
+:root:lang(zh) { --font: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', 'WenQuanYi Zen Hei', sans-serif; }
+:root:lang(ko) { --font: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans CJK KR', 'Noto Sans KR', sans-serif; }
+
+/* Escritas sem maiúsculas/minúsculas: o espaçamento entre letras (negativo nos títulos, aberto nos rótulos) só atrapalha. */
+:root:lang(ja) *, :root:lang(zh) *, :root:lang(ko) * { letter-spacing: normal !important; }
+:root:lang(ja) body, :root:lang(zh) body, :root:lang(ko) body { line-height: 1.6; }
+:root:lang(ja) :is(h1, h2, h3, h4), :root:lang(zh) :is(h1, h2, h3, h4), :root:lang(ko) :is(h1, h2, h3, h4) { line-height: 1.3; }
+:root:lang(ja) :is(.login-story h1, .home-title h1), :root:lang(zh) :is(.login-story h1, .home-title h1), :root:lang(ko) :is(.login-story h1, .home-title h1) { line-height: 1.2; }
+/* coreano quebra a linha nos espaços, não no meio das palavras */
+:root:lang(ko) body { word-break: keep-all; }
+/* chinês e japonês não têm espaços: deixa quebrar em qualquer ponto aceitável em vez de estourar a caixa */
+:root:lang(ja) body, :root:lang(zh) body { overflow-wrap: anywhere; line-break: strict; }
+/* palavras russas são longas: nunca deixam o texto vazar da caixa */
+:root:lang(ru) body { overflow-wrap: break-word; }
