@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { BOX_TAGS, TEXT_TAGS, STATE_LIST, canHaveStates, hasStates, htmlTagIn, tagOf } from '@stylo/core/model.js';
 import { tool as api_tool } from '../../lib/api';
-import { app, run, toast, useApp } from '../../lib/app';
+import { app, run, setTool, toast, useApp } from '../../lib/app';
 import { t } from '../../lib/i18n';
 import { arrange, noteOn, selectMainOf } from '../../lib/editing';
 import { colorGroups } from '../../lib/colors';
@@ -318,6 +318,10 @@ export function VectorSection({ c }: { c: Ctx }) {
   };
   return (
     <Section id="vector" title={tr('inspector.vector.title')}>
+      {!c.readOnly && <div className="vector-mode-card">
+        <div><b>{tr('tool.node')}</b><span>{tr('ui.overlay.node')} · {points.length} {tr('inspector.vector.points')}</span></div>
+        <button className="btn primary sm" onClick={() => setTool('node')}><Icon name="node" size={14} />{tr('tool.node')}</button>
+      </div>}
       {parametric && <Cap label={parametric.kind === 'star' ? tr('inspector.vector.star') : tr('inspector.vector.polygon')} css="shape">
         <Row><Num label={tr('inspector.vector.sides')} value={parametric.sides} min={3} max={24} decimals={0} disabled={c.readOnly} onCommit={(value) => updateShape({ sides: Math.round(value ?? parametric.sides) })} />
           {parametric.kind === 'star' && <Num label={tr('inspector.vector.innerRadius')} value={parametric.innerRatio * 100} min={10} max={90} decimals={0} disabled={c.readOnly} onCommit={(value) => updateShape({ innerRatio: Math.max(0.1, Math.min(0.9, (value ?? parametric.innerRatio * 100) / 100)) })} />}</Row>
@@ -330,7 +334,7 @@ export function VectorSection({ c }: { c: Ctx }) {
         <div className="row wrap"><Sel value={pathEffect?.kind ?? 'none'} options={[['none', '—'], ['round-corners', tr('inspector.vector.roundCorners')]]} disabled={c.readOnly} onChange={(v) => void setPathEffect(v as 'round-corners' | 'none')} />{pathEffect && <><Num label={tr('inspector.vector.radius')} value={pathEffect.radius} min={0.1} max={100000} decimals={2} disabled={c.readOnly} onCommit={(value) => value != null && void setPathEffect('round-corners', value)} /><button className="btn ghost sm" title={tr('inspector.vector.removeEffect')} onClick={() => void setPathEffect('none')}>{tr('inspector.vector.removeEffect')}</button></>}</div>
         <Hint>{tr('inspector.vector.effectHint')}</Hint>
       </Cap>
-      <div className="row wrap"><span className="small muted">{points.length} {tr('inspector.vector.points')} · viewBox {n.vw ?? n.w} × {n.vh ?? n.h}</span><span className="grow" />{!c.readOnly && <><Check label={tr('inspector.vector.closed')} checked={n.closed !== false} onChange={(value) => void c.set({ closed: value })} /><button className="btn ghost sm" title={tr('inspector.vector.reverseHint')} onClick={() => void reverse()}>{tr('inspector.vector.reverse')}</button><button className="btn ghost sm" title={tr('inspector.vector.strokeHint')} onClick={() => void strokeToPath()}>{tr('inspector.vector.strokeToPath')}</button><button className="btn ghost sm" title={tr('inspector.vector.offsetHint')} onClick={() => void offset()}>{tr('inspector.vector.offset')}</button><button className="btn ghost sm" title={tr('inspector.vector.splitHint')} onClick={() => void split()}>{tr('inspector.vector.split')}</button>{(n.contours?.length ?? 0) > 0 && <button className="btn ghost sm" title={tr('inspector.vector.joinHint')} onClick={() => void join()}>{tr('inspector.vector.join')}</button>}<button className="btn ghost sm" title={tr('inspector.vector.simplifyHint')} onClick={() => void simplify()}>{tr('inspector.vector.simplify')}</button><button className="btn ghost sm" onClick={addPoint}>{tr('inspector.vector.addPoint')}</button></>}</div>
+      <div className="vector-action-row"><span className="small muted">{points.length} {tr('inspector.vector.points')} · viewBox {n.vw ?? n.w} × {n.vh ?? n.h}</span><span className="grow" />{!c.readOnly && <><Check label={tr('inspector.vector.closed')} checked={n.closed !== false} onChange={(value) => void c.set({ closed: value })} /><button className="btn ghost sm" title={tr('inspector.vector.reverseHint')} onClick={() => void reverse()}>{tr('inspector.vector.reverse')}</button><button className="btn ghost sm" title={tr('inspector.vector.strokeHint')} onClick={() => void strokeToPath()}>{tr('inspector.vector.strokeToPath')}</button><button className="btn ghost sm" title={tr('inspector.vector.offsetHint')} onClick={() => void offset()}>{tr('inspector.vector.offset')}</button><button className="btn ghost sm" title={tr('inspector.vector.splitHint')} onClick={() => void split()}>{tr('inspector.vector.split')}</button>{(n.contours?.length ?? 0) > 0 && <button className="btn ghost sm" title={tr('inspector.vector.joinHint')} onClick={() => void join()}>{tr('inspector.vector.join')}</button>}<button className="btn ghost sm" title={tr('inspector.vector.simplifyHint')} onClick={() => void simplify()}>{tr('inspector.vector.simplify')}</button><button className="btn ghost sm" onClick={addPoint}>{tr('inspector.vector.addPoint')}</button></>}</div>
       <div className="vector-points">{points.map((point, index) => {
         const p = point as typeof point & { hin?: { x: number; y: number } | null; hout?: { x: number; y: number } | null; mode?: string };
         const handle = (name: 'hin' | 'hout', fallback: { x: number; y: number }) => p[name] ?? fallback;
