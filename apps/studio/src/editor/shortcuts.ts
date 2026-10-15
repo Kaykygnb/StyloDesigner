@@ -12,7 +12,18 @@ import { createShape } from '../lib/shapes';
 // sem `instanceof`: o alvo pode vir de dentro de um iframe, que tem as suas próprias classes
 /** Botão, link, caixa de marcar… com foco: Espaço, Enter e Tab são dele (teclado e leitor de tela), não do editor. */
 const interactive = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && typeof el.tagName === 'string' && (/^(BUTTON|A|SUMMARY)$/.test(el.tagName) || el.getAttribute?.('role') === 'button' || el.getAttribute?.('role') === 'menuitem'); };
-const typing = (t: EventTarget | null) => { const el = t as HTMLElement | null; return !!el && typeof el.tagName === 'string' && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)); };
+const typing = (t: EventTarget | null) => {
+  const el = t as HTMLElement | null;
+  if (el && typeof el.tagName === 'string' && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return true;
+  // Text layers are edited inside a same-origin iframe. Some browsers dispatch
+  // the first key with the iframe body as target, so inspect the active element
+  // and composed path as well before allowing a global tool shortcut.
+  const active = el?.ownerDocument?.activeElement as HTMLElement | null;
+  if (active?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active?.tagName || '')) return true;
+  const event = t as unknown as Event;
+  const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+  return path.some((item) => { const node = item as HTMLElement; return !!node && (node.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(node.tagName || '')); });
+};
 
 /** Mantém `altDown` e `spaceDown` em dia (a distância entre camadas e a mão temporária dependem deles). */
 export function trackModifiers(e: KeyboardEvent): void {

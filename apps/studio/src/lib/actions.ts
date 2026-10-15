@@ -47,7 +47,7 @@ export async function insert(kind: InsertKind): Promise<void> {
       // layout livre: camadas soltas, posicionadas por X e Y (o layout automático é uma opção no painel de propriedades)
       tree: { type: 'frame', props: { name: tl('layerName.screen', { n }), w: 1440, h: 900, fill: '#FFFFFF' } },
     });
-    if (out?.created?.id) select([out.created.id]);
+    if (out?.created?.id) { select([out.created.id]); toast('ok', `${tl('canvas.createScreen')} ✓`); }
     return;
   }
   // Seção é sempre uma organização da raiz; se o usuário estiver com uma tela

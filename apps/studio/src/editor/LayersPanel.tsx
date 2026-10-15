@@ -142,6 +142,7 @@ export function LayersTab() {
                 onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingPage(null); }} />
             ) : <span className="ellipsis grow">{p.name}</span>}
             <span className="faint">{p.children.length}</span>
+            {editable && p.id === page.id && <button className="btn ghost icon sm page-rename" title={t(language, 'assets.rename')} aria-label={t(language, 'assets.rename')} onClick={(e) => { e.stopPropagation(); setEditingPage(p.id); }}><Icon name="note" size={13} /></button>}
             {doc.pages.length > 1 && editable && p.id === page.id && (<>
               <button className="btn ghost icon sm" title={t(language, 'ui.layers.movePageUp')} disabled={doc.pages.indexOf(p) === 0} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) - 1 }); }}>↑</button>
               <button className="btn ghost icon sm" title={t(language, 'ui.layers.movePageDown')} disabled={doc.pages.indexOf(p) === doc.pages.length - 1} onClick={(e) => { e.stopPropagation(); void run('reorder_page', { id: p.id, index: doc.pages.indexOf(p) + 1 }); }}>↓</button>
