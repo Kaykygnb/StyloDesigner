@@ -17,6 +17,7 @@ protótipo. Dados do alpha podem mudar de formato entre versões `0.x`; faça ba
 - [Começar](#começar)
 - [O que ele faz](#o-que-ele-faz)
 - [Agentes de IA (MCP)](#agentes-de-ia-mcp)
+- [Guia de conexão MCP](docs/MCP.md)
 - [Exportar e importar](#exportar-e-importar)
 - [Onde ficam seus dados](#onde-ficam-seus-dados)
 - [Configuração](#configuração)
@@ -75,7 +76,7 @@ O servidor expõe um endpoint MCP em `http://localhost:5173/mcp` (HTTP). Para co
 1. Na tela inicial, abra o menu **Mais → Agentes** (a área "Conexões criativas") e adicione uma conexão. O token aparece **uma única vez**.
 2. Escolha o que o agente pode fazer: `read`, `comment`, `write` e `export`.
 3. Autorize os projetos que ele pode acessar.
-4. Em "Configuração avançada" há o guia pronto para Claude Code, Claude Desktop, Codex, Cursor, Windsurf, OpenCode e outros clientes MCP.
+4. Em "Configuração avançada" há um guia rápido para clientes MCP. O passo a passo completo, incluindo Codex, ChatGPT/Work, STDIO, HTTP e diagnóstico, está em [docs/MCP.md](docs/MCP.md).
 
 Ao todo são **mais de 120 ferramentas** (ler o documento, criar e alterar camadas, layout, responsivo, estados, vetores, imagens,
 notas, exportação…): cerca de 80 no núcleo e o resto vem dos plugins.
