@@ -1,1 +1,0 @@
-ALTER TABLE "Agent" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'mcp';

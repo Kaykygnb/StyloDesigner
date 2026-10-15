@@ -1,49 +1,15 @@
 {
-  "name": "stylo",
-  "version": "0.1.0",
-  "description": "Stylo — editor de design onde o canvas é CSS de verdade, operado por humanos e por agentes (MCP).",
+  "name": "designer-estudo",
+  "version": "1.0.0",
   "private": true,
-  "license": "MIT",
-  "homepage": "https://github.com/Kaykygnb/StyloDesigner#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Kaykygnb/StyloDesigner.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Kaykygnb/StyloDesigner/issues"
-  },
   "type": "module",
+  "license": "MIT",
   "scripts": {
-    "dev": "node --import tsx apps/server/src/main.ts",
-    "build": "npm run build -w apps/studio",
-    "start": "node --import tsx apps/server/src/main.ts",
-    "test": "node --import tsx --import ./tests/_setup.mjs --test --test-timeout=90000 tests/*.test.js tests/*.test.ts",
-    "test:e2e": "npm run build && node tests/e2e/run.mjs",
-    "docs:inventario": "node --import tsx scripts/gerar-inventario-ferramentas.mjs",
-    "docs:ferramentas": "node --import tsx scripts/gerar-docs-ferramentas.mjs",
-    "typecheck": "tsc -p packages/db && tsc -p packages/core && tsc -p packages/plugins && tsc -p apps/server && tsc -p apps/studio",
-    "db:generate": "prisma generate --config packages/db/prisma.config.ts",
-    "postinstall": "npm run db:generate",
-    "benchmark:site-load": "node scripts/benchmark-site-load.mjs",
-    "importar": "node --import tsx scripts/importar.ts"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/*.test.js"
   },
   "engines": {
-    "node": ">=22"
-  },
-  "devDependencies": {
-    "@babel/parser": "^7.29.9",
-    "embedded-postgres": "^18.4.0-beta.17",
-    "playwright": "1.58.0",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.4"
-  },
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
-  "overrides": {
-    "deepmerge-ts": "^8.0.2",
-    "mysql2": "^3.24.5"
+    "node": ">=20"
   }
 }
