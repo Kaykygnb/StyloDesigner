@@ -28,3 +28,12 @@ test('pathD: retas sem alça, curva com alça e Z quando fechado', () => {
   assert.equal(pathD({ points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }), 'M 0 0 C 0 0 10 0 10 0');
   assert.equal(pathD({ points: [{ x: 0, y: 0, hout: { x: 3, y: 4 } }, { x: 10, y: 0, hin: { x: 7, y: 4 } }], closed: true }), 'M 0 0 C 3 4 7 4 10 0 Z');
 });
+
+test('pathD: preserva contornos adicionais de operações booleanas', () => {
+  const d = pathD({
+    points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }], closed: true,
+    contours: [{ points: [{ x: 20, y: 20 }, { x: 30, y: 20 }, { x: 30, y: 30 }], closed: true }],
+  });
+  assert.equal((d.match(/M /g) || []).length, 2);
+  assert.equal((d.match(/ Z/g) || []).length, 2);
+});

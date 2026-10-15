@@ -20,15 +20,19 @@ export function pathFromStroke(pts: StrokePoint[], closed: boolean) {
 }
 
 /** Atributo `d` de um <path> SVG com os pontos do vetor (curvas cúbicas; reta quando não há alças). */
-export function pathD(node: { points?: { x: number; y: number; hin?: { x: number; y: number } | null; hout?: { x: number; y: number } | null }[]; closed?: boolean }): string {
-  const points = node.points ?? [];
-  if (!points.length) return '';
-  const parts = [`M ${points[0].x} ${points[0].y}`];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1], b = points[i];
-    const c1 = a.hout ?? { x: a.x, y: a.y }, c2 = b.hin ?? { x: b.x, y: b.y };
-    parts.push(`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`);
-  }
-  if (node.closed) parts.push('Z');
+export function pathD(node: { points?: { x: number; y: number; hin?: { x: number; y: number } | null; hout?: { x: number; y: number } | null }[]; closed?: boolean; contours?: { points: { x: number; y: number; hin?: { x: number; y: number } | null; hout?: { x: number; y: number } | null }[]; closed?: boolean }[] }): string {
+  const drawContour = (points: NonNullable<typeof node.points>, closed: boolean) => {
+    if (!points.length) return [] as string[];
+    const parts = [`M ${points[0].x} ${points[0].y}`];
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const c1 = a.hout ?? { x: a.x, y: a.y }, c2 = b.hin ?? { x: b.x, y: b.y };
+      parts.push(`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`);
+    }
+    if (closed) parts.push('Z');
+    return parts;
+  };
+  const parts = drawContour(node.points ?? [], node.closed === true);
+  for (const contour of node.contours ?? []) parts.push(...drawContour(contour.points, contour.closed !== false));
   return parts.join(' ');
 }
