@@ -34,7 +34,8 @@ function Body({ start, onClose }: { start: Tab; onClose: () => void }) {
   const name = useApp((s) => s.doc?.name ?? t(s.language, 'ui.project.defaultName'));
   return (
     <Modal title={t(language, 'ui.project.title', { name })} wide onClose={onClose}>
-      <div className="tab-chips" role="tablist">
+      <div className="project-dialog-content">
+      <div className="tab-chips project-tabs" role="tablist">
         {([['brief', t(language, 'ui.project.tabBrief')], ['notes', t(language, 'ui.project.tabNotes')], ['people', t(language, 'ui.project.tabPeople')]] as [Tab, string][]).map(([id, label]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={`tab-chip${tab === id ? ' on' : ''}`} onClick={() => setTab(id)}>{label}</button>
         ))}
@@ -42,6 +43,7 @@ function Body({ start, onClose }: { start: Tab; onClose: () => void }) {
       {tab === 'brief' && <BriefTab />}
       {tab === 'notes' && <NotesTab />}
       {tab === 'people' && <PeopleTab />}
+      </div>
     </Modal>
   );
 }
@@ -63,23 +65,25 @@ function BriefTab() {
     const out = await run('set_project_brief', { summary: b.summary ?? '', audience: b.audience ?? '', tone: list(tone), values: list(values), goals: b.goals ?? '', avoid: b.avoid ?? '', notes: b.notes ?? '' });
     if (out) toast('ok', t(language, 'ui.project.briefSaved'));
   };
-  const field = (key: keyof Brief, label: string, hint: string, rows = 2) => (
-    <label className="small">{label}
+  const field = (key: keyof Brief, label: string, hint: string, rows = 2, className = '') => (
+    <label className={`small project-field ${className}`}>{label}
       <textarea className="field" rows={rows} disabled={!editable} placeholder={hint} value={String(b[key] ?? '')} onChange={(e) => setB((x) => ({ ...x, [key]: e.target.value }))} />
     </label>
   );
   if (!loaded) return <p className="muted"><span className="spinner" /> {t(language, 'ui.project.loading')}</p>;
   return (
-    <div className="settings">
-      <p className="hint">{t(language, 'ui.project.briefHint')}</p>
-      {field('summary', t(language, 'ui.project.summary'), t(language, 'ui.project.summaryHint'))}
-      {field('audience', t(language, 'ui.project.audience'), t(language, 'ui.project.audienceHint'))}
-      <label className="small">{t(language, 'ui.project.tone')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.toneHint')} value={tone} onChange={(e) => setTone(e.target.value)} /></label>
-      <label className="small">{t(language, 'ui.project.values')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.valuesHint')} value={values} onChange={(e) => setValues(e.target.value)} /></label>
-      {field('goals', t(language, 'ui.project.goals'), t(language, 'ui.project.goalsHint'))}
-      {field('avoid', t(language, 'ui.project.avoid'), t(language, 'ui.project.avoidHint'))}
-      {field('notes', t(language, 'ui.project.otherNotes'), '')}
-      {editable && <button className="btn primary" onClick={() => void save()}>{t(language, 'ui.project.saveBrief')}</button>}
+    <div className="settings project-brief-settings">
+      <p className="hint project-brief-intro">{t(language, 'ui.project.briefHint')}</p>
+      <div className="project-field-grid">
+        {field('summary', t(language, 'ui.project.summary'), t(language, 'ui.project.summaryHint'), 2, 'project-field-wide')}
+        {field('audience', t(language, 'ui.project.audience'), t(language, 'ui.project.audienceHint'), 2, 'project-field-wide')}
+        <label className="small project-field">{t(language, 'ui.project.tone')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.toneHint')} value={tone} onChange={(e) => setTone(e.target.value)} /></label>
+        <label className="small project-field">{t(language, 'ui.project.values')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.valuesHint')} value={values} onChange={(e) => setValues(e.target.value)} /></label>
+        {field('goals', t(language, 'ui.project.goals'), t(language, 'ui.project.goalsHint'))}
+        {field('avoid', t(language, 'ui.project.avoid'), t(language, 'ui.project.avoidHint'))}
+        {field('notes', t(language, 'ui.project.otherNotes'), '', 2, 'project-field-wide')}
+      </div>
+      {editable && <div className="project-dialog-actions"><span className="faint small">{t(language, 'ui.project.tabBrief')}</span><button className="btn primary" onClick={() => void save()}>{t(language, 'ui.project.saveBrief')}</button></div>}
     </div>
   );
 }
