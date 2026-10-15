@@ -74,15 +74,19 @@ function BriefTab() {
   return (
     <div className="settings project-brief-settings">
       <p className="hint project-brief-intro">{t(language, 'ui.project.briefHint')}</p>
-      <div className="project-field-grid">
+      <section className="project-form-section"><div className="project-section-title"><span>01</span><div><b>Essentials</b><small>Give the project a clear direction.</small></div></div><div className="project-field-grid">
         {field('summary', t(language, 'ui.project.summary'), t(language, 'ui.project.summaryHint'), 2, 'project-field-wide')}
         {field('audience', t(language, 'ui.project.audience'), t(language, 'ui.project.audienceHint'), 2, 'project-field-wide')}
+      </div></section>
+      <section className="project-form-section"><div className="project-section-title"><span>02</span><div><b>Creative direction</b><small>Keep the visual language consistent.</small></div></div><div className="project-field-grid">
         <label className="small project-field">{t(language, 'ui.project.tone')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.toneHint')} value={tone} onChange={(e) => setTone(e.target.value)} /></label>
         <label className="small project-field">{t(language, 'ui.project.values')}<input className="field" disabled={!editable} placeholder={t(language, 'ui.project.valuesHint')} value={values} onChange={(e) => setValues(e.target.value)} /></label>
+      </div></section>
+      <section className="project-form-section"><div className="project-section-title"><span>03</span><div><b>Guardrails</b><small>Tell the team what success looks like.</small></div></div><div className="project-field-grid">
         {field('goals', t(language, 'ui.project.goals'), t(language, 'ui.project.goalsHint'))}
         {field('avoid', t(language, 'ui.project.avoid'), t(language, 'ui.project.avoidHint'))}
-        {field('notes', t(language, 'ui.project.otherNotes'), '', 2, 'project-field-wide')}
-      </div>
+      </div></section>
+      <details className="project-extra"><summary>{t(language, 'ui.project.otherNotes')} <span>Optional</span></summary>{field('notes', t(language, 'ui.project.otherNotes'), '', 2, 'project-field-wide')}</details>
       {editable && <div className="project-dialog-actions"><span className="faint small">{t(language, 'ui.project.tabBrief')}</span><button className="btn primary" onClick={() => void save()}>{t(language, 'ui.project.saveBrief')}</button></div>}
     </div>
   );

@@ -871,6 +871,12 @@ button.res-row:hover { background: var(--hover); border-color: var(--border); }
 .project-tabs { padding-bottom: 2px; border-bottom: 1px solid var(--border); }
 .project-brief-settings { gap: 12px; }
 .project-brief-intro { margin: 0; max-width: 58ch; line-height: 1.45; }
+.project-form-section { padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+.project-section-title { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+.project-section-title > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink, var(--accent)); font-size: 10px; font-weight: 700; }
+.project-section-title div { display: flex; flex-direction: column; gap: 1px; }
+.project-section-title b { font-size: 12px; font-weight: 700; }
+.project-section-title small { color: var(--text-3); font-size: 10.5px; }
 .project-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .project-field { min-width: 0; }
 .project-field-wide { grid-column: 1 / -1; }
@@ -879,6 +885,13 @@ button.res-row:hover { background: var(--hover); border-color: var(--border); }
 .project-field-grid > .project-field:nth-child(2) textarea.field { min-height: 68px; }
 .project-dialog-actions { position: sticky; bottom: -20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px -20px -20px; padding: 12px 20px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); }
 .project-dialog-actions .faint { max-width: 60%; }
+.project-extra { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.project-extra summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; color: var(--text-2); font-size: 11.5px; cursor: pointer; list-style: none; }
+.project-extra summary::-webkit-details-marker { display: none; }
+.project-extra summary::after { content: '＋'; color: var(--text-3); }
+.project-extra[open] summary::after { content: '−'; }
+.project-extra summary span { margin-left: auto; margin-right: 8px; color: var(--text-3); font-size: 10px; }
+.project-extra .project-field { margin: 0 12px 12px; }
 @media (max-width: 620px) {
   .project-field-grid { grid-template-columns: 1fr; }
   .project-field-wide { grid-column: auto; }
