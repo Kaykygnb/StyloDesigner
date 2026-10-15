@@ -200,7 +200,32 @@ select.field {
 .tips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 10px; color: var(--text-2); font-size: 11.5px; text-align: left; }
 
 /* ---------------------------------------------------------------- visão do projeto (nada selecionado) */
-.project-overview { display: flex; flex-direction: column; gap: 12px; padding: 16px 14px 24px; }
+.project-overview { display: flex; flex-direction: column; gap: 10px; padding: 14px 12px 22px; }
+.empty-selection-hero { display: flex; align-items: flex-start; gap: 10px; padding: 4px 2px 3px; }
+.empty-selection-icon { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 11px; background: linear-gradient(145deg, var(--accent-soft), var(--surface-2)); color: var(--accent-ink, var(--accent)); }
+.empty-selection-hero h3 { margin: 1px 0 3px; font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.empty-selection-hero p { margin: 0; color: var(--text-3); font-size: 11.5px; line-height: 1.4; }
+.empty-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.empty-action { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 10px 9px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; text-align: left; cursor: pointer; transition: transform var(--dur-1, .12s), background var(--dur-1, .12s), border-color var(--dur-1, .12s); }
+.empty-action svg { color: var(--accent); flex: 0 0 auto; }
+.empty-action span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty-action kbd { margin-left: auto; color: var(--text-3); font-size: 10px; }
+.empty-action:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--hover); }
+.empty-action:active { transform: translateY(0); }
+.project-glance { border: 1px solid var(--border); border-radius: 13px; background: var(--surface); overflow: hidden; }
+.project-glance summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 11px; list-style: none; cursor: pointer; font-size: 12px; }
+.project-glance summary::-webkit-details-marker { display: none; }
+.project-glance summary::after { content: '›'; color: var(--text-3); font-size: 18px; line-height: 12px; transform: rotate(90deg); transition: transform var(--dur-1, .12s); }
+.project-glance[open] summary::after { transform: rotate(-90deg); }
+.project-glance summary > span:first-child { display: inline-flex; align-items: center; gap: 7px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.project-glance summary > span:first-child svg { color: var(--accent); flex: 0 0 auto; }
+.project-glance summary > span:nth-child(2) { max-width: 32%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-glance > *:not(summary) { margin-left: 10px; margin-right: 10px; }
+.project-glance .po-stats { margin-bottom: 10px; }
+.project-glance .po-card-head { padding-top: 2px; }
+.project-glance .po-summary, .project-glance .po-tags, .project-glance .po-card-head + .faint { margin-bottom: 10px; }
+.po-notes-card { gap: 7px; }
+.po-notes-card .note-list:empty { display: none; }
 .po-hero { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .po-hero h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
 .po-art { position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 13px; background: var(--gradient-spectacle, var(--accent)); box-shadow: var(--shadow-s); overflow: hidden; }

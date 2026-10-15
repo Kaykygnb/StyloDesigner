@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { tool } from '../lib/api';
 import { flatten, pageOf } from '../lib/doc';
-import { setPanel, useApp } from '../lib/app';
+import { setPanel, setTool, useApp } from '../lib/app';
 import { openProjectDialog } from './ProjectDialog';
 import { NoteComposer, NoteList, useProjectNotes } from './ProjectNotes';
 import { AppearanceSection } from './inspector/AppearanceSection';
@@ -23,7 +23,7 @@ import { t, tp } from '../lib/i18n';
 
 type Brief = { summary?: string; audience?: string; tone?: string[] };
 
-/** Nada selecionado: a visão do projeto (sobre, números, decisões e comentários) em vez de um painel vazio. */
+/** Nada selecionado: uma porta de entrada rápida para começar a criar. */
 function Empty() {
   const doc = useApp((s) => s.doc)!;
   const pageId = useApp((s) => s.pageId);
@@ -41,29 +41,36 @@ function Empty() {
   const tr = (key: string, v?: Record<string, string | number>) => t(language, key, v);
   return (
     <div className="project-overview">
-      <header className="po-hero">
-        <div className="po-art" aria-hidden="true"><span /><span /><span /></div>
+      <header className="empty-selection-hero">
+        <div className="empty-selection-icon" aria-hidden="true"><Icon name="cursor" size={18} /></div>
         <div className="grow">
-          <h3 className="ellipsis">{doc.name || file}</h3>
-          <p className="faint small">{page.name} · {tp(language, 'ui.inspector.layersCount', all.length)}</p>
+          <h3>{tr('canvas.createScreen')}</h3>
+          <p>{tr('canvas.emptyHint')}</p>
         </div>
       </header>
-      <div className="po-stats">
-        <div><b>{screens}</b><span>{tp(language, 'overview.screens', screens)}</span></div>
-        <div><b>{components}</b><span>{tp(language, 'overview.components', components)}</span></div>
-        <div><b>{flows}</b><span>{tp(language, 'overview.flows', flows)}</span></div>
+      <div className="empty-actions" aria-label={tr('canvas.createScreen')}>
+        <button className="empty-action" onClick={() => setTool('frame')}><Icon name="frame" size={16} /><span>{tr('tool.frame')}</span><kbd>F</kbd></button>
+        <button className="empty-action" onClick={() => setTool('rect')}><Icon name="rect" size={16} /><span>{tr('tool.rect')}</span><kbd>R</kbd></button>
+        <button className="empty-action" onClick={() => setTool('text')}><Icon name="text" size={16} /><span>{tr('tool.text')}</span><kbd>T</kbd></button>
+        <button className="empty-action" onClick={() => setTool('pen')}><Icon name="pen" size={16} /><span>{tr('tool.pen')}</span></button>
       </div>
 
-      <section className="po-card">
+      <details className="project-glance">
+        <summary><span><Icon name="spark" size={14} /> {doc.name || file}</span><span className="faint small">{page.name}</span></summary>
+        <div className="po-stats">
+          <div><b>{screens}</b><span>{tp(language, 'overview.screens', screens)}</span></div>
+          <div><b>{components}</b><span>{tp(language, 'overview.components', components)}</span></div>
+          <div><b>{flows}</b><span>{tp(language, 'overview.flows', flows)}</span></div>
+        </div>
         <div className="po-card-head"><h4>{tr('overview.about')}</h4><button className="link-btn" onClick={() => openProjectDialog('brief')}>{brief?.summary ? tr('overview.edit') : tr('overview.describe')}</button></div>
         {brief === null ? <p className="faint small"><span className="spinner" /></p>
           : brief.summary ? <><p className="po-summary">{brief.summary}</p>{brief.audience && <p className="faint small">{tr('overview.for')} {brief.audience}</p>}{brief.tone?.length ? <div className="po-tags">{brief.tone.map((x) => <span key={x} className="chip">{x}</span>)}</div> : null}</>
             : <p className="faint small">{tr('overview.aboutEmpty')}</p>}
-      </section>
+      </details>
 
-      <section className="po-card">
+      <section className="po-card po-notes-card">
         <div className="po-card-head"><h4>{tr('overview.decisions')}</h4><button className="link-btn" onClick={() => setPanel('comments')}>{tr('overview.seeAll')}</button></div>
-        <NoteList notes={notes} limit={3} />
+        <NoteList notes={notes} limit={1} />
         <NoteComposer compact />
       </section>
 
