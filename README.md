@@ -5,8 +5,15 @@ desenvolvedor, ou um agente de IA, pode usar. Pessoas e agentes de IA (via MCP) 
 
 Tudo roda no seu computador: o servidor escuta só em `127.0.0.1`, o banco é um arquivo SQLite e não há nada para instalar além do Node.
 
+## Estado: alpha
+
+O Stylo é uma alternativa gratuita e aberta para desenhar o protótipo de um site ou app, local primeiro. Você pode (1) desenhar e
+exportar HTML/CSS para editar à mão, (2) baixar só o protótipo, ou (3) conectar um agente de IA e construir o site a partir do
+protótipo. Dados do alpha podem mudar de formato entre versões `0.x`; faça backup do que importa. Veja os [limites conhecidos](#limites-conhecidos).
+
 ## Sumário
 
+- [Estado: alpha](#estado-alpha)
 - [Começar](#começar)
 - [O que ele faz](#o-que-ele-faz)
 - [Agentes de IA (MCP)](#agentes-de-ia-mcp)
@@ -70,8 +77,12 @@ O servidor expõe um endpoint MCP em `http://localhost:5173/mcp` (HTTP). Para co
 3. Autorize os projetos que ele pode acessar.
 4. Em "Configuração avançada" há o guia pronto para Claude Code, Claude Desktop, Codex, Cursor, Windsurf, OpenCode e outros clientes MCP.
 
-O núcleo tem **79 ferramentas** (ler o documento, criar e alterar camadas, layout, responsivo, estados, vetores, imagens, exportação…),
-e os plugins acrescentam mais. Plugins embutidos: SEO e Open Graph, acessibilidade, identidade visual (paletas, contraste, pares de
+Ao todo são **mais de 120 ferramentas** (ler o documento, criar e alterar camadas, layout, responsivo, estados, vetores, imagens,
+notas, exportação…): cerca de 80 no núcleo e o resto vem dos plugins.
+
+**Por onde o agente deve começar:** `get_project_map` devolve um resumo em Markdown do protótipo (telas, tamanhos, design system,
+estrutura com os textos reais, navegação e decisões). `add_note` e `list_notes` guardam o **porquê** das decisões, para a pessoa e o
+agente seguirem o mesmo rumo. O Stylo é a camada de desenho e planejamento: o agente constrói o produto de verdade a partir dele. Plugins embutidos: SEO e Open Graph, acessibilidade, identidade visual (paletas, contraste, pares de
 fontes e brief do projeto), QR code, Tailwind e provedores de imagens e ícones (Pexels, Pixabay, Openverse, Lucide, Material, Poly Pizza).
 
 As alterações dos agentes são feitas pelas mesmas ferramentas do editor e **entram no histórico**: você desfaz com Ctrl+Z.

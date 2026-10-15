@@ -256,7 +256,7 @@ export function nodeStyle(node, parent, assets = {}, opts = {}) {
       }
     }
     // padding só entra no CSS se algum lado for diferente de zero (código gerado mais enxuto).
-    if (t || r || b || l) s.padding = `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
+    if (t || r || b || l) s.padding = boxShorthand(t, r, b, l);
   }
   // Conteúdo que sai da caixa: cortar (overflow:hidden, que também faz os filhos respeitarem o border-radius), mostrar ou rolar.
   // (preserve-3d não convive com corte/rolagem: `overflow` diferente de visible achata a cena 3D, então é ignorado)
@@ -887,6 +887,14 @@ export function pathStateStyle(node, assets, state) {
   return out;
 }
 
+/** Quatro lados (padding) na forma curta do CSS: "24px" quando todos são iguais, "8px 16px" quando cima = baixo e direita = esquerda. */
+export function boxShorthand(t, r, b, l) {
+  if (t === r && r === b && b === l) return px(t);
+  if (t === b && r === l) return `${px(t)} ${px(r)}`;
+  if (r === l) return `${px(t)} ${px(r)} ${px(b)}`;
+  return `${px(t)} ${px(r)} ${px(b)} ${px(l)}`;
+}
+
 /**
  * Cria um gerador de nomes de classe únicos a partir do nome da camada: "Botão" → "botao", e a segunda camada
  * com o mesmo nome vira "botao-2". Um gerador novo por exportação garante nomes estáveis e sem colisão.
@@ -985,8 +993,7 @@ export function generateCode(nodes, parent, assets = {}, { root = false, styles 
       const key = SIZE_CSS[prop];
       if (!v || !key || !(key in st)) continue;
       const one = px(v.value);
-      const literal = prop === 'padding' ? `${one} ${one} ${one} ${one}` : one;
-      if (st[key] === literal) { st[key] = `var(${sizeNames.get(id)})`; tokens.set(sizeNames.get(id), one); }
+      if (st[key] === one) { st[key] = `var(${sizeNames.get(id)})`; tokens.set(sizeNames.get(id), one); }
     }
   };
   // RESPONSIVO: se alguma camada tem sobrescritas de breakpoint, cada camada ganha, por breakpoint, uma regra com SÓ o que

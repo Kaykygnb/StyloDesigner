@@ -421,6 +421,19 @@ test('build_layout devolve o tamanho MEDIDO da estrutura criada (não a estimati
   await t.close();
 });
 
+test('build_layout devolve o tamanho MEDIDO também dos filhos', async () => {
+  const all = (n: any): any[] => [n, ...(n.children || []).flatMap(all)];
+  const measureLayout = async (roots: any[]) => new Map(roots.flatMap(all).map((n: any) => [n.id, { w: n.type === 'text' ? 123 : n.w, h: 45 }]));
+  const t = await setup({ measureLayout });
+  const a = await t.agentOf('Construtor');
+  const call = (tool: string, args: any = {}) => t.workspace.call(tool, args, { sid: 'c', actor: a }) as Promise<any>;
+  await call('new_project', { name: 'Build filhos' });
+  const out = await call('build_layout', { tree: { type: 'frame', props: { name: 'Tela', w: 400, sizeY: 'hug', layout: { mode: 'column' } }, children: [{ type: 'text', props: { text: 'oi' } }] } });
+  assert.equal(out.error, undefined, out.error);
+  assert.deepEqual([out.created.children[0].w, out.created.children[0].h], [123, 45]);
+  await t.close();
+});
+
 test('find_layers compacto e ids dispensam medição; summary pede geometria atual', async () => {
   let calls = 0;
   const t = await setup({ measureLayout: async roots => { calls++; return new Map(roots.map(r => [r.id, { w: r.w, h: 777 }])); } });

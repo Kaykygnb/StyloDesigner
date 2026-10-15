@@ -368,8 +368,13 @@ export function createWorkspace({ projects, notes, sharing, operations, agentPro
         // a estrutura recém-criada devolve o tamanho REAL (a altura "hug" só o navegador sabe), não a estimativa
         if (tool === 'build_layout' && out?.created?.id && measureLayout) {
           await ensureMeasured(entry);
-          const made = entry.store.get(out.created.id);
-          if (made) { out.created.w = made.w; out.created.h = made.h; }
+          // a árvore inteira, não só a raiz: os filhos "hug"/"fill" também só têm tamanho depois de medidos
+          const measured = (summary: any) => {
+            const made = entry.store.get(summary.id);
+            if (made) { summary.w = Math.round(made.w); summary.h = Math.round(made.h); }
+            (summary.children || []).forEach(measured);
+          };
+          measured(out.created);
         }
         onOperation({ projectId: entry.id, actor, tool, args, summary: out?._summary ?? null, layerIds: layerIdsOf(tool, args, out), ok: !out?.error && !out?.refused });
       }

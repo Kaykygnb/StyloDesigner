@@ -75,7 +75,7 @@ test('generateCode: o que muda no celular vira @media (max-width: 640px), em cim
   const t = css.indexOf('@media (max-width: 1024px)'), m = css.indexOf('@media (max-width: 640px)');
   assert.ok(t > 0 && m > t, css);
   const tabletBlock = css.slice(t, m), mobileBlock = css.slice(m);
-  assert.ok(tabletBlock.includes('.cartao {') && tabletBlock.includes('padding: 8px 8px 8px 8px'), tabletBlock);
+  assert.ok(tabletBlock.includes('.cartao {') && tabletBlock.includes('padding: 8px'), tabletBlock);
   assert.ok(!tabletBlock.includes('flex-direction'), tabletBlock);
   assert.ok(mobileBlock.includes('flex-direction: column') && mobileBlock.includes('gap: 8px'), mobileBlock);
   assert.ok(!mobileBlock.includes('padding'), 'o padding veio do tablet, não muda no celular');

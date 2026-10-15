@@ -27,7 +27,7 @@ test('frame com auto layout vira display:flex', () => {
   assert.equal(s.display, 'flex');
   assert.equal(s['flex-direction'], 'column');
   assert.equal(s.gap, '12px');
-  assert.equal(s.padding, '8px 16px 8px 16px');
+  assert.equal(s.padding, '8px 16px');
   assert.equal(s['justify-content'], 'center');
   assert.equal(s.overflow, 'hidden');
 });

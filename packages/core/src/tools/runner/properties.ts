@@ -257,6 +257,11 @@ export function applyProps(node, props: ToolArgs, ctx: PropertyContext = {}) {
       if ((k === 'colsTemplate' || k === 'rowsTemplate') && !v) { delete node.layout[k]; continue; }
       node.layout[k] = k === 'padding' ? four(v, 'layout.padding') : v;
     }
+    // grid usa colGap/rowGap; um `gap` sozinho vale para os dois eixos (senão o grid ficava com o espaço antigo)
+    if ('gap' in L) {
+      if (!('colGap' in L)) node.layout.colGap = L.gap;
+      if (!('rowGap' in L)) node.layout.rowGap = L.gap;
+    }
   }
   if ('tag' in props) {
     const list = node.type === 'text' ? TEXT_TAGS : BOX_TAGS;
