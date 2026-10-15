@@ -66,34 +66,36 @@ const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '
 export async function createDb(options: DbOptions = {}): Promise<DbHandle> {
   const file = options.file && options.file !== 'memory' ? options.file : undefined;
   const sqlite: DatabaseSyncType = new DatabaseSync(file ?? ':memory:');
-  sqlite.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
-  if (file) sqlite.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
-  // minúsculas também para letras fora do ASCII ("ação" / "AÇÃO"): usado nas buscas sem diferenciar maiúsculas
-  sqlite.function('ulower', { deterministic: true }, (value) => (typeof value === 'string' ? value.toLowerCase() : value));
-
-  // migrações
-  const files = migrationFiles();
-  const current = Number((sqlite.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
-  if (current > files.length) {
-    sqlite.close();
-    throw new Error(`O banco foi criado por uma versão mais nova do Stylo (esquema ${current}, esta versão conhece ${files.length}).`);
-  }
+  let files: { name: string; sql: string }[] = [];
   let backup: string | null = null;
-  if (file && current > 0 && current < files.length) {
-    backup = `${file}.before-migrations-${stamp()}`;
-    sqlite.exec(`VACUUM INTO '${backup.replace(/'/g, "''")}'`);
-  }
-  for (let i = current; i < files.length; i++) {
-    sqlite.exec('BEGIN');
-    try {
-      sqlite.exec(files[i].sql);
-      sqlite.exec(`PRAGMA user_version = ${i + 1}`);
-      sqlite.exec('COMMIT');
-    } catch (err) {
-      sqlite.exec('ROLLBACK');
-      sqlite.close();
-      throw new Error(`Falha ao aplicar a migração ${files[i].name}: ${err instanceof Error ? err.message : err}`);
+  try {
+    sqlite.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+    if (file) sqlite.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
+    // minúsculas também para letras fora do ASCII ("ação" / "AÇÃO"): usado nas buscas sem diferenciar maiúsculas
+    sqlite.function('ulower', { deterministic: true }, (value) => (typeof value === 'string' ? value.toLowerCase() : value));
+
+    // migrações
+    files = migrationFiles();
+    const current = Number((sqlite.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
+    if (current > files.length) throw new Error(`O banco foi criado por uma versão mais nova do Stylo (esquema ${current}, esta versão conhece ${files.length}).`);
+    if (file && current > 0 && current < files.length) {
+      backup = `${file}.before-migrations-${stamp()}`;
+      sqlite.exec(`VACUUM INTO '${backup.replace(/'/g, "''")}'`);
     }
+    for (let i = current; i < files.length; i++) {
+      sqlite.exec('BEGIN');
+      try {
+        sqlite.exec(files[i].sql);
+        sqlite.exec(`PRAGMA user_version = ${i + 1}`);
+        sqlite.exec('COMMIT');
+      } catch (err) {
+        try { sqlite.exec('ROLLBACK'); } catch { /* o banco pode já ter recusado a operação */ }
+        throw new Error(`Falha ao aplicar a migração ${files[i].name}: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  } catch (err) {
+    try { sqlite.close(); } catch { /* garante cleanup também no Windows */ }
+    throw err;
   }
 
   const engine = createEngine(sqlite);
