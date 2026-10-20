@@ -1,47 +1,81 @@
-# Designer Estudo
+# Stylo
 
-Editor independente inspirado no [StyloDesigner](https://github.com/Kaykygnb/StyloDesigner), reduzido a **HTML, CSS e JavaScript nativos**. Abre direto no canvas: sem login, banco, React, TypeScript, build, APIs ou pacotes de produção.
+Editor de design que roda no seu computador. Você (ou um agente de IA) desenha pranchetas, textos, formas e vetores, organiza com layout automático e exporta páginas HTML prontas, SVG e PNG.
+
+Só HTML, CSS e JavaScript. Não tem `npm install`, banco de dados nem login.
 
 ## Rodar
 
-Com Node.js 20 ou superior:
+Precisa do Node.js 20 ou mais novo.
 
 ```sh
 npm start
 ```
 
-Abra http://localhost:3000. Não precisa executar `npm install`. O servidor serve somente os cinco arquivos da interface. `PORT` e `HOST` podem ser configurados; o padrão é acesso local em `127.0.0.1:3000`.
+Abra http://localhost:3000. Os projetos são salvos como arquivos `.json` na pasta `projetos/`. Antes de cada gravação, a versão anterior fica guardada em `.bak`. Apagar um projeto só renomeia o arquivo; ele não some de vez.
 
-Também funciona com um servidor estático, por exemplo `python3 -m http.server 3000`. Use HTTP para carregar os módulos JavaScript.
+Variáveis opcionais:
 
-## Ferramentas
+- `PORT`: porta (padrão 3000).
+- `STYLO_DATA`: outra pasta para os projetos.
 
-- Seleção múltipla com Shift, mover, redimensionar, duplicar, copiar/colar e excluir.
-- Frames, seções, retângulos, elipses, linhas, polígonos, estrelas, texto, traços livres e imagens locais.
-- Camadas com visibilidade e bloqueio; renomear com duplo clique; agrupamento, ordem e alinhamento entre irmãos.
-- Inspetor com posição, tamanho, rotação, opacidade, preenchimento, borda, raio, sombra e tipografia.
-- Páginas, pan, zoom, desfazer/refazer, prévia e exportação HTML e SVG com `foreignObject`.
-- Salvamento automático no `localStorage`; JSON para transportar ou guardar projetos. Imagens são incorporadas como data URLs.
-- Formas inteiramente desenhadas dentro de um frame são adicionadas como suas filhas.
+Sem o servidor (abrindo os arquivos com outro servidor estático), o editor funciona, mas salva só no navegador.
 
-Atalhos: V selecionar, H mão, F frame, S seção, R retângulo, E elipse, L linha, T texto, P caneta; Espaço + arrastar para pan; Ctrl/⌘ + roda para zoom; Ctrl/⌘+Z desfazer; Shift+Ctrl/⌘+Z refazer; Ctrl/⌘+D duplicar; Ctrl/⌘+G agrupar; Shift+Ctrl/⌘+G desagrupar; Ctrl/⌘+S baixar JSON. Setas movem 1 px, Shift+setas 10 px.
+## Como fazer um site
 
-## Estrutura para estudo
+1. Aperte `F` e clique no canvas: aparece uma prancheta de 1440 × 900. Cada prancheta vira uma página.
+2. Coloque textos (`T`), retângulos (`R`), imagens (arraste o arquivo para a tela) e vetores (`P`).
+3. Selecione os itens e aperte `Shift+A`: eles entram num **layout automático** (flexbox). É isso que deixa a página boa no celular.
+4. Para ligar páginas, selecione um botão e escolha a prancheta em **Link**.
+5. Clique em **Visualizar** para testar no tamanho de celular, tablet ou tela cheia.
+6. Em **Exportar → Site inteiro**, você baixa um `.zip` com uma página `.html` por prancheta. A primeira vira `index.html`.
 
-- `index.html`: estrutura do editor.
-- `tokens.css`: tokens visuais preservados do Stylo (MIT).
-- `styles.css`: layout e aparência do editor.
-- `model.js`: documento, busca de camadas, geometria adaptada do Stylo, validação e exportação.
-- `app.js`: estado, ferramentas, interação com canvas e armazenamento local.
-- `server.js`: servidor estático com módulos nativos do Node.
-- `tests/model.test.js`: validação, exportação segura e camadas aninhadas; execute `npm test`.
+Aperte `?` no editor para ver todos os atalhos.
 
-## Diferenças em relação ao Stylo
+## Vetores
 
-Esta é uma reimplementação leve do núcleo visual, não uma conversão integral de cada recurso do monorepo. Foram removidos servidor de aplicação, banco/Prisma, autenticação, workspaces, MCP/agentes e colaboração. Não inclui comentários, protótipos, componentes reutilizáveis, auto layout, operações booleanas ou edição Bézier/nós. Caneta e lápis produzem polilinhas livres. Os JSONs desta versão possuem formato próprio e não importam documentos do Stylo original.
+- Caneta (`P`): clique cria ponto reto, clique e arraste cria curva. Clique no primeiro ponto para fechar. Enter termina.
+- Lápis (`B`): traço livre, suavizado sozinho.
+- Duplo clique num vetor ou forma: edita os pontos. Arraste pontos e alças. Duplo clique num ponto troca entre reto e curvo. Alt solta a alça do outro lado.
+- Selecione duas formas ou mais para **unir, subtrair, interseção ou excluir**. A combinação continua editável.
+- Exportar SVG gera vetor de verdade, com o texto como `<text>`.
 
-O redimensionamento de grupos altera sua caixa, sem escalar os filhos; desagrupar exige rotação zero. A exportação SVG usa HTML em `foreignObject` e depende do suporte do aplicativo de destino. O histórico fica apenas em memória. O projeto atual fica neste navegador/origem; limpezas dos dados do navegador podem apagá-lo, então baixe JSONs para manter cópias. Se a cota local encher, o editor avisa para salvar o arquivo.
+## Agentes de IA (MCP)
 
-## Licença
+O servidor tem um endpoint MCP em `http://localhost:3000/mcp` (HTTP, JSON-RPC). Um agente consegue:
 
-MIT. Tokens visuais e geometria de polígonos/estrelas derivados do StyloDesigner; autoria original preservada em `LICENSE`.
+- `list_projects`, `create_project`, `get_project`
+- `add_page`, `add_layers` (com filhos aninhados), `update_layers`, `delete_layers`, `move_layer`, `combine_shapes`
+- `export_html`, `export_svg` (com `save: true` grava o `.svg`), `export_png`
+
+**Ícones:** o agente desenha em camadas (formas e vetores), junta com `combine_shapes` (unir, subtrair, interseção, excluir) e exporta. O SVG e o PNG ficam em `projetos/exportados/`. Para o PNG, o projeto precisa estar aberto no Stylo no navegador, porque é o navegador que desenha a imagem.
+
+O que o agente muda aparece na hora no editor aberto. Se você e o agente mexerem ao mesmo tempo, as mudanças são juntadas camada por camada, e Ctrl+Z desfaz a do agente.
+
+Exemplo de configuração num cliente MCP que aceita HTTP:
+
+```json
+{ "mcpServers": { "stylo": { "type": "http", "url": "http://localhost:3000/mcp" } } }
+```
+
+## Segurança
+
+- O servidor só escuta em `127.0.0.1` e recusa pedidos vindos de outros sites (proteção contra DNS rebinding e CSRF). `STYLO_ALLOW_REMOTE=1` libera, por sua conta e risco.
+- Todo projeto passa por validação: só campos conhecidos, cores em hex, links `https` ou para outra prancheta, imagens embutidas PNG/JPEG/WebP/GIF.
+
+## Arquivos
+
+- `index.html`, `styles.css`, `tokens.css`, `icons.js`: a interface.
+- `app.js`: o editor (ferramentas, canvas, painéis, salvar).
+- `model.js`: o documento, geometria, validação e exportação (usado pelo editor e pelo servidor).
+- `server.js`: servidor, arquivos de projeto e eventos ao vivo.
+- `agent.js`: as ferramentas MCP para agentes.
+- `tests/`: `npm test`.
+
+## Limites honestos
+
+- Um projeto por arquivo e um usuário por vez no computador. Não é colaboração em tempo real entre pessoas.
+- O layout automático cobre linha, coluna, espaço, margem, alinhamento e quebra de linha. Não tem grid nem breakpoints manuais.
+- Fontes: usa as fontes do sistema (Arial, Georgia, Verdana etc.). Não baixa fontes da internet.
+
+Licença MIT. Os tokens visuais vêm do projeto original Stylo.

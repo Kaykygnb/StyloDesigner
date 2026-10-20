@@ -3,68 +3,123 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Designer Estudo</title>
+    <title>Stylo</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="tokens.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header>
-      <strong>◈ Designer Estudo</strong
-      ><input id="title" aria-label="Nome do projeto" value="Sem título" /><span
-        id="status"
-        role="status"
-        >Local</span
-      ><button data-action="undo" title="Ctrl+Z">↶</button
-      ><button data-action="redo" title="Ctrl+Shift+Z">↷</button
-      ><button data-action="new">Novo</button
-      ><button data-action="open">Abrir</button
-      ><button data-action="save">Salvar JSON</button
-      ><button data-action="export">Exportar HTML</button
-      ><button data-action="svg">SVG</button
-      ><button data-action="preview">▶</button>
+      <span class="brand" id="brand"></span>
+      <input id="title" aria-label="Nome do projeto" value="Sem título" spellcheck="false" />
+      <span id="status" role="status"></span>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-action="undo" data-tip="Desfazer (Ctrl+Z)" aria-label="Desfazer"></button>
+      <button class="icon-btn" data-action="redo" data-tip="Refazer (Ctrl+Shift+Z)" aria-label="Refazer"></button>
+      <span class="sep"></span>
+      <button data-action="projects" data-icon="folder">Projetos</button>
+      <div class="menu-wrap">
+        <button data-action="export-menu" data-icon="download" aria-haspopup="menu">Exportar</button>
+        <div class="menu" id="export-menu" role="menu" hidden>
+          <button role="menuitem" data-action="export-site">Site inteiro (.zip, uma página por prancheta)</button>
+          <button role="menuitem" data-action="export-html">HTML da prancheta selecionada</button>
+          <button role="menuitem" data-action="export-svg">SVG da seleção</button>
+          <button role="menuitem" data-action="export-png">PNG da seleção (2×)</button>
+          <hr />
+          <button role="menuitem" data-action="save-json">Arquivo do projeto (.json)</button>
+        </div>
+      </div>
+      <button class="primary" data-action="preview" data-icon="play">Visualizar</button>
+      <button class="icon-btn" data-action="help" data-tip="Atalhos (?)" aria-label="Ajuda"></button>
     </header>
+
     <aside id="left">
-      <div class="heading">PÁGINAS <button data-action="page">+</button></div>
-      <div id="pages"></div>
-      <div class="heading">CAMADAS</div>
-      <div id="layers"></div>
-      <p class="hint">
-        Shift + clique: selecionar várias<br />Ctrl+D: duplicar · Delete:
-        excluir<br />Ctrl+G: agrupar · Shift+Ctrl+G: desagrupar<br />Espaço +
-        arrastar: mover canvas<br />Ctrl + roda: zoom
-      </p>
+      <section>
+        <div class="heading">Páginas <button class="icon-btn small" data-action="add-page" data-tip="Nova página" aria-label="Nova página"></button></div>
+        <div id="pages"></div>
+      </section>
+      <section class="grow">
+        <div class="heading">Camadas</div>
+        <div id="layers" role="tree"></div>
+      </section>
+      <section>
+        <div class="heading">Componentes</div>
+        <div id="components"></div>
+      </section>
     </aside>
+
     <main id="stage" tabindex="0" aria-label="Canvas de design">
       <div id="world"></div>
-      <div id="empty">Escolha uma ferramenta e desenhe no canvas</div>
+      <div id="overlay"></div>
+      <canvas id="ruler-x" aria-hidden="true"></canvas>
+      <canvas id="ruler-y" aria-hidden="true"></canvas>
+      <div id="ruler-corner"></div>
+      <div id="empty" hidden>
+        <b>Comece por uma prancheta</b>
+        <span>Aperte <kbd>F</kbd> e arraste no canvas (ou só clique para uma de 1440 × 900).</span>
+        <span>Depois use <kbd>R</kbd> retângulo, <kbd>T</kbd> texto, <kbd>P</kbd> caneta. <kbd>?</kbd> mostra todos os atalhos.</span>
+      </div>
     </main>
+
     <aside id="right">
-      <div class="heading">DESIGN</div>
       <div id="inspector"></div>
     </aside>
+
     <nav id="toolbar" aria-label="Ferramentas"></nav>
+
     <footer>
-      <span id="tool-name">Selecionar</span
-      ><span>HTML · CSS · JS / sem banco</span
-      ><button data-action="zoomout">−</button
-      ><button id="zoom" data-action="reset">100%</button
-      ><button data-action="zoomin">+</button>
+      <span id="tool-name"></span>
+      <span id="coords"></span>
+      <span class="spacer"></span>
+      <button class="icon-btn small" data-action="zoomout" data-tip="Diminuir zoom (Ctrl −)" aria-label="Diminuir zoom"></button>
+      <button id="zoom" data-action="zoom100" data-tip="Zoom 100% (Ctrl+0)">100%</button>
+      <button class="icon-btn small" data-action="zoomin" data-tip="Aumentar zoom (Ctrl +)" aria-label="Aumentar zoom"></button>
+      <button class="icon-btn small" data-action="fit" data-tip="Ver tudo (Shift+1)" aria-label="Ver tudo"></button>
     </footer>
-    <input
-      hidden
-      type="file"
-      id="open-file"
-      accept="application/json,.json"
-    /><input
-      hidden
-      type="file"
-      id="image-file"
-      accept="image/png,image/jpeg,image/webp,image/gif"
-    />
+
+    <input hidden type="file" id="open-file" accept="application/json,.json,.stylo" />
+    <input hidden type="file" id="image-file" accept="image/png,image/jpeg,image/webp,image/gif" />
+
     <dialog id="preview">
-      <button data-action="close-preview">Fechar</button
-      ><iframe title="Prévia do projeto" sandbox=""></iframe>
+      <div class="dialog-bar">
+        <b id="preview-title">Visualizar</b>
+        <select id="preview-frame" aria-label="Prancheta"></select>
+        <span class="spacer"></span>
+        <button data-action="preview-width" data-w="390">Celular</button>
+        <button data-action="preview-width" data-w="820">Tablet</button>
+        <button data-action="preview-width" data-w="">Tela cheia</button>
+        <button class="icon-btn" data-action="close-dialog" aria-label="Fechar"></button>
+      </div>
+      <div class="preview-area"><iframe title="Prévia do site" sandbox="allow-scripts"></iframe></div>
     </dialog>
+
+    <dialog id="projects">
+      <div class="dialog-bar">
+        <b>Projetos</b>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-action="close-dialog" aria-label="Fechar"></button>
+      </div>
+      <div class="dialog-body">
+        <p id="projects-where" class="muted"></p>
+        <div class="row-actions">
+          <button class="primary" data-action="new-project" data-icon="plus">Novo projeto</button>
+          <button data-action="open-json" data-icon="upload">Importar .json</button>
+          <button data-action="save-json" data-icon="download">Baixar este projeto</button>
+        </div>
+        <div id="project-list"></div>
+      </div>
+    </dialog>
+
+    <dialog id="help">
+      <div class="dialog-bar">
+        <b>Atalhos</b>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-action="close-dialog" aria-label="Fechar"></button>
+      </div>
+      <div class="dialog-body help-grid" id="help-body"></div>
+    </dialog>
+
+    <div id="toast" role="status" hidden></div>
     <script type="module" src="app.js"></script>
   </body>
 </html>
