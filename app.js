@@ -192,6 +192,7 @@ async function openProject(id) {
     if (store.saving || store.timer || gestureActive || editingText || pen) store.stale = true;
     else reloadRemote(by);
   });
+  store.es.addEventListener("render", (e) => renderForAgent(JSON.parse(e.data)));
   status("Salvo no computador", "ok");
   requestAnimationFrame(() => fit(page().nodes));
 }
@@ -1857,28 +1858,57 @@ function exportSVGFile() {
   if (!ns.length) return toast("Selecione algo para exportar.", true);
   download(M.exportSVG(doc, ns, svgOpts()), "image/svg+xml", `${M.slug(ns.length === 1 ? ns[0].name : doc.title)}.svg`);
 }
-async function exportPNG(scale = 2) {
-  closeMenus();
-  const ns = exportTargets();
-  if (!ns.length) return toast("Selecione algo para exportar.", true);
-  const svg = M.exportSVG(doc, ns, svgOpts());
-  const w = +svg.match(/width="(\d+)"/)[1],
-    h = +svg.match(/height="(\d+)"/)[1];
+// Desenha as camadas num PNG (o navegador transforma o SVG exportado em imagem).
+async function renderPNG(ns, scale = 2) {
+  const onPage = ns.every((n) => M.find(page().nodes, n.id));
+  const svg = M.exportSVG(doc, ns, onPage ? svgOpts() : { measure: svgOpts().measure });
+  const w = +svg.match(/width="([\d.]+)"/)[1],
+    h = +svg.match(/height="([\d.]+)"/)[1];
   const img = new Image();
   img.src = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     await img.decode();
     const c = document.createElement("canvas");
-    c.width = Math.ceil(w * scale);
-    c.height = Math.ceil(h * scale);
+    c.width = Math.max(1, Math.ceil(w * scale));
+    c.height = Math.max(1, Math.ceil(h * scale));
     const g = c.getContext("2d");
     g.scale(scale, scale);
     g.drawImage(img, 0, 0, w, h);
-    c.toBlob((b) => download(b, "image/png", `${M.slug(ns.length === 1 ? ns[0].name : doc.title)}@${scale}x.png`), "image/png");
-  } catch {
-    toast("Não consegui gerar o PNG.", true);
+    return await new Promise((ok) => c.toBlob(ok, "image/png"));
   } finally {
     URL.revokeObjectURL(img.src);
+  }
+}
+async function exportPNG(scale = 2) {
+  closeMenus();
+  const ns = exportTargets();
+  if (!ns.length) return toast("Selecione algo para exportar.", true);
+  try {
+    download(await renderPNG(ns, scale), "image/png", `${M.slug(ns.length === 1 ? ns[0].name : doc.title)}@${scale}x.png`);
+  } catch {
+    toast("Não consegui gerar o PNG.", true);
+  }
+}
+// Um agente pediu um PNG: o servidor não sabe desenhar, então o editor aberto desenha e devolve.
+async function renderForAgent({ req, ids, scale, rev }) {
+  const reply = (body) => api(`/api/projects/${store.id}/renders/${req}`, { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+  try {
+    // espera o editor estar com a versão que o agente acabou de salvar
+    for (let i = 0; i < 60 && store.rev < rev; i++) {
+      if (i === 5 && !store.saving) await reloadRemote("agente");
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const ns = (ids?.length ? ids.map((id) => M.findInDoc(doc, id)?.node) : [M.artboards(doc)[0]?.frame]).filter(Boolean);
+    if (!ns.length) return reply({ error: "Nenhuma camada encontrada para desenhar" });
+    const blob = await renderPNG(ns, Math.max(0.1, Math.min(8, scale || 2)));
+    const data = await new Promise((ok) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result);
+      r.readAsDataURL(blob);
+    });
+    reply({ png: data });
+  } catch (e) {
+    reply({ error: "O navegador não conseguiu desenhar: " + e.message });
   }
 }
 

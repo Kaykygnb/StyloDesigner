@@ -82,6 +82,32 @@ export const store = {
     await rename(file(id), `${file(id)}.apagado-${Date.now()}`); // não apaga de verdade: renomeia
   },
 };
+// PNG pedido por um agente: quem desenha é o editor aberto no navegador.
+const renders = new Map(); // id do pedido -> { project, resolve, reject, timer }
+store.render = function (id, ids, scale) {
+  const open = listeners.get(id);
+  if (!open?.size) return Promise.reject(new Error(`Para gerar PNG, abra este projeto no Stylo (http://localhost:${PORT}). O PNG é desenhado pelo navegador. Enquanto isso, export_svg funciona sem o editor aberto.`));
+  const req = uid().slice(0, 12);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      renders.delete(req);
+      reject(new Error("O editor não respondeu a tempo. Confira se o Stylo está aberto e tente de novo."));
+    }, 20000);
+    renders.set(req, { project: id, resolve, reject, timer });
+    const data = JSON.stringify({ req, ids, scale, rev: revs.get(id) || 1 });
+    for (const res of open) res.write(`event: render\ndata: ${data}\n\n`);
+  });
+};
+// arquivos exportados (PNG/SVG) ficam em projetos/exportados
+store.saveExport = async function (name, content) {
+  const dir = path.join(DATA, "exportados");
+  await mkdir(dir, { recursive: true });
+  const ext = path.extname(name);
+  const base = (path.basename(name, ext).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "arquivo").slice(0, 60);
+  const full = path.join(dir, base + ext);
+  await writeFile(full, content);
+  return full;
+};
 function httpError(status, message) {
   return Object.assign(new Error(message), { status });
 }
@@ -137,6 +163,7 @@ async function mcp(req, res) {
     if (m.method === "tools/call") {
       try {
         const out = await callTool(store, m.params?.name, m.params?.arguments || {});
+        if (out?.image) return ok({ content: [{ type: "image", data: out.image, mimeType: "image/png" }, { type: "text", text: out.text }] });
         return ok({ content: [{ type: "text", text: typeof out === "string" ? out : JSON.stringify(out, null, 2) }] });
       } catch (e) {
         return ok({ content: [{ type: "text", text: "Erro: " + e.message }], isError: true });
@@ -163,6 +190,16 @@ async function api(req, res, parts) {
       const doc = b.doc ? validate(b.doc) : fresh(String(b.title || "Sem título"));
       return send(res, 201, { ...(await store.create(doc, "editor")), doc });
     }
+  }
+  if (id && extra === "renders" && parts[4] && req.method === "POST") {
+    const r = renders.get(parts[4]);
+    if (!r || r.project !== id) throw httpError(404, "Pedido de PNG não encontrado");
+    const b = await body(req);
+    renders.delete(parts[4]);
+    clearTimeout(r.timer);
+    if (typeof b.png === "string" && b.png.startsWith("data:image/png;base64,")) r.resolve(Buffer.from(b.png.slice(22), "base64"));
+    else r.reject(new Error(String(b.error || "O editor não devolveu o PNG")));
+    return send(res, 200, { ok: true });
   }
   if (id && extra === "events" && req.method === "GET") {
     await store.read(id);

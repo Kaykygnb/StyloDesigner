@@ -46,7 +46,9 @@ O servidor tem um endpoint MCP em `http://localhost:3000/mcp` (HTTP, JSON-RPC). 
 
 - `list_projects`, `create_project`, `get_project`
 - `add_page`, `add_layers` (com filhos aninhados), `update_layers`, `delete_layers`, `move_layer`, `combine_shapes`
-- `export_html`, `export_svg`
+- `export_html`, `export_svg` (com `save: true` grava o `.svg`), `export_png`
+
+**Ícones:** o agente desenha em camadas (formas e vetores), junta com `combine_shapes` (unir, subtrair, interseção, excluir) e exporta. O SVG e o PNG ficam em `projetos/exportados/`. Para o PNG, o projeto precisa estar aberto no Stylo no navegador, porque é o navegador que desenha a imagem.
 
 O que o agente muda aparece na hora no editor aberto. Se você e o agente mexerem ao mesmo tempo, as mudanças são juntadas camada por camada, e Ctrl+Z desfaz a do agente.
 

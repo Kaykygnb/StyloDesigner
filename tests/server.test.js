@@ -79,3 +79,36 @@ test("apagar projeto não destrói o arquivo de vez", async () => {
   assert.equal((await json(`/api/projects/${body.id}`)).status, 404);
   assert.ok((await readdir(dir)).some((f) => f.startsWith(body.id) && f !== `${body.id}.json`));
 });
+
+test("agente pede PNG: o editor aberto desenha e o arquivo vai para exportados", async () => {
+  const { projectId } = await tool("create_project", { title: "Ícones" });
+  await assert.rejects(tool("export_png", { projectId }), /abra este projeto no Stylo/);
+  const made = (await tool("add_layers", { projectId, layers: [{ type: "ellipse", w: 64, h: 64 }, { type: "star", x: 16, y: 16, w: 32, h: 32 }] })).created;
+  const { id } = await tool("combine_shapes", { projectId, ids: made.map((m) => m.id), op: "subtract", name: "Ícone" });
+  // finge ser o editor: escuta os eventos e devolve um PNG de 1 pixel
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const ctrl = new AbortController();
+  const events = await fetch(`${base}/api/projects/${projectId}/events`, { signal: ctrl.signal });
+  const reader = events.body.getReader();
+  (async () => {
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read().catch(() => ({ done: true }));
+      if (done) return;
+      buf += new TextDecoder().decode(value);
+      const m = buf.match(/event: render\ndata: (.+)\n/);
+      if (m) {
+        const { req, ids } = JSON.parse(m[1]);
+        assert.deepEqual(ids, [id]);
+        await json(`/api/projects/${projectId}/renders/${req}`, { method: "POST", body: JSON.stringify({ png }) });
+        return;
+      }
+    }
+  })();
+  await new Promise((r) => setTimeout(r, 50));
+  const r = await mcp("tools/call", { name: "export_png", arguments: { projectId, ids: [id], scale: 4 } });
+  ctrl.abort();
+  assert.equal(r.result.content[0].type, "image");
+  assert.match(r.result.content[1].text, /exportados.icone-4x\.png/);
+  assert.ok((await readdir(path.join(dir, "exportados"))).includes("icone-4x.png"));
+});

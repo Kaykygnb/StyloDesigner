@@ -22,7 +22,8 @@ Como o projeto é organizado:
 - component: true num frame transforma em componente; uma camada { type: "instance", ref: idDoComponente } reutiliza.
 
 Trabalhe assim: get_project para ver ids, add_layers para criar (pode mandar filhos aninhados), update_layers para mudar,
-e export_html para conferir o resultado. A pessoa pode estar editando ao mesmo tempo: leia de novo antes de grandes mudanças.`;
+export_html para conferir o resultado, export_svg/export_png para ícones.
+Ícones: desenhe em camadas (formas e vetores), junte com combine_shapes e exporte. Para PNG o projeto precisa estar aberto no Stylo. A pessoa pode estar editando ao mesmo tempo: leia de novo antes de grandes mudanças.`;
 
 const S = { type: "string" },
   N = { type: "number" },
@@ -54,11 +55,21 @@ export const TOOLS = [
   },
   {
     name: "combine_shapes",
-    description: "Combina formas irmãs num vetor: op = union | subtract | intersect | exclude.",
-    inputSchema: { type: "object", properties: { projectId: S, ids: { type: "array", items: S }, op: S }, required: ["projectId", "ids", "op"] },
+    description: "Combina formas irmãs num vetor: op = union | subtract | intersect | exclude. Em subtract, a forma de baixo (a primeira criada) perde o formato das outras. name opcional.",
+    inputSchema: { type: "object", properties: { projectId: S, ids: { type: "array", items: S }, op: S, name: S }, required: ["projectId", "ids", "op"] },
   },
   { name: "export_html", description: "Devolve o HTML da prancheta (frame da raiz) como página pronta. Sem frameId usa a primeira prancheta.", inputSchema: { type: "object", properties: { projectId: S, frameId: S }, required: ["projectId"] } },
-  { name: "export_svg", description: "Devolve um SVG com as camadas pedidas.", inputSchema: { type: "object", properties: { projectId: S, ids: { type: "array", items: S } }, required: ["projectId", "ids"] } },
+  {
+    name: "export_svg",
+    description: "Devolve um SVG com as camadas pedidas. save=true também grava o arquivo em projetos/exportados e devolve o caminho.",
+    inputSchema: { type: "object", properties: { projectId: S, ids: { type: "array", items: S }, save: { type: "boolean" }, fileName: S }, required: ["projectId", "ids"] },
+  },
+  {
+    name: "export_png",
+    description:
+      "Gera um PNG das camadas (ex.: um ícone) e grava em projetos/exportados. Precisa do projeto aberto no Stylo no navegador, que é quem desenha. scale = 1 a 8 (padrão 2). Devolve a imagem e o caminho do arquivo.",
+    inputSchema: { type: "object", properties: { projectId: S, ids: { type: "array", items: S }, scale: N, fileName: S }, required: ["projectId"] },
+  },
 ];
 
 const outline = (nodes, depth = 0) =>
@@ -135,7 +146,21 @@ export async function callTool(store, name, args = {}) {
     if (node.type !== "frame") fail("export_html precisa de um frame");
     return exportFrameHTML(doc, node, { links: siteNames(doc) });
   }
-  if (name === "export_svg") return exportSVG(doc, (args.ids || []).map((id) => nodeOf(doc, id).node));
+  if (name === "export_svg") {
+    const nodes = (args.ids || []).map((id) => nodeOf(doc, id).node);
+    const svg = exportSVG(doc, nodes);
+    if (!args.save) return svg;
+    const file = await store.saveExport((args.fileName || nodes[0]?.name || doc.title) + ".svg", svg);
+    return `Salvo em ${file}\n\n${svg}`;
+  }
+  if (name === "export_png") {
+    const ids = (args.ids || []).map((id) => nodeOf(doc, id).node.id);
+    const scale = Math.max(1, Math.min(8, Number(args.scale) || 2));
+    const png = await store.render(args.projectId, ids, scale);
+    const first = ids[0] ? nodeOf(doc, ids[0]).node.name : doc.title;
+    const file = await store.saveExport(`${args.fileName || first}@${scale}x.png`, png);
+    return { image: png.toString("base64"), text: `PNG salvo em ${file}` };
+  }
   let result;
   if (name === "add_page") {
     const p = { id: uid(), name: String(args.name || "Página"), nodes: [] };
@@ -194,6 +219,7 @@ export async function callTool(store, name, args = {}) {
     if (locs.some((l) => l.list !== locs[0].list)) fail("As formas precisam ter o mesmo pai");
     const nodes = locs.sort((a, b) => a.index - b.index).map((l) => l.list[l.index]);
     const g = makeBoolean(nodes, args.op);
+    if (args.name) g.name = String(args.name).slice(0, 200);
     const list = locs[0].list;
     const at = Math.max(...locs.map((l) => l.index)) - nodes.length + 1;
     for (const n of nodes) list.splice(list.indexOf(n), 1);
