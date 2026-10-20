@@ -1,32 +1,3 @@
 node_modules/
 .DS_Store
 *.log
-
-# dados locais do usuário (projetos salvos pelo servidor e a configuração da pasta)
-projetos/
-designer.config.json
-
-# conta local (perfil) e configurações temporárias de teste
-designer.account.json
-tmp-config*
-capturas-fase1/
-
-# capturas de tela dos testes (não vão para o git)
-capturas/
-
-apps/web/dist/
-
-packages/db/src/generated/
-
-designer.db/
-*.db/
-# cópias de segurança feitas antes de migrações do banco
-designer.db.*/
-
-# segredos e dados locais do servidor
-*.secret
-*.blobs/
-designer.config.json
-
-# painel novo
-apps/studio/dist/

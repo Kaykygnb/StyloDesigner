@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Designer Estudo</title>
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <strong>◈ Designer Estudo</strong
+      ><input id="title" aria-label="Nome do projeto" value="Sem título" /><span
+        id="status"
+        role="status"
+        >Local</span
+      ><button data-action="undo" title="Ctrl+Z">↶</button
+      ><button data-action="redo" title="Ctrl+Shift+Z">↷</button
+      ><button data-action="new">Novo</button
+      ><button data-action="open">Abrir</button
+      ><button data-action="save">Salvar JSON</button
+      ><button data-action="export">Exportar HTML</button
+      ><button data-action="svg">SVG</button
+      ><button data-action="preview">▶</button>
+    </header>
+    <aside id="left">
+      <div class="heading">PÁGINAS <button data-action="page">+</button></div>
+      <div id="pages"></div>
+      <div class="heading">CAMADAS</div>
+      <div id="layers"></div>
+      <p class="hint">
+        Shift + clique: selecionar várias<br />Ctrl+D: duplicar · Delete:
+        excluir<br />Ctrl+G: agrupar · Shift+Ctrl+G: desagrupar<br />Espaço +
+        arrastar: mover canvas<br />Ctrl + roda: zoom
+      </p>
+    </aside>
+    <main id="stage" tabindex="0" aria-label="Canvas de design">
+      <div id="world"></div>
+      <div id="empty">Escolha uma ferramenta e desenhe no canvas</div>
+    </main>
+    <aside id="right">
+      <div class="heading">DESIGN</div>
+      <div id="inspector"></div>
+    </aside>
+    <nav id="toolbar" aria-label="Ferramentas"></nav>
+    <footer>
+      <span id="tool-name">Selecionar</span
+      ><span>HTML · CSS · JS / sem banco</span
+      ><button data-action="zoomout">−</button
+      ><button id="zoom" data-action="reset">100%</button
+      ><button data-action="zoomin">+</button>
+    </footer>
+    <input
+      hidden
+      type="file"
+      id="open-file"
+      accept="application/json,.json"
+    /><input
+      hidden
+      type="file"
+      id="image-file"
+      accept="image/png,image/jpeg,image/webp,image/gif"
+    />
+    <dialog id="preview">
+      <button data-action="close-preview">Fechar</button
+      ><iframe title="Prévia do projeto" sandbox=""></iframe>
+    </dialog>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
